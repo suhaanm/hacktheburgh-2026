@@ -32,3 +32,12 @@ export function touchesSentence(r: Pick<Routine, "touches" | "proposal">): strin
   const head = t.length === 1 ? t[0] : `${t.slice(0, -1).join(", ")} and ${t[t.length - 1]}`;
   return `Touches ${head}.`;
 }
+
+/** The headline of Routines: what is going on for the worker right now, most urgent first. Empty when nothing is (the empty state says it). */
+export function routinesHeadline(i: { tasksRunning: number; routinesRunning: number; couldMinutes: number }): string {
+  const { tasksRunning: t, routinesRunning: n, couldMinutes: m } = i;
+  if (t > 0) return `${t === 1 ? "1 task is" : `${t} tasks are`} working in the background${n > 0 ? `, and ${n === 1 ? "1 routine runs" : `${n} routines run`} for you` : ""}.`;
+  if (n > 0) return `${n === 1 ? "1 routine runs" : `${n} routines run`} for you.`;
+  if (Number.isFinite(m) && m >= 30) return `About ${m >= 90 ? `${Math.round(m / 6) / 10} hours` : `${Math.round(m)} minutes`} a week could be handed over.`;
+  return "";
+}

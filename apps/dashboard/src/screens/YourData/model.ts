@@ -97,3 +97,10 @@ export function deleteResultText(parts: DeletePart[]): string {
   const ok = parts.filter((p) => p.ok).map((p) => p.part);
   return `${ok.length ? `Cleared: ${ok.join(", ")}. ` : "Nothing was cleared. "}Not cleared: ${bad.map((p) => `${p.part}${p.note ? ` (${p.note})` : ""}`).join(", ")}. Try again.`;
 }
+
+/** The headline of Your data: how much Knack remembers, and that it stays on this Mac. */
+export function dataHeadline(i: { lines: number; capture: boolean | null }): string {
+  const n = Math.max(0, Math.floor(i.lines));
+  const base = n === 0 ? "Knack remembers nothing about you yet" : `Knack remembers ${n} ${n === 1 ? "thing" : "things"} about you`;
+  return `${base}, on this Mac only${i.capture ? ", and learns from when you are active" : ""}.`;
+}

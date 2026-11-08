@@ -1,6 +1,8 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import { ApiError, api } from "../api";
+import { useViewRole } from "../components/home/viewAs";
 import { useLoad } from "../hooks";
+import { useLive, useRegisteredStreams } from "../lib/live";
 import { CheckChip, EmptyState, ErrorState, Loading, PageHead, SourceNote, StatePill } from "../components/common";
 import { OriginBadge } from "../components/needsyou/Origin";
 import { Hint } from "../components/Hint";
@@ -13,9 +15,17 @@ import { KIND_DOES, budgetBars, childResults, countStates, falseClaim, fmtClock,
 import { fmtDateTime } from "../lib/format";
 import type { AgentKind, AgentNode, AgentRun, SpawnKind } from "../types";
 
-const POLL_MS = 3000;
-
+/**
+ * Background runs: the technical view of what ran in the background (helpers, leases, budgets, run ids). It is the admin's: a worker sees their own
+ * tasks in Routines, one line each. A worker who arrives here by an address sees the one gate sentence and nothing else (docs/knack-ux/views.md).
+ */
 export default function Agents() {
+  const role = useViewRole();
+  if (role === "worker") return <div className="page page--read kc-page"><p className="kc-row__body" data-testid="admin-gate">Switch to Admin to see this.</p></div>;
+  return <BackgroundRuns />;
+}
+
+function BackgroundRuns() {
   const runs = useLoad(() => api.agentsRuns(), []);
   const loadedAt = useRef(Date.now());
   const [, tick] = useReducer((n: number) => n + 1, 0);
@@ -23,13 +33,12 @@ export default function Agents() {
 
   useEffect(() => { loadedAt.current = Date.now(); }, [runs.data]);
   const anyActive = !!runs.data?.some(runActive);
-  // While anything is running, refresh every 3 s and tick the lease clocks every second.
+  // Refresh by itself (every 2 s while anything runs, every 15 s otherwise, on focus) and tick the lease clocks every second while one runs.
+  useLive(runs.reload, anyActive, useRegisteredStreams());
   useEffect(() => {
     if (!anyActive) return;
-    const a = window.setInterval(() => runs.reload(), POLL_MS);
     const b = window.setInterval(() => tick(), 1000);
-    return () => { window.clearInterval(a); window.clearInterval(b); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => window.clearInterval(b);
   }, [anyActive]);
 
   if (runs.status === "error" && !runs.data) return <div className="page page--read kc-page"><ErrorState error={runs.error} retry={runs.reload} what="background agents" /></div>;

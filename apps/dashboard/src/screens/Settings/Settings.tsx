@@ -7,7 +7,7 @@ import { runActive } from "../../lib/agents";
 import { withMode, type Mode } from "../../lib/attention";
 import { useLoad } from "../../hooks";
 import { setState, useAppState } from "../../store";
-import type { AttentionPatch, AttentionSettings, Health } from "../../types";
+import type { AttentionPatch, AttentionSettings, Health, SkillsAnswer } from "../../types";
 import { useTheme } from "../../components/shell/theme";
 import { usePinnedViews } from "../../components/shell/pinned";
 import { STORY_LABEL, WORKER_STORIES, parseStory } from "../Home/data";
@@ -20,6 +20,8 @@ type HealthExt = Health & { key_present?: boolean };
 /** The Connections panel is another track's: it is shown only when its file exists, and never blocks Settings. */
 const CONNECTIONS = import.meta.glob("../../components/connections/ConnectionsPanel.tsx");
 const ConnectionsPanel = Object.values(CONNECTIONS)[0] ? lazy(Object.values(CONNECTIONS)[0] as () => Promise<{ default: ComponentType }>) : null;
+/** The call list, read only when Advanced is opened. */
+const AdvancedCalls = lazy(() => import("../../components/settings/AdvancedCalls"));
 
 /** Ask the engine again, every 2 s, until it says it is live (or mock) as asked, or 60 s pass. The restart takes about 20 s. */
 async function waitForMode(wantLive: boolean): Promise<boolean> {
@@ -44,6 +46,9 @@ export default function Settings({ section }: { section?: string }) {
   const runs = useLoad(() => api.agentsRuns(me), [me]);
   const attn = useLoad(() => api.attentionSettings(me), [me]);
   const today = useLoad(() => api.attentionDigest(me, "now"), [me]);
+  const skillsLoad = useLoad(() => api.skills(), []);
+  const [skills, setSkills] = useState<SkillsAnswer | null>(null);
+  useEffect(() => { setSkills(skillsLoad.source === "live" && skillsLoad.data ? skillsLoad.data : null); }, [skillsLoad.data, skillsLoad.source]);
   const bridge = useMemo(() => desktopBridge(), []);
   const liveBridge = useMemo(() => liveModelsBridge(), []);
   const [liveState, setLiveState] = useState<LiveModelsState | null>(null);
@@ -111,6 +116,11 @@ export default function Settings({ section }: { section?: string }) {
     if (types.length === 0) return;
     void apply({ modes: Object.fromEntries(types.map((t) => [t, mode])) }, (x) => types.reduce((acc, t) => withMode(acc, t, mode), x));
   };
+  const onSkills = (patch: { use_claude_skills?: boolean; off?: string[] }) => {
+    const before = skills;
+    setSkills((s) => (s ? { ...s, ...(patch.use_claude_skills !== undefined ? { use_claude_skills: patch.use_claude_skills } : {}), ...(patch.off ? { off: patch.off } : {}) } : s));
+    api.skillsSet(patch).then((r) => { if (r.data && Array.isArray(r.data.skills)) setSkills(r.data); }, () => setSkills(before));
+  };
   const onWake = (on: boolean) => {
     if (!wakeApi) return;
     const before = wake;
@@ -140,6 +150,8 @@ export default function Settings({ section }: { section?: string }) {
       stories={stories} onStory={onStory}
       pinned={pinned} onPinned={setPinned}
       version={h?.version ?? null}
+      skills={skills} onSkills={onSkills}
+      advanced={<Suspense fallback={null}><AdvancedCalls /></Suspense>}
       connections={ConnectionsPanel ? <Suspense fallback={null}><ConnectionsPanel /></Suspense> : null} />
   );
 }

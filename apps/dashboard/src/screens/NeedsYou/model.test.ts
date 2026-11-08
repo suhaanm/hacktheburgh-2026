@@ -167,3 +167,18 @@ describe("words", () => {
     expect(visible(rows.slice(0, 7), false)).toHaveLength(7);
   });
 });
+
+describe("tasks that wait for the worker", () => {
+  const consent = { task_id: "tk_1", title: "Tidy", state: "waiting_consent" as const, started: "2026-11-08T09:00:00Z", needs_consent: { scope_text: "x" } };
+  it("a consent card and a question are items; a running task with nothing to ask is not", () => {
+    const items = buildItems({ tasks: [consent, { task_id: "tk_2", title: "Ask", state: "running" as const, question: { text: "Which?", options: [] } }, { task_id: "tk_3", title: "Busy", state: "running" as const }] });
+    expect(items.map((i) => i.key).sort()).toEqual(["t:tk_1", "t:tk_2"]);
+    expect(items).toHaveLength(2);
+    expect(items.every((i) => i.kind === "task" && i.cls === 1)).toBe(true);
+  });
+  it("a finished task with an old question is not asked about again, and a duplicate id is one item", () => {
+    expect(buildItems({ tasks: [{ task_id: "tk_9", title: "x", state: "done" as const, question: { text: "Which?", options: [] } }] })).toHaveLength(0);
+    expect(buildItems({ tasks: [consent, consent] })).toHaveLength(1);
+  });
+});
+

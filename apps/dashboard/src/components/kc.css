@@ -7,6 +7,8 @@
 /* Title row: the title (22 px) and, where it is a real fact, the one origin badge. */
 .kc-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-4); }
 .kc-title { margin: 0; font: 600 var(--text-xl)/1.25 var(--font-display); letter-spacing: var(--tracking-display); }
+/* The one headline sentence under a title: what matters on this screen, in words. The data is below it, or behind a disclosure. */
+.kc-headline { margin: calc(var(--space-2) * -1) 0 0; max-width: 62ch; color: var(--fg); font-size: var(--text-md); line-height: 1.45; overflow-wrap: anywhere; }
 .kc-badges { display: inline-flex; align-items: center; gap: var(--space-2); }
 
 /* A hairline list: rows, not cards. */

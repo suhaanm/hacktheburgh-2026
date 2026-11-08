@@ -24,7 +24,7 @@ describe("Use live models", () => {
   it("is on when the engine is live, with the line that says each call is listed", () => {
     const v = liveModels({ ...base, health: live });
     expect(v).toEqual({ checked: true, disabled: false, line: LIVE_LINES.on });
-    expect(v.line).toBe("On, because a key is set. Each call is listed in Your data.");
+    expect(v.line).toBe("On, because a key is set. Every call is listed under Advanced.");
   });
   it("is off on example data and says so", () => {
     expect(liveModels(base)).toEqual({ checked: false, disabled: false, line: "Off. Everything runs on example data." });
@@ -33,7 +33,7 @@ describe("Use live models", () => {
     const v = liveModels({ ...base, health: { mock: true, key_present: false } });
     expect(v.disabled).toBe(true);
     expect(v.checked).toBe(false);
-    expect(v.line).toBe("No Gemini key found. Add it to .env and reopen Knack.");
+    expect(v.line).toBe("No key found. Add it to .env and reopen Knack.");
   });
   it("is disabled while a job is running, and says what to do", () => {
     const v = liveModels({ ...base, health: live, running: true });

@@ -5,17 +5,19 @@ import { HitList } from "../../components/repeats/HitList";
 import { heldText } from "../../components/repeats/model";
 import type { HitRow, HitState } from "../../components/repeats/types";
 import { OriginBadge, OriginDetails } from "../../components/needsyou/Origin";
+import { BackgroundTasks } from "../../components/routines/BackgroundTasks";
 import { RunningRow } from "../../components/routines/RunningRow";
 import type { Decide } from "../../components/routines/types";
 import { useToast } from "../../components/Toasts";
 import { Details } from "../../components/ui";
 import { useLoad, useTimeout } from "../../hooks";
+import { useTasks } from "../../lib/useTasks";
 import { navigate, useRoute } from "../../router";
 import { clip } from "../../lib/safeText";
 import { refreshNeedsBadge } from "../NeedsYou/count";
 import { plainWords } from "../NeedsYou/model";
 import { exampleKind, hideRow, loadRepeats, resetCounts, runNow, unhideRow } from "./data";
-import { TABS, runningRoutines, tabOf, turnedDown, type Tab } from "./model";
+import { TABS, routinesHeadline, runningRoutines, tabOf, turnedDown, type Tab } from "./model";
 import { Peek } from "./Peek";
 import { trackRoutineRun } from "../../lib/wakeContext";
 import "../../components/kc.css";
@@ -48,6 +50,8 @@ export default function Routines() {
   const toast = useToast();
   const [openId, setOpenId] = useState<string | null>(null);
   const [limit, setLimit] = useState(7);
+  // The tasks list and the routines refresh together, by themselves (every 2 s while a task runs, 15 s otherwise, on focus, on the run's own stream).
+  const tasks = useTasks({ alsoReload: rt.reload });
 
   const setTab = (t: Tab) => navigate(`/routines${t === "could-automate" ? "?tab=could-automate" : ""}`);
   const running = runningRoutines(rt.data);
@@ -80,7 +84,11 @@ export default function Routines() {
   };
 
   const shown = running.slice(0, limit);
-  const sources = [rt, rep];
+  const sources = [rt, rep, ...tasks.sources];
+  const headline = routinesHeadline({
+    tasksRunning: tasks.grouped.active.filter((x) => x.state === "running").length, routinesRunning: running.length,
+    couldMinutes: rep.data?.state === "ok" ? rep.data.rows.reduce((a, row) => a + (Number.isFinite(row.minutes_per_week?.point) ? Math.max(0, row.minutes_per_week.point) : 0), 0) : 0,
+  });
 
   return (
     <div className="page page--read kc-page">
@@ -88,6 +96,7 @@ export default function Routines() {
         <h1 className="kc-title">Routines</h1>
         <OriginBadge sources={sources} />
       </div>
+      {headline && <p className="kc-headline" data-testid="headline">{headline}</p>}
       <OriginDetails sources={sources} />
 
       <div className="rt-bar">
@@ -102,6 +111,7 @@ export default function Routines() {
 
       {tab === "running" ? (
         <div role="tabpanel" id="panel-running" aria-labelledby="tab-running" style={{ display: "grid", gap: "var(--space-4)" }}>
+          <BackgroundTasks view={tasks} />
           {running.length === 0 ? (
             <div className="kc-empty">
               <h2>Nothing runs yet.</h2>

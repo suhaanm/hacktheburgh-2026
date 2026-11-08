@@ -1,7 +1,7 @@
 // Needs you: ONE list for everything that waits on the worker (docs/knack-ux/02-needs-you.md). Pure: no network, no React.
 // The model proposes, code decides: the order is a fixed table (safety, then time-sensitive, then the rest, newest first inside a class).
 import { arr, clip, num, uniqueBy } from "../../lib/safeText";
-import type { AgentRun, BriefingCard, QueueItem, Routine } from "../../types";
+import type { AgentRun, BriefingCard, QueueItem, Routine, TaskRow } from "../../types";
 
 /** 0 safety, 1 time-sensitive (a decision a job waits on), 2 can wait. docs/ATTENTION_DESIGN.md section 1. */
 export type NeedsClass = 0 | 1 | 2;
@@ -10,7 +10,8 @@ export type NeedsItem =
   | { key: string; kind: "approval"; cls: NeedsClass; when: string | null; queue: QueueItem }
   | { key: string; kind: "proposal"; cls: NeedsClass; when: string | null; routine: Routine }
   | { key: string; kind: "prepared"; cls: NeedsClass; when: string | null; card: BriefingCard }
-  | { key: string; kind: "paused"; cls: NeedsClass; when: string | null; run: AgentRun };
+  | { key: string; kind: "paused"; cls: NeedsClass; when: string | null; run: AgentRun }
+  | { key: string; kind: "task"; cls: NeedsClass; when: string | null; task: TaskRow };
 
 /** At most this many rows show by default, then "Show all N" (design README rule 4: at most 7). Routines lists show seven. */
 export const DEFAULT_ROWS = 7;
@@ -40,7 +41,7 @@ const ms = (iso: string | null): number => { const t = iso ? Date.parse(iso) : N
  * skipped, one without an id is keyed by its place in the list, and an id that comes twice is one item (the first), so a list never has two rows
  * with the same key.
  */
-export function buildItems(src: { queue?: QueueItem[] | null; routines?: Routine[] | null; cards?: BriefingCard[] | null; cardsAt?: string | null; runs?: AgentRun[] | null }): NeedsItem[] {
+export function buildItems(src: { queue?: QueueItem[] | null; routines?: Routine[] | null; cards?: BriefingCard[] | null; cardsAt?: string | null; runs?: AgentRun[] | null; tasks?: TaskRow[] | null }): NeedsItem[] {
   const out: NeedsItem[] = [];
   const idOf = <T extends object>(field: string) => (row: T, i: number): string => { const v = (row as Record<string, unknown>)[field]; return typeof v === "string" && v ? v : typeof v === "number" ? String(v) : `#${i}`; };
   for (const q of uniqueBy<QueueItem>(src.queue, idOf("id"))) {
@@ -58,6 +59,12 @@ export function buildItems(src: { queue?: QueueItem[] | null; routines?: Routine
   for (const run of uniqueBy<AgentRun>(src.runs, idOf("run_id"))) {
     if (!isPausedRun(run)) continue;
     out.push({ key: `a:${idOf("run_id")(run, out.length)}`, kind: "paused", cls: 1, when: typeof run.started === "string" ? run.started : null, run });
+  }
+  // A task that waits for the worker: a consent card, or a question. The card's words are in the row; nothing here decides for the worker.
+  for (const t of uniqueBy<TaskRow>(src.tasks, idOf("task_id"))) {
+    const waits = (t.state === "waiting_consent" && !!t.needs_consent) || (!!t.question && typeof t.question.text === "string" && t.state !== "done" && t.state !== "stopped" && t.state !== "failed");
+    if (!waits) continue;
+    out.push({ key: `t:${idOf("task_id")(t, out.length)}`, kind: "task", cls: 1, when: typeof t.started === "string" ? t.started : null, task: t });
   }
   // A key can still repeat when two ids were missing in different places: make every key unique, keeping order.
   const seen = new Map<string, number>();
@@ -230,3 +237,12 @@ export function madeLine(f: { queue_id?: string; run_id?: string }): string {
   return "Done. The engine did not say what it created.";
 }
 
+
+/** The headline of Needs you: how many things wait, and how many of them are safety stops. Empty when nothing waits (the empty state says it). */
+export function needsHeadline(items: NeedsItem[]): string {
+  const n = items.length;
+  if (n === 0) return "";
+  const stops = items.filter((i) => i.cls === 0).length;
+  const head = n === 1 ? "1 thing needs you" : `${n} things need you`;
+  return stops > 0 ? `${head}, including ${stops} safety ${stops === 1 ? "stop" : "stops"}.` : `${head}.`;
+}

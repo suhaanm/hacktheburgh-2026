@@ -5,9 +5,9 @@ import { plainWords } from "../NeedsYou/model";
 
 /** The section ids: the contract with the shell (docs/KNACK_UX.md section 3, in this order). */
 export const SECTIONS = ["live-models", "interruptions", "coaching", "move-aside", "open-at-login", "appearance", "models", "views", "about"] as const;
-export type SectionId = (typeof SECTIONS)[number] | "connections" | "hey-knack";
+export type SectionId = (typeof SECTIONS)[number] | "connections" | "hey-knack" | "advanced";
 /** Sections other tracks add: Connections (plugins and MCP apps, behind a lazy slot) and Hey Knack (the voice switch). Accepted as an address even when the slot is empty. */
-export const SLOT_SECTIONS = ["connections", "hey-knack"] as const;
+export const SLOT_SECTIONS = ["connections", "hey-knack", "advanced"] as const;
 export const sectionOf = (s: string | null | undefined): SectionId | null => ((SECTIONS as readonly string[]).includes(s ?? "") || (SLOT_SECTIONS as readonly string[]).includes(s ?? "") ? (s as SectionId) : null);
 
 /** Hey Knack's row: the fixed note always, and the shell's own line only when the switch is on but it is not listening (why it is quiet). */
@@ -31,9 +31,9 @@ export interface LiveInput {
 export interface LiveView { checked: boolean; disabled: boolean; line: string }
 
 export const LIVE_LINES = {
-  on: "On, because a key is set. Each call is listed in Your data.",
+  on: "On, because a key is set. Every call is listed under Advanced.",
   off: "Off. Everything runs on example data.",
-  noKey: "No Gemini key found. Add it to .env and reopen Knack.",
+  noKey: "No key found. Add it to .env and reopen Knack.",
   restart: "Switching restarts the engine. About 20 seconds.",
   running: "A job is running. Stop it first.",
   app: "Switch this in the Knack app.",
@@ -65,6 +65,7 @@ export const DEFAULTS = {
   "hey-knack": { shown: "on", value: "on" },
   "move-aside": { shown: "on", value: "on" },
   "open-at-login": { shown: "on", value: "on" },
+  skills: { shown: "on", value: "on" },
 } as const;
 export type DefaultId = keyof typeof DEFAULTS;
 export const defaultNote = (id: DefaultId): string => `Default: ${DEFAULTS[id].shown}.`;
@@ -118,3 +119,34 @@ export const lockPatch = (l: HelpLock): { helpLevelMode: "auto" | "locked"; lock
 
 /** A desktop-only row in a browser tab: printed, not hidden. */
 export const APP_ONLY = "Available in the Knack app.";
+
+/** The headline of Settings: how Knack is set right now, in one sentence. */
+export function settingsHeadline(i: { live: boolean | null; preset: Preset | null }): string {
+  const live = i.live === null ? "" : i.live ? "Knack uses live models" : "Knack runs on example data";
+  const how = i.preset === "rarely" ? "interrupts you rarely" : i.preset === "often" ? "interrupts you often" : i.preset === "balanced" ? "interrupts you at a balanced pace" : "";
+  if (live && how) return `${live} and ${how}.`;
+  if (live) return `${live}.`;
+  return how ? `Knack ${how}.` : "";
+}
+
+/* -- Skills: the skill files already on this Mac (the tasks service's list), names and descriptions only ------------------------------------------ */
+export interface SkillRow { name: string; description: string; on: boolean }
+/** The skills as listed: a real name only, each name once, sorted by name, at most 200; `off` names are turned off whatever the row says. */
+export function skillRows(a: { off?: unknown; skills?: unknown } | null | undefined): SkillRow[] {
+  const off = new Set(Array.isArray(a?.off) ? (a!.off as unknown[]).filter((x): x is string => typeof x === "string") : []);
+  const seen = new Set<string>();
+  const rows: SkillRow[] = [];
+  for (const k of Array.isArray(a?.skills) ? (a!.skills as unknown[]) : []) {
+    const o = (k && typeof k === "object" ? k : {}) as { name?: unknown; description?: unknown };
+    const name = typeof o.name === "string" ? o.name.trim().slice(0, 80) : "";
+    if (!name || seen.has(name)) continue;
+    seen.add(name);
+    rows.push({ name, description: typeof o.description === "string" ? Array.from(o.description.replace(/\s+/g, " ").trim()).slice(0, 140).join("") : "", on: !off.has(name) });
+  }
+  return rows.sort((x, y) => x.name.localeCompare(y.name)).slice(0, 200);
+}
+/** The new off list after one skill is switched: every other name stays as it was, and a name is never listed twice. */
+export function withSkill(off: string[] | undefined, name: string, on: boolean): string[] {
+  const rest = (Array.isArray(off) ? off : []).filter((x) => typeof x === "string" && x !== name);
+  return on ? rest : [...rest, name];
+}

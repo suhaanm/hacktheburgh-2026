@@ -31,12 +31,12 @@ describe("Settings", () => {
     expect(h.indexOf("Coaching")).toBeLessThan(h.indexOf("Move aside while Knack works"));
     expect(h.indexOf("Open at login")).toBeLessThan(h.indexOf("Appearance"));
     expect(h.indexOf("Appearance")).toBeLessThan(h.indexOf("Views"));
-    expect(h.indexOf("Views")).toBeLessThan(h.indexOf(">About<"));
+    expect(h.indexOf("Views")).toBeLessThan(h.indexOf("Advanced"));
   });
   it("disables the switch and prints its reason when no Gemini key is found", () => {
     const h = html({ live: liveModels({ health: { mock: true, key_present: false }, canSwitch: true, running: false, changing: false }) });
     expect(h).toMatch(/aria-label="Use live models"[^>]*disabled/);
-    expect(text(h)).toContain("No Gemini key found. Add it to .env and reopen Knack.");
+    expect(text(h)).toContain("No key found. Add it to .env and reopen Knack.");
   });
   it("disables the switch while a job runs and says so in print", () => {
     const h = html({ live: liveModels({ health: { mock: false, key_present: true }, canSwitch: true, running: true, changing: false }) });
@@ -68,14 +68,14 @@ describe("Settings", () => {
     expect(waitMixed).not.toMatch(/aria-pressed="true"/);
   });
   it("every setting that has a default prints it, and the doc lists the same ones", () => {
-    const h = html({ desktop: { cueEnabled: true, minimiseWhileWorking: true, launchAtLogin: true }, wake: { switchOn: true, listening: true, line: "" } });
+    const h = html({ desktop: { cueEnabled: true, minimiseWhileWorking: true, launchAtLogin: true }, wake: { switchOn: true, listening: true, line: "" }, skills: { use_claude_skills: true, off: [], skills: [] } });
     const doc = readFileSync(resolve(__dirname, "../../../../../docs/knack-ux/defaults.md"), "utf8");
     for (const [id, d] of Object.entries(DEFAULTS)) {
       if (id === "help-level") { expect(text(h)).toContain(`Default: ${d.shown}.`); continue; }
       expect(h).toContain(`data-testid="default-${id}"`);
       expect(text(h)).toContain(`Default: ${d.shown}.`);
     }
-    for (const w of ["Use live models", "Interruptions", "Coaching", "Help level", "Hey Knack", "Move aside while Knack works", "Open at login"]) expect(doc).toContain(w);
+    for (const w of ["Use live models", "Interruptions", "Coaching", "Help level", "Hey Knack", "Move aside while Knack works", "Open at login", "Use my skills"]) expect(doc).toContain(w);
     expect(DEFAULTS.interruptions.value).toBe("rarely");
   });
   it("the defaults never switch on a consent, an approval or an unattended run", () => {
@@ -117,5 +117,26 @@ describe("Settings", () => {
   it("uses no banned phrase and never the old name", () => {
     const t = text(html({ desktop: { cueEnabled: false } }));
     expect(t).not.toMatch(/\bUnderstudy\b|\bplease\b|\bsimply\b|\bdemo\b|\boops\b|\binvalid\b/i);
+  });
+  it("has no skills row until the tasks service answers; then a switch that is on by default, and each skill's name and description behind More", () => {
+    expect(text(html())).not.toContain("Use my skills");
+    const skills = { use_claude_skills: true, off: ["Beta"], skills: [{ name: "Beta", description: "Second one." }, { name: "Alpha", description: "First one." }, { name: "Alpha" }, { name: "" }, null as never] };
+    const h = html({ skills });
+    expect(text(h)).toContain("Use my skills");
+    expect(text(h)).toContain("Default: on.");
+    expect(h).toMatch(/aria-label="Use my skills"[^>]*checked/);
+    expect(h.indexOf("Alpha")).toBeLessThan(h.indexOf("Beta"));
+    expect(h).toMatch(/aria-label="Use the skill Alpha"[^>]*checked/);
+    expect(h).not.toMatch(/aria-label="Use the skill Beta"[^>]*checked/);
+    expect((h.match(/aria-label="Use the skill /g) ?? []).length).toBe(2);
+    expect(text(h)).toContain("First one.");
+  });
+  it("the skills switch off turns every skill's own switch off too, and names no provider", () => {
+    const h = html({ skills: { use_claude_skills: false, off: [], skills: [{ name: "Alpha" }] } });
+    expect(h).toMatch(/aria-label="Use the skill Alpha"[^>]*disabled/);
+    expect(text(h)).not.toMatch(/Gemini|Claude|OpenAI|Anthropic/);
+  });
+  it("names no model or provider anywhere in a worker's Settings", () => {
+    expect(text(html({ desktop: { cueEnabled: true }, wake: { switchOn: true, listening: true, line: "" } }))).not.toMatch(/Gemini|Claude|OpenAI|Anthropic|\bmodels? and cost\b/i);
   });
 });

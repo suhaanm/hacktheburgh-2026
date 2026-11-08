@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { MODES, MODE_LABEL, groupTypes, isMode, learnedLines, modeLine, type Mode } from "../../lib/attention";
-import type { AttentionSettings } from "../../types";
-import { HELP_LOCKS, PRESETS, STOPS_LINE, THEMES, APP_ONLY, defaultNote, groupModeOf, lockOf, lockPatch, presetOf, sectionOf, wakeLine, type DefaultId, type HelpLock, type LiveView, type Preset, type Theme } from "../../screens/Settings/model";
+import type { AttentionSettings, SkillsAnswer } from "../../types";
+import { HELP_LOCKS, PRESETS, STOPS_LINE, THEMES, APP_ONLY, defaultNote, groupModeOf, lockOf, lockPatch, presetOf, sectionOf, settingsHeadline, skillRows, wakeLine, withSkill, type DefaultId, type HelpLock, type LiveView, type Preset, type Theme } from "../../screens/Settings/model";
 import type { DesktopSettings, WakeStatus } from "../../screens/Settings/bridge";
 import { Hint } from "../Hint";
 import { ConfirmRow, Details } from "../ui";
@@ -44,6 +44,11 @@ export interface SettingsViewProps {
   version?: string | null;
   /** The Connections panel (plugins and MCP apps), when that track has built it. Null or absent: no row. */
   connections?: ReactNode;
+  /** Every call Knack makes (the call list), shown inside Advanced once it is opened. Absent: Advanced holds only the version line. */
+  advanced?: ReactNode;
+  /** The skill files on this Mac and which are off, from the tasks service. Null or absent (it did not answer): no row. */
+  skills?: SkillsAnswer | null;
+  onSkills?: (patch: { use_claude_skills?: boolean; off?: string[] }) => void;
 }
 
 function Row({ id, title, line, control, error, def }: { id: string; title: string; line?: ReactNode; control: ReactNode; error?: string | null; def?: DefaultId }) {
@@ -81,8 +86,10 @@ function Segmented<T extends string | number>({ label, value, options, onChange,
  * desktop app says "Available in the Knack app." in a browser tab instead of vanishing. "Use live models" is first and says why when it is disabled.
  */
 export function SettingsView(p: SettingsViewProps) {
-  const target = sectionOf(p.section);
+  const asked = sectionOf(p.section);
+  const target = asked === "about" || asked === "models" ? "advanced" : asked;      // the old rows live under Advanced now
   const [confirmReset, setConfirmReset] = useState(false);
+  const [adv, setAdv] = useState(target === "advanced");
   useEffect(() => {
     if (!target || typeof document === "undefined") return;
     document.getElementById(`set-${target}`)?.scrollIntoView?.({ block: "start" });
@@ -93,11 +100,13 @@ export function SettingsView(p: SettingsViewProps) {
   const attn = p.attention ? { ...p.attention, types: Array.isArray(p.attention.types) ? p.attention.types : [] } : null;
   const preset = attn ? presetOf(attn) : null;
   const lock = lockOf(d);
+  const headline = settingsHeadline({ live: p.live.disabled && !p.live.checked && /cannot reach/.test(p.live.line) ? null : p.live.checked, preset });
   const groups = attn ? groupTypes(attn.types) : [];
   const learned = attn ? learnedLines(attn.learned) : [];
 
   return (
     <div className="st" data-testid="settings">
+      {headline && <p className="kc-headline st-headline" data-testid="headline">{headline}</p>}
       <Row id="live-models" title="Use live models" line={p.live.line} def="live-models"
         control={<Switch label="Use live models" checked={p.live.checked} disabled={p.live.disabled} onChange={p.onLive} />} />
 
@@ -193,9 +202,29 @@ export function SettingsView(p: SettingsViewProps) {
         line={d ? (d.launchAtLogin ? "Knack opens when you log in. Routines only run while Knack is open." : "Off. Routines only run while Knack is open.") : APP_ONLY}
         control={d ? <Switch label="Open at login" checked={!!d.launchAtLogin} onChange={(on) => p.onDesktop({ launchAtLogin: on })} /> : null} />
 
-      <Row id="appearance" title="Appearance" control={<Segmented<Theme> label="Appearance" value={p.theme} options={THEMES} onChange={p.onTheme} />} />
+      {p.skills && (
+        <>
+          <Row id="skills" title="Use my skills" def="skills"
+            line="Knack can use the skill files already on this Mac."
+            control={<Switch label="Use my skills" checked={p.skills.use_claude_skills !== false} onChange={(on) => p.onSkills?.({ use_claude_skills: on })} />} />
+          {skillRows(p.skills).length > 0 && (
+            <div className="st-sub">
+              <Details summary="More" wide>
+                <div className="st-kinds" data-testid="skills-list">
+                  {skillRows(p.skills).map((k) => (
+                    <div key={k.name} className="st-kind">
+                      <span className="st-kind__name">{k.name}{k.description && <span className="st-kind__line">{k.description}</span>}</span>
+                      <Switch label={`Use the skill ${k.name}`} checked={k.on} disabled={p.skills!.use_claude_skills === false} onChange={(on) => p.onSkills?.({ off: withSkill(p.skills!.off, k.name, on) })} />
+                    </div>
+                  ))}
+                </div>
+              </Details>
+            </div>
+          )}
+        </>
+      )}
 
-      <Row id="models" title="Models and cost" control={<a className="kc-link" href="#/models">Open<span aria-hidden="true"> ›</span></a>} />
+      <Row id="appearance" title="Appearance" control={<Segmented<Theme> label="Appearance" value={p.theme} options={THEMES} onChange={p.onTheme} />} />
 
       <Row id="views" title="Views"
         control={<Segmented<"worker" | "admin"> label="View as" value={p.view} options={[{ id: "worker", label: "Worker" }, { id: "admin", label: "Admin" }]} onChange={p.onView} />} />
@@ -218,9 +247,14 @@ export function SettingsView(p: SettingsViewProps) {
 
       {p.connections && <section className="st-row st-row--block" id="set-connections" aria-labelledby="set-connections-h"><div className="st-text"><h3 className="st-name" id="set-connections-h">Connections</h3>{p.connections}</div></section>}
 
-      <Row id="about" title="About"
-        line={<>Knack{p.version ? ` ${p.version}` : ""}. Engine 127.0.0.1:7700, agent 127.0.0.1:7710: this Mac only.</>}
-        control={<a className="kc-link" href="#/setup">Set up again<span aria-hidden="true"> ›</span></a>} />
+      <div className="st-sub" id="set-advanced">
+        <Details summary="Advanced" defaultOpen={target === "advanced"} onToggle={setAdv} wide>
+          <div className="st-kinds">
+            {adv && p.advanced}
+            <p className="kc-sub" data-testid="line-about">Knack{p.version ? ` ${p.version}` : ""}. It runs on this Mac only. <a className="kc-link" href="#/setup">Set up again<span aria-hidden="true"> ›</span></a></p>
+          </div>
+        </Details>
+      </div>
     </div>
   );
 }

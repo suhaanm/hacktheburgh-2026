@@ -5,13 +5,14 @@ import { describe, expect, it } from "vitest";
 import queueFx from "../../fixtures/queue.json";
 import routinesFx from "../../fixtures/routines.json";
 import briefingFx from "../../fixtures/briefing.json";
-import type { BriefingCard, QueueItem, Routine } from "../../types";
+import type { BriefingCard, QueueItem, Routine, TaskRow } from "../../types";
 import { AwayButton, AwayConfirm, useAway } from "../routines/AwayChoice";
 import { APPROVAL_TEXT, AWAY_TEXT, WATCH_TEXT } from "../routines/consent";
 import { RunningRow } from "../routines/RunningRow";
 import { ApprovalRow } from "./ApprovalRow";
 import { PreparedRow } from "./PreparedRow";
 import { ProposalDetails, ProposalRow } from "./ProposalRow";
+import { TaskNeedRow } from "./TaskNeedRow";
 
 const queue = (queueFx as unknown as { data: QueueItem[] }).data;
 const routines = (routinesFx as unknown as { data: Routine[] }).data;
@@ -145,5 +146,43 @@ describe("a running routine", () => {
   });
   it("the three steps are in the worker's words", () => {
     for (const w of ["Watching", "Asks first", "Runs on its own"]) expect(text(open)).toContain(w);
+  });
+});
+
+describe("a task that waits for the worker", () => {
+  const consent: TaskRow = {
+    task_id: "tk_8f3a1c2e", title: "Tidy the invoices folder", state: "waiting_consent", started: "2026-11-08T09:00:00Z",
+    needs_consent: { kind: "folder", scope_text: "Knack wants to move files inside your Invoices folder.", can: ["read file names", "move files into Paid and Unpaid"], cannot: ["delete anything", "open other folders"], folder: "Invoices", max_minutes: 10, cost_note: "Uses live models.", buttons: { allow: "Allow", decline: "Decline", more: [{ id: "everything", label: "Allow everything this task needs" }] } },
+  };
+  const html = renderToStaticMarkup(createElement(TaskNeedRow, { row: consent, onDone: noop }));
+  it("prints what the task may do and may not do, whole, before any button", () => {
+    const t = text(html);
+    expect(t).toContain("Knack wants to move files inside your Invoices folder.");
+    expect(t).toContain("It can: read file names, move files into Paid and Unpaid.");
+    expect(t).toContain("It cannot: delete anything, open other folders.");
+    expect(t).toContain("Stops after 10 minutes.");
+    expect(t.indexOf("It cannot")).toBeLessThan(t.indexOf("Decline"));
+  });
+  it("offers Allow and Decline at one weight, none primary, and keeps the wider choice behind More", () => {
+    expect(html).toMatch(/btn btn--secondary[^>]*>Allow</);
+    expect(html).toMatch(/btn btn--secondary[^>]*>Decline</);
+    expect(html).not.toMatch(/btn--primary/);
+    expect(html).toMatch(/<summary>More<\/summary>/);
+    expect(html.indexOf("Allow everything this task needs")).toBeGreaterThan(html.indexOf("<summary>More</summary>"));
+  });
+  it("has no keyboard shortcut that could allow anything", () => {
+    expect(html).not.toMatch(/accesskey|aria-keyshortcuts/i);
+  });
+  it("shows a question with its options as buttons, at most four", () => {
+    const q: TaskRow = { task_id: "tk_2", title: "Rename the photos", state: "running", started: "2026-11-08T09:00:00Z", question: { text: "Which folder holds the photos?", options: [1, 2, 3, 4, 5, 6].map((n) => ({ id: `o${n}`, label: `Folder ${n}` })) } };
+    const h = renderToStaticMarkup(createElement(TaskNeedRow, { row: q, onDone: noop }));
+    expect(text(h)).toContain("Which folder holds the photos?");
+    expect((h.match(/class="btn btn--secondary"/g) ?? []).length).toBe(4);
+  });
+  it("copes with a card that has no lists, no limits and a very long scope", () => {
+    const h = renderToStaticMarkup(createElement(TaskNeedRow, { row: { task_id: "tk_3", title: "T".repeat(200), state: "waiting_consent", needs_consent: { scope_text: "S".repeat(900) } }, onDone: noop }));
+    expect(h).not.toMatch(/data-testid="can"|data-testid="cannot"/);
+    expect(text(h).length).toBeLessThan(900);
+    expect(text(renderToStaticMarkup(createElement(TaskNeedRow, { row: { task_id: "tk_4", title: "A small task", state: "waiting_consent" } as TaskRow, onDone: noop })))).toContain("A small task");
   });
 });
