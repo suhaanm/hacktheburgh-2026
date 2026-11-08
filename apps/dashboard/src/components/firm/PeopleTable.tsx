@@ -101,17 +101,12 @@ function RoleSection({ r, firm, sort, filter, first }: { r: FirmRole; firm: Wire
   const [open, setOpen] = useState<string | null>(null);
   const min = firm.privacy.min_group;
   const rows = useMemo(() => sortUsers(filterUsers(r.users, filter), sort), [r.users, filter, sort]);
-  const shown = all ? rows : rows.slice(0, 3);
+  const shown = all ? rows : rows.slice(0, 2);
   const cols = 7;
   return (
     <Details summary={`${r.name}, ${r.users.length} ${r.users.length === 1 ? "person" : "people"}`} defaultOpen={first} wide className="firm-role-details">
       <section className="firm-role" aria-labelledby={`people-${r.role}`}>
-        <header className="firm-role__head">
-          <h3 id={`people-${r.role}`} className="u-sr-only">{r.name}</h3>
-          <Hint label="About group figures">
-            Group figures need at least {min} people. Smaller groups are merged, so a figure never describes two or three individuals. {firm.privacy.note ?? ""}
-          </Hint>
-        </header>
+        <h3 id={`people-${r.role}`} className="u-sr-only">{r.name}</h3>
         <Band r={r} min={min} />
         {rows.length === 0 ? (
           <p className="firm-role__empty">No one in this group matches that filter.</p>
@@ -136,7 +131,7 @@ function RoleSection({ r, firm, sort, filter, first }: { r: FirmRole; firm: Wire
             </table>
           </div>
         )}
-        {rows.length > 3 && <button type="button" className="btn btn--quiet btn--sm" onClick={() => setAll((a) => !a)}>{all ? "Show fewer" : `Show all ${rows.length}`}</button>}
+        {rows.length > 2 && <button type="button" className="btn btn--quiet btn--sm" onClick={() => setAll((a) => !a)}>{all ? "Show fewer" : `Show all ${rows.length}`}</button>}
       </section>
     </Details>
   );
@@ -153,24 +148,27 @@ export function PeopleTable({ firm }: { firm: WireFirm; meta?: AnalyticMeta | nu
   const counts = useMemo(() => trendCounts(all), [all]);
   return (
     <div className="firm-people">
-      <div className="firm-people__bar">
-        <div className="firm-people__sort" role="group" aria-label="Sort people by">
-          <span className="firm-people__label">Sorted by</span>
-          <span className="segmented">
-            {SORT_KEYS.map((k) => <button key={k} type="button" aria-pressed={sort === k} onClick={() => setSort(k)}>{SORT_LABEL[k]}</button>)}
-          </span>
+      <Details summary="Sort and filter" wide>
+        <div className="firm-people__bar">
+          <div className="firm-people__sort" role="group" aria-label="Sort people by">
+            <span className="firm-people__label">Sorted by</span>
+            <span className="segmented">
+              {SORT_KEYS.map((k) => <button key={k} type="button" aria-pressed={sort === k} onClick={() => setSort(k)}>{SORT_LABEL[k]}</button>)}
+            </span>
+          </div>
+          <label className="firm-people__filter">
+            <span className="firm-people__label">Show</span>
+            <select className="select" value={filter ?? ""} onChange={(e) => setFilter((e.target.value || null) as Trend | null)}>
+              <option value="">Everyone ({all.length})</option>
+              {TRENDS.map((t) => <option key={t} value={t}>{TREND_LABEL[t]} ({counts[t]})</option>)}
+            </select>
+          </label>
+          <Hint label="About the trend classes">
+            {filter ? TREND_HINT[filter] : "Each person has a class for how the help they need is changing. A class is a conversation starter for coaching, never a grade, and the list is never ranked."}
+          </Hint>
         </div>
-        <label className="firm-people__filter">
-          <span className="firm-people__label">Show</span>
-          <select className="select" value={filter ?? ""} onChange={(e) => setFilter((e.target.value || null) as Trend | null)}>
-            <option value="">Everyone ({all.length})</option>
-            {TRENDS.map((t) => <option key={t} value={t}>{TREND_LABEL[t]} ({counts[t]})</option>)}
-          </select>
-        </label>
-        <Hint label="About the trend classes">
-          {filter ? TREND_HINT[filter] : "Each person has a class for how the help they need is changing. A class is a conversation starter for coaching, never a grade, and the list is never ranked."}
-        </Hint>
-      </div>
+        <p className="note">Group figures need at least {firm.privacy.min_group} people. Smaller groups are merged, so a figure never describes two or three individuals. {firm.privacy.note ?? ""}</p>
+      </Details>
       {firm.roles.map((r, i) => <RoleSection key={r.role} r={r} firm={firm} sort={sort} filter={filter} first={i === 0} />)}
     </div>
   );
