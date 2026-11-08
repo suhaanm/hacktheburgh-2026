@@ -42,6 +42,8 @@ export interface WindowPort {
   isFullScreen(): boolean
   isDestroyed(): boolean
   getBounds(): Rect
+  /** The page's own area on the screen (the window without its title bar). */
+  getContentBounds(): Rect
   destroy(): void
   loadURL(url: string): void
   send(channel: string, ...args: unknown[]): void
@@ -227,6 +229,7 @@ export function createMainWindow(deps: ElectronMainWindowDeps): MainWindow {
     isFullScreen: () => win.isFullScreen(),
     isDestroyed: () => win.isDestroyed(),
     getBounds: () => win.getBounds(),
+    getContentBounds: () => win.getContentBounds(),
     destroy: () => win.destroy(),
     loadURL: (url) => void win.loadURL(url),
     send: (channel, ...args) => {
