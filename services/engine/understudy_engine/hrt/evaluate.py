@@ -110,6 +110,8 @@ def shape_ledger(res: dict[str, Any]) -> dict[str, Any]:
                            "regret_always_model": _r(m["regret_always_model"]["est"]), "regret_guarded": _r(m["regret_guarded"]["est"]),
                            "guarded_minus_always_model": _r(gap["guarded_minus_always_model"]["est"]), "guarded_minus_always_model_ci": _ci(gap["guarded_minus_always_model"]["ci"]),
                            "share_on_fallback": _r(m["share_on_fallback"]["est"], 3)})
+    sens = [{"world": WORLD_LABEL[key], "lambda": g["lambda"], "threshold": g["threshold"], "flags": g["flags"], "of": g["of"], "guarded_minus_always_model": _r(g["guarded_minus_always_model"]),
+             "registered": g["registered"]} for key in WORLD_ORDER if key in worlds for g in worlds[key].get("guard_sensitivity", [])]
     claims = [{"id": c["id"], "claim": c["claim"], "result": "passed" if c["pass"] is True else "not passed" if c["pass"] is False else "not applicable", "evidence": _claim_text(c)} for c in res["claims"]]
     n_pass = sum(c["result"] == "passed" for c in claims)
     n_applic = sum(c["result"] != "not applicable" for c in claims)
@@ -125,7 +127,7 @@ def shape_ledger(res: dict[str, Any]) -> dict[str, Any]:
                  "interval_level": 0.95, "note": "Cluster bootstrap resampling people (error risk: blocks of 100 cases), B = 2000, paired across predictors. Pre-registered in evals/hrt/PLAN.md; run once on held-out seeds.", "generated_at": res.get("generated_at") or "1970-01-01T00:00:00Z"},
         "statement": " ".join(bits),
         "label": "synthetic, held-out seeds, single frozen run; the ledger has recorded no live predictions yet",
-        "rows": claims, "worlds": rows, "guard": guard_rows,
+        "rows": claims, "worlds": rows, "guard": guard_rows, "guard_sensitivity": sens,
         "reliability_v1": [{k: b[k] for k in ("p_mean", "freq", "n", "freq_lo", "freq_hi", "lo", "hi")} for b in v1["scores"]["predictors"]["model"]["reliability"]],
         "reliability_v1_online_base": [{k: b[k] for k in ("p_mean", "freq", "n", "lo", "hi")} for b in v1["scores"]["predictors"]["online_base"]["reliability"]],
         "design": res.get("design"), "split_label": res.get("split_label"), "code_fingerprint": res.get("code_fingerprint"),

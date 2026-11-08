@@ -209,6 +209,26 @@ def guard_for(arr: dict[str, Any], *, horizon_s: float, fallback: str = ONLINE) 
     return {**run, "costs": costs, "model_log_loss": float(ll_m.mean()), "fallback_log_loss": float(ll_f.mean()), "n_bins": int(ll_m.size)}
 
 
+GUARD_GRID = tuple((lam, thr) for lam in (0.4, 0.8) for thr in (10.0, 20.0, 50.0))
+
+
+def guard_sensitivity(arrs: list[dict[str, Any]], horizon_s: float) -> list[dict[str, Any]]:
+    """Exploratory: the guard's flag count and its premium or payout at other betting fractions and thresholds. The registered setting (lambda 0.8, threshold
+    20) is one row of the grid; nothing here replaces it, and no cell is used to say the guard works."""
+    rows = []
+    for lam, thr in GUARD_GRID:
+        flags, diffs = 0, []
+        for arr in arrs:
+            ll_m = sc.log_losses(arr["y"], arr["forecasts"][MODEL])
+            ll_f = sc.log_losses(arr["y"], arr["forecasts"][ONLINE])
+            run = gd.run_guard(gd.units_from_bins(arr["unit"], arr["made_at"], arr["made_at"] + horizon_s, ll_m, ll_f), lam=lam, threshold=thr)
+            c = gd.strategy_costs(arr["made_at"], ll_m, ll_f, run["flag_time"])
+            flags += int(run["flagged"])
+            diffs.append(c["guarded"] - c["always_model"])
+        rows.append({"lambda": lam, "threshold": thr, "flags": flags, "of": len(arrs), "guarded_minus_always_model": float(np.mean(diffs)), "registered": bool((lam, thr) == (gd.LAMBDA, gd.THRESHOLD))})
+    return rows
+
+
 def _stack(arrs: list[dict[str, Any]]) -> dict[str, Any]:
     out: dict[str, Any] = {"y": np.concatenate([a["y"] for a in arrs]), "stream": np.concatenate([a["stream"] for a in arrs]), "made_at": np.concatenate([a["made_at"] for a in arrs]),
                            "forecasts": {k: np.concatenate([a["forecasts"][k] for a in arrs]) for k in arrs[0]["forecasts"]}}
@@ -270,6 +290,7 @@ def run_hazard_world(world: str, dep: Deployed, deployments: list[tuple[str, lis
             log(f"  {world} {name}: {arr['y'].size} bins, flagged={guards[-1]['flagged']}")
     out = score_world(world, arrs, guards, B=B, seed=seed, calibration_draws=calibration_draws)
     out["ledgers"] = ledgers
+    out["guard_sensitivity"] = guard_sensitivity(arrs, HORIZON_S)
     return out
 
 
@@ -309,6 +330,7 @@ def run_error_world(world: str, model: Any, base_rate: float, ks: tuple[int, ...
     out["first_half"] = {"n": int(st1["y"].size), "model_vs_online_base": sc.paired_difference(sc.log_losses(st1["y"], st1["forecasts"][MODEL]), sc.log_losses(st1["y"], st1["forecasts"][ONLINE]), cl1, M1),
                          "calibration_model": sc.calibration_with_interval(st1["y"], st1["forecasts"][MODEL], cl1, M1, 0.95, calibration_draws)}
     out["drift"] = drift
+    out["guard_sensitivity"] = guard_sensitivity(arrs, float(wd.REVIEW_LAG))
     return out
 
 

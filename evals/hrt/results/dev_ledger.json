@@ -250,7 +250,7 @@
   }
  },
  "origin": "synthetic",
- "seconds": 15.7,
+ "seconds": 18.3,
  "split_label": "dev",
  "tte_v1": {
   "bootstrap": {
@@ -433,6 +433,56 @@
      "n_deployments": 2
     }
    },
+   "guard_sensitivity": [
+    {
+     "flags": 2,
+     "guarded_minus_always_model": -0.3923570912196392,
+     "lambda": 0.4,
+     "of": 2,
+     "registered": false,
+     "threshold": 10.0
+    },
+    {
+     "flags": 2,
+     "guarded_minus_always_model": -0.37328119732054194,
+     "lambda": 0.4,
+     "of": 2,
+     "registered": false,
+     "threshold": 20.0
+    },
+    {
+     "flags": 2,
+     "guarded_minus_always_model": -0.34504081783173784,
+     "lambda": 0.4,
+     "of": 2,
+     "registered": false,
+     "threshold": 50.0
+    },
+    {
+     "flags": 2,
+     "guarded_minus_always_model": -0.40657914636912584,
+     "lambda": 0.8,
+     "of": 2,
+     "registered": false,
+     "threshold": 10.0
+    },
+    {
+     "flags": 2,
+     "guarded_minus_always_model": -0.39662252811276105,
+     "lambda": 0.8,
+     "of": 2,
+     "registered": true,
+     "threshold": 20.0
+    },
+    {
+     "flags": 2,
+     "guarded_minus_always_model": -0.3932842765801429,
+     "lambda": 0.8,
+     "of": 2,
+     "registered": false,
+     "threshold": 50.0
+    }
+   ],
    "ledgers": [
     {
      "deployment": "latent_skill-1",
@@ -951,6 +1001,56 @@
      "n_deployments": 2
     }
    },
+   "guard_sensitivity": [
+    {
+     "flags": 2,
+     "guarded_minus_always_model": -0.5262203065927027,
+     "lambda": 0.4,
+     "of": 2,
+     "registered": false,
+     "threshold": 10.0
+    },
+    {
+     "flags": 2,
+     "guarded_minus_always_model": -0.5239912184380409,
+     "lambda": 0.4,
+     "of": 2,
+     "registered": false,
+     "threshold": 20.0
+    },
+    {
+     "flags": 2,
+     "guarded_minus_always_model": -0.5144613509057077,
+     "lambda": 0.4,
+     "of": 2,
+     "registered": false,
+     "threshold": 50.0
+    },
+    {
+     "flags": 2,
+     "guarded_minus_always_model": -0.5301999032831353,
+     "lambda": 0.8,
+     "of": 2,
+     "registered": false,
+     "threshold": 10.0
+    },
+    {
+     "flags": 2,
+     "guarded_minus_always_model": -0.5294567889512735,
+     "lambda": 0.8,
+     "of": 2,
+     "registered": true,
+     "threshold": 20.0
+    },
+    {
+     "flags": 2,
+     "guarded_minus_always_model": -0.5277044919155405,
+     "lambda": 0.8,
+     "of": 2,
+     "registered": false,
+     "threshold": 50.0
+    }
+   ],
    "ledgers": [
     {
      "deployment": "markov-1",
@@ -1489,6 +1589,56 @@
      "n_deployments": 2
     }
    },
+   "guard_sensitivity": [
+    {
+     "flags": 2,
+     "guarded_minus_always_model": -0.6788348357678041,
+     "lambda": 0.4,
+     "of": 2,
+     "registered": false,
+     "threshold": 10.0
+    },
+    {
+     "flags": 2,
+     "guarded_minus_always_model": -0.6690661528635923,
+     "lambda": 0.4,
+     "of": 2,
+     "registered": false,
+     "threshold": 20.0
+    },
+    {
+     "flags": 2,
+     "guarded_minus_always_model": -0.6634272028393968,
+     "lambda": 0.4,
+     "of": 2,
+     "registered": false,
+     "threshold": 50.0
+    },
+    {
+     "flags": 2,
+     "guarded_minus_always_model": -0.6850410358962129,
+     "lambda": 0.8,
+     "of": 2,
+     "registered": false,
+     "threshold": 10.0
+    },
+    {
+     "flags": 2,
+     "guarded_minus_always_model": -0.6826600795082336,
+     "lambda": 0.8,
+     "of": 2,
+     "registered": true,
+     "threshold": 20.0
+    },
+    {
+     "flags": 2,
+     "guarded_minus_always_model": -0.6806472211635313,
+     "lambda": 0.8,
+     "of": 2,
+     "registered": false,
+     "threshold": 50.0
+    }
+   ],
    "ledgers": [
     {
      "deployment": "process_trace-1",
@@ -2054,6 +2204,56 @@
      "n_deployments": 2
     }
    },
+   "guard_sensitivity": [
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.4,
+     "of": 2,
+     "registered": false,
+     "threshold": 10.0
+    },
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.4,
+     "of": 2,
+     "registered": false,
+     "threshold": 20.0
+    },
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.4,
+     "of": 2,
+     "registered": false,
+     "threshold": 50.0
+    },
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.8,
+     "of": 2,
+     "registered": false,
+     "threshold": 10.0
+    },
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.8,
+     "of": 2,
+     "registered": true,
+     "threshold": 20.0
+    },
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.8,
+     "of": 2,
+     "registered": false,
+     "threshold": 50.0
+    }
+   ],
    "model_vs_best_naive": {
     "baseline": "online_base",
     "ci": [
@@ -2510,6 +2710,56 @@
      "n_deployments": 2
     }
    },
+   "guard_sensitivity": [
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.4,
+     "of": 2,
+     "registered": false,
+     "threshold": 10.0
+    },
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.4,
+     "of": 2,
+     "registered": false,
+     "threshold": 20.0
+    },
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.4,
+     "of": 2,
+     "registered": false,
+     "threshold": 50.0
+    },
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.8,
+     "of": 2,
+     "registered": false,
+     "threshold": 10.0
+    },
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.8,
+     "of": 2,
+     "registered": true,
+     "threshold": 20.0
+    },
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.8,
+     "of": 2,
+     "registered": false,
+     "threshold": 50.0
+    }
+   ],
    "model_vs_best_naive": {
     "baseline": "online_base",
     "ci": [
@@ -2929,6 +3179,56 @@
      "n_deployments": 2
     }
    },
+   "guard_sensitivity": [
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.4,
+     "of": 2,
+     "registered": false,
+     "threshold": 10.0
+    },
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.4,
+     "of": 2,
+     "registered": false,
+     "threshold": 20.0
+    },
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.4,
+     "of": 2,
+     "registered": false,
+     "threshold": 50.0
+    },
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.8,
+     "of": 2,
+     "registered": false,
+     "threshold": 10.0
+    },
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.8,
+     "of": 2,
+     "registered": true,
+     "threshold": 20.0
+    },
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.8,
+     "of": 2,
+     "registered": false,
+     "threshold": 50.0
+    }
+   ],
    "ledgers": [
     {
      "deployment": "v1-5",

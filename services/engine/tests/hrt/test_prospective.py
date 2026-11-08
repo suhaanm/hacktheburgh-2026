@@ -82,6 +82,18 @@ def test_guard_for_returns_units_flags_and_costs_from_the_ledger_arrays(mini):
         assert c["guarded"] == c["always_model"]
 
 
+def test_guard_sensitivity_includes_the_registered_setting_once_and_is_exploratory(mini):
+    dep, test, led = mini
+    rows = pr.guard_sensitivity([led.resolved("stuck_hazard")], pr.HORIZON_S)
+    assert len(rows) == 6 and sum(r["registered"] for r in rows) == 1
+    reg = next(r for r in rows if r["registered"])
+    assert (reg["lambda"], reg["threshold"]) == (0.8, 20.0)
+    # a lower threshold can only flag at least as often as a higher one at the same lambda
+    for lam in (0.4, 0.8):
+        f = {r["threshold"]: r["flags"] for r in rows if r["lambda"] == lam}
+        assert f[10.0] >= f[20.0] >= f[50.0]
+
+
 def test_time_to_progress_replay_scores_a_distribution_with_censoring_handled():
     train, _ = simulate_people(4, 40, seed=3)
     test, _ = simulate_people(4, 40, seed=104)

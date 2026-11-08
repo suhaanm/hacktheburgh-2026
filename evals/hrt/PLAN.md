@@ -222,3 +222,10 @@ from the realised error. That policy is renamed **prior-only reference** and the
 cases). The plan's other statements about oracles stand. The dev run also showed, for D1, that at the pack's own build costs (4 to 9 manual runs) "build at
 once" is cheaper than the shipped rule; the primary contrast (against break-even) was fixed in section 5 before this and is not changed, and that cell is
 printed with the others.
+
+**A3, Sun 8 Nov 2026 about 01:00 GMT, before the freeze and before any held-out run.** Two additions, no change to any registered claim. (1) The ledger output
+carries an **exploratory** sensitivity table of the guard: 6 cells, betting fraction lambda in {0.4, 0.8} by threshold in {10, 20, 50}, each with its flag
+count and its premium or payout. The registered setting (lambda 0.8, threshold 20) is one cell; no claim uses another. (2) "The better naive baseline" in P3
+and P4b is chosen between the two baselines P1 names (the online base rate and frozen time-since-progress), as section 4 says; the frozen base rate is
+scored and shown but is not a candidate. The P5 time-to-progress claim was built before the freeze (its outcome rule: an outcome of a CDF may not be
+written before the end of the span that was observed, so a censored origin resolves early and is scored on the steps it observed).

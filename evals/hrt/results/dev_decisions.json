@@ -1468,7 +1468,7 @@
    "unit": "simulator reward per decision, exact in expectation (higher is better)"
   }
  ],
- "seconds": 8.3,
+ "seconds": 7.6,
  "split_label": "dev",
  "wins": 4
 }
