@@ -406,21 +406,17 @@ class InsightsService:
 
 
 def _profile_role(person: str) -> tuple[str | None, float | None]:
-    """``(role, since)`` the worker chose on this device: the profile's role, and the time of the latest role change (None when the role never changed, so history from
-    before the set-up is kept). ``(None, None)`` for anyone else, or when the profile cannot be read."""
+    """``(role, None)``: the role the worker chose on this device (the profile's). ``(None, None)`` for anyone else, or when the profile cannot be read."""
     try:
-        from datetime import datetime
-
         from .. import routes_handoff as rh
         from ..memory.onboarding import load_profile
 
         prof = load_profile(rh._mem()) or {}
         if prof.get("person") != person or not prof.get("role"):
             return None, None
-        since = None
-        if prof.get("history") and prof.get("role_since"):
-            since = datetime.fromisoformat(str(prof["role_since"]).replace("Z", "+00:00")).timestamp()
-        return str(prof["role"]), since
+        # No "since": ledger rows carry the role they were done under, so the old role's rows are already apart from the new role's, and a worker who returns to a role finds
+        # that role's history again (history is kept per role, never mixed). A time cut would hide rows written before the switch, which is exactly the history they came back for.
+        return str(prof["role"]), None
     except Exception:
         return None, None
 

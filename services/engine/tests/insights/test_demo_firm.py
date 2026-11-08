@@ -349,10 +349,9 @@ def test_the_local_role_follows_the_profile_after_a_role_change(monkeypatch):
     from understudy_engine import routes_handoff as rh
 
     monkeypatch.setattr(rh, "_mem", lambda: SimpleNamespace(load_state=lambda: {"profile": prof}))
-    role, since = SV._profile_role("p1")
-    assert role == "programmer" and since == datetime(2026, 11, 5, 10, 0, tzinfo=timezone.utc).timestamp()
+    assert SV._profile_role("p1") == ("programmer", None)          # no time cut: rows carry their role, so a returning worker finds that role's history, never another role's
     assert SV._profile_role("someone-else") == (None, None)
-    prof["history"] = []                                                                             # never changed role: the history from before set-up is kept
+    prof["history"] = []
     assert SV._profile_role("p1") == ("programmer", None)
     monkeypatch.setattr(rh, "_mem", lambda: (_ for _ in ()).throw(RuntimeError("no store")))
     assert SV._profile_role("p1") == (None, None)                                                    # an unreadable profile is no profile

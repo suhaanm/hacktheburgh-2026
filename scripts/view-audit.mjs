@@ -53,13 +53,14 @@ const WORKER_ROUTES = [
   { id: "routines", hash: "/routines" },
   { id: "growth", hash: "/growth" },
   { id: "your-data", hash: "/your-data" },
+  { id: "today", hash: "/today" },                 // not retired (D65): an unlisted screen, opened from a quiet row on Home while a coach step is active
   { id: "settings", hash: "/home?settings=live-models", sheet: true },
 ];
 /** Retired as worker destinations: the route must redirect to a worker destination (or, for admin-only content, show the gate). */
 const RETIRED = [
   { id: "queue", to: "worker" }, { id: "briefing", to: "worker" }, { id: "repeats", to: "worker" }, { id: "privacy", to: "worker" }, { id: "memory", to: "worker" },
   { id: "notices", to: "worker" }, { id: "settings-old", hash: "/settings", to: "worker" },
-  { id: "genome", to: "worker" }, { id: "presence", to: "worker" }, { id: "week", to: "worker" }, { id: "graph", to: "worker" }, { id: "today", to: "worker" }, { id: "git", to: "worker" },
+  { id: "genome", to: "worker" }, { id: "presence", to: "worker" }, { id: "week", to: "worker" }, { id: "graph", to: "worker" }, { id: "git", to: "worker" },
   { id: "agents", to: "either" },
   { id: "models", to: "gate" }, { id: "evidence", to: "gate" }, { id: "forecasts", to: "gate" }, { id: "predictions", to: "gate" },
 ];
@@ -184,10 +185,13 @@ async function visit(browser, base, view, route, names) {
   await page.goto(`${base}/#${route.hash ?? "/" + route.id}`);
   // settle: the first hit of a cold dev server compiles for a while, so wait until the engine calls and the drawn text have both stopped changing
   let lastCalls = -1, lastLen = -1, still = 0;
-  for (let i = 0; i < 80 && still < 3; i++) {
+  for (let i = 0; i < 40 && still < 3; i++) {
     await page.waitForTimeout(600);
-    const len = await page.evaluate((sheet) => ((sheet ? document.querySelector('[role="dialog"]') : null) ?? document.querySelector("#main") ?? document.body).innerText.length, !!route.sheet).catch(() => -1);
-    still = pending === 0 && calls.length === lastCalls && len === lastLen && len > 20 ? still + 1 : 0;
+    const { len, loading } = await page.evaluate((sheet) => {
+      const t = ((sheet ? document.querySelector('[role="dialog"]') : null) ?? document.querySelector("#main") ?? document.body).innerText;
+      return { len: t.length, loading: /\bLoading\b|Reading your|Starting Knack/.test(t) };       // a screen that still says it is loading has not drawn yet
+    }, !!route.sheet).catch(() => ({ len: -1, loading: true }));
+    still = pending === 0 && !loading && len === lastLen && len > 20 ? still + 1 : 0;       // (a page that polls forever still settles once its drawn text stops changing)
     lastCalls = calls.length;
     lastLen = len;
   }
