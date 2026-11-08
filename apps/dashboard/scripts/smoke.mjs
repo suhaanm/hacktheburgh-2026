@@ -29,7 +29,7 @@ const hintText = async (scope, name) => {
   return t;
 };
 // The question box of Explain is one closed row, "Ask about this case": open it when it is shut.
-const openAsk = async (scope) => { const d = scope.locator("details", { has: scope.locator("summary", { hasText: "Ask about this case" }) }).first(); if (!(await d.evaluate((e) => e.open))) await d.locator("summary").first().click(); };
+const openAsk = async (scope) => { const d = scope.locator("details").filter({ has: page.locator("summary", { hasText: "Ask about this case" }) }).first(); if (!(await d.evaluate((e) => e.open))) await d.locator("summary").first().click(); };
 const openAll = (scope) => scope.locator("details").evaluateAll((els) => els.forEach((e) => { e.open = true; }));
 const go = async (hash, wait = 700) => {
   // Same-hash navigations do not remount, so hop through another route first.
@@ -47,6 +47,15 @@ const asView = async (v) => {
 };
 
 // 1. First run (the old Onboarding): two roles, timed. Set up again reruns the same three screens in a browser tab: role, what Knack may do, then Show my week.
+// A role card opens its connection chips with a Continue button (owner choice D55, components/connections/ConnectionChips): one more click, then the consent screen.
+// "Not sure yet" has no chips and goes straight on.
+const pickRole = async (label) => {
+  await page.locator(".rolecard__btn", { hasText: label }).click();
+  await page.waitForTimeout(250);
+  const cont = page.getByRole("button", { name: "Continue" });
+  if (await cont.isVisible().catch(() => false)) await cont.click();
+};
+
 // With no engine the write cannot reach a memory file, so this section reads what the page SENDS: the request to /engine/onboarding is answered here (and recorded),
 // and the file the engine writes from it is the engine's own test (services/engine/tests). What is checked is the contract: the role, the capture answer as a boolean
 // the worker's click decided, sent as the worker, once per first run.
@@ -66,7 +75,7 @@ for (const [role, pack] of [["UK benefits processor", "benefits-processor"], ["D
   await go("/setup");
   const t0 = Date.now();
   const before = onboarded.length;
-  await page.locator(".rolecard__btn", { hasText: role }).click();
+  await pickRole(role);
   const cards = page.locator(".consent");
   check(`first run ${pack}: capture is never pre-selected (nothing is answered until a real click)`, (await page.getByRole("heading", { name: "What may Knack do?" }).count()) === 1 && (await cards.locator("button[aria-pressed=true]").count()) === 0);
   check(`first run ${pack}: nothing is written before the worker answers`, onboarded.length === before);
@@ -86,11 +95,11 @@ await page.unroute(SERVICES_HERE);
 
 // 2. First run mid-flow screenshot (the consent screen), and Not sure yet writes nothing
 await go("/setup");
-await page.locator(".rolecard__btn", { hasText: "Data analyst" }).click();
+await pickRole("Data analyst");
 await page.waitForTimeout(300);
 await page.screenshot({ path: join(qa, "onboarding-question-1440.png") });
 await go("/setup");
-await page.locator(".rolecard__btn", { hasText: "Not sure yet" }).click();
+await pickRole("Not sure yet");
 check("first run: Not sure yet picks nothing and still reaches the consent screen", (await page.getByRole("heading", { name: "What may Knack do?" }).count()) === 1);
 
 // 3. Graph: open a node, panel shows why
@@ -194,22 +203,25 @@ await page.getByRole("button", { name: "Approve and submit" }).click();
 await page.waitForTimeout(700);
 check("needs you: approving decides the item", (await submitHead.count()) === 0);
 
-// 8. Presence: quiet hours save changes idle capacity (the older Presence screen, now a part of Growth, section time; read as an admin, see asView)
-await asView("admin");
-await go("/presence");
-const idle0 = await page.locator(".page:has(#qs) .stat__value").first().innerText();
+// 8. Presence: quiet hours save changes idle capacity (Growth, section time: /presence redirects there; the hours sit in closed disclosures, so they are opened first)
+await go("/presence", 1200);
+await openAll(page.locator("main"));
+const idleStat = page.locator("section[aria-labelledby=idle-h] .stat__value");
+const idle0 = await idleStat.first().innerText();
 await page.locator("#qs").fill("01:00");
 await page.locator("#qe").fill("11:00");
 await page.getByRole("button", { name: "Save quiet hours" }).click();
-await page.waitForTimeout(700);
-const idle1 = await page.locator(".page:has(#qs) .stat__value").first().innerText();
+await page.waitForTimeout(900);
+await openAll(page.locator("main"));
+const idle1 = await idleStat.first().innerText();
 check("presence: saving quiet hours recomputes idle capacity", idle0 !== idle1, `${idle0.replace(/\n/g, " ")} -> ${idle1.replace(/\n/g, " ")}`);
-await page.locator(".page:has(#qs) svg[role='application']").focus();
+await page.locator("#gr-time svg[role='application']").first().focus();   // the weekly map (the progress chart above it has the same role)
 await page.keyboard.press("ArrowRight");
 await page.waitForTimeout(150);
-check("presence: arrow keys read a cell with its interval", /95% interval/.test(await page.locator(".page:has(#qs) p[aria-live]").first().innerText()));
+check("presence: arrow keys read a cell with its interval", (await page.locator("#gr-time p[aria-live]").allInnerTexts()).some((t) => /95% interval/.test(t)));
 
-// 8b. Evidence: honest states
+// 8b. Evidence: honest states (a reviewer's screen, behind the gate for a worker: read as an admin)
+await asView("admin");
 await go("/evidence", 1200);
 check("evidence: high limits are open, medium and low are folded, and there is a sticky jump list", (await page.locator("#limits .limit:visible").count()) > 0 && (await page.locator("details.limits-fold:not([open])").count()) === 2 && (await page.locator("nav.ev-jump a").count()) >= 10 && (await page.locator("nav.ev-jump").evaluate((el) => getComputedStyle(el).position)) === "sticky");
 await page.locator("main details").evaluateAll((els) => els.forEach((e) => (e.open = true)));
@@ -299,12 +311,12 @@ await asView("worker");
 }
 
 // 8d. Extension screens (REQ-2), demo fixtures
-await asView("admin");
 await go("/week", 900);
-const weekText = await page.locator("main").innerText();
-check("week: the ribbon, the gap table with intervals and 3 to 5 suggestion cards", (await page.locator(".weekribbon svg").count()) === 2 && /95% interval/i.test(weekText) && (await page.locator(".sug").count()) >= 3 && (await page.locator(".sug").count()) <= 5);
-check("week: every suggestion says that nothing is sent, booked or changed", (await page.locator(".sug", { hasText: /Nothing is sent, booked or changed\./ }).count()) === (await page.locator(".sug").count()));
-check("week: no titles or names anywhere on the screen", !/(standup|1:1|review with|@[a-z]+\.)/i.test(weekText));
+await openAll(page.locator("main"));
+const weekText = await page.locator("#gr-time").innerText();   // Growth draws every section on one page: read this one
+check("week: the ribbon, the gap table with intervals and 3 to 5 suggestion cards", (await page.locator("#gr-time .weekribbon svg").count()) === 2 && /95% interval/i.test(weekText) && (await page.locator("#gr-time .sug").count()) >= 3 && (await page.locator("#gr-time .sug").count()) <= 5);
+check("week: the suggestions say, once under the list, that nothing is sent, booked or changed", (weekText.match(/Nothing is sent, booked or changed\./g) ?? []).length === 1);
+check("week: no titles or names anywhere on the screen", !/(standup|(?<![\d:])1:1(?![\d:])|review with|@[a-z]+\.)/i.test(weekText));
 
 await asView("worker");
 await go("/needs-you", 900);
@@ -332,7 +344,6 @@ await page.locator("article[data-kind=prepared]").first().getByRole("button", { 
 await page.waitForTimeout(500);
 check("needs you: with nothing prepared left, none is shown", (await page.locator("article[data-kind=prepared]").count()) === 0);
 
-await asView("admin");
 await go("/agents", 900);
 check("agents: a worker who arrives by the address does not see the runs (the gate sentence, or Routines)", (/Switch to Admin to see this\./.test(await page.locator("main").innerText()) || /\/routines/.test(page.url())) && (await page.locator("article.run").count()) === 0);
 await go("/home?settings=views", 1200);
@@ -425,15 +436,16 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
   await page.unroute(ENGINE);
 }
 
-// 8f. Explain: "Where did my time go?" on the Genome screen
+// 8f. Explain: "Where did my time go?" in the steps section of Growth
 {
+  const openExplain = () => page.locator("summary", { hasText: "Explain this case" }).first().evaluate((sm) => { for (let d = sm.parentElement; d; d = d.parentElement) if (d.tagName === "DETAILS") d.open = true; });   // it and every disclosure around it
   // Example answers first (the engine is blocked): the answer, where it came from, the checks, the limits and the footer are all there.
-  await asView("admin");
   await go("/genome", 1500);
+  await openExplain();   // "Explain this case" is a closed disclosure in the steps section
   const ex = page.locator("#explain");
   const exText = await ex.innerText();
   check("explain: example data is badged and says the answers do not change with the question", /example data/i.test(exText) && /do not change with what you ask/i.test(exText));
-  check("explain: the answer comes first, then where the words came from and the check", (await ex.locator("[data-testid=explain-answer]").count()) === 1 && /Written from a fixed template/.test(exText) && /Checked against the data/.test(exText) && /not that the data is right/.test(exText));
+  check("explain: the answer comes first, then where the words came from and the check", (await ex.locator("[data-testid=explain-answer]").count()) === 1 && /Written from a fixed template/.test(exText) && /Checked against the data/.test(exText) && /not that the data is right/.test(await hintText(ex, "About this answer")));
   check("explain: the limits and the footer are always shown, with no origin tag", (await ex.locator("[data-testid=explain-limits] li").count()) >= 3 && /Based on n = 24 people; generated data\./.test(await ex.locator("[data-testid=explain-footer]").innerText()) && !/synthetic|simulated/i.test(await ex.locator("[data-testid=explain-footer]").innerText()));
   const usesNote = await hintText(ex, /Where (this number comes|these numbers come) from/);
   check("explain: each sentence has a hint with the packet facts its numbers come from", /gap · case s/.test(usesNote) && /9 min 45 s/.test(usesNote) && /not supplied by the model/.test(usesNote));
@@ -465,7 +477,7 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
     if (u.pathname === "/evidence/explain") { explainBody = { body: JSON.parse(req.postData() ?? "{}"), actor: req.headers()["x-understudy-actor"], type: req.headers()["content-type"] }; if (delayMs) await new Promise((r) => setTimeout(r, delayMs)); return json(route, { meta, data: scenario }); }
     return json(route, { error: { code: "not_found", message: "not mocked" } }, 404);
   });
-  const fresh = async () => { await page.goto(`${base}/#/today`); await page.reload(); await page.waitForTimeout(6800); await page.goto(`${base}/#/genome`); await page.waitForTimeout(1500); };
+  const fresh = async () => { await page.goto(`${base}/#/today`); await page.reload(); await page.waitForTimeout(6800); await page.goto(`${base}/#/genome`); await page.waitForTimeout(1500); await openExplain(); };
   await fresh();
   const live = page.locator("#explain");
   check("explain: with a real engine and no mock mode, nothing is asked until the worker presses", (await live.getByRole("button", { name: "Explain this case" }).count()) === 1 && explainBody === null && !/example data/i.test(await live.innerText()));

@@ -23,6 +23,9 @@ for (const mode of ["browser", "app"]) for (const theme of ["light", "dark"]) fo
   await page.goto(`${base}/#/first-run`); await page.waitForTimeout(900);
   await shot("1-role");
   await page.locator(".rolecard__btn").first().click(); await page.waitForTimeout(300);
+  // a role with connection chips opens them with a Continue button (D55)
+  const cont = page.getByRole("button", { name: "Continue" });
+  if (await cont.isVisible().catch(() => false)) { await shot("1b-chips"); await cont.click(); await page.waitForTimeout(300); }
   await shot("2-may");
   // The consent screen against the first-run budget (words and controls above the fold, counted the way check-copy counts them).
   if (tag !== "m390") {

@@ -64,7 +64,13 @@ function QuietState({ q, onRetry }: { q: Quiet; onRetry: () => void }) {
 // The background tasks list is Track C's (components/routines/BackgroundTasks): one line per task, nothing when there are none. Found by glob so Home builds whether or
 // not that folder has landed in the branch being built; a missing one draws nothing.
 const BACKGROUND = import.meta.glob("../../components/routines/BackgroundTasks.tsx");
-const BackgroundTasks = lazy(pick(BACKGROUND, ["../../components/routines/BackgroundTasks.tsx"]) ?? (async () => ({ default: (() => null) as ComponentType }))) as unknown as ComponentType<{ limit?: number }>;
+type BackgroundModule = { default?: ComponentType<{ limit?: number }>; BackgroundTasks?: ComponentType<{ limit?: number }> };
+const loadBackground = pick(BACKGROUND, ["../../components/routines/BackgroundTasks.tsx"]) as (() => Promise<BackgroundModule>) | null;
+// The list is a named export of that module; a default export is accepted too. Either way `lazy` gets the { default } shape it needs.
+const BackgroundTasks = lazy(async () => {
+  const m = loadBackground ? await loadBackground() : null;
+  return { default: (m?.default ?? m?.BackgroundTasks ?? (() => null)) as ComponentType<{ limit?: number }> };
+});
 
 const firstRunAt = (): string | null => { try { return window.localStorage.getItem(FIRST_RUN_KEY); } catch { return null; } };
 
