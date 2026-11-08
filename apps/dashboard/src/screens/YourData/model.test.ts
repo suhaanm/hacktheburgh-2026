@@ -3,10 +3,20 @@ import memoryFx from "../../fixtures/memory.json";
 import ledgerFx from "../../fixtures/privacy-ledger.json";
 import { captureOn } from "../../lib/memory";
 import type { LedgerEntry, Memory } from "../../types";
-import { CAPTURE_TEXT, YD_SECTIONS, YD_TITLE, clearItemsMarkdown, deleteAllText, deleteResultText, factLine, memoryItems, sentLine, stepForgetText, ydSectionOf } from "./model";
+import { CAPTURE_TEXT, YD_SECTIONS, YD_TITLE, cleanNote, clearItemsMarkdown, deleteAllText, deleteResultText, factLine, memoryItems, sentLine, stepForgetText, ydSectionOf } from "./model";
 
 const mem = (memoryFx as unknown as { data: Memory }).data;
 const ledger = (ledgerFx as unknown as { data: LedgerEntry[] }).data;
+
+describe("a memory line's note reads as plain words", () => {
+  it("drops the id plumbing and codes, and never prints the seed's own label", () => {
+    expect(cleanNote("id:l_ab12 | you said so 2026-11-08")).toBe("you said so 2026-11-08");
+    expect(cleanNote("corr:summary_length=detailed")).toBeNull();
+    expect(cleanNote("demo seed")).toBe("set up for you");
+    expect(cleanNote("from the UK benefits processor pack")).toBe("from the UK benefits processor pack");
+    expect(cleanNote(null)).toBeNull();
+  });
+});
 
 describe("sections", () => {
   it("are the five of the shell's contract, each with a title, and an unknown one is ignored", () => {
