@@ -45,6 +45,7 @@ export default function NeedsYou() {
     [q.data, rt.data, br.data, ag.data, tk.data, tk.source, gone],
   );
   // Every source has answered once (or failed): until then the list is partial, and "Nothing needs you" would be a wrong thing to say.
+  // Items that are already known are drawn at once (the first approval should not wait for the slowest source), but the count, the headline and the empty state wait for the rest.
   const ready = !!q.data && firstLoadDone([q, rt, br, ag, tk]);
   const n = needsCount(items);
   // The badge in the sidebar counts the same list.
@@ -55,7 +56,7 @@ export default function NeedsYou() {
   useLive(reload, (ag.source === "live" && anyActiveRun(ag.data)) || (tk.source === "live" && anyActiveRow(tk.data)), useRegisteredStreams(), tk.source === "live" ? [`${AGENT_URL}/tasks/events`] : []);
 
   if (q.status === "error" && !q.data) return <div className="page page--read kc-page"><ErrorState error={q.error} retry={q.reload} what="what needs you" /></div>;
-  if (!ready) return <div className="page page--read kc-page"><Loading label="Loading what needs you" /></div>;
+  if (!q.data || (!ready && items.length === 0)) return <div className="page page--read kc-page"><Loading label="Loading what needs you" /></div>;
 
   const decide: Decide = async (routine, body, done) => {
     await api.setConsent(routine.id, body);
@@ -88,7 +89,7 @@ export default function NeedsYou() {
         <h1 className="kc-title">Needs you</h1>
         <OriginBadge sources={sources} />
       </div>
-      {items.length > 0 && <p className="kc-headline" data-testid="headline">{needsHeadline(items)}</p>}
+      {ready && items.length > 0 && <p className="kc-headline" data-testid="headline">{needsHeadline(items)}</p>}
       <OriginDetails sources={sources} />
       {made && <p className="note" role="status" data-testid="fired">{made.title}: {made.text}</p>}
 
