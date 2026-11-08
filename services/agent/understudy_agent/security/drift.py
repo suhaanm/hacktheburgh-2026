@@ -194,6 +194,13 @@ def classify_check_error(exc: BaseException) -> str:
     return _classify(exc)[0]
 
 
+def classify_provider_error(exc: BaseException) -> tuple[str, bool]:
+    """(class, retryable) of a failed provider call, by the same closed rules as the goal check's classifier (a provider `kind`, an HTTP
+    status, class names, builtin families; never the text of a message). Used by the tier-3 loop to decide whether to ASK AGAIN: a
+    model proposal is idempotent, so asking again is safe; nothing has been done on the screen yet."""
+    return _classify(exc)
+
+
 class _Unusable(Exception):
     """The port answered, but not with an object the layer can use (no boolean `serves_goal`). Counts as an invalid answer."""
 

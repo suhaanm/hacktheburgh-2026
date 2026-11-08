@@ -137,6 +137,18 @@ def audit_summary(t3: list[dict[str, Any]]) -> dict[str, Any]:
     return out
 
 
+def model_retry_summary(t3: list[dict[str, Any]], cliffs: list[dict[str, Any]]) -> dict[str, Any]:
+    """Model calls asked again after a transient provider failure, over a household's tier-3 attempts and cliff steps: a count and the
+    error classes (a closed enum). The wording of an error is never kept."""
+    classes = [c for r in [*t3, *cliffs] for c in (r.get("model_retry_classes") or [])]
+    return {"total": len(classes), "by_class": dict(Counter(classes))}
+
+
+def failed_cliff_steps(cliffs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Cliff steps that did not end `done`: who, how it ended (`stopped:<error class name>` or the loop's outcome), steps and re-asks."""
+    return [{k: r.get(k) for k in ("navigator", "outcome", "steps", "model_retries")} for r in cliffs if r.get("outcome") != "done"]
+
+
 def provider_name() -> str:
     """The provider the round runs on: UNDERSTUDY_PROVIDER, else the factory's default (Gemini since D49)."""
     from .models.factory import DEFAULT_PROVIDER
@@ -341,6 +353,7 @@ async def dev_round(n: int, seed: int, condition: str, steps: int, budget: float
             tin1, tout1 = model.tokens()
             navs = [*run.navigator_objs.values(), *([run.scribe_nav] if run.scribe_nav is not None else [])]   # the scribe too
             t3 = [r for nv in navs for r in nv.t3_runs]
+            cliffs = [r for nv in navs for r in getattr(nv, "cliff_runs", [])]
             # gate stops are logged apart from model failures: the Submit stop is the design; every other stop is read one by one
             unexpected = [g for g in run.gate_stops if not g["designed"]]
             # a false claim is a claimed success that code refused: the run said done and the check fails, or a navigator's Done
@@ -365,7 +378,8 @@ async def dev_round(n: int, seed: int, condition: str, steps: int, budget: float
                    "steps": sum(1 for e in run.events if e.get("event") == "step"), "tier3": [{k: v for k, v in r.items() if k != "prompt_chars"} for r in t3],
                    "refusals": sum(r.get("refusals", 0) for r in t3), "wall_s": round(time.monotonic() - t0, 1), "error": err,
                    "gate_stops": run.gate_stops, "gate_stops_unexpected": len(unexpected), "action_rejections": run.action_rejections,
-                   "model_failures": model_failure_rows(t3),
+                   "model_failures": model_failure_rows(t3), "model_retries": model_retry_summary(t3, cliffs),
+                   "cliff_steps_failed": failed_cliff_steps(cliffs),
                    "tokens_in": tin1 - tin0, "tokens_out": tout1 - tout0, "cost_placeholder_usd": round(model.cost() - cost0, 4),
                    "budget_truncated": model.blocked > blocked0}
             if row["budget_truncated"]:
@@ -381,6 +395,7 @@ async def dev_round(n: int, seed: int, condition: str, steps: int, budget: float
                   f"inputs_exact={row['inputs_exact']} refusals={row['refusals']} gate_stops={len(run.gate_stops)} (unexpected {len(unexpected)}) "
                   f"goal_checks={res.get('goal_checks')} readback_failures={fa['readback_failures']} (recovered {fa['readback_failures_recovered']}) "
                   f"final_button_holds={fa['blocks']} (navigators then clean {fa['navigators_blocked_then_clean']}/{fa['navigators_blocked']}) "
+                  f"model_retries={row['model_retries']['total']} cliff_steps_failed={len(row['cliff_steps_failed'])} "
                   f"action_rejections={run.action_rejections} {row['wall_s']}s ~${spent():.2f} of {CAP_USD}", flush=True)
             for g in unexpected:                      # read every one: benign controls can be stopped by label_mismatch, external_form, an unlisted verb
                 print(f"  GATE STOP {g['nav']} step {g['step']} {g['kind']} {g['verdict']} {g['layer']} {g['codes']} role={g['role']!r} "
@@ -429,6 +444,10 @@ def summarise(rows: list[dict[str, Any]], *, label: str, heldout: bool, seed: in
                                                          for _ in range(n))),
             "form_audit": {k: sum(r["form_audit"][k] for r in rows) for k in ("readback_failures", "readback_failures_recovered", "blocks",
                                                                               "navigators_blocked", "navigators_blocked_then_clean")},
+            "model_retries": {"total": sum((r.get("model_retries") or {}).get("total", 0) for r in rows),
+                              "by_class": dict(Counter(c for r in rows for c, n in ((r.get("model_retries") or {}).get("by_class") or {}).items()
+                                                       for _ in range(n)))},
+            "cliff_steps_failed": sum(len(r.get("cliff_steps_failed") or []) for r in rows),
             "dropped": dropped, "rows": sorted(rows, key=lambda r: r.get("index", 0)),
             "gate_version": gate_version(), "computer_use_provider": cu_provider, "by_provider": by_provider,
             "gate_stops_unexpected": sum(r["gate_stops_unexpected"] for r in rows),

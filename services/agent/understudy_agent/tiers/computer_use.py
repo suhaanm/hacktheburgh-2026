@@ -1135,6 +1135,16 @@ class Tier3Result:
     readback_failures: int = 0         # typed handles that did NOT land in the control that had focus (the handle stays pending)
     audit_blocks: int = 0              # final-button presses held back because the form was not as the facts say
     audit: dict[str, Any] = field(default_factory=dict)   # the audit's summary: enums, counts and handle ids only
+    model_retries: int = 0             # model calls asked again after a transient provider failure (the answer, never an action, was lost)
+    model_retry_classes: list[str] = field(default_factory=list)   # the error class (a closed enum) of each, in order
+
+
+# A provider failure that only says "try again": a rate limit, a timeout, a dropped connection or a server error, and an answer that
+# arrived empty, cut off or malformed. A refusal, a refused key and a blocked answer are the same on the next ask, and an error nothing
+# classifies is a bug to see, not to hide, so none of those is asked again.
+MODEL_RETRY_CLASSES = frozenset({"rate_limit", "timeout", "transport", "invalid_answer"})
+MODEL_RETRIES = 2                       # asks after the first (so at most 3 calls per step)
+MODEL_BACKOFF_S = (0.5, 1.5)            # fixed waits before ask 2 and ask 3: no jitter, so a test can predict every wait
 
 
 FP_SIZE = (640, 400)
@@ -1206,8 +1216,12 @@ class ComputerUse:
                  resume_wm: dict[str, Any] | None = None, page_kept: bool = False,
                  on_snapshot: Callable[[int, dict[str, Any]], None] | None = None, postcondition: str = "final_page",
                  form_audit: FormAudit | None = None, dropdown_note: bool | None = None, entered_note: bool | None = None,
-                 final_hint: Callable[[], Awaitable[bool]] | None = None, final_note: bool | None = None) -> None:
-        if stateless is None:                    # UNDERSTUDY_CU_STATELESS=0 opts back into the chained provider thread (comparison only)
+                 final_hint: Callable[[], Awaitable[bool]] | None = None, final_note: bool | None = None,
+                 model_retries: int = MODEL_RETRIES, model_backoff_s: tuple[float, ...] = MODEL_BACKOFF_S,
+                 sleep: Callable[[float], Awaitable[None]] = asyncio.sleep) -> None:
+        self.model_retries, self.model_backoff_s, self._sleep = max(0, int(model_retries)), tuple(model_backoff_s) or (0.0,), sleep
+        self.model_retry_classes: list[str] = []      # kept on the instance too, so a run that ends in an exception still reports them
+        if stateless is None:                  # UNDERSTUDY_CU_STATELESS=0 opts back into the chained provider thread (comparison only)
             stateless = os.environ.get("UNDERSTUDY_CU_STATELESS", "1").strip().lower() not in ("0", "false", "no", "off")
         self.stateless = stateless               # no provider-side thread: each step is goal + code-built working memory + ONE fresh frame
         self.max_nudges = max_nudges             # early endings the loop answers with a code-written 'not finished, continue'
@@ -1296,6 +1310,33 @@ class ComputerUse:
         self.guard.record_step(ev)
         if self.emit:
             self.emit(ev)
+
+    async def _ask_model(self, n: int, res: "Tier3Result", *args: Any, **kw: Any) -> Any:
+        """One `computer_step` call, asked AGAIN (at most `model_retries` times, fixed waits) when the provider failed in a way that only
+        says "try again" (`MODEL_RETRY_CLASSES`). A failed call means nothing was done on the screen: asking again cannot repeat an
+        action, and what comes back still goes through every gate on its own. The frame is the one already held in memory, and every ask
+        goes through the same egress guard and ledger as the first. Anything else, a stop, or the last failed ask is raised unchanged."""
+        attempt = 0
+        while True:
+            try:
+                return await asyncio.to_thread(self.model.computer_step, *args, **kw)
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:  # noqa: BLE001 - classified below; an unknown class is raised, never retried
+                from ..security.drift import classify_provider_error
+
+                cls, retryable = classify_provider_error(exc)
+                if not (retryable and cls in MODEL_RETRY_CLASSES) or attempt >= self.model_retries or not self.is_current():
+                    raise
+                wait = float(self.model_backoff_s[min(attempt, len(self.model_backoff_s) - 1)])
+                attempt += 1
+                res.model_retries += 1
+                res.model_retry_classes.append(cls)
+                self.model_retry_classes.append(cls)
+                self._event(n + 1, "model_retry", True, f"the model call failed ({cls}); asking again")
+                await self._sleep(wait)
+                if not self.is_current():
+                    raise
 
     def _page_key(self) -> str:
         """A short id for the page the actuator is on (its URL path), so the audit can tell one page of a wizard from the next."""
@@ -1449,12 +1490,11 @@ class ComputerUse:
                     # a scripted double (the mock provider) indexes its script by history length; a real provider gets none
                     hist = list(res.history) if getattr(self.model, "name", "") == "mock" else []
                     with call_context(manifest):          # the meter records the sections and token counts of THIS call, never the text
-                        out = await asyncio.to_thread(self.model.computer_step, prompt, shot, hist, session=self.navigator, store=False)
+                        out = await self._ask_model(n, res, prompt, shot, hist, session=self.navigator, store=False)
                 else:
                     prompt = base_goal + self._task_state(res) + feedback
                     res.prompt_chars.append(len(prompt) + sum(len(str(h)) for h in res.history[-12:]))
-                    out = await asyncio.to_thread(self.model.computer_step, prompt, shot, list(res.history),
-                                                  session=self.navigator)
+                    out = await self._ask_model(n, res, prompt, shot, list(res.history), session=self.navigator)
                 feedback = ""
                 res.steps += 1
                 self.last_steps = res.steps

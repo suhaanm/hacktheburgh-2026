@@ -271,6 +271,7 @@ class Navigator:
         self.wm_carried = 0                          # tier-3 attempts that started from an earlier attempt's (or a checkpoint's) memory
         self.tier3_steps = 0
         self.t3_runs: list[dict[str, Any]] = []     # one record per tier-3 attempt: outcome, counts and the model's own closing words
+        self.cliff_runs: list[dict[str, Any]] = []  # one record per tier-3 cliff step: outcome (done or the error's class name), steps, model re-asks
         self.refusals = 0
         self.tiers_used: list[int] = []
         self.last_inputs_audit = "n/a"                  # the latest tier-3 attempt's form-audit state (tiers/form_audit.py)
@@ -419,7 +420,8 @@ class Navigator:
             extra = audit_record()
             self.last_inputs_audit = extra.get("inputs", "n/a")
             self.last_audit_summary = extra.get("form_audit", {})
-            self.t3_runs.append({"navigator": self.id, "outcome": f"stopped:{type(exc).__name__}", "steps": cu.last_steps, **extra})
+            self.t3_runs.append({"navigator": self.id, "outcome": f"stopped:{type(exc).__name__}", "steps": cu.last_steps,
+                                 "model_retries": len(cu.model_retry_classes), "model_retry_classes": list(cu.model_retry_classes), **extra})
             raise
         extra = audit_record()
         self.last_inputs_audit = extra.get("inputs", "n/a")
@@ -427,6 +429,7 @@ class Navigator:
         self.t3_runs.append({"navigator": self.id, "outcome": res.outcome, "steps": res.steps, "progress_steps": res.progress_steps,
                              "refusals": res.refusals, "claimed_done": res.claimed_done, "false_claim": res.false_claim,
                              "resets": res.resets, "nudges": res.nudges, "premature_claims": res.premature_claims,
+                             "model_retries": res.model_retries, "model_retry_classes": list(res.model_retry_classes),
                              "prompt_chars": list(res.prompt_chars),
                              "summary": re.sub(r"\d{3,}", "#", res.last_summary or "")[:300], **extra})   # the model's own words, digit runs masked
         self.tier3_steps += res.steps
@@ -549,11 +552,15 @@ class Navigator:
 
         try:
             out = await cu.run(CLIFF_GOAL, verify)
-        except (GateStop, InjectionStop, asyncio.CancelledError):
-            raise
+        except (GateStop, InjectionStop, ProviderSafetyStop, asyncio.CancelledError):
+            raise                           # a gate stop, an injection and a provider safety check pause the run here as in every other step
         except Exception as exc:  # noqa: BLE001 - a missing panel is reported, not fatal
+            self.cliff_runs.append({"navigator": self.id, "outcome": f"stopped:{type(exc).__name__}", "steps": cu.last_steps,
+                                    "model_retries": len(cu.model_retry_classes), "model_retry_classes": list(cu.model_retry_classes)})
             self._note("cliff_check", False, type(exc).__name__, 3)
             return
+        self.cliff_runs.append({"navigator": self.id, "outcome": out.outcome, "steps": out.steps,
+                                "model_retries": out.model_retries, "model_retry_classes": list(out.model_retry_classes)})
         if out.outcome == "done":
             text = (await observe(page)).text
             res.cliff_text = text[text.index(marker):][:600] if marker in text else ""
