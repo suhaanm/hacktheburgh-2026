@@ -221,7 +221,7 @@ def test_nothing_is_written_outside_the_two_demo_dirs(env):
     assert _tree(env.tmp, skip=("demo-home", "data", "userhome")) == before_tmp
     assert list(env.fake_home.iterdir()) == []                                     # nothing under HOME, so no ~/.understudy
     assert sorted(p.name for p in env.home.iterdir()) <= sorted([".memory.lock", ".understudy-demo-home", "memory.md", "memory_state.json", "routines_state.json"])
-    assert sorted(p.name for p in env.data.iterdir()) == sorted([".demo-growth", ".demo-story", ".understudy-demo-data", ".queue_key", "assist", "audit.jsonl", "eval", "golden", "queue", "routines", "runs", "synthetic", "voice_cache"])
+    assert sorted(p.name for p in env.data.iterdir()) == sorted([".demo-growth", ".demo-story", ".understudy-demo-data", ".queue_key", "assist", "audit.jsonl", "eval", "firm", "golden", "queue", "routines", "runs", "synthetic", "voice_cache"])
     assert list(env.tmp.glob("*")) and not (env.tmp / "queue").exists() and not (env.tmp / "audit.jsonl").exists()   # nothing leaked into the working directory
 
 

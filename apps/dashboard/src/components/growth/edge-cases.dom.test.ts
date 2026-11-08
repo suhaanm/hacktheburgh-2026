@@ -122,7 +122,7 @@ describe("My steps: edge cases", () => {
     const t0 = Date.now();
     clean(await steps());
     expect(Date.now() - t0).toBeLessThan(15000);
-  });
+  }, 30_000); // the test's own bound is 15 s; vitest's default 5 s timeout fired first on a loaded machine
   it("steps: a generator with no steps for the expert still names what only the worker did", async () => {
     const g = env(genomeFx);
     g.data.expert = { segments: [] };

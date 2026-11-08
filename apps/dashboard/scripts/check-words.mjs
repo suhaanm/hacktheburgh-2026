@@ -2,7 +2,7 @@
 // opens every screen in both views (the routes of qa/knack/budgets.json, the same ones check-copy.mjs reads), the command palette with every row shown and every
 // step of the tour, and looks for the banned words in what a person sees (page text, document title) and what a screen reader reads (aria-label, title, alt,
 // placeholder, aria-description, visually hidden text). The static scan in src/lib/words.test.ts covers the source and the fixtures.
-// Usage: node scripts/check-words.mjs [base=http://127.0.0.1:5173] [--word=demo,synthetic,synthetically,simulated]   Example-data mode (engine blocked). Exits 1 on any hit.
+// Usage: node scripts/check-words.mjs [base=http://127.0.0.1:5173] [--word=demo,synthetic,synthetically,simulated,made-up,made up]   Example-data mode (engine blocked). Exits 1 on any hit.
 import { chromium } from "playwright";
 import fs from "node:fs";
 import { dirname, join } from "node:path";
@@ -13,7 +13,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const budgets = JSON.parse(fs.readFileSync(join(here, "..", "qa", "knack", "budgets.json"), "utf8"));
 const args = process.argv.slice(2);
 const base = (args.find((a) => a.startsWith("http")) ?? "http://127.0.0.1:5173").replace(/\/$/, "");
-const word = (args.find((a) => a.startsWith("--word=")) ?? "--word=demo,synthetic,synthetically,simulated").slice(7);
+const word = (args.find((a) => a.startsWith("--word=")) ?? "--word=demo,synthetic,synthetically,simulated,made-up,made up").slice(7);
 const re = new RegExp(`\\b(?:${word.split(",").filter(Boolean).join("|")})\\b`, "i");
 const routesOf = (view) => Object.entries({ ...budgets.routes, ...(budgets.exempt ?? {}) }).filter(([, r]) => (view === "admin" ? r.audience === "admin" : r.audience !== "admin"));
 
