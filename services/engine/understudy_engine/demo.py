@@ -24,12 +24,15 @@ The shared data directory is isolated too. ``make demo`` must set::
 fresh ``queue/``, ``runs/``, ``routines/`` and ``audit.jsonl``, seeded with a morning story built through the agent's public
 classes: two pending approvals from last night's background run (an irreversible "Submit case note" with evidence and a shadow
 mismatch), a few audit lines, one earlier run folder with four screenshots, and one run that yielded when the worker came back.
+It also fills the assist ledger (``<data>/assist/ledger.jsonl``) with ONE simulated improving learner for ``p_learn01``, every row labelled
+``origin: synthetic`` and ``origin_detail: synthetic_learner``, so the Growth screen has a curve to show (a fresh person sees "Your curve starts
+after 10 steps"); ``--reset`` removes it with the rest, and a marker keeps a second run from adding it twice.
 The seed then calls ``understudy_agent.demo_bundle.install()`` (skipped with a note if absent) so the compiled bundle
 ``routines/calc-entry-3x/steps.json`` exists. A data directory that is not the demo one (named ``demo-data`` or carrying the
 demo marker) is never written: the seed says so and skips that part.
 
 ``--reset`` wipes only what this seed made (in the home: only if it carries the demo marker or is empty; in the data directory:
-queue, runs, routines, audit log and kill flag of the demo directory). Re-running without ``--reset`` changes nothing.
+queue, runs, routines, assist ledger, audit log and kill flag of the demo directory). Re-running without ``--reset`` changes nothing.
 """
 from __future__ import annotations
 
@@ -59,6 +62,12 @@ ROUTINE_SOURCE = "p_ninetofive"
 MARKER = ".understudy-demo-home"
 DATA_MARKER = ".understudy-demo-data"
 STORY_MARKER = ".demo-story"
+GROWTH_MARKER = ".demo-growth"
+#: the assist ledger the Growth screen reads (``<data>/assist/ledger.jsonl``): the demo seed fills it with ONE simulated learner (labelled)
+GROWTH_DIR = "assist"
+GROWTH_SEED = 21            # the same fixed seed ``cue.make_examples`` uses for the dashboard's example learner
+GROWTH_PER_SKILL = 30       # 3 skills x 30 = 90 occurrences: past the 10 the screen needs and the 30 its trend needs
+GROWTH_LAG_HOURS = 2.0      # the last occurrence is this long before the seed's clock, so the curve is current
 STATE_FILES = ("memory.md", "memory_state.json", "routines_state.json", ".memory.lock")
 LINKS = ("synthetic", "golden", "voice_cache", "eval")
 EARLIER_RUNS = ("r_demo_0001", "r_demo_0002")
@@ -88,7 +97,7 @@ def reset_home(home: Path, out: Callable[[str], None]) -> None:
 def reset_data(dd: Path, out: Callable[[str], None]) -> None:
     """Empty the demo data directory's own folders. Symlinks to the shared data are unlinked, never followed."""
     removed = []
-    for name in ("queue", "runs", "routines"):
+    for name in ("queue", "runs", "routines", GROWTH_DIR):
         d = dd / name
         if d.is_symlink():
             d.unlink()
@@ -97,7 +106,7 @@ def reset_data(dd: Path, out: Callable[[str], None]) -> None:
         else:
             continue
         removed.append(name + "/")
-    for name in ("audit.jsonl", "KILL", STORY_MARKER):
+    for name in ("audit.jsonl", "KILL", STORY_MARKER, GROWTH_MARKER):
         f = dd / name
         if f.exists() or f.is_symlink():
             f.unlink()
@@ -206,6 +215,44 @@ def seed_story(dd: Path, now: datetime, out: Callable[[str], None]) -> dict[str,
     return {"story": True, "queue": [submit["id"], mismatch["id"]], "audit_lines": len(audit.read(limit=0)), "run": r1, "screenshots": shots}
 
 
+def demo_learner_rows(now: datetime) -> list[dict[str, Any]]:
+    """The Growth screen's data for the demo person: one SIMULATED improving learner (``cue.simlearn``, fixed seed) shifted in time so its last
+    occurrence is ``GROWTH_LAG_HOURS`` before ``now``, plus four offloaded rows (work the agent did, listed and never scored). Every row is
+    labelled ``origin: synthetic`` and ``origin_detail: synthetic_learner``, so the screen's origin badge says "example data". Pure and
+    deterministic for a given ``now``; it writes nothing."""
+    import numpy as np
+
+    from .cue import ledger as L
+    from .cue import simlearn as SL
+
+    spec = SL.preset("improving")
+    _rows, truth = SL.simulate_learner(spec, np.random.default_rng(GROWTH_SEED), person=DEMO_PERSON, n_per_skill=GROWTH_PER_SKILL)
+    t0 = 1_790_000_000.0                       # simulate_learner's own default start
+    span = float(truth.t[-1]) - t0
+    end = now.timestamp() - GROWTH_LAG_HOURS * 3600.0
+    rows, _ = SL.simulate_learner(spec, np.random.default_rng(GROWTH_SEED), person=DEMO_PERSON, n_per_skill=GROWTH_PER_SKILL, t0=end - span)
+    offloaded = [L.make_row(person=DEMO_PERSON, role=DEMO_ROLE, skill="enter-household-once", t=end - 3600.0 * (i + 1) * 5, outcome="clean",
+                            stream="automation" if i % 2 else "delegated", routine=DEMO_ROUTINE, minutes=12.0 + i, offload_outcome="done",
+                            origin="synthetic", origin_detail="synthetic_learner", serial=900 + i) for i in range(4)]
+    return rows + offloaded
+
+
+def seed_growth(dd: Path, now: datetime, out: Callable[[str], None]) -> dict[str, Any]:
+    """Fill the assist ledger of the demo data directory so the Growth screen shows a curve and the Home insights have an independence
+    story (the dashboard's "Your curve starts after 10 steps" empty state is what a fresh person sees). Only ever writes into the demo data
+    directory, only once (a marker), and every row is a schema-validated, labelled simulated-learner row."""
+    from .cue import ledger as L
+
+    rows = demo_learner_rows(now)
+    ledger = L.Ledger(dd / GROWTH_DIR / "ledger.jsonl")
+    n = ledger.extend(rows)
+    (dd / GROWTH_MARKER).write_text(now.isoformat() + "\n")
+    counts = {s: sum(1 for r in rows if r["stream"] == s) for s in ("assist", "delegated", "automation")}
+    out(f"growth: {counts['assist']} assist occurrences for {DEMO_PERSON} from one generated improving learner (labelled synthetic_learner), "
+        f"{counts['delegated'] + counts['automation']} offloaded rows (listed, never scored); {n} rows in {GROWTH_DIR}/ledger.jsonl")
+    return {"growth": True, "growth_rows": n, "growth_counts": counts}
+
+
 def install_demo_bundle(dd: Path, out: Callable[[str], None]) -> str | None:
     """Agent-core's compiled bundle for calc-entry-3x. Lazy: skipped with a note when their module is absent."""
     try:
@@ -255,6 +302,14 @@ def seed(*, reset: bool = False, now: datetime | None = None, out: Callable[[str
             out("morning story: already seeded; nothing changed.")
         else:
             result.update(seed_story(dd, t, out))
+        if (dd / GROWTH_MARKER).exists():
+            out("growth: already seeded; nothing changed.")
+        else:
+            try:
+                result.update(seed_growth(dd, t, out))
+            except Exception as e:  # the base demo does not depend on it: say what failed, keep going
+                out(f"growth: NOT SEEDED, the Growth screen will show its empty state ({type(e).__name__}: {str(e)[:160]})")
+                result["growth"] = False
         if bundle:
             result["bundle"] = install_demo_bundle(dd, out)
         else:

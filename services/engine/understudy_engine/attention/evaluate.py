@@ -372,7 +372,7 @@ def _criterion_7b(s4: dict[str, Any] | None) -> str:
 
 
 LIMITATIONS = [
-    {"id": "att_sim_not_people", "severity": "high", "text": "Every number comes from a generator: workers, schedules, event streams, reactions and attention costs are my assumptions (simulate.py). This shows the policy behaves as designed under them. It does not show that real people find Understudy natural. The live check with four teammates (n = 4) is the real test and was not run."},
+    {"id": "att_sim_not_people", "severity": "high", "text": "Every number comes from a generator: workers, schedules, event streams, reactions and attention costs are my assumptions (simulate.py). This shows the policy behaves as designed under them. It does not show that real people find Knack natural. The live check with four teammates (n = 4) is the real test and was not run."},
     {"id": "att_costs_assumed", "severity": "medium", "text": "The attention-cost model (seconds of focus lost per interruption by context) is an assumption. The sensitivity run halves and doubles it and reports whether the ordering of conditions changes; the magnitudes stay assumptions."},
     {"id": "att_rates_assumed", "severity": "medium", "text": "Producer rates are stated approximations of Cue, the briefing, the approval queue, the agent runtime, the calendar layer and health checks. The sensitivity run scales them by 0.5 and 2."},
     {"id": "att_labels_proxy", "severity": "medium", "text": "Implicit labels (followed within 10 s, dismissed within 4 s, ignored, never) are noisy proxies for welcome: a dismissal can mean already knew. The generated worker's labels come from the same reaction model, so learning is validated for its direction, not for its calibration against people."},

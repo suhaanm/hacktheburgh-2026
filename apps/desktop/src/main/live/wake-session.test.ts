@@ -139,6 +139,61 @@ describe('startFromWake', () => {
   })
 })
 
+describe('how a hands-free conversation ends', () => {
+  it('a long silence ends it: half a minute with no sound from the worker and no model speech', async () => {
+    const m = h.make()
+    m.start()
+    m.startFromWake()
+    await wf(() => h.server.received.setup !== null && h.audio.micOpen)
+    h.clock.advance(29_000)
+    expect(m.status().phase).not.toBe('idle')
+    h.clock.advance(2_500)
+    expect(m.status().phase).toBe('idle')
+    expect(m.status().lastEnd?.reason).toBe('idle')
+    expect(h.audio.micOpen).toBe(false) // the microphone is released with it
+  })
+  it('the five-minute cap ends it even when the worker keeps talking', async () => {
+    const m = h.make()
+    m.start()
+    m.startFromWake()
+    await wf(() => h.server.received.setup !== null && h.audio.micOpen)
+    for (let i = 0; i < 12; i++) {
+      h.audio.feed('AAAA', 0.3) // sound keeps the idle clock fresh
+      h.clock.advance(25_000)
+    }
+    expect(m.status().phase).toBe('idle')
+    expect(m.status().lastEnd?.reason).toBe('max_duration')
+  })
+  it('a worker who goes quiet while the model is still speaking is not cut off by the idle clock', async () => {
+    const m = h.make()
+    m.start()
+    m.startFromWake()
+    await wf(() => h.server.received.setup !== null && h.audio.micOpen)
+    h.server.send({ serverContent: { modelTurn: { parts: [{ inlineData: { mimeType: 'audio/pcm;rate=24000', data: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' } }] } } })
+    await wf(() => h.audio.played.length > 0)
+    h.clock.advance(45_000) // longer than the idle limit, but the model has not finished its turn
+    expect(m.status().phase).not.toBe('idle')
+  })
+})
+
+describe('the first conversation', () => {
+  it('sends the code-written opening turn once the channel exists, and nothing when there is none', async () => {
+    const m = h.make({ opening: () => 'OPENING: say hello' })
+    m.start()
+    m.startFromWake()
+    await wf(() => h.server.received.text.length > 0)
+    expect(h.server.received.text.join(' ')).toContain('OPENING: say hello')
+    h.audio.micStarts = 0
+    const q = h.make({ opening: () => null })
+    q.start()
+    const before = h.server.received.text.length
+    q.startFromWake()
+    await wf(() => h.server.received.setup !== null)
+    await new Promise((r) => setTimeout(r, 100))
+    expect(h.server.received.text.length).toBe(before)
+  })
+})
+
 describe('the wake tools', () => {
   it('point_at draws the ring and the ghost cursor, and still never clicks', async () => {
     const m = h.make()

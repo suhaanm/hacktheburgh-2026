@@ -46,6 +46,10 @@ The three buttons have equal weight and the same style. "Not now" asks again aft
 
 The consent split is deliberate: the owner's answer covers the on-device listener, which stores and sends nothing. Sending the worker's voice to a cloud voice model and sending a picture of the screen are the Live consent (D30) and stay asked once, in a card. If the owner would rather treat saying the words as consent for the voice, change `consentStep` in `settings.ts` (one function).
 
+## When the words are heard but a conversation cannot open (never silence)
+
+The listener has no network and no model, so it runs whenever the worker's switch is on, with live models or without. If a conversation cannot open, Knack still answers: a card, "Hey Knack heard you.", with the reason in plain words and, where it helps, a button that opens the right place (a real mouse click only). The check runs before any consent card, so nothing is asked for something that could not happen. Cards: no live models ("Live voice needs live models. Turn them on in Settings." with Open Settings), the service not answering ("The voice service is not answering. Try again soon."), the daily limit (Open Settings), the microphone not allowed (System Settings), Knack paused or stopped, an agent working. The same card appears if the microphone goes away in the middle of a conversation. All wording is in `texts.ts` (`INFO_CARDS`), and a test pins that no string a worker can read mentions a demo, a mock or example data. The edge cases are in `docs/knack-ux/edge-cases-wake.md`; every default is in `docs/knack-ux/defaults.md`.
+
 ## When macOS has not granted the permissions
 
 The app starts and runs normally. The listener is only started when no guard says dormant, and it asks macOS for the microphone and Speech Recognition at that moment, so the prompts belong to Knack and appear on the owner's first launch. If either is refused the helper exits with a closed code, is not restarted by itself, and the menu bar says one line:
@@ -107,6 +111,8 @@ Rows to add to `docs/knack-ux/shell-transitions.json` and `shell-machine.ts`, as
 | 23 | `click_done` | the check for 2.5 s (row 7) |
 
 Already wired in this branch without a machine change: the pill follows the Live manager (`voice_hold` Listening, Thinking, Speaking; `voice_end` when it closes) through `knack.dispatch`, and the pill's End button ends the conversation (`KnackLateDeps.onVoiceEnd`). The wake cards are an interim window (`renderer/hey-card`, `wake/card-window.ts`) that implements `CardPort` and can be replaced by the corner column by binding `CardPort` to it.
+
+See `docs/knack-ux/capabilities-and-permissions.md` for every capability, the permission each needs, the card shown when it is missing, the first-run order of permissions, the Try it step and what works from a packaged app.
 
 ## Hooks outside `wake/`
 

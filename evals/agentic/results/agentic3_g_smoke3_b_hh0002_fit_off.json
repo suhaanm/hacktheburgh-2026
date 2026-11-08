@@ -1,0 +1,617 @@
+{
+ "label": "agentic3_g_smoke3_b_hh0002_fit_off",
+ "site": "b",
+ "household": "hh_0002",
+ "archetype": "couple_two_kids",
+ "in_sample": true,
+ "computer_use_provider": "gemini",
+ "old_goal": false,
+ "form_audit_mode": "full",
+ "state": "escalated",
+ "amount_ok": false,
+ "inputs_audit": "n/a",
+ "error": "",
+ "goal_checks": {
+  "checks": 104,
+  "retried": 0,
+  "recovered": 0,
+  "failed": 0,
+  "by_class": {}
+ },
+ "tier3": [
+  {
+   "navigator": "nav-b",
+   "outcome": "stopped:StuckLoop",
+   "steps": 50,
+   "inputs": "unaudited",
+   "form_audit": {
+    "state": "unaudited",
+    "audits": 0,
+    "blocks": 0,
+    "readbacks": {
+     "yes": 0,
+     "no": 0,
+     "unreadable": 0
+    },
+    "pending": [
+     "household.adults",
+     "household.adult1_age",
+     "household.adult2_age",
+     "household.children_ages",
+     "household.adult1_earnings",
+     "household.adult2_earnings",
+     "household.limited_capability",
+     "household.tenure",
+     "household.rent",
+     "household.bedrooms",
+     "household.savings",
+     "household.childcare"
+    ],
+    "records": []
+   },
+   "readback_failures": 0
+  },
+  {
+   "navigator": "nav-b",
+   "outcome": "stopped:StuckLoop",
+   "steps": 56,
+   "inputs": "unaudited",
+   "form_audit": {
+    "state": "unaudited",
+    "audits": 0,
+    "blocks": 0,
+    "readbacks": {
+     "yes": 0,
+     "no": 0,
+     "unreadable": 0
+    },
+    "pending": [
+     "household.adults",
+     "household.adult1_age",
+     "household.adult2_age",
+     "household.children_ages",
+     "household.adult1_earnings",
+     "household.adult2_earnings",
+     "household.limited_capability",
+     "household.tenure",
+     "household.rent",
+     "household.bedrooms",
+     "household.savings",
+     "household.childcare"
+    ],
+    "records": []
+   },
+   "readback_failures": 0
+  }
+ ],
+ "refusals": 0,
+ "gate_stops": [
+  {
+   "nav": "nav-b",
+   "step": null,
+   "kind": "click",
+   "verdict": "needs_human",
+   "layer": "drift",
+   "codes": [
+    "drift:stuck_repeat_p1"
+   ],
+   "role": "combobox",
+   "structure": [],
+   "classes": [
+    "read"
+   ],
+   "label": "",
+   "designed": false,
+   "check_error": null,
+   "check_attempts": 0
+  },
+  {
+   "nav": "nav-b",
+   "step": null,
+   "kind": "click",
+   "verdict": "needs_human",
+   "layer": "drift",
+   "codes": [
+    "drift:stuck_repeat_p1"
+   ],
+   "role": "combobox",
+   "structure": [],
+   "classes": [
+    "read"
+   ],
+   "label": "",
+   "designed": false,
+   "check_error": null,
+   "check_attempts": 0
+  }
+ ],
+ "actions": [
+  [
+   1,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   2,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   3,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   4,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   5,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   6,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   7,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   8,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   9,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   10,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   11,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   12,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   13,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   14,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   15,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   16,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   17,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   18,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   19,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   20,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   21,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   22,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   23,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   24,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   25,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   26,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   27,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   28,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   29,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   30,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   31,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   32,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   33,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   34,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   35,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   36,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   37,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   38,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   39,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   40,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   41,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   42,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   43,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   44,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   45,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   46,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   47,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   48,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   49,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   50,
+   "click",
+   false,
+   "needs_human drift"
+  ],
+  [
+   51,
+   "escalate",
+   false,
+   "tier 3 failed: StuckLoop"
+  ],
+  [
+   52,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   53,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   54,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   55,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   56,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   57,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   58,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   59,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   60,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   61,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   62,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   63,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   64,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   65,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   66,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   67,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   68,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   69,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   70,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   71,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   72,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   73,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   74,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   75,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   76,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   77,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   78,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   79,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   80,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ]
+ ],
+ "gate_version": "84be21513bc8",
+ "wall_s": 406.2,
+ "tokens_in": 205175,
+ "tokens_out": 5493,
+ "cost_placeholder_usd": 0.1745,
+ "live_calls": 106,
+ "budget_truncated": false
+}

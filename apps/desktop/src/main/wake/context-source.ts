@@ -42,6 +42,9 @@ export interface ContextHub {
   setScreen(id: string | null): void
   setInsight(v: { id: string; template: string } | null): void
   setRoutine(v: { id: string; step: number; of: number } | null): void
+  /** Set-up is showing (or unfinished): the packet says first_run=yes, and the listener waits for the permissions step (wake/guards.ts). */
+  setFirstRun(on: boolean): void
+  firstRun(): boolean
   /** The last packet's manifest (kinds only), for a status line or a test. */
   last(): Packet['manifest'] | null
 }
@@ -52,6 +55,7 @@ export function createContextHub(d: ContextSourceDeps): ContextHub {
   let insight: Reading<{ id: string; template: string } | null> = null
   let routine: Reading<{ id: string; step: number; of: number } | null> = null
   let last: Packet['manifest'] | null = null
+  let firstRun = false
   const safe = <T>(fn: () => T): T | undefined => {
     try {
       return fn()
@@ -78,6 +82,7 @@ export function createContextHub(d: ContextSourceDeps): ContextHub {
         task: task === undefined ? undefined : { value: task ? { id: task.id, step: task.step, of: task.stepsTotal } : null, t },
         coach: coach === undefined ? undefined : coach === null ? { value: null, t } : { value: { step: coach.step, zone: coach.zone }, t: coach.t },
         cue: { value: safe(d.cue) ?? 'none', t },
+        firstRun,
         consent: safe(d.consent) ?? { voice: 'unset', screen: 'unset', frames: false },
         click: safe(d.rung)?.cleared === true ? 'cleared' : 'pending',
         tools: o.tools,
@@ -96,6 +101,10 @@ export function createContextHub(d: ContextSourceDeps): ContextHub {
     setRoutine(v) {
       routine = { value: v, t: now() }
     },
+    setFirstRun(on) {
+      firstRun = on === true
+    },
+    firstRun: () => firstRun,
     last: () => last,
   }
 }

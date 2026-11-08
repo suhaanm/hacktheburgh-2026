@@ -10,7 +10,7 @@ const NOW = Date.UTC(2026, 10, 8, 9, 0, 0)
 
 describe('wake settings', () => {
   it('listening is ON by default (D52) and the chime too; nothing is decided yet', () => {
-    expect(DEFAULT_WAKE_SETTINGS).toEqual({ wakeListen: true, wakeChime: true, voiceAnswer: 'unset', voiceAskAfterMs: 0, screenAnswer: 'unset', screenAskAfterMs: 0 })
+    expect(DEFAULT_WAKE_SETTINGS).toEqual({ wakeListen: true, wakeChime: true, welcomed: false, voiceAnswer: 'unset', voiceAskAfterMs: 0, screenAnswer: 'unset', screenAskAfterMs: 0 })
     expect(new WakeSettingsStore(null).get().wakeListen).toBe(true)
   })
   it('keeps what is valid and drops what is not, key by key', () => {

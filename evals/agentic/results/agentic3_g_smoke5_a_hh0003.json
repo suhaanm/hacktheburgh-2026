@@ -1,0 +1,528 @@
+{
+ "label": "agentic3_g_smoke5_a_hh0003",
+ "site": "a",
+ "household": "hh_0003",
+ "archetype": "lone_parent_childcare",
+ "in_sample": true,
+ "computer_use_provider": "gemini",
+ "old_goal": false,
+ "form_audit_mode": "full",
+ "state": "done",
+ "amount_ok": true,
+ "inputs_audit": "clean",
+ "inputs_exact": true,
+ "inputs_differ": [],
+ "error": "",
+ "goal_checks": {
+  "checks": 17,
+  "retried": 0,
+  "recovered": 0,
+  "failed": 0,
+  "by_class": {}
+ },
+ "tier3": [
+  {
+   "navigator": "nav-a",
+   "outcome": "done",
+   "steps": 30,
+   "progress_steps": 22,
+   "refusals": 0,
+   "claimed_done": true,
+   "false_claim": false,
+   "resets": 0,
+   "nudges": 0,
+   "premature_claims": 0,
+   "prompt_chars": [
+    2418,
+    2725,
+    2737,
+    2685,
+    2506,
+    2543,
+    2555,
+    2646,
+    2646,
+    2669,
+    2593,
+    2569,
+    2591,
+    2567,
+    2598,
+    2838,
+    2808,
+    2530,
+    2767,
+    2703,
+    2482,
+    2501,
+    2735,
+    2492,
+    2447,
+    2426,
+    2439,
+    2420,
+    2460,
+    2407
+   ],
+   "summary": "Estimate page is displayed showing monthly amount \u00a31,# a month and reference GOV-#F.",
+   "inputs": "clean",
+   "form_audit": {
+    "state": "clean",
+    "audits": 4,
+    "blocks": 0,
+    "readbacks": {
+     "yes": 10,
+     "no": 0,
+     "unreadable": 0
+    },
+    "pending": [],
+    "records": [
+     {
+      "step": 3,
+      "k": "readback",
+      "handle": "household.adults",
+      "role": "select",
+      "match": "yes",
+      "reason": "ok",
+      "focus": "select",
+      "field": "adults"
+     },
+     {
+      "step": 5,
+      "k": "readback",
+      "handle": "household.adult1_age",
+      "role": "number",
+      "match": "yes",
+      "reason": "ok",
+      "focus": "input",
+      "field": "your_age"
+     },
+     {
+      "step": 9,
+      "k": "readback",
+      "handle": "household.children_ages",
+      "role": "text",
+      "match": "yes",
+      "reason": "ok",
+      "focus": "input",
+      "field": "children_ages"
+     },
+     {
+      "step": 10,
+      "k": "forward",
+      "handle": "household.adults",
+      "role": "select",
+      "match": "yes",
+      "reason": "ok"
+     },
+     {
+      "step": 10,
+      "k": "forward",
+      "handle": "household.adult1_age",
+      "role": "number",
+      "match": "yes",
+      "reason": "ok"
+     },
+     {
+      "step": 10,
+      "k": "forward",
+      "handle": "household.children_ages",
+      "role": "text",
+      "match": "yes",
+      "reason": "ok"
+     },
+     {
+      "step": 12,
+      "k": "readback",
+      "handle": "household.adult1_earnings",
+      "role": "text",
+      "match": "yes",
+      "reason": "ok",
+      "focus": "input",
+      "field": "your_earnings"
+     },
+     {
+      "step": 16,
+      "k": "readback",
+      "handle": "household.limited_capability",
+      "role": "select",
+      "match": "yes",
+      "reason": "ok",
+      "focus": "select",
+      "field": "limited_capability"
+     },
+     {
+      "step": 17,
+      "k": "forward",
+      "handle": "household.adult1_earnings",
+      "role": "text",
+      "match": "yes",
+      "reason": "ok"
+     },
+     {
+      "step": 17,
+      "k": "forward",
+      "handle": "household.limited_capability",
+      "role": "select",
+      "match": "yes",
+      "reason": "ok"
+     },
+     {
+      "step": 19,
+      "k": "readback",
+      "handle": "household.tenure",
+      "role": "select",
+      "match": "yes",
+      "reason": "ok",
+      "focus": "select",
+      "field": "tenure"
+     },
+     {
+      "step": 21,
+      "k": "readback",
+      "handle": "household.rent",
+      "role": "text",
+      "match": "yes",
+      "reason": "ok",
+      "focus": "input",
+      "field": "rent"
+     },
+     {
+      "step": 23,
+      "k": "readback",
+      "handle": "household.bedrooms",
+      "role": "select",
+      "match": "yes",
+      "reason": "ok",
+      "focus": "select",
+      "field": "bedrooms"
+     },
+     {
+      "step": 24,
+      "k": "forward",
+      "handle": "household.tenure",
+      "role": "select",
+      "match": "yes",
+      "reason": "ok"
+     },
+     {
+      "step": 24,
+      "k": "forward",
+      "handle": "household.rent",
+      "role": "text",
+      "match": "yes",
+      "reason": "ok"
+     },
+     {
+      "step": 24,
+      "k": "forward",
+      "handle": "household.bedrooms",
+      "role": "select",
+      "match": "yes",
+      "reason": "ok"
+     },
+     {
+      "step": 26,
+      "k": "readback",
+      "handle": "household.savings",
+      "role": "text",
+      "match": "yes",
+      "reason": "ok",
+      "focus": "input",
+      "field": "savings"
+     },
+     {
+      "step": 28,
+      "k": "readback",
+      "handle": "household.childcare",
+      "role": "text",
+      "match": "yes",
+      "reason": "ok",
+      "focus": "input",
+      "field": "childcare"
+     },
+     {
+      "step": 29,
+      "k": "preflight",
+      "handle": "household.adults",
+      "role": "hidden",
+      "match": "yes",
+      "reason": "ok",
+      "hidden": true
+     },
+     {
+      "step": 29,
+      "k": "preflight",
+      "handle": "household.adult1_age",
+      "role": "hidden",
+      "match": "yes",
+      "reason": "ok",
+      "hidden": true
+     },
+     {
+      "step": 29,
+      "k": "preflight",
+      "handle": "household.children_ages",
+      "role": "hidden",
+      "match": "yes",
+      "reason": "ok",
+      "hidden": true
+     },
+     {
+      "step": 29,
+      "k": "preflight",
+      "handle": "household.adult1_earnings",
+      "role": "hidden",
+      "match": "yes",
+      "reason": "ok",
+      "hidden": true
+     },
+     {
+      "step": 29,
+      "k": "preflight",
+      "handle": "household.limited_capability",
+      "role": "hidden",
+      "match": "yes",
+      "reason": "ok",
+      "hidden": true
+     },
+     {
+      "step": 29,
+      "k": "preflight",
+      "handle": "household.tenure",
+      "role": "hidden",
+      "match": "yes",
+      "reason": "ok",
+      "hidden": true
+     },
+     {
+      "step": 29,
+      "k": "preflight",
+      "handle": "household.rent",
+      "role": "hidden",
+      "match": "yes",
+      "reason": "ok",
+      "hidden": true
+     },
+     {
+      "step": 29,
+      "k": "preflight",
+      "handle": "household.bedrooms",
+      "role": "hidden",
+      "match": "yes",
+      "reason": "ok",
+      "hidden": true
+     },
+     {
+      "step": 29,
+      "k": "preflight",
+      "handle": "household.savings",
+      "role": "text",
+      "match": "yes",
+      "reason": "ok"
+     },
+     {
+      "step": 29,
+      "k": "preflight",
+      "handle": "household.childcare",
+      "role": "text",
+      "match": "yes",
+      "reason": "ok"
+     }
+    ]
+   },
+   "readback_failures": 0
+  }
+ ],
+ "refusals": 0,
+ "gate_stops": [],
+ "actions": [
+  [
+   1,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   2,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   3,
+   "type_fact",
+   true,
+   "handle=household.adults focus=select field=adults "
+  ],
+  [
+   4,
+   "click",
+   true,
+   "role=textbox field=your_age"
+  ],
+  [
+   5,
+   "type_fact",
+   true,
+   "handle=household.adult1_age focus=input field=your"
+  ],
+  [
+   6,
+   "click",
+   true,
+   "role=textbox field=partner_age"
+  ],
+  [
+   7,
+   "type_fact",
+   true,
+   "handle=household.adult2_age (no value for this hou"
+  ],
+  [
+   8,
+   "click",
+   true,
+   "role=textbox field=children_ages"
+  ],
+  [
+   9,
+   "type_fact",
+   true,
+   "handle=household.children_ages focus=input field=c"
+  ],
+  [
+   10,
+   "click",
+   true,
+   "role=button"
+  ],
+  [
+   11,
+   "click",
+   true,
+   "role=textbox field=your_earnings"
+  ],
+  [
+   12,
+   "type_fact",
+   true,
+   "handle=household.adult1_earnings focus=input field"
+  ],
+  [
+   13,
+   "click",
+   true,
+   "role=textbox field=partner_earnings"
+  ],
+  [
+   14,
+   "type_fact",
+   true,
+   "handle=household.adult2_earnings (no value for thi"
+  ],
+  [
+   15,
+   "click",
+   true,
+   "role=combobox field=limited_capability"
+  ],
+  [
+   16,
+   "type_fact",
+   true,
+   "handle=household.limited_capability focus=select f"
+  ],
+  [
+   17,
+   "click",
+   true,
+   "role=button"
+  ],
+  [
+   18,
+   "click",
+   true,
+   "role=combobox field=tenure"
+  ],
+  [
+   19,
+   "type_fact",
+   true,
+   "handle=household.tenure focus=select field=tenure "
+  ],
+  [
+   20,
+   "click",
+   true,
+   "role=textbox field=rent"
+  ],
+  [
+   21,
+   "type_fact",
+   true,
+   "handle=household.rent focus=input field=rent lande"
+  ],
+  [
+   22,
+   "click",
+   true,
+   "role=combobox field=bedrooms"
+  ],
+  [
+   23,
+   "type_fact",
+   true,
+   "handle=household.bedrooms focus=select field=bedro"
+  ],
+  [
+   24,
+   "click",
+   true,
+   "role=button"
+  ],
+  [
+   25,
+   "click",
+   true,
+   "role=textbox field=savings"
+  ],
+  [
+   26,
+   "type_fact",
+   true,
+   "handle=household.savings focus=input field=savings"
+  ],
+  [
+   27,
+   "click",
+   true,
+   "role=textbox field=childcare"
+  ],
+  [
+   28,
+   "type_fact",
+   true,
+   "handle=household.childcare focus=input field=child"
+  ],
+  [
+   29,
+   "click",
+   true,
+   "role=button"
+  ],
+  [
+   30,
+   "done",
+   true,
+   "claim verified"
+  ]
+ ],
+ "gate_version": "bf343da6fcb9",
+ "wall_s": 118.2,
+ "tokens_in": 66740,
+ "tokens_out": 2726,
+ "cost_placeholder_usd": 0.0603,
+ "live_calls": 32,
+ "budget_truncated": false
+}

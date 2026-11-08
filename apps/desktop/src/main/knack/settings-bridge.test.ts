@@ -6,8 +6,9 @@ describe('what the dashboard Settings may read', () => {
   it('is a small view: the switches it shows, and nothing about folders, the denylist or consent', () => {
     const s = new SettingsStore(null)
     const view = dashboardSettingsView(s.get())
-    expect(Object.keys(view).sort()).toEqual(['cueEnabled', 'helpLevelMode', 'launchAtLogin', 'lockedLevel', 'minimiseWhileWorking', 'moveAsideWhileWorking', 'showInDock', 'useLiveModels'])
-    expect(view).toMatchObject({ minimiseWhileWorking: true, moveAsideWhileWorking: true, useLiveModels: true, launchAtLogin: false })
+    expect(Object.keys(view).sort()).toEqual(['cueEnabled', 'helpLevelMode', 'keepAwakeWhileWorking', 'launchAtLogin', 'lockedLevel', 'minimiseWhileWorking', 'moveAsideWhileWorking', 'showInDock', 'useLiveModels'])
+    // The owner's defaults of 8 Nov 2026: everything on, the help level automatic.
+    expect(view).toMatchObject({ minimiseWhileWorking: true, moveAsideWhileWorking: true, keepAwakeWhileWorking: true, useLiveModels: true, launchAtLogin: true, cueEnabled: true, showInDock: true, helpLevelMode: 'auto' })
   })
   it('answers both names of the move-aside switch with the same value', () => {
     const s = new SettingsStore(null)
@@ -18,8 +19,8 @@ describe('what the dashboard Settings may read', () => {
 
 describe('what the dashboard Settings may change', () => {
   it('lets the listed keys through and drops every other key', () => {
-    const patch = dashboardSettingsPatch({ launchAtLogin: true, cueEnabled: true, helpLevelMode: 'locked', lockedLevel: 3, showInDock: false, moveAsideWhileWorking: false, useLiveModels: false, awaySeconds: 1, agency: 'autonomous', fileFolders: ['/'], denylist: [] })
-    expect(patch).toEqual({ launchAtLogin: true, cueEnabled: true, helpLevelMode: 'locked', lockedLevel: 3, showInDock: false, moveAsideWhileWorking: false })
+    const patch = dashboardSettingsPatch({ launchAtLogin: true, cueEnabled: true, helpLevelMode: 'locked', lockedLevel: 3, showInDock: false, moveAsideWhileWorking: false, keepAwakeWhileWorking: false, useLiveModels: false, awaySeconds: 1, agency: 'autonomous', fileFolders: ['/'], denylist: [] })
+    expect(patch).toEqual({ launchAtLogin: true, cueEnabled: true, helpLevelMode: 'locked', lockedLevel: 3, showInDock: false, moveAsideWhileWorking: false, keepAwakeWhileWorking: false })
   })
   it('turns the dashboard name of the move-aside switch into the app name, and the app name wins when both are sent', () => {
     expect(dashboardSettingsPatch({ minimiseWhileWorking: false })).toEqual({ moveAsideWhileWorking: false })
@@ -31,7 +32,7 @@ describe('what the dashboard Settings may change', () => {
   it('reaches the store as an ordinary, untrusted patch: the store keeps validating values and still drops the trusted-only keys', () => {
     const s = new SettingsStore(null)
     s.patch(dashboardSettingsPatch({ minimiseWhileWorking: false, launchAtLogin: 'yes', lockedLevel: 9, useLiveModels: false }))
-    expect(s.get()).toMatchObject({ moveAsideWhileWorking: false, launchAtLogin: false, useLiveModels: true })
+    expect(s.get()).toMatchObject({ moveAsideWhileWorking: false, launchAtLogin: true, useLiveModels: true }) // 'yes' is not a boolean: dropped, the default (on) stays
     expect(s.get().lockedLevel).not.toBe(9)
   })
 })

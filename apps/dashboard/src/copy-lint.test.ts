@@ -95,7 +95,6 @@ describe("the linter itself", () => {
 const PENDING_OLD: Record<string, string> = {
   "apps/dashboard/src/fixtures/attention-why.json": "the example data of the attention layer: the old name is in the engine's sentence",
   "apps/dashboard/src/fixtures/briefing.json": "the example data of Briefing, which Track C moves into Needs you",
-  "apps/dashboard/src/fixtures/eval-report.json": "written by the eval track (evals/report.json): the old name is in its limitations text",
   "apps/dashboard/src/fixtures/home-worker-good.json": "the example data of Home (the Monday note), Track B",
   "apps/dashboard/src/fixtures/home-worker.json": "the example data of Home (the Monday note), Track B",
 };

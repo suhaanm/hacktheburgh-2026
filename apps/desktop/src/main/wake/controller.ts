@@ -11,7 +11,7 @@ import { dormancy, type Dormancy, type WakeInputs } from './guards'
 import type { HelperStatus } from './helper'
 import type { RungReading } from './rung'
 import { consentOutcome, consentStep, type CardChoice, type WakeSettingsStore } from './settings'
-import { BLOCKED_LINE, CARDS, LISTENING_LINE, REFUSAL_LINE, dormantLine } from './texts'
+import { BLOCKED_LINE, CARDS, FIRST_WAKE_OPENING, clickFailureCard, LISTENING_LINE, REFUSAL_LINE, dormantLine, infoCardFor, type InfoCard } from './texts'
 
 export interface CardSpec {
   id: string
@@ -38,6 +38,8 @@ export interface HelperPort {
 }
 
 export interface LivePort {
+  /** What would stop a conversation opening now, leaving consent out (the cards ask for that). Null: nothing. */
+  blocker(): string | null
   startFromWake(): boolean
   status(): { phase: string; trigger: 'key' | 'wake' | null; refused: string | null }
   subscribe(cb: () => void): () => void
@@ -66,6 +68,10 @@ export interface WakeStatus {
   click: ClickState['k']
   /** The one plain line for the menu bar and Settings. */
   line: string
+  /** The macOS pane that fixes a blocked listener (a button next to the line in Settings), or null. */
+  fix: 'microphone' | 'speech' | 'dictation' | null
+  /** The worker has had their first conversation (the Try it step is done). */
+  welcomed: boolean
 }
 
 export interface WakeControllerDeps {
@@ -73,12 +79,16 @@ export interface WakeControllerDeps {
   liveSettings: LiveSettingsPort
   live: LivePort
   helper: HelperPort
-  inputs: () => Omit<WakeInputs, 'switchedOn' | 'liveSessionActive'>
+  inputs: () => Omit<WakeInputs, 'switchedOn' | 'liveSessionActive' | 'firstRunHold'>
+  /** First-run set-up is on screen (the context hub's flag). Until the permissions step calls `arm()`, the listener waits. Absent: never waits. */
+  firstRun?: () => boolean
   cards: CardPort
   lock: VoiceLock
   rung: () => RungReading
   desktop: DesktopRunPort
   chime?: () => void
+  /** The button on an information card: Knack's Settings, or the macOS microphone pane. */
+  openSettings?: (where: 'knack' | 'microphone' | 'screen' | 'speech' | 'accessibility' | 'dictation') => void
   say?: (line: 'show_instead' | 'done' | 'did_not_work' | 'stopped') => void
   now?: () => number
   setTimer?: (fn: () => void, ms: number) => unknown
@@ -103,6 +113,12 @@ export interface WakeController {
   setKilled(killed: boolean): void
   /** Re-reads every guard now (screen lock, call, agent state changed). */
   refresh(): void
+  /** A capability that cannot work right now answers with a plain card and a button, never silence (the talk key, pointing without Screen Recording). Rate-limited per reason. */
+  explainRefusal(reason: string): void
+  /** The set-up step that turns Hey Knack on: the listener may start (and macOS asks for the microphone, then Speech Recognition, in that order). */
+  arm(): void
+  /** The opening turn for the very first conversation (trusted, fixed words), or null once the worker has been welcomed. */
+  openingText(): string | null
   /** The helper said `heard`. Exposed for the supervisor and for tests. */
   onHeard(): Promise<void>
   /** The wake session's `do_it_for_me` (the Live tool host calls it). */
@@ -122,6 +138,7 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
   let machine: ClickState = INITIAL
   let killed = false
   let started = false
+  let armed = false
   let cooldownUntil = 0 // the listener stays off until this time (after a conversation)
   let waking = false // between the words and the conversation opening
   let wakeSession = false
@@ -133,6 +150,8 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
   let currentCard: { id: string; box: [number, number, number, number] } | null = null
   let pendingBox: [number, number, number, number] | null = null
   let restartTimer: unknown = null
+  const lastExplained = new Map<string, number>()
+  let blockedShown: string | null = null // the helper's blocked cause already explained on a card (cleared when the listener works again)
   const listeners = new Set<(s: WakeStatus) => void>()
 
   const liveOpen = (): boolean => {
@@ -140,7 +159,7 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
     return p !== 'idle' && p !== 'off'
   }
 
-  const input = (): WakeInputs => ({ ...d.inputs(), switchedOn: d.settings.get().wakeListen, killed: killed || d.inputs().killed, liveSessionActive: liveOpen() || waking })
+  const input = (): WakeInputs => ({ ...d.inputs(), switchedOn: d.settings.get().wakeListen, firstRunHold: !armed && d.firstRun?.() === true, killed: killed || d.inputs().killed, liveSessionActive: liveOpen() || waking })
 
   const status = (): WakeStatus => {
     const dorm = dormancy(input())
@@ -151,12 +170,13 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
     else if (dorm) line = dormantLine(dorm)
     else if (h.state !== 'listening' && lastRefusal) line = lastRefusal
     else if (h.state === 'starting' || h.state === 'backoff') line = 'Starting Hey Knack.'
-    return { switchOn: d.settings.get().wakeListen, listening, dormant: dorm, helper: h, session: wakeSession, click: machine.k, line }
+    const fix = h.state === 'blocked' && dorm !== 'switched_off' ? (h.code === 'mic_denied' || h.code === 'mic_restricted' ? 'microphone' : h.code === 'speech_denied' || h.code === 'speech_restricted' ? 'speech' : h.code === 'on_device_unavailable' || h.code === 'locale_unsupported' ? 'dictation' : null) : null
+    return { switchOn: d.settings.get().wakeListen, listening, dormant: dorm, helper: h, session: wakeSession, click: machine.k, line, fix, welcomed: d.settings.get().welcomed }
   }
   let lastKey = ''
   const publish = (): void => {
     const s = status()
-    const key = JSON.stringify([s.switchOn, s.listening, s.dormant, s.helper, s.session, s.click, s.line])
+    const key = JSON.stringify([s.switchOn, s.listening, s.dormant, s.helper, s.session, s.click, s.line, s.fix, s.welcomed])
     if (key === lastKey) return
     lastKey = key
     for (const l of listeners) {
@@ -213,7 +233,10 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
         currentCard = null
         if (!c) break
         void d.desktop.run({ box: c.box, cardId: c.id }).then(
-          (r) => dispatch({ t: 'run_result', ok: r.ok }),
+          (r) => {
+            dispatch({ t: 'run_result', ok: r.ok })
+            if (!r.ok && machine.k !== 'killed') explain(clickFailureCard(r.reason)) // a click that could not run says why, once, and Knack shows instead
+          },
           () => dispatch({ t: 'run_result', ok: false }),
         )
         break
@@ -240,7 +263,15 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
       if (h.state !== 'stopped' && h.state !== 'blocked') d.helper.stop()
       if (machine.k === 'listening') dispatch({ t: 'listen_off' })
     }
-    // A worker who switched it off and on again gets another try after a failure that needed fixing.
+    // The listener blocked for want of a permission or on-device speech: say so on a card once (a status line alone is easy to miss), with the button.
+    const hs = d.helper.status()
+    if (hs.state === 'blocked' && hs.code && dorm !== 'switched_off') {
+      const cause = `blocked_${hs.code}`
+      if (blockedShown !== cause && infoCardFor(cause)) {
+        blockedShown = cause
+        explain(cause)
+      }
+    } else if (hs.state === 'listening') blockedShown = null
     publish()
   }
 
@@ -260,21 +291,43 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
     dispatch({ t: 'wake' })
     d.helper.stop() // the microphone is released before the conversation opens its own
     try {
+      // The words were heard, so the worker always gets an answer: when a conversation cannot open at all (no live models, the service not answering, the
+      // microphone not allowed) a card says why in plain words, before any consent is asked for something that could not happen anyway.
+      const blocker = d.live.blocker()
+      if (blocker !== null && blocker !== 'busy') {
+        lastRefusal = REFUSAL_LINE[blocker] ?? null
+        explain(blocker)
+        return end(`blocked_${blocker}`)
+      }
       if (!(await consent())) return end('declined')
       if (!d.lock.acquire('asked', 120_000, undefined, 'wake')) return end('lock_held')
       d.chime?.()
       if (!d.live.startFromWake()) {
-        lastRefusal = REFUSAL_LINE[d.live.status().refused ?? ''] ?? 'Knack could not start talking.'
+        const why = d.live.status().refused ?? ''
+        lastRefusal = REFUSAL_LINE[why] ?? 'Knack could not start talking.'
         d.lock.release('asked', 'wake')
+        explain(why)
         return end('refused')
       }
       wakeSession = true
       waking = false
+      if (!d.settings.get().welcomed) d.settings.patch({ welcomed: true }, { trusted: true })
     } catch {
       end('error')
     } finally {
       publish()
     }
+  }
+
+  /** An information card for a refusal (never silence). Fire and forget: the listener comes back after its pause either way. */
+  function explain(reason: string): void {
+    const card: InfoCard | null = infoCardFor(reason)
+    if (!card) return
+    const id = `info-${++cardSeq}`
+    void d.cards.ask({ id, title: card.title, body: card.body, buttons: card.buttons, expireMs: 20_000 }).then((a) => {
+      // A button counts only as a real mouse click (the card window never answers otherwise).
+      if (a && a.via === 'mouse' && a.buttonId === card.buttons[0].id && card.action) d.openSettings?.(card.action === 'settings' ? 'knack' : card.action)
+    })
   }
 
   function end(why: string): void {
@@ -328,6 +381,12 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
           // The wake conversation ended (goodbye, quiet, cap, Stop, kill).
           wakeSession = false
           d.lock.release('asked', 'wake')
+          // A conversation that ended because the microphone went away (revoked mid-conversation) says so on a card, once.
+          const why = d.live.status().refused
+          if (why === 'mic_permission') {
+            lastRefusal = REFUSAL_LINE[why] ?? null
+            explain(why)
+          }
           dispatch({ t: 'session_ended' })
           cooldownUntil = now() + restartDelay
           schedule(restartDelay)
@@ -365,6 +424,24 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
       evaluate()
     },
     refresh: evaluate,
+    arm() {
+      armed = true
+      d.helper.unblock()
+      evaluate()
+    },
+    openingText: () => (d.settings.get().welcomed ? null : FIRST_WAKE_OPENING),
+    explainRefusal(reason) {
+      const t = now()
+      const last = lastExplained.get(reason) ?? -Infinity
+      if (t - last < (reason === 'screen_recording' ? 10 * 60_000 : 20_000)) return
+      lastExplained.set(reason, t)
+      // The talk key before the worker has agreed to talk: the same two cards as the first wake, then a line saying it is on.
+      if (reason === 'not_enabled' || reason === 'no_consent') {
+        void consent().then((ok) => ok && explain('ready'), () => undefined)
+        return
+      }
+      explain(reason)
+    },
     onHeard,
     doIt,
   }

@@ -46,7 +46,8 @@ export const SettingsSchema = z.object({
   // Quiet for a while from the menu bar ("Pause for 1 hour"): the time it ends, as milliseconds since the epoch, or null.
   pausedUntil: z.number().int().nullable().default(null),
   // Cue (the proactive coach cards; env gate UNDERSTUDY_X_CUE=1). Off until the person turns it on; "Quiet Cue for an hour" sets cueQuietUntil.
-  cueEnabled: z.boolean().default(false),
+  // KNACK (owner, 8 Nov 2026): on by default. It still needs the flag (UNDERSTUDY_X_CUE, on by default) and never draws over a corner card or a secure field.
+  cueEnabled: z.boolean().default(true),
   cueProactivity: z.enum(['quiet', 'balanced', 'eager']).default('balanced'),
   cueVoice: z.boolean().default(false),
   cueQuietUntil: z.number().int().nullable().default(null),
@@ -59,7 +60,8 @@ export const SettingsSchema = z.object({
   onboardingDone: z.boolean().default(false),
   // Menu bar (SHELL). The icon is always there while on; launching at login only applies to packaged macOS builds.
   showMenuBarIcon: z.boolean().default(true),
-  launchAtLogin: z.boolean().default(false),
+  // KNACK (owner, 8 Nov 2026): on by default. Only a packaged macOS build registers the login item, and a login launch shows no window (the Dock icon and the menu bar item only).
+  launchAtLogin: z.boolean().default(true),
   // SHELL2: false (the default, also for older saved profiles without the key) keeps the side panel hidden; the menu bar item
   // and Cmd/Ctrl+Alt+P bring it up. First run (onboardingDone false) always shows it so setup is visible.
   showDock: z.boolean().default(false),
@@ -69,6 +71,9 @@ export const SettingsSchema = z.object({
   // KNACK: the main window minimises itself while an agent run works and comes back only when something needs the worker, or when the worker
   // clicks the corner pill or the Dock icon.
   moveAsideWhileWorking: z.boolean().default(true),
+  // KNACK: while an agent run is active the Mac does not sleep (a power save blocker held only for the run: app suspension always, display sleep too while the run uses the real
+  // screen). Nothing is held between runs. Off: the Mac sleeps as it likes.
+  keepAwakeWhileWorking: z.boolean().default(true),
   // KNACK: real models (Gemini, keys from the repo's .env) and the isolated live data, when a key is present and the models boot check passes; example data
   // otherwise, with one line saying so. Changing it restarts the services Knack started. Costs real money per agent run, so only the Settings UI
   // (trusted) can change it: main drops it from every other source, like awaySeconds.

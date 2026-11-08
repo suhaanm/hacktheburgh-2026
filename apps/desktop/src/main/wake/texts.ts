@@ -42,6 +42,46 @@ export const CARDS: Readonly<Record<'voice' | 'screen' | 'click', CardText>> = {
   },
 }
 
+// What Knack says, on a card, when the words were heard but a conversation cannot open: never silence. Plain reasons, one action at most. `settings` opens
+// Knack's Settings; `microphone` opens the macOS microphone pane. No card uses developer wording (a test pins this).
+export const HEARD_TITLE = 'Hey Knack heard you.'
+export type InfoAction = 'settings' | 'microphone' | 'screen' | 'speech' | 'accessibility' | 'dictation'
+export interface InfoCard {
+  title: string
+  body: string
+  buttons: ReadonlyArray<{ id: string; label: string }>
+  /** What the first button does (the second is always Close). Null: only Close. */
+  action: InfoAction | null
+}
+const CLOSE = { id: 'close', label: 'Close' } as const
+const NEEDS_LIVE: InfoCard = { title: HEARD_TITLE, body: 'Live voice needs live models. Turn them on in Settings.', buttons: [{ id: 'settings', label: 'Open Settings' }, CLOSE], action: 'settings' }
+export const INFO_CARDS: Readonly<Record<string, InfoCard>> = {
+  mock_mode: NEEDS_LIVE,
+  no_key: NEEDS_LIVE,
+  no_model: NEEDS_LIVE,
+  model_unusable: NEEDS_LIVE,
+  flag_off: NEEDS_LIVE,
+  breaker_open: { title: HEARD_TITLE, body: 'The voice service is not answering. Try again soon.', buttons: [CLOSE], action: null },
+  day_cap: { title: HEARD_TITLE, body: 'Today\u2019s talking limit is reached. You can raise it in Settings.', buttons: [{ id: 'settings', label: 'Open Settings' }, CLOSE], action: 'settings' },
+  // Pointing inside Knack, or inside a browser tab with the extension, never needs this: only "find it anywhere on my screen" does.
+  screen_recording: { title: 'To find it, Knack must see your screen.', body: 'Pointing in Knack or in a browser with the extension works without this. Finding things anywhere on screen needs Screen Recording.', buttons: [{ id: 'screen', label: 'System Settings' }, CLOSE], action: 'screen' },
+  // The listener itself is blocked (shown once per cause): the worker is told what to turn on, and the button opens the right pane.
+  blocked_mic_denied: { title: 'Hey Knack needs the microphone.', body: 'Turn it on for Knack in System Settings, then switch Listen for Hey Knack off and on.', buttons: [{ id: 'microphone', label: 'System Settings' }, CLOSE], action: 'microphone' },
+  blocked_speech_denied: { title: 'Hey Knack needs speech recognition.', body: 'Turn it on for Knack in System Settings, then switch Listen for Hey Knack off and on.', buttons: [{ id: 'speech', label: 'System Settings' }, CLOSE], action: 'speech' },
+  blocked_on_device_unavailable: { title: 'Hey Knack cannot listen yet.', body: 'This Mac has no on-device speech for your language. Turn on Dictation in System Settings, Keyboard.', buttons: [{ id: 'dictation', label: 'System Settings' }, CLOSE], action: 'dictation' },
+  // A click that was allowed but could not run: Knack says so and shows instead.
+  click_not_ready: { title: 'I could not click for you.', body: 'Click for you is not ready on this Mac yet. I will show you instead.', buttons: [CLOSE], action: null },
+  click_accessibility: { title: 'Click for you needs Accessibility.', body: 'Turn Knack on in System Settings, Accessibility. For now I will show you instead.', buttons: [{ id: 'accessibility', label: 'System Settings' }, CLOSE], action: 'accessibility' },
+  click_screen_recording: { title: 'Click for you needs Screen Recording.', body: 'Turn Knack on in System Settings, Screen Recording. For now I will show you instead.', buttons: [{ id: 'screen', label: 'System Settings' }, CLOSE], action: 'screen' },
+  ready: { title: 'Talking is on.', body: 'Hold Option-Space and talk, or say Hey Knack.', buttons: [CLOSE], action: null },
+  mic_permission: { title: HEARD_TITLE, body: 'Live voice needs the microphone. Turn it on in System Settings.', buttons: [{ id: 'microphone', label: 'System Settings' }, CLOSE], action: 'microphone' },
+  paused: { title: HEARD_TITLE, body: 'Knack is paused. Resume it from the menu bar.', buttons: [CLOSE], action: null },
+  killed: { title: HEARD_TITLE, body: 'Everything is stopped. Resume from the menu bar.', buttons: [CLOSE], action: null },
+  agent_acting: { title: HEARD_TITLE, body: 'Knack is working. Try again when it finishes.', buttons: [CLOSE], action: null },
+}
+/** The card for a refusal code, or null when the conversation is simply already open ('busy') or the code is unknown. */
+export const infoCardFor = (reason: string | null): InfoCard | null => (reason && reason !== 'busy' ? (INFO_CARDS[reason] ?? null) : null)
+
 /** Why a wake could not start a conversation (fixed lines for the status row; the Live manager's closed refusal codes). */
 export const REFUSAL_LINE: Readonly<Record<string, string>> = {
   flag_off: 'Voice is off in this build.',
@@ -52,10 +92,10 @@ export const REFUSAL_LINE: Readonly<Record<string, string>> = {
   agent_acting: 'Knack is working. Try again when it finishes.',
   day_cap: 'Today’s talking limit is reached.',
   breaker_open: 'The voice service is not answering. Try again soon.',
-  no_model: 'No voice model is set up.',
-  model_unusable: 'The voice model cannot be used.',
-  no_key: 'No voice key is set up.',
-  mock_mode: 'Voice is off in demo mode.',
+  no_model: 'Live voice needs live models.',
+  model_unusable: 'Live voice needs live models.',
+  no_key: 'Live voice needs live models.',
+  mock_mode: 'Live voice needs live models.',
   mic_permission: 'Knack needs the microphone. Turn it on in System Settings.',
   busy: 'Knack is already talking.',
 }
@@ -85,4 +125,22 @@ export const SPOKEN_LINES: Readonly<Record<string, string>> = {
   'wake.done': 'Done.',
   'wake.did_not_work': 'That did not work. I stopped.',
   'wake.stopped': 'Stopped.',
+}
+
+/**
+ * The code-written instruction for the FIRST conversation a worker ever has (trusted text, sent to the model as the opening turn; the packet also says
+ * first_run). One welcome line and one example, both fixed; the example is answered with point_at on the Knack window's sidebar row. After it the
+ * conversation is the ordinary one. `{welcome}` is the only words the worker is meant to hear first.
+ */
+export const FIRST_WELCOME = 'Hi, I am Knack. Try saying: show me where the Needs you list is.'
+export const FIRST_WAKE_OPENING =
+  `This is the worker's first conversation with you. Say exactly: "${FIRST_WELCOME}" and then wait. ` +
+  'If they say it, call point_at with the description "Needs you" and then say: "That is the Needs you list." Then tell them they can ask for help or say goodbye. ' +
+  'Keep every sentence short and plain.'
+
+/** The info card for a failed click run, by the closed reason the desktop port or the agent service gave. */
+export function clickFailureCard(reason: string | undefined): string {
+  if (reason === 'accessibility_missing') return 'click_accessibility'
+  if (reason === 'screen_recording_missing') return 'click_screen_recording'
+  return 'click_not_ready'
 }

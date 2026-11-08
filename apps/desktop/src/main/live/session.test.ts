@@ -371,6 +371,32 @@ describe('tools', () => {
     expect(tools.find((t) => t.name === 'show_step')!.parameters.properties.step_id.enum).toEqual(['read_case', 'calc_a', 'cliff_a'])
   })
 
+  it('a tool call that finishes before the outgoing channel exists is answered once it does, not dropped', async () => {
+    h.audio.startDelayMs = 400 // the renderer is slow to open the microphone, so the channel is not there yet
+    const s = h.mk()
+    void s.start()
+    await waitFor(() => h.server.received.setup !== null)
+    call('point_at', { description: 'the green Submit button' }, 'early')
+    await new Promise((r) => setTimeout(r, 150))
+    expect(h.server.received.toolResponses).toHaveLength(0) // nothing could be sent yet
+    expect(h.audio.micOpen).toBe(false)
+    await waitFor(() => h.server.received.toolResponses.length === 1)
+    expect((h.server.received.toolResponses[0] as any).id ?? JSON.stringify(h.server.received.toolResponses[0])).toContain('early')
+    expect(s.isEnded).toBe(false)
+  })
+
+  it('a reply that was waiting is dropped with a session that ends first', async () => {
+    h.audio.startDelayMs = 400
+    const s = h.mk()
+    void s.start()
+    await waitFor(() => h.server.received.setup !== null)
+    call('point_at', { description: 'the green Submit button' }, 'late')
+    await new Promise((r) => setTimeout(r, 100))
+    s.end('stop')
+    await new Promise((r) => setTimeout(r, 500))
+    expect(h.server.received.toolResponses).toHaveLength(0)
+  })
+
   it('point_at: found only when the grounder chose the description with confidence and a sane box; the model never hears coordinates', async () => {
     const s = h.mk()
     await s.start()

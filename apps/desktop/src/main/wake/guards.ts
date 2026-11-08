@@ -5,8 +5,9 @@
 export type Dormancy =
   | 'flag_off' // UNDERSTUDY_X_WAKE=0
   | 'not_mac'
-  | 'mock_mode' // the offline demo and the tests never open a microphone
+  | 'mock_mode' // kept for tests only: production wiring passes false (the listener has no network and no model, so it may run whenever the switch is on)
   | 'switched_off' // the worker's "Listen for Hey Knack" switch
+  | 'first_run' // set-up is on screen and the permissions step has not turned the listener on yet (so the macOS prompts come in the right order)
   | 'locked' // the screen is locked
   | 'asleep' // the Mac is asleep
   | 'paused' // "Pause for 1 hour"
@@ -21,6 +22,8 @@ export interface WakeInputs {
   isMac: boolean
   mock: boolean
   switchedOn: boolean
+  /** First-run set-up is showing and the worker has not reached the step that turns listening on. */
+  firstRunHold: boolean
   // True when the lock-screen event says so OR the console probe says so (the caller ORs them; an unreadable probe is false, the event is the primary signal).
   locked: boolean
   asleep: boolean
@@ -37,6 +40,7 @@ export function dormancy(i: WakeInputs): Dormancy | null {
   if (!i.isMac) return 'not_mac'
   if (i.mock) return 'mock_mode'
   if (!i.switchedOn) return 'switched_off'
+  if (i.firstRunHold) return 'first_run'
   if (i.killed) return 'killed'
   if (i.locked) return 'locked'
   if (i.asleep) return 'asleep'
@@ -53,8 +57,9 @@ export function dormancy(i: WakeInputs): Dormancy | null {
 export const DORMANT_LINE: Readonly<Record<Dormancy, string>> = {
   flag_off: 'Hey Knack is off in this build',
   not_mac: 'Hey Knack works on a Mac',
-  mock_mode: 'Hey Knack is off in demo mode',
+  mock_mode: 'Hey Knack is off',
   switched_off: 'Hey Knack is off',
+  first_run: 'Hey Knack starts after set-up',
   locked: 'Not listening while the screen is locked',
   asleep: 'Not listening while the Mac sleeps',
   paused: 'Not listening while Knack is paused',

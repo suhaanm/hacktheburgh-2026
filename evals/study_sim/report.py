@@ -18,7 +18,7 @@ LIMITATIONS = [
     {"id": "sim-memory-is-a-note", "severity": "high",
      "text": "The only 'memory' a participant has is a note of at most 280 characters that it wrote itself after the practice case and sees again at the post-test of the same skill. Every case starts from a fresh model context. That is a prompt, not learning in any human sense."},
     {"id": "sim-instruction-following", "severity": "high",
-     "text": "A model that is shown 'check cliff edges before you copy this result' can simply do what it says. A higher score after coaching can therefore be instruction following plus a self-written note, not retention of a skill."},
+     "text": "A model that is shown 'check cliff edges before you copy this result' can do what it says. A higher score after coaching can therefore be instruction following plus a self-written note, not retention of a skill."},
     {"id": "sim-authored-by-us", "severity": "high",
      "text": "The coach prompts, the sandbox sites, the households, the scoring rule and the personas were all written by us."},
     {"id": "sim-power", "severity": "high",

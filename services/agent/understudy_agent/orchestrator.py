@@ -23,7 +23,7 @@ from typing import Any, Callable
 from .audit import AuditLog
 from .checkpoint import CheckpointError, RunCheckpoint, calc_result
 from .completion import (
-    NOTE_ID_RE, ClaimLedger, CompletionResult, ResultFields, check_completion, validate_result_fields,
+    INPUTS_OK, NOTE_ID_RE, ClaimLedger, CompletionResult, ResultFields, check_completion, validate_result_fields,
 )
 from .models.port import ModelPort
 from .navigator import CalculatorJob, CaseNoteJob, NavResult, Navigator, RESULT_SCHEMA
@@ -222,7 +222,9 @@ def instrument_guard(g: Guard, nav_id: str, records: list[dict[str, Any]], hosts
                 "nav": nav_id, "step": step_of() if step_of else None, "kind": str(kind), "verdict": dec.verdict,
                 "layer": dec.layer, "codes": [_typed_text(c, 80) for c in dec.codes[:3]], "role": _typed_text(kw.get("role"), 24),
                 "structure": [_typed_text(t, 60, digits=False) for t in structure[:8]], "classes": classes, "label": _typed_text(kw.get("label"), 60),
-                "designed": kw.get("label") == SUBMIT_LABEL and nav_id == "scribe"})   # the real Submit's stop is the design
+                "designed": kw.get("label") == SUBMIT_LABEL and nav_id == "scribe",   # the real Submit's stop is the design
+                # layer 7 only: why the goal check did not run (an enum from drift.CHECK_ERROR_CLASSES) and how many times it was tried; None otherwise
+                "check_error": getattr(dec, "check_error", None), "check_attempts": getattr(dec, "check_attempts", 0)})
         return dec
 
     g.authorise = authorise  # type: ignore[method-assign]
@@ -269,6 +271,11 @@ class RunOptions:
     rung: str = "A0"                                    # autonomy rung from the routine's consent
     page_state: bool = False                            # tier 2: the quarantined reader tells the planner the page KIND each step
     start_tier: int = 1                                 # 3: computer use from the first step (tiers 1 and 2 off)
+    # The tier the SCRIBE (the case-note step) starts at: None = the same as the calculators (the default, unchanged). 2 = the planner and
+    # the browser agent first, with computer use only as the fallback. Gemini's own computer-use safety policy answers `require_confirmation`
+    # to the click that saves the case note as a draft; a provider check is never auto-acknowledged, so a tier-3 scribe stops there. A
+    # round that must not depend on a human for that step sets 2, and says so (evals/agentic/PLAN_ROUND2.md).
+    scribe_tier: int | None = None
     t3_max_steps: int = 200                             # hard cap on computer-use steps per navigator
     stall_limit: int = 12                               # steps with no visible progress before a loop gives up
     pause: Any = None                                   # a PauseGate shared by every navigator (step-level pause and resume)
@@ -300,6 +307,7 @@ class RunResult:
     navigators: list[dict[str, Any]] = field(default_factory=list)
     gate_stops: list[dict[str, Any]] = field(default_factory=list)   # every gate verdict that was not "allow" (typed fields, no label)
     action_rejections: int = 0                                         # layer-3 rejections of a malformed or stale action: a model failure, not a gate stop
+    goal_checks: dict[str, Any] = field(default_factory=dict)          # layer 7 counts over this run's guards: checks, retried, recovered, failed, failures by class
     resumed: int = 0                                                   # how many times this run continued from its checkpoint
     restored: list[str] = field(default_factory=list)                  # calculators NOT run again because their verified result was in the checkpoint
 
@@ -375,6 +383,18 @@ class BenefitsRun:
 
     def _count_rejection(self) -> None:
         self.action_rejections += 1
+
+    def goal_check_stats(self) -> dict[str, Any]:
+        """Layer 7 counts summed over every guard of this run (counts and enum classes only): how many goal checks ran, how many needed a
+        retry, how many recovered, how many failed closed, and the failures by class. Never text."""
+        total: dict[str, Any] = {"checks": 0, "retried": 0, "recovered": 0, "failed": 0, "by_class": {}}
+        for g in self._guards:
+            st = g.pipe.drift.stats()
+            for k in ("checks", "retried", "recovered", "failed"):
+                total[k] += st[k]
+            for c, n in st["by_class"].items():
+                total["by_class"][c] = total["by_class"].get(c, 0) + n
+        return total
 
     # ------------------------------------------------------------------ checkpoint (LH-2)
     def _ckpt_open(self) -> None:
@@ -485,6 +505,7 @@ class BenefitsRun:
             res.navigators = [dict(v) for v in self.nav_state.values()]
             res.gate_stops = [{k: v for k, v in r.items() if k != "label"} for r in self.gate_stops]
             res.action_rejections = self.action_rejections
+            res.goal_checks = self.goal_check_stats()
             res.expert_done = dict(self.done)
             self.audit.append("agent", "run_end", routine=self.opt.routine_id, run_id=self.run_id, outcome=res.state)
             self.stage("done", state=res.state, reason=res.reason)
@@ -605,7 +626,7 @@ class BenefitsRun:
             res.cliff_checked[s] = good[s].cliff_checked
             nav_steps = navs[s].steps if s in navs else good[s].steps
             res.results[s] = good[s].value.as_dict() | {"tiers": good[s].tiers_used, "steps": nav_steps,
-                                                        "cliff": good[s].cliff_text[:400]}
+                                                        "cliff": good[s].cliff_text[:400], "inputs": good[s].inputs_audit}
         self._ckpt_stage("verified")
         if self.opt.screenshots:
             for i, (s, r) in enumerate(good.items(), 1):
@@ -653,8 +674,8 @@ class BenefitsRun:
         ctx = await host.new_context()
         scribe = Navigator("scribe", context=ctx, model=self.model, guard=sg, base_url=self.base_urls["a"],
                            emit=self.emit_step, is_current=self.is_current, query=self.opt.query.get("a", ""),
-                           ledger=self.ledger, use_tier1=self.opt.use_tier1, max_actions=self.opt.max_actions,
-                           allow_tier3=self.opt.allow_tier3, start_tier=self.opt.start_tier,
+                           ledger=self.ledger, use_tier1=self.opt.use_tier1 and self.opt.scribe_tier is None, max_actions=self.opt.max_actions,
+                           allow_tier3=self.opt.allow_tier3, start_tier=self.opt.start_tier if self.opt.scribe_tier is None else self.opt.scribe_tier,
                            t3_max_steps=self.opt.t3_max_steps, stall_limit=self.opt.stall_limit, pause=self.opt.pause,
                            resume={"steps": self.ckpt.scribe_steps, "wm": None} if (self.ckpt is not None and self.ckpt.resumed
                                                                                     and self.ckpt.scribe_steps) else None,
@@ -687,7 +708,7 @@ class BenefitsRun:
 
         # ---- completion: code decides, on a fresh observation of the final page
         final = await observe(sres.page)
-        comp = check_completion(final.text, results, res.note_id)
+        comp = check_completion(final.text, results, res.note_id, input_audits={s: r.inputs_audit for s, r in nres.items()})
         res.completion = comp.as_dict()
         if comp.ok:
             self._mark("verify_note")
@@ -742,6 +763,9 @@ class BenefitsRun:
         first: ResultFields = nr.value
         if again is None or (again.amount, again.ref, again.eligible) != (first.amount, first.ref, first.eligible):
             return False, "fresh observation does not match what the navigator reported"
+        if nr.inputs_audit not in INPUTS_OK:
+            # the figure reads fine, but the form audit did not confirm the form held the household's facts: not a result we report
+            return False, f"inputs not verified ({nr.inputs_audit})"
         return True, ""
 
     async def _shot(self, page: Any, n: int, name: str) -> str | None:

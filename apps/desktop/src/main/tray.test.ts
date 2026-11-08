@@ -167,7 +167,7 @@ describe('menu content', () => {
   })
 })
 
-function setup(opts: { showMenuBarIcon?: boolean; iconDir?: string; dockVisible?: boolean; voice?: boolean; cue?: boolean; now?: () => number; openDashboard?: () => void; glanceInFlight?: () => boolean; awareness?: boolean } = {}) {
+function setup(opts: { showMenuBarIcon?: boolean; iconDir?: string; dockVisible?: boolean; voice?: boolean; cue?: boolean; now?: () => number; openDashboard?: () => void; glanceInFlight?: () => boolean; awareness?: boolean; extra?: Record<string, unknown> } = {}) {
   mocks.FakeTray.instances.length = 0
   const bus = new Bus()
   const settings = new SettingsStore(null)
@@ -204,7 +204,7 @@ function setup(opts: { showMenuBarIcon?: boolean; iconDir?: string; dockVisible?
       return { needsConsent: false }
     },
   }
-  const shell = registerTray({ bus, state, settings, windows, stop, quit, log: () => undefined, awareness, iconDir: opts.iconDir ?? path.join(process.cwd(), 'resources', 'tray'), voiceMenu: () => opts.voice ?? true, cueMenu: () => opts.cue ?? false, now: opts.now, openDashboard: opts.openDashboard, glanceInFlight: opts.glanceInFlight })
+  const shell = registerTray({ bus, state, settings, windows, stop, quit, log: () => undefined, awareness, iconDir: opts.iconDir ?? path.join(process.cwd(), 'resources', 'tray'), voiceMenu: () => opts.voice ?? true, cueMenu: () => opts.cue ?? false, now: opts.now, openDashboard: opts.openDashboard, glanceInFlight: opts.glanceInFlight, ...(opts.extra as object) })
   return { shell, bus, settings, state, windows, stop, quit, events, aw, tray: () => mocks.FakeTray.instances.at(-1)! }
 }
 
@@ -641,11 +641,11 @@ describe('Cue entries (the UNDERSTUDY_X_CUE experiment) and the queue count', ()
 })
 
 describe('settings keys for the new tracks', () => {
-  it('default off, with Cue proactivity balanced, and reject bad values key by key', () => {
+  it('default as the owner chose (Cue on, balanced, spoken cues off, the old wake word off), and reject bad values key by key', () => {
     const s = new SettingsStore(null)
-    expect(s.get()).toMatchObject({ cueEnabled: false, cueProactivity: 'balanced', cueVoice: false, cueQuietUntil: null, pausedUntil: null, talkHotkey: 'Alt+Space', wakeEnabled: false })
-    s.patch({ cueProactivity: 'eager', cueQuietUntil: 1_700_000_000_000, cueEnabled: true })
-    expect(s.get()).toMatchObject({ cueProactivity: 'eager', cueQuietUntil: 1_700_000_000_000, cueEnabled: true })
+    expect(s.get()).toMatchObject({ cueEnabled: true, cueProactivity: 'balanced', cueVoice: false, cueQuietUntil: null, pausedUntil: null, talkHotkey: 'Alt+Space', wakeEnabled: false })
+    s.patch({ cueProactivity: 'eager', cueQuietUntil: 1_700_000_000_000, cueEnabled: false })
+    expect(s.get()).toMatchObject({ cueProactivity: 'eager', cueQuietUntil: 1_700_000_000_000, cueEnabled: false })
     s.patch({ cueProactivity: 'loud', cueQuietUntil: 'soon' })
     expect(s.get()).toMatchObject({ cueProactivity: 'eager', cueQuietUntil: 1_700_000_000_000 })
   })
@@ -725,6 +725,49 @@ describe('the attention line and dot (REQ-8)', () => {
     const { shell } = setup({ showMenuBarIcon: false })
     expect(() => shell.refresh()).not.toThrow()
     expect(() => shell.setAttention(() => null)).not.toThrow()
+  })
+})
+
+// The Knack app has one set-up (the first run in its own window) and no side panel: nothing in the menu bar brings the old panel or its eight-step set-up back.
+describe('in the Knack app the old side panel and its set-up never open from the menu bar', () => {
+  const knackExtra = (calls: string[]) => ({
+    knack: () => ({ working: null, needsYou: 0, stopped: false }),
+    openApp: () => calls.push('openApp'),
+    openSettings: () => calls.push('openSettings'),
+    openSetup: () => calls.push('openSetup'),
+    ask: () => calls.push('ask'),
+  })
+  it('the menu has no row that could open the old panel or its set-up (Set up again lives in the app menu and in Settings)', () => {
+    const { shell, windows, settings } = setup({ extra: knackExtra([]) })
+    const ids = shell.info().menu.map((e) => e.id)
+    for (const old of ['setup', 'permissions', 'panel', 'type', 'demo', 'mute', 'stop'] as const) expect(ids, old).not.toContain(old)
+    for (const old of ['setup', 'permissions', 'panel', 'type', 'demo'] as const) expect(shell.activate(old), old).toBe(false)
+    expect(windows.showDock).not.toHaveBeenCalled()
+    expect(settings.get().onboardingDone).toBe(true)
+  })
+  it('the Ask row goes to the Ask bar, never to the panel', () => {
+    const calls: string[] = []
+    const { shell, windows } = setup({ extra: knackExtra(calls) })
+    expect(shell.activate('ask')).toBe(true)
+    expect(calls).toEqual(['ask'])
+    expect(windows.showDock).not.toHaveBeenCalled()
+  })
+  it('without the Knack hooks (the older build) the same rows still open the old panel set-up', () => {
+    const { shell, settings, windows } = setup()
+    expect(shell.activate('setup')).toBe(true)
+    expect(settings.get().onboardingDone).toBe(false)
+    expect(windows.sendDock).toHaveBeenLastCalledWith('shell:command', { type: 'view', view: 'onboarding' })
+  })
+  it('Option-Command-P pauses and resumes instead of opening a panel', () => {
+    let now = 1_000_000
+    const { shell, settings, windows } = setup({ extra: knackExtra([]), now: () => now })
+    shell.togglePanel()
+    expect(settings.get().pausedUntil).toBe(now + 60 * 60_000)
+    shell.togglePanel()
+    expect(settings.get().pausedUntil).toBeNull()
+    now += 1
+    expect(windows.showDock).not.toHaveBeenCalled()
+    expect(windows.hideDock).not.toHaveBeenCalled()
   })
 })
 

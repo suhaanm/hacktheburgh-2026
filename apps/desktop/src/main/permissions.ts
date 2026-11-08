@@ -12,6 +12,7 @@ const SETTINGS_URLS: Record<PermissionPane, string> = {
   screen: 'x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture',
   microphone: 'x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone',
   accessibility: 'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility',
+  speech: 'x-apple.systempreferences:com.apple.preference.security?Privacy_SpeechRecognition',
 }
 
 const POLL_MS = 1500

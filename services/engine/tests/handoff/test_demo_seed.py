@@ -221,7 +221,7 @@ def test_nothing_is_written_outside_the_two_demo_dirs(env):
     assert _tree(env.tmp, skip=("demo-home", "data", "userhome")) == before_tmp
     assert list(env.fake_home.iterdir()) == []                                     # nothing under HOME, so no ~/.understudy
     assert sorted(p.name for p in env.home.iterdir()) <= sorted([".memory.lock", ".understudy-demo-home", "memory.md", "memory_state.json", "routines_state.json"])
-    assert sorted(p.name for p in env.data.iterdir()) == sorted([".demo-story", ".understudy-demo-data", ".queue_key", "audit.jsonl", "eval", "golden", "queue", "routines", "runs", "synthetic", "voice_cache"])
+    assert sorted(p.name for p in env.data.iterdir()) == sorted([".demo-growth", ".demo-story", ".understudy-demo-data", ".queue_key", "assist", "audit.jsonl", "eval", "golden", "queue", "routines", "runs", "synthetic", "voice_cache"])
     assert list(env.tmp.glob("*")) and not (env.tmp / "queue").exists() and not (env.tmp / "audit.jsonl").exists()   # nothing leaked into the working directory
 
 
@@ -337,3 +337,81 @@ def test_the_real_agent_bundle_installer_puts_steps_json_in_the_demo_data_dir(en
     finally:
         fcntl.flock(fd, fcntl.LOCK_UN)
         os.close(fd)
+
+
+# ----------------------------------------------------------------------------- Growth data (the shot list's "independence curve")
+def test_growth_rows_are_one_labelled_simulated_learner_ending_just_before_now():
+    from datetime import datetime, timezone
+
+    from understudy_engine.cue import ledger as L
+
+    now = datetime(2026, 11, 7, 23, 30, tzinfo=timezone.utc)
+    rows = demo.demo_learner_rows(now)
+    assist = [r for r in rows if r["stream"] == "assist"]
+    off = [r for r in rows if r["stream"] != "assist"]
+    assert len(assist) == 3 * demo.GROWTH_PER_SKILL and len(off) == 4
+    assert {r["person"] for r in rows} == {"p_learn01"} and {r["origin"] for r in rows} == {"synthetic"}
+    assert {r["origin_detail"] for r in rows} == {"synthetic_learner"}
+    assert {r["skill"] for r in assist} == {"check-the-cliff", "reconcile-before-noting", "enter-household-once"}
+    last = max(L.hour_to_epoch(r["t_hour"]) for r in assist)
+    assert 0 <= now.timestamp() - last <= (demo.GROWTH_LAG_HOURS + 1) * 3600           # current, and never in the future
+    assert demo.demo_learner_rows(now) == rows                                          # deterministic for a given clock
+    for r in rows:
+        L.validate_row(r)                                                               # every row passes the ledger's own schema
+
+
+def test_seed_fills_the_growth_ledger_once_and_a_reset_puts_back_the_same_story(env):
+    from understudy_engine.cue import paths as cue_paths
+
+    res, lines = _seed()
+    text = "\n".join(lines)
+    assert res["growth"] is True and res["growth_counts"]["assist"] == 3 * demo.GROWTH_PER_SKILL and "growth: 90 assist occurrences" in text
+    assert (env.data / "assist" / "ledger.jsonl").exists() and (env.data / ".demo-growth").exists()
+    assert cue_paths.ledger_path() == env.data / "assist" / "ledger.jsonl"            # the file the route reads is the file the seed wrote
+    before = (env.data / "assist" / "ledger.jsonl").read_bytes()
+    _, again = _seed()
+    assert "growth: already seeded" in "\n".join(again) and (env.data / "assist" / "ledger.jsonl").read_bytes() == before     # not twice
+    (env.data / "assist" / "ledger.jsonl").write_text("stale\n")
+    _seed(reset=True)
+    assert (env.data / "assist" / "ledger.jsonl").read_text() != "stale\n" and (env.data / ".demo-growth").exists()
+
+
+def test_growth_route_reports_ready_data_with_the_synthetic_label(env, monkeypatch):
+    from understudy_engine.cue import routes as cue_routes
+
+    monkeypatch.setenv("UNDERSTUDY_X_CUE", "1")
+    _seed()
+    app = FastAPI()
+    app.include_router(cue_routes.router)
+    c = TestClient(app)
+    g = c.get("/growth", params={"person": "p_learn01"}).json()
+    assert g["meta"]["origin"] == "synthetic" and g["data"]["origin_detail"] == "synthetic_learner"
+    assert g["data"]["readiness"]["ready"] is True and g["data"]["occurrences"]["total"] >= 30 and len(g["data"]["curve"]) > 5
+    assert g["data"]["offloaded"]["delegated"] + g["data"]["offloaded"]["automation"] == 4   # listed, never scored
+    assert g["data"]["trend"]["direction"] != "too_early"
+
+
+def test_an_older_demo_home_gets_only_the_missing_growth_ledger_without_a_reset(env):
+    """`make live` seeds once; a home seeded before the Growth step existed is topped up by running the seed again WITHOUT --reset."""
+    res, _ = _seed()
+    import shutil
+
+    shutil.rmtree(env.data / "assist")
+    (env.data / ".demo-growth").unlink()                                          # what an older seed left: no Growth ledger, no marker
+    (env.data / "queue" / "q_keep.json").write_text("{}")                          # something the seed must not touch on this run
+    before = ((env.home / "memory.md").read_bytes(), (env.home / "memory_state.json").read_bytes(), sorted(p.name for p in (env.data / "queue").iterdir()))
+    again, lines = _seed()
+    text = "\n".join(lines)
+    assert again["seeded"] is False and "already seeded" in text and "morning story: already seeded" in text
+    assert again["growth"] is True and "growth: 90 assist occurrences" in text
+    assert (env.data / "assist" / "ledger.jsonl").exists() and (env.data / ".demo-growth").exists()
+    assert ((env.home / "memory.md").read_bytes(), (env.home / "memory_state.json").read_bytes(), sorted(p.name for p in (env.data / "queue").iterdir())) == before
+
+
+def test_growth_is_written_only_into_the_demo_data_dir(env, monkeypatch):
+    (env.shared / "queue").mkdir()
+    before = _tree(env.shared, skip=("demo-data",))
+    monkeypatch.setenv("UNDERSTUDY_DATA_DIR", str(env.shared))                      # the shared directory itself, not demo-data
+    res, lines = _seed()
+    assert "growth" not in res and not (env.shared / "assist").exists() and not (env.shared / ".demo-growth").exists()
+    assert _tree(env.shared, skip=("demo-data",)) == before
