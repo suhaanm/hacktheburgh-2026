@@ -163,6 +163,10 @@
   .banner-wrap, .crumb-wrap { padding-inline: var(--space-4); }
   .growth-host__switch { padding-inline: var(--space-4); }
   .stopped-banner { position: static; }
+  /* The stopped banner's sentence needs the whole width to stay within two lines: its Resume button drops to its own row. */
+  .stopped-banner .inline-banner { flex-wrap: wrap; }
+  .stopped-banner .inline-banner__text { flex: 1 1 calc(100% - 40px); }
+  .stopped-banner .inline-banner .btn { margin-left: auto; }
   .drawer__panel { width: 100vw; border-left: 0; }
   .popover { max-width: calc(100vw - 32px); }
   .toasts { top: 60px; }

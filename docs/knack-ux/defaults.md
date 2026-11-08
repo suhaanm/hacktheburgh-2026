@@ -174,7 +174,7 @@ The owner asked (8 Nov, 00:15) for every toggle and state to be as automated as 
 
 ## Click and word budgets for first run (reasons for the change)
 
-The spec said three clicks and at most 50 words and 4 controls per first-run screen. The owner then asked for the role choice, three consents and a check that the voice and the pointer work. The budgets that follow are the smallest that keep every consent printed whole:
+The spec said three clicks and at most 50 words and 4 controls per first-run screen. The owner then asked for the role choice, three consents and a check that the voice and the pointer work. The lead's decision D64 sets the consent screen at 90 words and 10 controls above the fold (budgets.json and qa/knack/budgets.json). The screen now measures 89 and 10 in the app (and 40 and 5 in a browser tab): one title and one plain sentence per consent, three buttons of one size, no repeated explanation.
 
 | Where | Clicks to Home with nothing skipped | Note |
 |---|---|---|
@@ -182,8 +182,16 @@ The spec said three clicks and at most 50 words and 4 controls per first-run scr
 | Knack app | 5 | role, capture, screen glances, voice, Show my week |
 | With connection chips | one more | Continue, owner choice (D55) |
 
-The consent screen carries one card per consent (title, the consent sentence printed whole, three buttons): about 30 words and 4 controls a card, so about 110 words and 10 controls with three cards. The budget for that one screen is therefore 120 words and 12 controls; the role screen (24 words, 6 controls with Skip) and the check screen stay within 50 and 8. `budgets.json` is the lead's file: the numbers above are the proposal.
+Each card says in its sentence what Yes does and what leaves the Mac (a picture of the screen goes to a model and is never saved; talking sends the voice to a model); the longer consent text of the desktop app is printed under Your data, beside the switch it belongs to. To keep ten controls, Back is left out on the three-card screen (Skip stays). The role cards say how far each pack is built (Fully built and validated, Full pack, Starter).
+
+## Home: the task box is its second job (decision D66)
+
+Home's budget was 50 words and 5 controls for one sentence and one action. The owner then asked for a text box on Home ("What should Knack do?", with Enter to send and a microphone where the desktop can listen) and a short list of background tasks, so the budget is now 70 words and 6 controls (docs/knack-ux/budgets.json and qa/knack/budgets.json together). Measured in example data: 59 words and 6 controls at 1440 by 900, 1152 by 735 and 390 by 844; against the owner's live engine: 42 words and 3 controls. Three things keep it that small:
+
+- The examples under the box appear only while the box has focus and is empty (they fill the box and never send), and Send appears only once there is something to send.
+- A pause for safety no longer takes thirty words: the hero says the first sentence of what happened, then a fixed line ("Paused for safety. Nothing more happens until you choose."), and the engine's own account of the rest waits behind Evidence. What was paused and that nothing happens without the worker stay printed.
+- The background tasks list is at most three lines and draws nothing when no task is going.
 
 ## Not changed
 
-Pinned views stay off by default (the sidebar's six rows are a measured budget); turning them on is one switch in Settings. The word "synthetic" is untouched until the owner's scope is confirmed.
+Pinned views are retired: a worker has five rows and nothing else (docs/knack-ux/views.md). The Account menu keeps Appearance out (it is in Settings). A name is kept on this Mac (the engine holds it as one line the worker can read and delete under What Knack remembers); a role change keeps the person, the name and the capture choice.

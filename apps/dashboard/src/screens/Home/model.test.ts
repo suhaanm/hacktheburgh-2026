@@ -3,13 +3,34 @@ import workerFx from "../../fixtures/home-worker.json";
 import goodFx from "../../fixtures/home-worker-good.json";
 import { quantitiesIn } from "../../lib/oneQuantity";
 import {
-  ACTION_MAX_WORDS, COULD_NOT_LOAD, EXAMPLE_LINE, GROWTH_ROW, HERO_MAX_WORDS, ROW_MAX_WORDS, TRY_MAX_WORDS, exampleLine, heroAction, heroSentence, needsLine,
+  ACTION_MAX_WORDS, COULD_NOT_LOAD, EXAMPLE_LINE, coachLine, GROWTH_ROW, HERO_MAX_WORDS, ROW_MAX_WORDS, TRY_MAX_WORDS, exampleLine, heroAction, heroSentence, needsLine,
   originBadge, quietFor, repeatsHint, repeatsRow, rowSentence, shapeOf, tryLine, weekLabel, weekOf, wordCount,
 } from "./model";
 
 type Pointer = { headline: string; kind: string; action: { id: string; label: string; to: string; query?: string | null } | null };
 const pointers = (fx: unknown): Pointer[] => (fx as { data: { pointers: Pointer[] } }).data.pointers;
 const all = [...pointers(workerFx), ...pointers(goodFx)];
+
+describe("the coaching row", () => {
+  it("names the task, cut at its first comma, while a step is active", () => {
+    expect(coachLine({ name: "Entitlement check, household H-9", step: 5, steps_total: 9 })).toBe("Coaching you on Entitlement check.");
+    expect(coachLine({ name: "Month-end reconciliation: step list", step: 1, steps_total: 3 })).toBe("Coaching you on Month-end reconciliation.");
+    expect(coachLine({ name: "One two three four five six seven", step: 2, steps_total: 4 })).toBe("Coaching you on One two three four five.");
+  });
+  it("is one line of at most twelve words", () => {
+    const l = coachLine({ name: "Entitlement check, household H-9", step: 5, steps_total: 9 })!;
+    expect(wordCount(l)).toBeLessThanOrEqual(ROW_MAX_WORDS);
+  });
+  it("is absent when no step is active, and never throws on what a service might send", () => {
+    for (const bad of [null, undefined, {}, { name: "" }, { name: "   ", step: 1, steps_total: 2 }, { name: 7, step: 1 }, { name: "Check", step: 0, steps_total: 3 }, { name: "Check", step: -1, steps_total: 3 }, { name: "Check", step: 1.5, steps_total: 3 }, { name: "Check", step: "x", steps_total: 3 }, { name: "Check", step: 4, steps_total: 3 }, { name: ",,,", step: 1, steps_total: 3 }]) {
+      expect(coachLine(bad as never), JSON.stringify(bad)).toBeNull();
+    }
+  });
+  it("copes with unicode and right-to-left task names and an unknown total", () => {
+    expect(coachLine({ name: "فحص الاستحقاق", step: 2 })).toBe("Coaching you on فحص الاستحقاق.");
+    expect(coachLine({ name: "Résumé du dossier", step: 3, steps_total: "?" })).toBe("Coaching you on Résumé du dossier.");
+  });
+});
 
 describe("the hero sentence", () => {
   it("rebuilds the template: no comma after the step, the expert instead of the expert's median", () => {

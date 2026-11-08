@@ -250,7 +250,8 @@ export interface Pack {
   id: string;
   name: string;
   summary: string;
-  depth: "deep" | "thin";
+  /** deep: built and validated (benefits processor); standard: a full pack (data analyst, programmer); thin: a starter. */
+  depth: "deep" | "standard" | "thin";
 }
 export interface OnboardingQuestion {
   id: "tools" | "risky" | "tone" | "pace" | "hours";

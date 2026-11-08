@@ -6,6 +6,9 @@ import { useToast } from "../Toasts";
 import { approvalLabels, consequence, leadAndRest, plainWords } from "../../screens/NeedsYou/model";
 import { refreshNeedsBadge } from "../../screens/NeedsYou/count";
 import { finalizeOf, isSafetyPause } from "../../screens/Home/approval";
+
+/** What a pause for safety says in the hero, in fixed words: it stopped before doing anything, and waits. (The engine's own account of what it saw is in Evidence.) */
+export const PAUSE_LINE = "Paused for safety. Nothing more happens until you choose.";
 import type { QueueItem } from "../../types";
 
 /**
@@ -20,10 +23,10 @@ export function ApprovalHero({ item: it, onDone }: { item: QueueItem; onDone: ()
   const [busy, setBusy] = useState<"approve" | "reject" | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const L = approvalLabels(it.kind);
-  const cost = isSafetyPause(it) ? "Paused for safety." : consequence(it.risk_class);
+  const cost = isSafetyPause(it) ? PAUSE_LINE : consequence(it.risk_class);
   const stepUp = auth.enabled && needsStepUp(it.risk_class);
   const title = plainWords(it.title || "Something needs you");
-  const { lead, rest } = leadAndRest(it.summary ?? "", isSafetyPause(it) ? 30 : 16);
+  const { lead, rest } = leadAndRest(it.summary ?? "", 16);   // one sentence in the hero; the rest waits behind Evidence (a pause no longer takes thirty words)
   const keys = Array.from(new Set([...Object.keys(it.evidence?.extracted ?? {}), ...Object.keys(it.evidence?.expected ?? {})]));
   const diff = (Array.isArray(it.evidence?.diff) ? it.evidence.diff : []) as { field: string; expected: string; got: string }[];
 
