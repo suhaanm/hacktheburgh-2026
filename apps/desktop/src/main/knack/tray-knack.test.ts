@@ -28,6 +28,13 @@ describe('the menu bar menu in the Knack app: eight rows', () => {
     expect(on).toMatchObject({ label: 'Listen for Hey Knack', checked: true, enabled: true })
     expect(rows(knack({ wake: { on: false, line: 'Off' } })).find((r) => r.id === 'wake_listen')?.checked).toBe(false)
   })
+  it('a listener that cannot listen says why in one quiet line above its switch; a listener that is listening adds no line', () => {
+    const blocked = rows(knack({ wake: { on: true, line: 'Hey Knack needs the microphone. Turn it on in System Settings.' } }))
+    expect(blocked.find((r) => r.id === 'wake_status')).toMatchObject({ label: 'Hey Knack needs the microphone. Turn it on in System Settings.', enabled: false })
+    expect(blocked.map((r) => r.id).indexOf('wake_status')).toBe(blocked.map((r) => r.id).indexOf('wake_listen') - 1)
+    expect(rows(knack({ wake: { on: true, line: 'Listening for Hey Knack. Stays on this Mac, nothing stored.' } })).some((r) => r.id === 'wake_status')).toBe(false)
+    expect(rows(knack({ wake: { on: false, line: 'Hey Knack is off' } })).some((r) => r.id === 'wake_status')).toBe(false)
+  })
   it('the first line says what is happening, in one line', () => {
     expect(labels(knack({ k: { working: 'filling in calculator B' } }))[0]).toBe('Knack is working: filling in calculator B')
     expect(labels(knack({ k: { stopped: true } }))[0]).toBe('Stopped. Nothing will run.')

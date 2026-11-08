@@ -66,3 +66,17 @@ export function cardBounds(workArea: RectLike, size: { w: number; h: number }, i
 
 /** The gap between stacked windows in the corner. */
 export const STACK_GAP = 8
+
+/**
+ * The work area a card goes to: the display that holds the column it stacks above (the corner has one place for each thing, bottom up, on ONE display: a card that sat
+ * above a column on another display would float in the middle of its own), else the display that holds the pointer. Pure.
+ */
+export function cardWorkArea(displays: ReadonlyArray<{ workArea: RectLike }>, column: RectLike | null, pointerDisplay: RectLike): RectLike {
+  if (column) {
+    const cx = column.x + column.width / 2
+    const cy = column.y + column.height / 2
+    const d = displays.find(({ workArea: w }) => cx >= w.x && cx < w.x + w.width && cy >= w.y && cy < w.y + w.height)
+    if (d) return d.workArea
+  }
+  return pointerDisplay
+}

@@ -178,6 +178,12 @@ export function heyKnackRow(status: { switchOn: boolean; listening: boolean; lin
   return { title: "Hey Knack", line: status.switchOn && !status.listening && status.line ? `${note} ${status.line}` : note, on: status.switchOn };
 }
 
+/**
+ * The worker went to System Settings to turn a refused permission on and came back: the listener stays blocked until it is armed again (it never retries a refusal by itself), so
+ * the check screen arms it once on return and reads the state again a moment later. Only for the two permissions that System Settings can fix.
+ */
+export const shouldRearm = (wake: { fix?: string | null } | null): boolean => wake?.fix === "microphone" || wake?.fix === "speech";
+
 /** In a browser tab there is no desktop app to ask macOS or to draw the ring: those rows say so, in these words, and have no button. */
 export const NEEDS_APP = "Available in the Knack app.";
 export const BROWSER_ROWS: { key: string; title: string }[] = [{ key: "permissions", title: "Permissions" }, { key: "tryit", title: "Show me where Knack points" }];
