@@ -151,6 +151,8 @@ export interface KnackShell {
   /** What the menu bar item shows: the label of what is running, how many things need the worker, and whether everything is stopped. */
   trayStatus(): { working: string | null; needsYou: number; stopped: boolean }
   info(): KnackInfo
+  /** Check voice's own report, for the debug port only (statuses; nothing is asked, captured or played). Null before the app is wired. */
+  voiceCheck(): Promise<unknown | null>
   dispose(): Promise<void>
 }
 
@@ -796,6 +798,7 @@ dispatch,
       needsYou: machine.needsYou,
       stopped: machine.activity === 'stopped',
     }),
+    voiceCheck: async () => (late?.voice ? await late.voice.check() : null),
     info: () => ({
       stack: stack.state(),
       model: status(),

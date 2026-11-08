@@ -26,7 +26,7 @@ export interface DebugDeps {
     dom?: { status(): { port: number | null; pending: number; extensionSeenMs: number | null; ring: unknown; chip: unknown; capture: string; coach?: unknown } }
   }
   // KNACK: the shell machine. `GET /state` reports the main window's visibility and bounds with it; `POST /hud/activity` and `POST /shell/event` drive it without any real run.
-  knack?: { dispatch(event: unknown): unknown; info(): unknown }
+  knack?: { dispatch(event: unknown): unknown; info(): unknown; voiceCheck?(): Promise<unknown | null> }
   // SHELL: the menu-bar item (absent when headless).
   tray?: Pick<ShellTray, 'info' | 'activate' | 'primaryClick'>
 }
@@ -89,6 +89,9 @@ export function startDebugServer(deps: DebugDeps): http.Server {
           return send(200, { ok: true, pid: process.pid, mock: process.env.ALONGSIDE_MOCK === '1', phase: ctx.state.get().phase, killHotkey: lastHotkeyReport()?.killRegistered ?? null })
         case 'GET /hotkeys':
           return send(200, lastHotkeyReport() ?? { error: 'hotkeys not registered yet' })
+        case 'GET /voice/check':
+          // Check voice's own report: statuses only. It never asks macOS, opens the microphone, captures the screen or plays a sound.
+          return send(200, (await deps.knack?.voiceCheck?.()) ?? { error: 'not ready' })
         case 'GET /state':
           return send(200, deps.knack ? { ...ctx.state.get(), knack: deps.knack.info() } : ctx.state.get())
         case 'POST /hud/activity': {
