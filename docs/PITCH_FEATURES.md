@@ -1,6 +1,6 @@
 # Knack: the features, for the pitch and the launch video
 
-Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sun 08 Nov 2026, 02:45 UTC, checked against main at 1a2cdc6. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
+Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sun 08 Nov 2026, 02:46 UTC, checked against main at 1a2cdc6. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
 
 This is the master document. It lists 70 entries (66 features and 4 write-ups of results that did not hold up) on 35 pages, grouped by capability. One page per feature (with a 30-second spoken script and slide bullets) is in `docs/features/`; the index with status is `docs/features/index.md`; the 25 video claims are in `docs/features/video-beats.md`; the 28 hardest judge questions are in `docs/features/faq.md`.
 
@@ -1480,7 +1480,7 @@ Ask: 'Where do I see what needs me?' A ring and a ghost cursor show Needs you; K
 
 #### Honest limit
 
-Not run with a microphone, a Live session or a real click. The 'do it for me' path stays off until the first real-click rung is reported with the owner present, and the agent-service route it needs (POST /desktop/click) is not built (decision D56): the desktop answers 'route missing' and clicks nothing, and Knack says it will show you instead. The model's speech inside a conversation is free-form audio; every other spoken line in Knack is fixed. Voice quality and latency are not measured. The context packet does not yet carry the week's top Home insight (no screen reports it, gap G1), so the voice cannot say what the insight is; the routine is reported only for a run started with Run now; and the help level and the Needs-you item kinds are not in the packet.
+Not run with a microphone, a Live session or a real click. The 'do it for me' path stays off until the first real-click rung is reported with the owner present, and the agent-service route it needs (POST /desktop/click) is not built (decision D56): the desktop answers 'route missing' and clicks nothing, and Knack says it will show you instead. The model's speech inside a conversation is free-form audio; every other spoken line in Knack is fixed. Voice quality and latency are not measured. Home now reports its hero insight to the voice context as an id and a template kind (gap G1 closed; apps/dashboard/src/screens/Home/Home.tsx), but how well the voice can say it has not been tried; the routine is reported only for a run started with Run now; and the help level and the Needs-you item kinds are not in the packet.
 
 #### Hackathon target
 
