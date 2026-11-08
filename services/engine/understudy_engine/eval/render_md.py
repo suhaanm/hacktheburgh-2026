@@ -6,6 +6,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from .wording import reword_tree
+
 TITLES = {
     "deficit_recovery": "Deficit recovery (EVL-1)",
     "null_placebo": "Controls: placebo and shuffled-label null",
@@ -648,6 +650,7 @@ def evidence_map_text(emap: list[dict[str, Any]]) -> str:
 
 
 def render(report: dict[str, Any]) -> str:
+    report = reword_tree(report)          # a report read from an older file renders in the app's wording too (D57)
     out = ["# Understudy evaluation report", ""]
     rev = f" · git {report['git_rev']}" if report.get("git_rev") else ""
     out.append(f"Generated {report['generated_at']} · mock mode: {'yes' if report.get('mock') else 'no'}{rev} · fast run: {'yes' if (report.get('run') or {}).get('fast') else 'no'}")
