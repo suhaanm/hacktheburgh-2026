@@ -3,9 +3,11 @@ import { ApiError, api } from "../../api";
 import { checkedNote, cleanPrepared, expiresIn, firedText, preparedDirty, rankingParts } from "../../lib/briefing";
 import { consequence, leadAndRest, plainWords } from "../../screens/NeedsYou/model";
 import type { BriefingCard, Prepared } from "../../types";
+import { clip } from "../../lib/safeText";
 import { useToast } from "../Toasts";
 import { Details } from "../ui";
 import { Glyph } from "./Glyph";
+import { KV } from "./KV";
 
 type Fired = { queue_id?: string; run_id?: string };
 
@@ -28,12 +30,12 @@ export function fireLine(fireType: string | undefined): string {
  */
 export function PreparedRow({ card: c, onFired, onDismissed, onChanged }: { card: BriefingCard; onFired: (f: Fired, title: string) => void; onDismissed: (mode: "not_now" | "never") => void; onChanged: () => void }) {
   const toast = useToast();
-  const [draft, setDraft] = useState<Prepared>({ text: c.prepared.text, steps: c.prepared.steps ? [...c.prepared.steps] : undefined, artifact_ref: c.prepared.artifact_ref });
+  const [draft, setDraft] = useState<Prepared>({ text: c.prepared?.text, steps: c.prepared?.steps ? [...c.prepared.steps] : undefined, artifact_ref: c.prepared?.artifact_ref });
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
-  const dirty = preparedDirty(draft, c.prepared);
+  const dirty = preparedDirty(draft, c.prepared ?? {});
   const hasSteps = Array.isArray(draft.steps);
   const hasText = typeof draft.text === "string";
   const checked = checkedNote(c);
@@ -56,7 +58,7 @@ export function PreparedRow({ card: c, onFired, onDismissed, onChanged }: { card
     <article className="kc-row" data-kind="prepared" data-cls="2" data-risk={c.risk_class} aria-labelledby={`ny-${c.id}`} aria-describedby={`fd-${c.id}`}>
       <h3 className="kc-row__title" id={`ny-${c.id}`}>
         <Glyph name="decision" />
-        <span>{plainWords(c.title)}</span>
+        <span>{plainWords(clip(c.title, 160)) || "A prepared action"}</span>
       </h3>
       <p className="kc-row__body" id={`fd-${c.id}`}>{lead}</p>
       {cons && <p className="kc-row__cons" data-testid="consequence">{cons} It stops here for your own click first.</p>}
@@ -66,7 +68,7 @@ export function PreparedRow({ card: c, onFired, onDismissed, onChanged }: { card
           if (dirty) await save(); // what runs is what you see
           const r = await api.briefingFire(c.id);
           toast({ tone: "success", text: "Done.", detail: firedText(r) });
-          onFired(r, c.title);
+          onFired(r, plainWords(clip(c.title, 160)) || "A prepared action");
         })}>{busy === "fire" ? "Working" : "Approve and run"}</button>
         <button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => void run("later", async () => { await api.briefingDismiss(c.id, "not_now"); toast({ tone: "plain", text: "Okay, not now." }); onDismissed("not_now"); })}>Not now</button>
         <button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => void run("never", async () => { await api.briefingDismiss(c.id, "never"); toast({ tone: "plain", text: "Okay. This will not be suggested again." }); onDismissed("never"); })}>Never</button>
@@ -74,18 +76,16 @@ export function PreparedRow({ card: c, onFired, onDismissed, onChanged }: { card
       </div>
       {open && (
         <div className="kc-panel" id={`pv-${c.id}`}>
-          <p data-testid="fire-line"><b>Pressing Approve and run:</b> {fireLine(c.fire_type)}</p>
-          {checked && <p data-testid="checked">{checked}</p>}
-          <div className="row row--between">
-            <p className="kc-label">{editing ? "Prepared for you. Edit it if you like." : "Prepared for you"}</p>
-            {!editing && <button type="button" className="btn btn--secondary btn--sm" onClick={() => setEditing(true)}>Edit what will happen</button>}
-          </div>
-          {!editing && (
-            <div style={{ display: "grid", gap: "var(--space-2)" }}>
-              {hasText && <p className="prepared__text">{draft.text}</p>}
-              {hasSteps && (draft.steps ?? []).length > 0 && <ol className="prepared__read">{(draft.steps ?? []).map((st, i) => <li key={i}>{st}</li>)}</ol>}
-            </div>
-          )}
+          <KV label="About this action" rows={[
+            ["Approve and run", fireLine(c.fire_type)],
+            ["From", Array.isArray(c.sources) && c.sources.length ? c.sources.map((x) => plainWords(String(x))).join(", ") : null],
+            ["Expires", c.expires_at ? (expiresIn(c.expires_at) === "expired" ? "expired" : expiresIn(c.expires_at)) : null],
+            ["Checked", checked || null],
+            ["Wording", c.wording === "model" ? "Reworded by a model from safe numbers" : null],
+            ["Edited", c.edited ? "By you" : null],
+          ]} />
+          {!editing && hasText && <p className="prepared__text" data-testid="prepared-text">{draft.text}</p>}
+          {!editing && hasSteps && (draft.steps ?? []).length > 0 && <ol className="prepared__read">{(draft.steps ?? []).map((st, i) => <li key={i}>{st}</li>)}</ol>}
           {editing && hasText && (
             <div className="field">
               <label className="u-sr-only" htmlFor={`pt-${c.id}`}>Prepared text</label>
@@ -104,16 +104,15 @@ export function PreparedRow({ card: c, onFired, onDismissed, onChanged }: { card
               <li className="prepared__add"><button type="button" className="btn btn--quiet btn--sm" onClick={() => setDraft({ ...draft, steps: [...(draft.steps ?? []), ""] })}>Add a step</button></li>
             </ol>
           )}
-          {editing && (
-            <div className="row">
-              {dirty && <button type="button" className="btn btn--secondary btn--sm" disabled={!!busy} onClick={() => void run("save", async () => { await save(); toast({ tone: "success", text: "Your edit is saved." }); setEditing(false); onChanged(); })}>{busy === "save" ? "Saving" : "Save my edit"}</button>}
-              {dirty && <button type="button" className="btn btn--quiet btn--sm" onClick={() => setDraft({ text: c.prepared.text, steps: c.prepared.steps ? [...c.prepared.steps] : undefined })}>Undo my edit</button>}
-              {!dirty && <button type="button" className="btn btn--quiet btn--sm" onClick={() => setEditing(false)}>Done editing</button>}
-            </div>
-          )}
-          <p className="kc-sub" data-testid="card-from">From {c.sources.join(", ")}, {expiresIn(c.expires_at) === "expired" ? "expired" : `expires ${expiresIn(c.expires_at)}`}.{c.wording === "model" ? " Reworded by a model from safe numbers." : ""}{c.edited ? " Edited by you." : ""}</p>
+          <div className="kc-row__actions">
+            {!editing && <button type="button" className="btn btn--secondary btn--sm" onClick={() => setEditing(true)}>Edit what will happen</button>}
+            {editing && dirty && <button type="button" className="btn btn--secondary btn--sm" disabled={!!busy} onClick={() => void run("save", async () => { await save(); toast({ tone: "success", text: "Your edit is saved." }); setEditing(false); onChanged(); })}>{busy === "save" ? "Saving" : "Save my edit"}</button>}
+            {editing && dirty && <button type="button" className="btn btn--quiet btn--sm" onClick={() => setDraft({ text: c.prepared?.text, steps: c.prepared?.steps ? [...c.prepared.steps] : undefined })}>Undo my edit</button>}
+            {editing && !dirty && <button type="button" className="btn btn--quiet btn--sm" onClick={() => setEditing(false)}>Done editing</button>}
+          </div>
           {parts.length > 0 && (
-            <Details summary={`How this was chosen${typeof c.ranking?.score === "number" ? `: score ${c.ranking.score.toFixed(2)}` : ""}${c.ranking?.rank ? `, rank ${c.ranking.rank}` : ""}`} wide>
+            <Details summary="More" wide>
+              <p className="kc-label">{`How this was chosen${typeof c.ranking?.score === "number" ? `: score ${c.ranking.score.toFixed(2)}` : ""}${c.ranking?.rank ? `, rank ${c.ranking.rank}` : ""}`}</p>
               <div className="table-wrap"><table className="table">
                 <thead><tr><th>Part</th><th className="num">Weight</th><th className="num">Added to the score</th></tr></thead>
                 <tbody>{parts.map((p) => <tr key={p.key}><td>{p.label}</td><td className="num">{p.weight > 0 ? "+" : "−"}{Math.abs(p.weight).toFixed(2)}</td><td className="num">{p.contribution >= 0 ? "+" : "−"}{Math.abs(p.contribution).toFixed(3)}</td></tr>)}</tbody>

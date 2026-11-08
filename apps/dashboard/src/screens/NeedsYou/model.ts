@@ -1,6 +1,7 @@
 // Needs you: ONE list for everything that waits on the worker (docs/knack-ux/02-needs-you.md). Pure: no network, no React.
 // The model proposes, code decides: the order is a fixed table (safety, then time-sensitive, then the rest, newest first inside a class).
-import type { AgentRun, BriefingCard, QueueItem, Routine } from "../../types";
+import { arr, clip, num, uniqueBy } from "../../lib/safeText";
+import type { AgentRun, BriefingCard, QueueItem, Routine, TaskRow } from "../../types";
 
 /** 0 safety, 1 time-sensitive (a decision a job waits on), 2 can wait. docs/ATTENTION_DESIGN.md section 1. */
 export type NeedsClass = 0 | 1 | 2;
@@ -9,7 +10,8 @@ export type NeedsItem =
   | { key: string; kind: "approval"; cls: NeedsClass; when: string | null; queue: QueueItem }
   | { key: string; kind: "proposal"; cls: NeedsClass; when: string | null; routine: Routine }
   | { key: string; kind: "prepared"; cls: NeedsClass; when: string | null; card: BriefingCard }
-  | { key: string; kind: "paused"; cls: NeedsClass; when: string | null; run: AgentRun };
+  | { key: string; kind: "paused"; cls: NeedsClass; when: string | null; run: AgentRun }
+  | { key: string; kind: "task"; cls: NeedsClass; when: string | null; task: TaskRow };
 
 /** At most this many rows show by default, then "Show all N" (design README rule 4: at most 7). Routines lists show seven. */
 export const DEFAULT_ROWS = 7;
@@ -18,6 +20,9 @@ export const DEFAULT_ROWS = 7;
  * blocking items are never folded: every row of class 0 or 1 shows, however many there are. The sidebar badge counts the same list.
  */
 export const NEEDS_ROWS = 3;
+/** The most rows drawn at once, and the size of each further page: a list of hundreds is paged, never drawn whole. */
+export const MAX_ROWS = 60;
+export const PAGE_ROWS = 50;
 
 /** An approval's class: a pause for safety and an irreversible step are safety; an outward step is a decision a job waits on; the rest can wait. */
 export function approvalClass(q: Pick<QueueItem, "kind" | "risk_class">): NeedsClass {
@@ -27,29 +32,43 @@ export function approvalClass(q: Pick<QueueItem, "kind" | "risk_class">): NeedsC
 }
 
 const PAUSED = new Set(["paused", "needs_human", "blocked"]);
-export const isPausedRun = (r: AgentRun): boolean => PAUSED.has(r.state) || PAUSED.has(r.parent.state);
+export const isPausedRun = (r: AgentRun): boolean => PAUSED.has(r?.state) || PAUSED.has(r?.parent?.state);
 
 const ms = (iso: string | null): number => { const t = iso ? Date.parse(iso) : NaN; return Number.isNaN(t) ? -Infinity : t; };
 
-/** Everything that waits on the worker, in the order it is shown. A source that has not loaded yet is simply absent. */
-export function buildItems(src: { queue?: QueueItem[] | null; routines?: Routine[] | null; cards?: BriefingCard[] | null; cardsAt?: string | null; runs?: AgentRun[] | null }): NeedsItem[] {
+/**
+ * Everything that waits on the worker, in the order it is shown. A source that has not loaded yet is simply absent. An entry that is not an object is
+ * skipped, one without an id is keyed by its place in the list, and an id that comes twice is one item (the first), so a list never has two rows
+ * with the same key.
+ */
+export function buildItems(src: { queue?: QueueItem[] | null; routines?: Routine[] | null; cards?: BriefingCard[] | null; cardsAt?: string | null; runs?: AgentRun[] | null; tasks?: TaskRow[] | null }): NeedsItem[] {
   const out: NeedsItem[] = [];
-  for (const q of src.queue ?? []) {
+  const idOf = <T extends object>(field: string) => (row: T, i: number): string => { const v = (row as Record<string, unknown>)[field]; return typeof v === "string" && v ? v : typeof v === "number" ? String(v) : `#${i}`; };
+  for (const q of uniqueBy<QueueItem>(src.queue, idOf("id"))) {
     if (q.status !== "pending") continue;
-    out.push({ key: `q:${q.id}`, kind: "approval", cls: approvalClass(q), when: q.created_at, queue: q });
+    out.push({ key: `q:${idOf("id")(q, out.length)}`, kind: "approval", cls: approvalClass(q), when: typeof q.created_at === "string" ? q.created_at : null, queue: q });
   }
-  for (const r of src.routines ?? []) {
+  for (const r of uniqueBy<Routine>(src.routines, idOf("id"))) {
     if (r.status !== "proposed") continue;
-    out.push({ key: `r:${r.id}`, kind: "proposal", cls: 2, when: null, routine: r });
+    out.push({ key: `r:${idOf("id")(r, out.length)}`, kind: "proposal", cls: 2, when: null, routine: r });
   }
-  for (const c of src.cards ?? []) {
+  for (const c of uniqueBy<BriefingCard>(src.cards, idOf("id"))) {
     if (c.status !== "ready") continue;
-    out.push({ key: `b:${c.id}`, kind: "prepared", cls: 2, when: src.cardsAt ?? null, card: c });
+    out.push({ key: `b:${idOf("id")(c, out.length)}`, kind: "prepared", cls: 2, when: src.cardsAt ?? null, card: c });
   }
-  for (const run of src.runs ?? []) {
+  for (const run of uniqueBy<AgentRun>(src.runs, idOf("run_id"))) {
     if (!isPausedRun(run)) continue;
-    out.push({ key: `a:${run.run_id}`, kind: "paused", cls: 1, when: run.started, run });
+    out.push({ key: `a:${idOf("run_id")(run, out.length)}`, kind: "paused", cls: 1, when: typeof run.started === "string" ? run.started : null, run });
   }
+  // A task that waits for the worker: a consent card, or a question. The card's words are in the row; nothing here decides for the worker.
+  for (const t of uniqueBy<TaskRow>(src.tasks, idOf("task_id"))) {
+    const waits = (t.state === "waiting_consent" && !!t.needs_consent) || (!!t.question && typeof t.question.text === "string" && t.state !== "done" && t.state !== "stopped" && t.state !== "failed");
+    if (!waits) continue;
+    out.push({ key: `t:${idOf("task_id")(t, out.length)}`, kind: "task", cls: 1, when: typeof t.started === "string" ? t.started : null, task: t });
+  }
+  // A key can still repeat when two ids were missing in different places: make every key unique, keeping order.
+  const seen = new Map<string, number>();
+  for (const it of out) { const n = (seen.get(it.key) ?? 0) + 1; seen.set(it.key, n); if (n > 1) it.key = `${it.key}~${n}`; }
   return out
     .map((it, i) => ({ it, i }))
     .sort((a, b) => a.it.cls - b.it.cls || ms(b.it.when) - ms(a.it.when) || a.i - b.i)
@@ -81,12 +100,14 @@ export function approvalLabels(kind: QueueItem["kind"]): { yes: string; no: stri
  * The engine's own sentences still carry words the worker never sees: "shadow run", a rung and its code (A0 to A3) and the old name. This is the
  * one place they become the worker's words, for anything an engine sentence prints on Needs you and Routines (docs/KNACK_UX.md section 5).
  */
-export function plainWords(text: string): string {
+export function plainWords(input: string | null | undefined): string {
+  const text = typeof input === "string" ? input : "";
   const keep = (from: string, to: string) => (from.charAt(0) === from.charAt(0).toUpperCase() ? to.charAt(0).toUpperCase() + to.slice(1) : to);
   return text
     .replace(/\bshadow (run|copy|runs|copies)\b/gi, (m, w: string) => keep(m, `practice ${w.toLowerCase()}`))
     .replace(/\bshadow\b/gi, (m) => keep(m, "practice"))
     .replace(/\bUnderstudy\b/g, "Knack")
+    .replace(/\bdemo mode\b/gi, (x) => keep(x, "example data")).replace(/\bdemo\b/gi, (x) => keep(x, "example"))
     .replace(/\brung A0\b/gi, "observing").replace(/\brung A1\b/gi, "watching").replace(/\brung A2\b/gi, "asking first").replace(/\brung A3\b/gi, "running on its own")
     .replace(/\bA0\b/g, "observing").replace(/\bA1\b/g, "watching").replace(/\bA2\b/g, "asking first").replace(/\bA3\b/g, "running on its own")
     .replace(/\brungs\b/gi, (m) => keep(m, "steps")).replace(/\brung\b/gi, (m) => keep(m, "step"));
@@ -94,7 +115,7 @@ export function plainWords(text: string): string {
 
 const WORDS = (s: string): number => s.trim().split(/\s+/).filter(Boolean).length;
 /** Split a sentence run into what shows (at most `max` words, whole sentences) and the rest, which waits in the evidence. */
-export function leadAndRest(text: string, max = 24): { lead: string; rest: string } {
+export function leadAndRest(text: string | null | undefined, max = 24): { lead: string; rest: string } {
   const sentences = plainWords(text).split(/(?<=[.!?])\s+/).filter(Boolean);
   let lead = "";
   let n = 0;
@@ -108,35 +129,71 @@ export function leadAndRest(text: string, max = 24): { lead: string; rest: strin
   return { lead, rest: sentences.slice(i).join(" ") };
 }
 
-/** "Seen about 58 times in 3 weeks." from the engine's own "about 58 times in 3 weeks". */
-export function seenLine(howOften: string): string {
-  const t = howOften.trim().replace(/\.$/, "");
+/** "Seen about 58 times in 3 weeks." from the engine's own "about 58 times in 3 weeks". An answer with no words is no line. */
+export function seenLine(howOften: string | null | undefined): string {
+  const t = clip(howOften, 80).replace(/\.$/, "");
+  if (!t) return "";
   return /^seen\b/i.test(t) ? `${t}.` : `Seen ${t.charAt(0).toLowerCase()}${t.slice(1)}.`;
 }
 
 const trim1 = (n: number): string => n.toFixed(1).replace(/\.0$/, "");
-/** "Could save 3.1 to 5.2 hours." One range, one quantity. */
-export function saveLine(r: Pick<Routine, "value">): string {
-  const [lo, hi] = r.value.hours_saved;
+/** The value of a routine as the engine sends it: every part may be missing or odd. */
+export type ValueLike = { value?: { hours_saved?: unknown; horizon_weeks?: unknown; net_gbp?: unknown; [k: string]: unknown } | null };
+const gbp = (n: number): string => `${n < 0 ? "-" : ""}£${Math.abs(Math.round(n))}`;
+/** The two numbers of an interval in order, or null when either is missing, not a number, or the whole range is no saving (a negative estimate is not a saving). */
+function hoursRange(v: { hours_saved?: unknown } | null | undefined): [number, number] | null {
+  const hs = v?.hours_saved;
+  if (!Array.isArray(hs) || hs.length < 2) return null;
+  const a = num(hs[0]), b = num(hs[1]);
+  if (a === null || b === null) return null;
+  const hi = Math.max(a, b);
+  return hi <= 0 ? null : [Math.max(0, Math.min(a, b)), hi];
+}
+/** "Could save 3.1 to 5.2 hours." One range, one quantity. Empty when the engine sent no usable range. */
+export function saveLine(r: ValueLike): string {
+  const range = hoursRange(r?.value);
+  if (!range) return "";
+  const [lo, hi] = range;
+  if (trim1(lo) === trim1(hi)) return `Could save about ${trim1(hi)} ${trim1(hi) === "1" ? "hour" : "hours"}.`;
   return `Could save ${trim1(lo)} to ${trim1(hi)} hours.`;
 }
 
-/** What is behind the "i" beside the hours: the interval and the money, never the only copy of a fact. */
-export function saveHint(r: Pick<Routine, "value">): string {
-  const v = r.value;
-  const wk = v.horizon_weeks ? ` over ${v.horizon_weeks} weeks` : "";
-  return `95% interval${wk}. About £${v.net_gbp[0]} to £${v.net_gbp[1]} net of set-up.`;
+/** What is behind the "i" beside the hours: the interval and the money, never the only copy of a fact. Any part the engine left out is left out here. */
+export function saveHint(r: ValueLike): string {
+  const v = r?.value;
+  const weeks = num(v?.horizon_weeks);
+  const wk = weeks && weeks > 0 ? ` over ${Math.round(weeks)} weeks` : "";
+  const net = Array.isArray(v?.net_gbp) && v.net_gbp.length >= 2 ? [num(v.net_gbp[0]), num(v.net_gbp[1])] : null;
+  const money = net && net[0] !== null && net[1] !== null ? ` About ${gbp(net[0])} to ${gbp(net[1])} net of set-up.` : "";
+  return `95% interval${wk}.${money}`;
+}
+
+/** The facts of a routine proposal, each safe to print: the title clipped, a line empty when the engine left its part out, lists that may be empty. */
+export function proposalFacts(p: Routine): { title: string; seen: string; save: string; hint: string; touches: string[]; never: string[] } {
+  const proposal = (p?.proposal ?? {}) as Partial<Routine["proposal"]>;
+  const strings = (x: unknown): string[] => arr<unknown>(x).filter((t): t is string => typeof t === "string" && t.trim() !== "");
+  const pick = (a: unknown, b: unknown): string[] => (strings(a).length ? strings(a) : strings(b));
+  return {
+    title: plainWords(clip(p?.title, 140)) || "A routine",
+    seen: seenLine(proposal.how_often),
+    save: saveLine(p),
+    hint: saveHint(p),
+    touches: pick(proposal.touches, p?.touches).map((t) => plainWords(clip(t, 80))),
+    never: pick(proposal.never, p?.never).map((n) => plainWords(clip(n, 140)).replace(/\.$/, "")),
+  };
 }
 
 /** "Touches GovCalc and 3 more." The whole list is one click away. */
-export function touchesLead(touches: string[], show = 2): { lead: string; more: number } {
+export function touchesLead(list: string[], show = 2): { lead: string; more: number } {
+  const touches = arr<unknown>(list).filter((t): t is string => typeof t === "string" && t.trim() !== "");
   if (touches.length <= show + 1) return { lead: touches.join(", "), more: 0 };
   const head = touches.slice(0, show);
   return { lead: head.join(", "), more: touches.length - show };
 }
 
 /** "It will never submit the case note, send anything to a claimant or open sites you have not used in this routine." Printed whole. */
-export function neverLine(never: string[]): string {
+export function neverLine(list: string[]): string {
+  const never = arr<unknown>(list).filter((n): n is string => typeof n === "string" && n.trim() !== "");
   if (never.length === 0) return "";
   const low = never.map((n) => n.charAt(0).toLowerCase() + n.slice(1));
   const body = low.length === 1 ? low[0] : `${low.slice(0, -1).join(", ")} or ${low[low.length - 1]}`;
@@ -144,9 +201,9 @@ export function neverLine(never: string[]): string {
 }
 
 /** The overnight report as one line: "Since you were away: 1 run finished, 0 failed." */
-export function awayLine(rep: { ran: unknown[]; failed: unknown[]; queued?: unknown[]; yielded?: unknown[] } | null): string | null {
+export function awayLine(rep: { ran?: unknown[]; failed?: unknown[]; queued?: unknown[]; yielded?: unknown[] } | null): string | null {
   if (!rep) return null;
-  const n = rep.ran.length, f = rep.failed.length;
+  const n = arr(rep.ran).length, f = arr(rep.failed).length;
   if (n === 0 && f === 0) return null;
   return `Since you were away: ${n} ${n === 1 ? "run" : "runs"} finished, ${f} failed.`;
 }
@@ -155,10 +212,11 @@ export function awayLine(rep: { ran: unknown[]; failed: unknown[]; queued?: unkn
  * The rows Needs you shows: at least three, and every safety or blocking row; all of them once the worker asks. The first routine proposal is never
  * folded: saying yes or no to a routine is two clicks from Home (Needs you, then Watch first, Not now or Never), however many approvals wait.
  */
-export function visibleItems(items: NeedsItem[], showAll: boolean): NeedsItem[] {
-  if (showAll) return items;
+export function visibleItems(items: NeedsItem[], showAll: boolean, cap: number = Infinity): NeedsItem[] {
+  if (showAll) return items.slice(0, cap);
   const urgent = items.filter((i) => i.cls < 2).length;
-  const shown = items.slice(0, Math.max(NEEDS_ROWS, urgent));
+  // Hundreds of urgent rows are still safety first, so the first MAX_ROWS are the most urgent; the badge counts them all and the rest are one press away.
+  const shown = items.slice(0, Math.min(MAX_ROWS, Math.max(NEEDS_ROWS, urgent)));
   const proposal = items.find((i) => i.kind === "proposal");
   if (!proposal || shown.includes(proposal)) return shown;
   // Make room for it: it takes the place of the last row that is not urgent, or follows the urgent rows when everything shown is urgent.
@@ -179,3 +237,10 @@ export function madeLine(f: { queue_id?: string; run_id?: string }): string {
   return "Done. The engine did not say what it created.";
 }
 
+
+/** The headline of Needs you: how many things wait. The safety stops are marked on their own rows (and counted by the badge); the headline does not repeat them. Empty when nothing waits. */
+export function needsHeadline(items: NeedsItem[]): string {
+  const n = items.length;
+  if (n === 0) return "";
+  return n === 1 ? "1 thing needs you." : `${n} things need you.`;
+}

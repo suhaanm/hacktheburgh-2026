@@ -4,7 +4,10 @@ import type { Routine } from "../types";
 /** Autonomy rungs A0 to A3 with the Wilson lower bound that earns the next one. A3 is stated as a target the demo does not reach. */
 export function Ladder({ routine }: { routine: Routine }) {
   const here = RUNGS.findIndex((r) => r.id === routine.rung);
-  const { runs, matches, wilson_lower: lb } = routine.shadow;
+  // A routine with no practice record yet has none: zeros, never a throw.
+  const sh = (routine.shadow ?? {}) as { runs?: unknown; matches?: unknown; wilson_lower?: unknown };
+  const whole = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) ? Math.max(0, v) : 0);
+  const runs = whole(sh.runs), matches = Math.min(runs, whole(sh.matches)), lb = Math.min(1, whole(sh.wilson_lower));
   const next = nextRung(routine.rung);
   const need = next?.bound != null ? cleanRunsNeeded(matches, runs, next.bound) : null;
   const moreRuns = next?.runs != null ? Math.max(0, next.runs - runs) : 0;
