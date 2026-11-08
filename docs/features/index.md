@@ -1,6 +1,6 @@
 # Knack feature index
 
-As of Sun 08 Nov 2026, 01:53 UTC, checked against main at 0880bad.
+As of Sun 08 Nov 2026, 01:56 UTC, checked against main at ba2fc17.
 
 35 pages and 68 entries (features, plus four write-ups of results that did not hold up), for the pitch (Hack the Burgh XIII), the launch video, the demo and the submission video. The master document is `docs/PITCH_FEATURES.md`; the 20 video claims are in `video-beats.md`; the 25 hardest judge questions are in `faq.md`.
 
@@ -52,7 +52,7 @@ As of Sun 08 Nov 2026, 01:53 UTC, checked against main at 0880bad.
 | Overnight runs and the morning report | [background-agents](background-agents.md) | **built** | Wordsmith, HRT |
 | Live background task list: a finish shows up without a refresh | [background-agents](background-agents.md) | **built** (owner requests 4.15 and 4.16 (Track C); documented in docs/knack-ux/background-tasks.md; on main; the tasks service it prefers is on main since 01:42 UTC; not seen end to end by the lead) | Wordsmith |
 | Stop everything: the kill switch | [stop-everything](stop-everything.md) | **built** | Wordsmith |
-| Open-ended tasks, skills in context and Claude background agents | [open-ended-tasks](open-ended-tasks.md) | **built** (owner decision D63 (01:05 UTC); merged to main at 01:42 UTC (fded20e): the service, API, router, Claude command runner, skills and browser runner, the consent cards and task list in the dashboard, the pills window in the desktop shell and the Live tool start_task, with docs/TASKS.md; not seen end to end by the lead; one real one-turn run of the owner's claude command was made once with the owner's approval to check the flags, and no real task has been run; the task box (a place to type a task) is not on main, so a typed task has no screen yet (landing)) | Wordsmith |
+| Open-ended tasks, skills in context and Claude background agents | [open-ended-tasks](open-ended-tasks.md) | **built** (owner decision D63 (01:05 UTC); merged to main at 01:42 UTC (fded20e): the service, API, router, Claude command runner, skills and browser runner, the consent cards and task list in the dashboard, the pills window in the desktop shell and the Live tool start_task, with docs/TASKS.md; not seen end to end by the lead; two small real runs of the owner's claude command were made with the owner's approval (a one-word prompt, then a throwaway copy of the protected-file layout; about US$0.125 in all, D64), and no real task has been run; the task box (a place to type a task) is not on main, so a typed task has no screen yet (landing)) | Wordsmith |
 
 ## Routines and automations
 
