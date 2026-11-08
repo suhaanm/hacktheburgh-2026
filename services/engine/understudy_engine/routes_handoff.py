@@ -46,7 +46,7 @@ from .presence.timeline import day_states_from_events, get_tz, spells_from_event
 from .routines.detect import DetectConfig, detect_routines
 from .routines.gate import MemorySkillSource
 from .routines.graph import build_work_graph
-from .routines.sources import PersonData, PersonSource
+from .routines.sources import PersonData, PersonSource, shared_source
 from .routines.store import ConsentError, RoutineStore
 
 router = APIRouter(tags=["handoff"])
@@ -103,7 +103,7 @@ def _actor(request: Request) -> str:
 
 
 def _src() -> PersonSource:
-    return PersonSource()
+    return shared_source()          # one per data root: its parsed-events cache lives until a person's files change (see routines/sources.py)
 
 
 def _role(mem: MemoryStore | None = None, pd: PersonData | None = None) -> str:
