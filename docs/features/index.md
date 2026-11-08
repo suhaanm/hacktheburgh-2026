@@ -1,6 +1,6 @@
 # Knack feature index
 
-As of Sun 08 Nov 2026, 02:12 UTC, checked against main at 81e8453.
+As of Sun 08 Nov 2026, 02:16 UTC, checked against main at 31b56ad.
 
 35 pages and 68 entries (features, plus four write-ups of results that did not hold up), for the pitch (Hack the Burgh XIII), the launch video, the demo and the submission video. The master document is `docs/PITCH_FEATURES.md`; the 20 video claims are in `video-beats.md`; the 25 hardest judge questions are in `faq.md`.
 
@@ -52,7 +52,7 @@ As of Sun 08 Nov 2026, 02:12 UTC, checked against main at 81e8453.
 | Overnight runs and the morning report | [background-agents](background-agents.md) | **built** | Wordsmith, HRT |
 | Live background task list: a finish shows up without a refresh | [background-agents](background-agents.md) | **built** (owner requests 4.15 and 4.16 (Track C); documented in docs/knack-ux/background-tasks.md; on main; the tasks service it prefers is on main since 01:42 UTC; not seen end to end by the lead) | Wordsmith |
 | Stop everything: the kill switch | [stop-everything](stop-everything.md) | **built** | Wordsmith |
-| Open-ended tasks, skills in context and Claude background agents | [open-ended-tasks](open-ended-tasks.md) | **built** (owner decision D63 (01:05 UTC); merged to main at 01:42 UTC (fded20e): the service, API, router, Claude command runner, skills and browser runner, the consent cards and task list in the dashboard, the pills window in the desktop shell and the Live tool start_task, with docs/TASKS.md; not seen end to end by the lead; two small real runs of the owner's claude command were made with the owner's approval (a one-word prompt, then a throwaway copy of the protected-file layout; about US$0.125 in all, D64), and no real task has been run; the task box (a place to type a task) is not on main, so a typed task has no screen yet (landing)) | Wordsmith |
+| Open-ended tasks, skills in context and Claude background agents | [open-ended-tasks](open-ended-tasks.md) | **built** (owner decision D63 (01:05 UTC); merged to main at 01:42 UTC (fded20e): the service, API, router, Claude command runner, skills and browser runner, the consent cards and task list in the dashboard; the page has the rest) | Wordsmith |
 
 ## Routines and automations
 
@@ -76,7 +76,7 @@ As of Sun 08 Nov 2026, 02:12 UTC, checked against main at 81e8453.
 
 | Feature | Page | Status | Targets |
 |---|---|---|---|
-| Hey Knack: an on-device wake phrase | [hey-knack](hey-knack.md) | **built** (code and tests are built and merged; not run with a real microphone yet; the listener helper ships inside Knack.app and the first launch needs the owner's Microphone and Speech Recognition grants and an installed on-device dictation language) | G-Research |
+| Hey Knack: an on-device wake phrase | [hey-knack](hey-knack.md) | **built** (code and tests are built and merged; not run with a real microphone yet; the page has the rest) | G-Research |
 | Voice guidance and 'do it for me' behind a click | [hey-knack](hey-knack.md) | **built** (the click path fails closed until the first supervised real-click test has passed) | Wordsmith, G-Research |
 
 ## Models and modes
@@ -94,7 +94,7 @@ As of Sun 08 Nov 2026, 02:12 UTC, checked against main at 81e8453.
 |---|---|---|---|
 | Home: one sentence, one action | [home-insights](home-insights.md) | **built** (merged to main; measured on a prototype; owner has not used it) | G-Research |
 | Top insights engine: a few pointers, chosen by code | [home-insights](home-insights.md) | **built** | G-Research, HRT |
-| Admin views: Firm, Roles, Onboarding | [firm-admin](firm-admin.md) | **built** (UI merged to main; the firm is synthetic; owner request 4.4 (made-up people for several users): Track R found the cause of the blank live Admin view, the engine read this device's own ledger (one person), so every comparison was withheld under the minimum group of 5; on main since 01:51 UTC (merge e52c6b1) the engine can write 32 made-up people in 3 teams with twelve weeks of history to the data folder (python -m understudy_engine.demo seed-firm, also part of demo seed), with the rules unchanged; per the lead the item stays landing until that seed has run on the live data) | G-Research, HRT |
+| Admin views: Firm, Roles, Onboarding | [firm-admin](firm-admin.md) | **built** (UI merged to main; the firm is synthetic; owner request 4.4 (made-up people for several users): Track R found the cause of the blank live Admin view, the engine read this device's own ledger (one person); the page has the rest) | G-Research, HRT |
 | Monday note, firm brief and prediction scorecard | [firm-admin](firm-admin.md) | **built** | HRT |
 
 ## Growth and independence
@@ -110,7 +110,7 @@ As of Sun 08 Nov 2026, 02:12 UTC, checked against main at 81e8453.
 | One attention layer: a router, a digest, quiet states | [attention-router](attention-router.md) | **built** (engine built; desktop wiring built; held-out simulated evaluation met 11 of 12 criteria) | HRT |
 | Context engineering: typed, bounded, fresh | [context-engineering](context-engineering.md) | **built** | Wordsmith |
 | One app, one window, one corner pill | [knack-shell](knack-shell.md) | **built** (merged to main; hidden end-to-end run passes; first visible launch with the owner pending) | Wordsmith |
-| First run: role, consent and a first look | [knack-shell](knack-shell.md) | **built** (the spec is three clicks and the dashboard's first-run model on main still has three screens (role, capture, ready); decision D58 (00:45 UTC) adds a permissions step and a Try it step: their specification (docs/knack-ux/capabilities-and-permissions.md) and the Hey Knack side (first-run context and the first welcome line, apps/desktop/src/main/wake) are on main since 01:00 UTC, the screens are not, so those steps are landing) | G-Research |
+| First run: role, consent and a first look | [knack-shell](knack-shell.md) | **built** (the spec is three clicks and the dashboard's first-run model on main still has three screens (role, capture, ready); the page has the rest) | G-Research |
 | Command palette and keyboard | [knack-shell](knack-shell.md) | **built** (shortcuts and the palette are on main; some of the spec's palette verbs are not) | Wordsmith |
 | Design system with budgets as tests | [design-system](design-system.md) | **built** (tokens, components and check scripts merged to main; screens still being brought to budget by their tracks) | G-Research |
 | The Knack mark and brand | [design-system](design-system.md) | **built** | G-Research |
@@ -133,18 +133,18 @@ As of Sun 08 Nov 2026, 02:12 UTC, checked against main at 81e8453.
 | ML v2, held-out: mostly negative | [what-did-not-hold-up](what-did-not-hold-up.md) | **verified** | HRT |
 | The simulated study sat at the floor | [what-did-not-hold-up](what-did-not-hold-up.md) | **verified** | HRT, G-Research |
 | Other results that went the wrong way | [what-did-not-hold-up](what-did-not-hold-up.md) | **verified** | G-Research |
-| Prospective prediction ledger and forward scoring | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **landing** (decision D59; plan registered at 00:35 UTC before any held-out run; code, held-out results and docs/HRT_BRIEF.md are on branch worktree-agent-a02c9cf8855c9f4ff (latest commit 943c071, 01:28 UTC), not on main; an engine route for live ledger entries exists behind UNDERSTUDY_X_HRT but nothing in the running product writes a forecast to it yet) | HRT |
+| Prospective prediction ledger and forward scoring | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **landing** (decision D59; plan registered at 00:35 UTC before any held-out run; code, held-out results and docs/HRT_BRIEF.md are on branch worktree-agent-a02c9cf8855c9f4ff (latest commit 943c071, 01:28 UTC), not on main; the page has the rest) | HRT |
 | Drift guard: noticing when the model stops beating the baseline | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **landing** (as above: on the HRT branch, results landed, not on main) | HRT |
 | Decisions scoreboard: realised cost against a naive policy and an oracle | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **landing** (as above: on the HRT branch, results landed, not on main) | HRT |
-| Online recalibration: rescuing the model instead of discarding it | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **landing** (follow-up plan registered at 01:25 UTC after the first held-out result was seen (the plan says so), amended once (A1) after a dev run, frozen at 01:26 UTC, run once on new seeds; results, brief section 2c and claim row C100 are on the HRT branch (worktree-agent-a02c9cf8855c9f4ff, commit cf47203 at 01:42 UTC), not on main; the running product does not use it) | HRT |
+| Online recalibration: rescuing the model instead of discarding it | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **landing** (follow-up plan registered at 01:25 UTC after the first held-out result was seen (the plan says so), amended once (A1) after a dev run, frozen at 01:26 UTC, run once on new seeds; results; the page has the rest) | HRT |
 
 ## Roles
 
 | Feature | Page | Status | Targets |
 |---|---|---|---|
 | Role packs: the format, and the deep benefits processor pack | [role-packs](role-packs.md) | **built** | G-Research, Wordsmith |
-| Programmer pack at standard depth | [role-packs](role-packs.md) | **built** (ROLE-DEPTH (Track F), merged to main at 01:15 UTC (08b9908); docs/roles/programmer.md and packages/packs/programmer are on main; no study and no real traces; not seen end to end by the lead; additive only (D55, D56 item 6)) | G-Research, Wordsmith |
-| Data analyst pack at standard depth | [role-packs](role-packs.md) | **built** (ROLE-DEPTH (Track F), merged to main at 01:15 UTC (08b9908); docs/roles/data-analyst.md and packages/packs/data-analyst are on main; no study and no real traces; not seen end to end by the lead; additive only (D55, D56 item 6)) | G-Research, Wordsmith |
+| Programmer pack at standard depth | [role-packs](role-packs.md) | **built** (ROLE-DEPTH (Track F), merged to main at 01:15 UTC (08b9908); docs/roles/programmer.md and packages/packs/programmer are on main; no study and no real traces; not seen end to end by the lead; the page has the rest) | G-Research, Wordsmith |
+| Data analyst pack at standard depth | [role-packs](role-packs.md) | **built** (ROLE-DEPTH (Track F), merged to main at 01:15 UTC (08b9908); docs/roles/data-analyst.md and packages/packs/data-analyst are on main; no study and no real traces; not seen end to end by the lead; the page has the rest) | G-Research, Wordsmith |
 
 ## Also in this folder
 
