@@ -213,3 +213,12 @@ after the case arrives (the review lag). The online base rate sees outcomes only
 3. **Replay order.** Predictions and outcomes are written to the ledger in time order (an outcome at the same instant as a prediction is written
    first, because it is then known), the online base rate is read through `Ledger.resolved_before`, and `verify()` is run before scoring. A test
    checks that the online base rate each prediction recorded equals the running mean of the outcomes resolved by its `made_at`.
+
+**A2, Sun 8 Nov 2026 about 00:50 GMT, after a dev run of the scoreboard (3 replicates per row, DEV seeds), before any held-out run.** One correction, no
+change to any claim, margin or primary contrast. Section 5, row D2 called "rank by the generator's true error probability" an oracle and "a ceiling for
+any predictor". The dev run showed it is not: the routing model reviews fewer wrong cases than that ranking (about 2.5 against 7.1 escaped errors per 100
+at the 30% budget), because the model also sees the worker's check, the agent's stated confidence and the worker's trace, and the generator draws those
+from the realised error. That policy is renamed **prior-only reference** and the only oracle of the row is the hindsight one (review exactly the wrong
+cases). The plan's other statements about oracles stand. The dev run also showed, for D1, that at the pack's own build costs (4 to 9 manual runs) "build at
+once" is cheaper than the shipped rule; the primary contrast (against break-even) was fixed in section 5 before this and is not changed, and that cell is
+printed with the others.

@@ -82,6 +82,30 @@ def test_guard_for_returns_units_flags_and_costs_from_the_ledger_arrays(mini):
         assert c["guarded"] == c["always_model"]
 
 
+def test_time_to_progress_replay_scores_a_distribution_with_censoring_handled():
+    train, _ = simulate_people(4, 40, seed=3)
+    test, _ = simulate_people(4, 40, seed=104)
+    dep = pr.fit_deployed_tte(train)
+    led = pr.replay_tte(dep, test, "mini")
+    arr = led.resolved("time_to_progress")
+    assert led.verify() and arr["forecasts"][pr.MODEL].shape[1] == 10 and arr["forecasts"][pr.KM].shape == arr["forecasts"][pr.MODEL].shape
+    cdf = arr["forecasts"][pr.MODEL]
+    assert np.all(np.diff(cdf, axis=1) >= -1e-9) and np.all((cdf >= 0) & (cdf <= 1))                 # a CDF is non-decreasing
+    assert arr["steps_obs"].min() >= 2 and arr["steps_obs"].max() <= 10 and (arr["steps_obs"] < 10).any()      # some origins are censored
+    out = pr.score_tte([arr], B=200)
+    assert np.isfinite(out["model"]["est"]) and np.isfinite(out["frozen_km"]["est"]) and out["n"] == arr["event_step"].size
+    assert out["model_minus_km"]["verdict"] in ("a better", "a worse", "no clear difference")
+    # an outcome may not be written before the observed span has passed
+    pid = 0
+    from understudy_engine.hrt.ledger import Ledger, LedgerError
+
+    fresh = Ledger()
+    k = fresh.predict(kind="time_to_progress", stream="a", made_at=0.0, horizon_s=300.0, forecasts={"model": [0.1] * 10}, primary="model")
+    with pytest.raises(LedgerError, match="observed span"):
+        fresh.resolve(k, resolved_at=119.0, outcome={"event_step": None, "steps_obs": 4})
+    fresh.resolve(k, resolved_at=120.0, outcome={"event_step": None, "steps_obs": 4})
+
+
 def test_clopper_pearson_known_values():
     lo, hi = pr.cp_interval(0, 8)
     assert lo == 0.0 and abs(hi - 0.3694) < 1e-3

@@ -1,0 +1,1474 @@
+{
+ "not_scored": [
+  {
+   "decision": "the help-level ladder (L1 to L4)",
+   "id": "D6",
+   "reason": "The ladder is deterministic code cross-checked against a written spec (COA-3). It has no outcome to score until the live study; a simulated outcome would score our own reward model.",
+   "status": "not_scored"
+  }
+ ],
+ "origin": "synthetic",
+ "primary_family": {
+  "adjusted_level": 0.9875,
+  "contrasts": [
+   {
+    "ci95": [
+     -2.442,
+     -1.8040000000000003
+    ],
+    "ci_adjusted": [
+     -2.442,
+     -1.8040000000000003
+    ],
+    "est": -2.1940000000000004,
+    "label": "shipped rule minus break even at b = 8",
+    "row": "D1",
+    "verdict": "win"
+   },
+   {
+    "ci95": [
+     -7.413333333333331,
+     -6.1066666666666665
+    ],
+    "ci_adjusted": [
+     -7.413333333333331,
+     -6.1066666666666665
+    ],
+    "est": -6.924444444444443,
+    "label": "model minus random at a 30% review budget",
+    "row": "D2",
+    "verdict": "win"
+   },
+   {
+    "ci95": [
+     49.041666666666664,
+     91.12604166666667
+    ],
+    "ci_adjusted": [
+     46.79140625,
+     99.0024739583333
+    ],
+    "est": 68.375,
+    "label": "shipped rule minus run whenever idle 5min at L/G = 9",
+    "row": "D3",
+    "verdict": "win"
+   },
+   {
+    "ci95": [
+     0.22788596565467265,
+     0.2507703080203441
+    ],
+    "ci_adjusted": [
+     0.22788596565467265,
+     0.2507703080203441
+    ],
+    "est": 0.23701398600831794,
+    "label": "bandit snapshot minus rule baseline",
+    "row": "D4",
+    "verdict": "win"
+   }
+  ],
+  "method": "Bonferroni: each primary contrast is also shown at 98.75%; a win needs the adjusted interval to exclude 0",
+  "size": 4
+ },
+ "recorded": [
+  {
+   "acceptance": {
+    "false_nudges_target": "met",
+    "faster_to_resume_target": "not_met"
+   },
+   "decision": "Cue: speak at a stuck moment",
+   "direction": "higher",
+   "false_nudges_per_hour": {
+    "ci": [
+     0.6401,
+     0.8318
+    ],
+    "n": 350,
+    "n_workers": 40,
+    "value": 0.7269
+   },
+   "id": "D5",
+   "n": {
+    "hours": 481.5,
+    "workers": 40
+   },
+   "naive": {
+    "never speak": 0.0
+   },
+   "note": "Origin: simulated workers. Cue met one of its two pre-registered targets; the net seconds saved is a secondary number, not a target. Not part of the multiple-comparison family.",
+   "oracle": null,
+   "recorded": true,
+   "shipped": {
+    "ci": [
+     10.6264,
+     26.2053
+    ],
+    "est": 18.3308
+   },
+   "source": "evals/cue/held_out.json (the Cue track's frozen held-out command; read here, not re-run)",
+   "status": "ok",
+   "unit": "net seconds saved per hour of work (stall seconds saved minus seconds lost to interruptions; higher is better)"
+  }
+ ],
+ "replicates": {
+  "nudge": 3,
+  "presence": 2,
+  "routing": 3,
+  "ski": 3
+ },
+ "rows": [
+  {
+   "cells": {
+    "16": {
+     "contrasts": {
+      "shipped_minus_break_even": {
+       "ci95": [
+        -4.068000000000001,
+        -2.830000000000002
+       ],
+       "est": -3.4120000000000013,
+       "exploratory_cells_in_row": 11,
+       "good_direction": "lower",
+       "label": "shipped rule minus break even at b = 16",
+       "primary": false,
+       "verdict": "win"
+      },
+      "shipped_minus_build_now": {
+       "ci95": [
+        2.4819999999999993,
+        2.620000000000001
+       ],
+       "est": 2.5293333333333337,
+       "exploratory_cells_in_row": 11,
+       "good_direction": "lower",
+       "label": "shipped rule minus build now at b = 16",
+       "primary": false,
+       "verdict": "loss"
+      },
+      "shipped_minus_never_build": {
+       "ci95": [
+        -26.474000000000004,
+        -19.496000000000002
+       ],
+       "est": -23.876666666666665,
+       "exploratory_cells_in_row": 11,
+       "good_direction": "lower",
+       "label": "shipped rule minus never build at b = 16",
+       "primary": false,
+       "verdict": "win"
+      }
+     },
+     "gap_closed_vs_break_even": {
+      "ci": [
+       0.3176206509539845,
+       0.4211180124223603
+      ],
+      "share": 0.37046688382193277
+     },
+     "policies": {
+      "break_even": {
+       "ci": [
+        20.352,
+        21.76
+       ],
+       "est": 20.981333333333335
+      },
+      "build_now": {
+       "ci": [
+        15.008000000000001,
+        15.071999999999997
+       ],
+       "est": 15.04
+      },
+      "fixed_lambda_0.2": {
+       "ci": [
+        15.066,
+        16.01
+       ],
+       "est": 15.584000000000001
+      },
+      "fixed_lambda_0.5": {
+       "ci": [
+        16.836,
+        17.718
+       ],
+       "est": 17.338666666666665
+      },
+      "never_build": {
+       "ci": [
+        37.018,
+        43.967999999999996
+       ],
+       "est": 41.446
+      },
+      "oracle_hindsight": {
+       "ci": [
+        11.442,
+        12.1
+       ],
+       "est": 11.771333333333333
+      },
+      "shipped_learned_lambda": {
+       "ci": [
+        17.494,
+        17.692
+       ],
+       "est": 17.569333333333333
+      }
+     }
+    },
+    "32": {
+     "contrasts": {
+      "shipped_minus_break_even": {
+       "ci95": [
+        -5.920000000000002,
+        -3.3719999999999963
+       ],
+       "est": -4.963333333333331,
+       "exploratory_cells_in_row": 11,
+       "good_direction": "lower",
+       "label": "shipped rule minus break even at b = 32",
+       "primary": false,
+       "verdict": "win"
+      },
+      "shipped_minus_build_now": {
+       "ci95": [
+        -2.1279999999999966,
+        -0.2539999999999978
+       ],
+       "est": -1.1313333333333304,
+       "exploratory_cells_in_row": 11,
+       "good_direction": "lower",
+       "label": "shipped rule minus build now at b = 32",
+       "primary": false,
+       "verdict": "win"
+      },
+      "shipped_minus_never_build": {
+       "ci95": [
+        -16.080000000000002,
+        -7.949999999999999
+       ],
+       "est": -12.497333333333332,
+       "exploratory_cells_in_row": 11,
+       "good_direction": "lower",
+       "label": "shipped rule minus never build at b = 32",
+       "primary": false,
+       "verdict": "win"
+      }
+     },
+     "gap_closed_vs_break_even": {
+      "ci": [
+       0.25898617511520716,
+       0.41608443585550736
+      ],
+      "share": 0.360061904531605
+     },
+     "policies": {
+      "break_even": {
+       "ci": [
+        32.44,
+        35.81
+       ],
+       "est": 33.912
+      },
+      "build_now": {
+       "ci": [
+        30.016000000000002,
+        30.143999999999995
+       ],
+       "est": 30.08
+      },
+      "fixed_lambda_0.2": {
+       "ci": [
+        25.97,
+        28.01
+       ],
+       "est": 26.730666666666668
+      },
+      "fixed_lambda_0.5": {
+       "ci": [
+        28.176,
+        30.252
+       ],
+       "est": 28.887333333333334
+      },
+      "never_build": {
+       "ci": [
+        37.018,
+        43.967999999999996
+       ],
+       "est": 41.446
+      },
+      "oracle_hindsight": {
+       "ci": [
+        19.42,
+        20.93
+       ],
+       "est": 20.127333333333336
+      },
+      "shipped_learned_lambda": {
+       "ci": [
+        27.888,
+        29.89
+       ],
+       "est": 28.948666666666668
+      }
+     }
+    },
+    "4": {
+     "contrasts": {
+      "shipped_minus_break_even": {
+       "ci95": [
+        -1.4639999999999995,
+        -0.7240000000000002
+       ],
+       "est": -1.1513333333333333,
+       "exploratory_cells_in_row": 11,
+       "good_direction": "lower",
+       "label": "shipped rule minus break even at b = 4",
+       "primary": false,
+       "verdict": "win"
+      },
+      "shipped_minus_build_now": {
+       "ci95": [
+        0.8200000000000003,
+        1.282
+       ],
+       "est": 1.0113333333333336,
+       "exploratory_cells_in_row": 11,
+       "good_direction": "lower",
+       "label": "shipped rule minus build now at b = 4",
+       "primary": false,
+       "verdict": "loss"
+      },
+      "shipped_minus_never_build": {
+       "ci95": [
+        -39.284000000000006,
+        -31.976
+       ],
+       "est": -36.67466666666667,
+       "exploratory_cells_in_row": 11,
+       "good_direction": "lower",
+       "label": "shipped rule minus never build at b = 4",
+       "primary": false,
+       "verdict": "win"
+      }
+     },
+     "gap_closed_vs_break_even": {
+      "ci": [
+       0.308610400682012,
+       0.5851318944844124
+      ],
+      "share": 0.47341008771929827
+     },
+     "policies": {
+      "break_even": {
+       "ci": [
+        5.766000000000001,
+        6.052
+       ],
+       "est": 5.922666666666667
+      },
+      "build_now": {
+       "ci": [
+        3.7520000000000002,
+        3.7679999999999993
+       ],
+       "est": 3.76
+      },
+      "fixed_lambda_0.2": {
+       "ci": [
+        3.7520000000000002,
+        3.7679999999999993
+       ],
+       "est": 3.76
+      },
+      "fixed_lambda_0.5": {
+       "ci": [
+        4.444,
+        4.566
+       ],
+       "est": 4.502666666666666
+      },
+      "never_build": {
+       "ci": [
+        37.018,
+        43.967999999999996
+       ],
+       "est": 41.446
+      },
+      "oracle_hindsight": {
+       "ci": [
+        3.42,
+        3.5499999999999994
+       ],
+       "est": 3.4906666666666664
+      },
+      "shipped_learned_lambda": {
+       "ci": [
+        4.588,
+        5.042
+       ],
+       "est": 4.771333333333334
+      }
+     }
+    },
+    "8": {
+     "contrasts": {
+      "shipped_minus_break_even": {
+       "adjusted_level": 0.9875,
+       "ci95": [
+        -2.442,
+        -1.8040000000000003
+       ],
+       "ci_adjusted": [
+        -2.442,
+        -1.8040000000000003
+       ],
+       "est": -2.1940000000000004,
+       "family_size": 4,
+       "good_direction": "lower",
+       "label": "shipped rule minus break even at b = 8",
+       "primary": true,
+       "verdict": "win"
+      },
+      "shipped_minus_build_now": {
+       "ci95": [
+        1.8360000000000003,
+        1.9580000000000002
+       ],
+       "est": 1.8800000000000001,
+       "exploratory_cells_in_row": 11,
+       "good_direction": "lower",
+       "label": "shipped rule minus build now at b = 8",
+       "primary": false,
+       "verdict": "loss"
+      },
+      "shipped_minus_never_build": {
+       "ci95": [
+        -34.618,
+        -27.540000000000003
+       ],
+       "est": -32.046,
+       "exploratory_cells_in_row": 11,
+       "good_direction": "lower",
+       "label": "shipped rule minus never build at b = 8",
+       "primary": false,
+       "verdict": "win"
+      }
+     },
+     "gap_closed_vs_break_even": {
+      "ci": [
+       0.3640032284100081,
+       0.4727061556329849
+      ],
+      "share": 0.4309283750163677
+     },
+     "policies": {
+      "break_even": {
+       "ci": [
+        11.282000000000002,
+        11.814
+       ],
+       "est": 11.594
+      },
+      "build_now": {
+       "ci": [
+        7.5040000000000004,
+        7.535999999999999
+       ],
+       "est": 7.52
+      },
+      "fixed_lambda_0.2": {
+       "ci": [
+        7.948,
+        8.19
+       ],
+       "est": 8.065333333333333
+      },
+      "fixed_lambda_0.5": {
+       "ci": [
+        8.894,
+        9.388
+       ],
+       "est": 9.165333333333335
+      },
+      "never_build": {
+       "ci": [
+        37.018,
+        43.967999999999996
+       ],
+       "est": 41.446
+      },
+      "oracle_hindsight": {
+       "ci": [
+        6.326,
+        6.648
+       ],
+       "est": 6.502666666666666
+      },
+      "shipped_learned_lambda": {
+       "ci": [
+        9.35,
+        9.478
+       ],
+       "est": 9.4
+      }
+     }
+    }
+   },
+   "decision": "when to build an automation (ski rental with predictions)",
+   "direction": "lower",
+   "id": "D1",
+   "naive": [
+    "break_even",
+    "build_now",
+    "never_build"
+   ],
+   "note": "Past forecast errors for the learned lambda come from routines in the same simulated world, taken as finished; in use a routine's outcome arrives after its whole horizon.",
+   "oracle": "hindsight: min(runs, b)",
+   "primary": {
+    "adjusted_level": 0.9875,
+    "ci95": [
+     -2.442,
+     -1.8040000000000003
+    ],
+    "ci_adjusted": [
+     -2.442,
+     -1.8040000000000003
+    ],
+    "est": -2.1940000000000004,
+    "family_size": 4,
+    "good_direction": "lower",
+    "label": "shipped rule minus break even at b = 8",
+    "primary": true,
+    "verdict": "win"
+   },
+   "primary_cell": "b = 8, shipped rule minus break-even",
+   "replicate_unit": "simulated worlds of 500 routines",
+   "replicates": 3,
+   "shipped": "ski rental with trust lambda learned online (routines.skirental.choose_lambda)",
+   "unit": "manual-run equivalents per routine (lower is better)"
+  },
+  {
+   "cells": {
+    "0.1": {
+     "contrasts": {
+      "model_minus_agent_confidence_only": {
+       "ci95": [
+        -2.000000000000001,
+        -0.8000000000000007
+       ],
+       "est": -1.3777777777777789,
+       "exploratory_cells_in_row": 11,
+       "good_direction": "lower",
+       "label": "model minus agent confidence only at a 10% review budget",
+       "primary": false,
+       "verdict": "win"
+      },
+      "model_minus_disagreement_only": {
+       "ci95": [
+        -2.9333333333333336,
+        -0.8000000000000007
+       ],
+       "est": -2.0000000000000004,
+       "exploratory_cells_in_row": 11,
+       "good_direction": "lower",
+       "label": "model minus disagreement only at a 10% review budget",
+       "primary": false,
+       "verdict": "win"
+      },
+      "model_minus_random": {
+       "ci95": [
+        -5.573333333333333,
+        -4.826666666666666
+       ],
+       "est": -5.182222222222222,
+       "exploratory_cells_in_row": 11,
+       "good_direction": "lower",
+       "label": "model minus random at a 10% review budget",
+       "primary": false,
+       "verdict": "win"
+      }
+     },
+     "gap_closed_vs_random": {
+      "ci": [
+       0.5638629283489097,
+       0.6450617283950617
+      ],
+      "share": 0.5991778006166495
+     },
+     "policies": {
+      "agent_confidence_only": {
+       "ci": [
+        7.466666666666668,
+        8.933333333333334
+       ],
+       "est": 8.355555555555556
+      },
+      "disagreement_only": {
+       "ci": [
+        8.933333333333334,
+        9.066666666666666
+       ],
+       "est": 8.977777777777778
+      },
+      "error_rate_per_100": {
+       "ci": [
+        12.533333333333333,
+        14.399999999999999
+       ],
+       "est": 13.511111111111111
+      },
+      "hindsight_oracle": {
+       "ci": [
+        2.533333333333333,
+        4.3999999999999995
+       ],
+       "est": 3.5111111111111106
+      },
+      "model": {
+       "ci": [
+        6.133333333333333,
+        8.133333333333333
+       ],
+       "est": 6.977777777777778
+      },
+      "prior_only_reference": {
+       "ci": [
+        8.799999999999999,
+        11.200000000000001
+       ],
+       "est": 10.088888888888889
+      },
+      "random": {
+       "ci": [
+        11.280000000000001,
+        12.959999999999999
+       ],
+       "est": 12.160000000000002
+      }
+     }
+    },
+    "0.2": {
+     "contrasts": {
+      "model_minus_agent_confidence_only": {
+       "ci95": [
+        -2.8000000000000007,
+        -0.7999999999999994
+       ],
+       "est": -1.9555555555555557,
+       "exploratory_cells_in_row": 11,
+       "good_direction": "lower",
+       "label": "model minus agent confidence only at a 20% review budget",
+       "primary": false,
+       "verdict": "win"
+      },
+      "model_minus_disagreement_only": {
+       "ci95": [
+        -1.6000000000000003,
+        -0.666666666666667
+       ],
+       "est": -1.1111111111111114,
+       "exploratory_cells_in_row": 11,
+       "good_direction": "lower",
+       "label": "model minus disagreement only at a 20% review budget",
+       "primary": false,
+       "verdict": "win"
+      },
+      "model_minus_random": {
+       "ci95": [
+        -7.253333333333335,
+        -6.293333333333333
+       ],
+       "est": -6.764444444444446,
+       "exploratory_cells_in_row": 11,
+       "good_direction": "lower",
+       "label": "model minus random at a 20% review budget",
+       "primary": false,
+       "verdict": "win"
+      }
+     },
+     "gap_closed_vs_random": {
+      "ci": [
+       0.6200980392156863,
+       0.6296296296296297
+      ],
+      "share": 0.6258223684210528
+     },
+     "policies": {
+      "agent_confidence_only": {
+       "ci": [
+        4.533333333333333,
+        7.066666666666667
+       ],
+       "est": 6.0
+      },
+      "disagreement_only": {
+       "ci": [
+        4.8,
+        5.333333333333333
+       ],
+       "est": 5.155555555555556
+      },
+      "error_rate_per_100": {
+       "ci": [
+        12.533333333333333,
+        14.399999999999999
+       ],
+       "est": 13.511111111111111
+      },
+      "hindsight_oracle": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "est": 0.0
+      },
+      "model": {
+       "ci": [
+        3.733333333333334,
+        4.266666666666667
+       ],
+       "est": 4.044444444444444
+      },
+      "prior_only_reference": {
+       "ci": [
+        7.199999999999999,
+        9.6
+       ],
+       "est": 8.488888888888889
+      },
+      "random": {
+       "ci": [
+        10.026666666666667,
+        11.520000000000001
+       ],
+       "est": 10.80888888888889
+      }
+     }
+    },
+    "0.3": {
+     "contrasts": {
+      "model_minus_agent_confidence_only": {
+       "ci95": [
+        -2.0,
+        -0.7999999999999994
+       ],
+       "est": -1.5555555555555554,
+       "exploratory_cells_in_row": 11,
+       "good_direction": "lower",
+       "label": "model minus agent confidence only at a 30% review budget",
+       "primary": false,
+       "verdict": "win"
+      },
+      "model_minus_disagreement_only": {
+       "ci95": [
+        -2.133333333333333,
+        -1.7333333333333325
+       ],
+       "est": -1.9999999999999993,
+       "exploratory_cells_in_row": 11,
+       "good_direction": "lower",
+       "label": "model minus disagreement only at a 30% review budget",
+       "primary": false,
+       "verdict": "win"
+      },
+      "model_minus_random": {
+       "adjusted_level": 0.9875,
+       "ci95": [
+        -7.413333333333331,
+        -6.1066666666666665
+       ],
+       "ci_adjusted": [
+        -7.413333333333331,
+        -6.1066666666666665
+       ],
+       "est": -6.924444444444443,
+       "family_size": 4,
+       "good_direction": "lower",
+       "label": "model minus random at a 30% review budget",
+       "primary": true,
+       "verdict": "win"
+      }
+     },
+     "gap_closed_vs_random": {
+      "ci": [
+       0.6960486322188449,
+       0.7619047619047619
+      ],
+      "share": 0.7321428571428571
+     },
+     "policies": {
+      "agent_confidence_only": {
+       "ci": [
+        3.4666666666666663,
+        4.533333333333333
+       ],
+       "est": 4.0888888888888895
+      },
+      "disagreement_only": {
+       "ci": [
+        4.3999999999999995,
+        4.8
+       ],
+       "est": 4.533333333333332
+      },
+      "error_rate_per_100": {
+       "ci": [
+        12.533333333333333,
+        14.399999999999999
+       ],
+       "est": 13.511111111111111
+      },
+      "hindsight_oracle": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "est": 0.0
+      },
+      "model": {
+       "ci": [
+        2.2666666666666666,
+        2.6666666666666665
+       ],
+       "est": 2.5333333333333337
+      },
+      "prior_only_reference": {
+       "ci": [
+        6.0,
+        7.866666666666666
+       ],
+       "est": 7.066666666666666
+      },
+      "random": {
+       "ci": [
+        8.773333333333333,
+        10.079999999999998
+       ],
+       "est": 9.457777777777777
+      }
+     }
+    },
+    "0.5": {
+     "contrasts": {
+      "model_minus_agent_confidence_only": {
+       "ci95": [
+        -1.1999999999999997,
+        -0.5333333333333334
+       ],
+       "est": -0.888888888888889,
+       "exploratory_cells_in_row": 11,
+       "good_direction": "lower",
+       "label": "model minus agent confidence only at a 50% review budget",
+       "primary": false,
+       "verdict": "win"
+      },
+      "model_minus_disagreement_only": {
+       "ci95": [
+        -2.4000000000000004,
+        -1.9999999999999993
+       ],
+       "est": -2.2666666666666666,
+       "exploratory_cells_in_row": 11,
+       "good_direction": "lower",
+       "label": "model minus disagreement only at a 50% review budget",
+       "primary": false,
+       "verdict": "win"
+      },
+      "model_minus_random": {
+       "ci95": [
+        -6.266666666666666,
+        -4.8
+       ],
+       "est": -5.644444444444445,
+       "exploratory_cells_in_row": 11,
+       "good_direction": "lower",
+       "label": "model minus random at a 50% review budget",
+       "primary": false,
+       "verdict": "win"
+      }
+     },
+     "gap_closed_vs_random": {
+      "ci": [
+       0.7659574468085106,
+       0.8703703703703703
+      ],
+      "share": 0.8355263157894738
+     },
+     "policies": {
+      "agent_confidence_only": {
+       "ci": [
+        1.866666666666667,
+        2.1333333333333333
+       ],
+       "est": 2.0
+      },
+      "disagreement_only": {
+       "ci": [
+        2.933333333333333,
+        3.8666666666666667
+       ],
+       "est": 3.3777777777777778
+      },
+      "error_rate_per_100": {
+       "ci": [
+        12.533333333333333,
+        14.399999999999999
+       ],
+       "est": 13.511111111111111
+      },
+      "hindsight_oracle": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "est": 0.0
+      },
+      "model": {
+       "ci": [
+        0.9333333333333335,
+        1.4666666666666666
+       ],
+       "est": 1.1111111111111112
+      },
+      "prior_only_reference": {
+       "ci": [
+        3.5999999999999996,
+        5.733333333333333
+       ],
+       "est": 4.444444444444445
+      },
+      "random": {
+       "ci": [
+        6.266666666666667,
+        7.199999999999999
+       ],
+       "est": 6.7555555555555555
+      }
+     }
+    }
+   },
+   "cost_ratio": {
+    "budget": 0.3,
+    "mean_error_rate": 0.1351111111111111,
+    "mean_escaped_rate_model": 0.025333333333333336,
+    "note": "An escaped error's cost is an assumption; between these two numbers the budgeted routing is the cheapest of the three plans.",
+    "review_minutes_per_case_assumed": 10.0,
+    "routing_beats_reviewing_everything_when_an_escaped_error_costs_less_than_minutes": 276.31578947368416,
+    "routing_beats_reviewing_nothing_when_an_escaped_error_costs_more_than_minutes": 27.327935222672068
+   },
+   "decision": "which cases an expert reviews under a review budget (review routing)",
+   "direction": "lower",
+   "id": "D2",
+   "naive": [
+    "random",
+    "agent_confidence_only",
+    "disagreement_only"
+   ],
+   "note": "The routing model is scored on the non-circular generator (routing/cases.py), not on the sandbox households, whose error is a near-deterministic function of calculator disagreement. In that generator the worker's check (disagreement), the agent's stated confidence and the worker's trace are drawn from the realised error, as they partly would be in use, so part of the model's edge is signal that our generator hands it.",
+   "oracle": "review exactly the wrong cases, up to the budget (hindsight)",
+   "primary": {
+    "adjusted_level": 0.9875,
+    "ci95": [
+     -7.413333333333331,
+     -6.1066666666666665
+    ],
+    "ci_adjusted": [
+     -7.413333333333331,
+     -6.1066666666666665
+    ],
+    "est": -6.924444444444443,
+    "family_size": 4,
+    "good_direction": "lower",
+    "label": "model minus random at a 30% review budget",
+    "primary": true,
+    "verdict": "win"
+   },
+   "primary_cell": "30% budget, model minus random review",
+   "reference": "prior_only_reference: rank by the generator's true error probability given the household's own features. It is a reference, not a ceiling: the model also sees the worker's check and the agent's stated confidence, which the generator draws from the realised error.",
+   "replicate_unit": "simulated worlds of 3000 cases (train / calibration / held-out 50/25/25)",
+   "replicates": 3,
+   "shipped": "the routing model's calibrated risk, top share reviewed",
+   "unit": "escaped errors per 100 cases at the same expert cost (lower is better)"
+  },
+  {
+   "axes": {
+    "interruption_rate": {
+     "fixed_overnight": {
+      "ci": [
+       0.008925,
+       0.045675
+      ],
+      "est": 0.0265625
+     },
+     "run_whenever_idle_5min": {
+      "ci": [
+       0.19396125,
+       0.33178749999999996
+      ],
+      "est": 0.2598875
+     },
+     "shipped_rule": {
+      "ci": [
+       0.0169375,
+       0.0385890625
+      ],
+      "est": 0.0268375
+     }
+    },
+    "share_idle_used": {
+     "fixed_overnight": {
+      "ci": [
+       0.41227281250000003,
+       0.4467631249999999
+      ],
+      "est": 0.4299625
+     },
+     "run_whenever_idle_5min": {
+      "ci": [
+       0.8559975,
+       0.9134
+      ],
+      "est": 0.8861749999999999
+     },
+     "shipped_rule": {
+      "ci": [
+       0.6431625,
+       0.8227
+      ],
+      "est": 0.7379625000000001
+     }
+    }
+   },
+   "cells": {
+    "1": {
+     "contrasts": {
+      "shipped_minus_fixed_overnight": {
+       "ci95": [
+        5.5,
+        12.208854166666667
+       ],
+       "est": 8.854166666666666,
+       "exploratory_cells_in_row": 7,
+       "good_direction": "higher",
+       "label": "shipped rule minus fixed overnight at L/G = 1",
+       "primary": false,
+       "verdict": "win"
+      },
+      "shipped_minus_run_whenever_idle_5min": {
+       "ci95": [
+        3.1453125000000015,
+        5.604166666666666
+       ],
+       "est": 4.208333333333333,
+       "exploratory_cells_in_row": 7,
+       "good_direction": "higher",
+       "label": "shipped rule minus run whenever idle 5min at L/G = 1",
+       "primary": false,
+       "verdict": "win"
+      }
+     },
+     "gap_closed_vs_run_whenever_idle_5min": {
+      "ci": [
+       0.44862096830862197,
+       0.5290102389078498
+      ],
+      "share": 0.4891041162227602
+     },
+     "policies": {
+      "fixed_overnight": {
+       "ci": [
+        10.1875,
+        12.791666666666668
+       ],
+       "est": 11.604166666666668
+      },
+      "oracle_knows_spell_length": {
+       "ci": [
+        21.104166666666668,
+        28.271354166666672
+       ],
+       "est": 24.854166666666664
+      },
+      "run_whenever_idle_5min": {
+       "ci": [
+        10.873958333333338,
+        21.395833333333336
+       ],
+       "est": 16.25
+      },
+      "shipped_rule": {
+       "ci": [
+        15.854166666666666,
+        24.770833333333336
+       ],
+       "est": 20.458333333333336
+      }
+     }
+    },
+    "27": {
+     "contrasts": {
+      "shipped_minus_fixed_overnight": {
+       "ci95": [
+        -8.794791666666656,
+        9.604166666666666
+       ],
+       "est": 1.8124999999999996,
+       "exploratory_cells_in_row": 7,
+       "good_direction": "higher",
+       "label": "shipped rule minus fixed overnight at L/G = 27",
+       "primary": false,
+       "verdict": "no clear difference"
+      },
+      "shipped_minus_run_whenever_idle_5min": {
+       "ci95": [
+        152.49947916666667,
+        283.5218750000001
+       ],
+       "est": 212.75,
+       "exploratory_cells_in_row": 7,
+       "good_direction": "higher",
+       "label": "shipped rule minus run whenever idle 5min at L/G = 27",
+       "primary": false,
+       "verdict": "win"
+      }
+     },
+     "gap_closed_vs_run_whenever_idle_5min": {
+      "ci": [
+       0.8652012446050387,
+       0.9479172476944816
+      ],
+      "share": 0.9157923056228141
+     },
+     "policies": {
+      "fixed_overnight": {
+       "ci": [
+        -3.020833333333333,
+        9.6875
+       ],
+       "est": 3.479166666666667
+      },
+      "oracle_knows_spell_length": {
+       "ci": [
+        21.104166666666668,
+        28.271354166666672
+       ],
+       "est": 24.854166666666664
+      },
+      "run_whenever_idle_5min": {
+       "ci": [
+        -280.0875,
+        -146.53697916666664
+       ],
+       "est": -207.45833333333331
+      },
+      "shipped_rule": {
+       "ci": [
+        -2.563020833333331,
+        11.729166666666668
+       ],
+       "est": 5.291666666666668
+      }
+     }
+    },
+    "3": {
+     "contrasts": {
+      "shipped_minus_fixed_overnight": {
+       "ci95": [
+        5.291666666666668,
+        11.437499999999998
+       ],
+       "est": 8.3125,
+       "exploratory_cells_in_row": 7,
+       "good_direction": "higher",
+       "label": "shipped rule minus fixed overnight at L/G = 3",
+       "primary": false,
+       "verdict": "win"
+      },
+      "shipped_minus_run_whenever_idle_5min": {
+       "ci95": [
+        14.625,
+        27.000520833333336
+       ],
+       "est": 20.25,
+       "exploratory_cells_in_row": 7,
+       "good_direction": "higher",
+       "label": "shipped rule minus run whenever idle 5min at L/G = 3",
+       "primary": false,
+       "verdict": "win"
+      }
+     },
+     "gap_closed_vs_run_whenever_idle_5min": {
+      "ci": [
+       0.746511511860001,
+       0.8125039160401003
+      ],
+      "share": 0.784503631961259
+     },
+     "policies": {
+      "fixed_overnight": {
+       "ci": [
+        9.354166666666668,
+        12.500520833333335
+       ],
+       "est": 10.979166666666668
+      },
+      "oracle_knows_spell_length": {
+       "ci": [
+        21.104166666666668,
+        28.271354166666672
+       ],
+       "est": 24.854166666666664
+      },
+      "run_whenever_idle_5min": {
+       "ci": [
+        -11.000520833333331,
+        8.208854166666669
+       ],
+       "est": -0.9583333333333328
+      },
+      "shipped_rule": {
+       "ci": [
+        15.0,
+        23.520833333333332
+       ],
+       "est": 19.291666666666664
+      }
+     }
+    },
+    "9": {
+     "contrasts": {
+      "shipped_minus_fixed_overnight": {
+       "ci95": [
+        3.124479166666668,
+        9.813020833333335
+       ],
+       "est": 6.687499999999999,
+       "exploratory_cells_in_row": 7,
+       "good_direction": "higher",
+       "label": "shipped rule minus fixed overnight at L/G = 9",
+       "primary": false,
+       "verdict": "win"
+      },
+      "shipped_minus_run_whenever_idle_5min": {
+       "adjusted_level": 0.9875,
+       "ci95": [
+        49.041666666666664,
+        91.12604166666667
+       ],
+       "ci_adjusted": [
+        46.79140625,
+        99.0024739583333
+       ],
+       "est": 68.375,
+       "family_size": 4,
+       "good_direction": "higher",
+       "label": "shipped rule minus run whenever idle 5min at L/G = 9",
+       "primary": true,
+       "verdict": "win"
+      }
+     },
+     "gap_closed_vs_run_whenever_idle_5min": {
+      "ci": [
+       0.8357811028719399,
+       0.9133988581937499
+      ],
+      "share": 0.8829701372074253
+     },
+     "policies": {
+      "fixed_overnight": {
+       "ci": [
+        6.416666666666667,
+        11.666666666666668
+       ],
+       "est": 9.104166666666668
+      },
+      "oracle_knows_spell_length": {
+       "ci": [
+        21.104166666666668,
+        28.271354166666672
+       ],
+       "est": 24.854166666666664
+      },
+      "run_whenever_idle_5min": {
+       "ci": [
+        -77.77135416666665,
+        -30.875
+       ],
+       "est": -52.58333333333333
+      },
+      "shipped_rule": {
+       "ci": [
+        11.478645833333335,
+        20.08385416666667
+       ],
+       "est": 15.791666666666664
+      }
+     }
+    }
+   },
+   "decision": "when to start a background run (the presence window rule)",
+   "direction": "higher",
+   "id": "D3",
+   "naive": [
+    "run_whenever_idle_5min",
+    "fixed_overnight"
+   ],
+   "note": "L/G, the cost of a collision against the value of a finished run, is an assumption; every other ratio is in the cells. The shipped rule is fixed at the 10% cap; only the valuation changes.",
+   "oracle": "start a run exactly when the idle spell will last long enough (knows each spell's length)",
+   "primary": {
+    "adjusted_level": 0.9875,
+    "ci95": [
+     49.041666666666664,
+     91.12604166666667
+    ],
+    "ci_adjusted": [
+     46.79140625,
+     99.0024739583333
+    ],
+    "est": 68.375,
+    "family_size": 4,
+    "good_direction": "higher",
+    "label": "shipped rule minus run whenever idle 5min at L/G = 9",
+    "primary": true,
+    "verdict": "win"
+   },
+   "primary_cell": "L/G = 9, shipped rule minus run-whenever-idle",
+   "replicate_unit": "persona streams (2 draws x 4 personas), 21 days, forward split",
+   "replicates": 8,
+   "shipped": "start only if the forecast chance the idle spell lasts long enough exceeds L/(G+L), L/G = 9 implied by the 10% interruption cap",
+   "unit": "value per held-out day: completed runs minus (L/G) x collisions (higher is better)"
+  },
+  {
+   "cells": {
+    "all": {
+     "contrasts": {
+      "shipped_minus_always_nudge": {
+       "ci95": [
+        0.13159299864742224,
+        0.15447734101309374
+       ],
+       "est": 0.1407210190010676,
+       "exploratory_cells_in_row": 2,
+       "good_direction": "higher",
+       "label": "bandit snapshot minus always nudge",
+       "primary": false,
+       "verdict": "win"
+      },
+      "shipped_minus_never_speak": {
+       "ci95": [
+        0.24607987563431602,
+        0.26896421799998754
+       ],
+       "est": 0.2552078959879614,
+       "exploratory_cells_in_row": 2,
+       "good_direction": "higher",
+       "label": "bandit snapshot minus never speak",
+       "primary": false,
+       "verdict": "win"
+      },
+      "shipped_minus_rule_baseline": {
+       "adjusted_level": 0.9875,
+       "ci95": [
+        0.22788596565467265,
+        0.2507703080203441
+       ],
+       "ci_adjusted": [
+        0.22788596565467265,
+        0.2507703080203441
+       ],
+       "est": 0.23701398600831794,
+       "family_size": 4,
+       "good_direction": "higher",
+       "label": "bandit snapshot minus rule baseline",
+       "primary": true,
+       "verdict": "win"
+      }
+     },
+     "gap_closed_vs_rule_baseline": {
+      "ci": [
+       0.8583340357131866,
+       0.9445280664905544
+      ],
+      "share": 0.8927147863035458
+     },
+     "policies": {
+      "always_nudge": {
+       "ci": [
+        0.11448687698689382,
+        0.11448687698689382
+       ],
+       "est": 0.11448687698689382
+      },
+      "never_speak": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "est": 0.0
+      },
+      "oracle_optimum": {
+       "ci": [
+        0.2836919051340859,
+        0.2836919051340859
+       ],
+       "est": 0.2836919051340859
+      },
+      "rule_baseline": {
+       "ci": [
+        0.01819390997964343,
+        0.01819390997964343
+       ],
+       "est": 0.01819390997964343
+      },
+      "shipped_bandit_snapshot": {
+       "ci": [
+        0.24607987563431602,
+        0.26896421799998754
+       ],
+       "est": 0.2552078959879614
+      }
+     }
+    }
+   },
+   "decision": "speak, annotate, take over or stay silent (the intervention policy)",
+   "direction": "higher",
+   "id": "D4",
+   "naive": [
+    "rule_baseline",
+    "always_nudge",
+    "never_speak"
+   ],
+   "note": "The reward weights, the gain from a nudge and the interruption costs are ours. The true value of every policy is computed exactly from the simulator, so the spread across replicates is the bandit learning from a different log each time.",
+   "oracle": "the exact optimum of the simulator's reward",
+   "primary": {
+    "adjusted_level": 0.9875,
+    "ci95": [
+     0.22788596565467265,
+     0.2507703080203441
+    ],
+    "ci_adjusted": [
+     0.22788596565467265,
+     0.2507703080203441
+    ],
+    "est": 0.23701398600831794,
+    "family_size": 4,
+    "good_direction": "higher",
+    "label": "bandit snapshot minus rule baseline",
+    "primary": true,
+    "verdict": "win"
+   },
+   "primary_cell": "bandit snapshot minus the rule baseline",
+   "replicate_unit": "simulator runs of 3,000 logged decisions; the bandit snapshot is taken at the halfway point",
+   "replicates": 3,
+   "shipped": "the contextual bandit's greedy snapshot (policy.bandit)",
+   "unit": "simulator reward per decision, exact in expectation (higher is better)"
+  }
+ ],
+ "seconds": 8.3,
+ "split_label": "dev",
+ "wins": 4
+}

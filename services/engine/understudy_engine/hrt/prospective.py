@@ -22,7 +22,7 @@ from .ledger import Ledger, stream_key
 HORIZON_S = 60.0
 PRIOR_W = 20.0
 MODEL, ONLINE, TSP, BASE = "model", "online_base", "frozen_tsp", "frozen_base"
-NAIVE = (ONLINE, TSP, BASE)
+NAIVE = (ONLINE, TSP)          # the two naive baselines the claims are about (PLAN.md section 4); the frozen base rate is scored and shown but is not a candidate
 SALT = "hrt"
 
 
@@ -100,6 +100,88 @@ def replay_error_risk(model: Any, base_rate: float, X: np.ndarray, y: np.ndarray
             led.resolve(pid_of[i], resolved_at=when, outcome=int(y[i]))
     led.verify()
     return led
+
+
+# ------------------------------------------------------------------------------------------- time to progress (P5)
+KM = "frozen_km"
+
+
+@dataclass
+class DeployedTTE:
+    model: Any
+    km: Any
+    n_train_bins: int
+
+
+def fit_deployed_tte(train_eps: list) -> DeployedTTE:
+    """The discrete-time time-to-progress head (``mlv2.tte``) and its Kaplan-Meier constant baseline, fitted once on the deployment history."""
+    from understudy_engine.hazard.features import build_bins
+    from understudy_engine.mlv2.tte import DiscreteTimeModel, KMConstant, build_tte
+
+    tab = build_bins(train_eps)
+    tte = build_tte(train_eps, tab)
+    rows = np.arange(tab.n)
+    return DeployedTTE(DiscreteTimeModel("full").fit(tab, tte, rows), KMConstant().fit(tte, rows), int(tab.n))
+
+
+def replay_tte(dep: DeployedTTE, eps: list, deployment: str) -> Ledger:
+    """Replay one deployment: at each bin the head writes its CDF of the time to the next progress event over ten 30-second steps; the outcome (which step
+    the event fell in, or none, and how many steps were observed before the episode ended) is written when the observed span has passed."""
+    from understudy_engine.hazard.features import build_bins
+    from understudy_engine.mlv2.tte import K_STEPS, STEP_S, build_tte
+
+    tab = build_bins(eps)
+    tte = build_tte(eps, tab)
+    rows = np.arange(tab.n)
+    cdf = 1.0 - dep.model.survival(tab, rows)[:, 1:]                       # P(progress by the end of step s), s = 1..K
+    km_cdf = (1.0 - dep.km.survival_row()[1:]).tolist()
+    t = np.asarray(tab.t, dtype=float)
+    step_event = np.where(tte.event == 1, np.ceil(tte.time_s / STEP_S - 1e-9).astype(int), 0)
+    person = [stream_key(f"{deployment}|{p}", SALT) for p in tab.person]
+    unit = [stream_key(f"{deployment}|ep{e}", SALT) for e in tab.episode]
+    events: list[tuple[float, int, int]] = []
+    for i in range(tab.n):
+        events.append((float(t[i]), 1, i))
+        events.append((float(t[i]) + float(tte.steps_obs[i]) * STEP_S, 0, i))
+    events.sort()
+    led = Ledger()
+    pid_of: dict[int, int] = {}
+    for when, is_pred, i in events:
+        if is_pred:
+            pid_of[i] = led.predict(kind="time_to_progress", stream=person[i], unit=unit[i], made_at=when, horizon_s=K_STEPS * STEP_S, primary=MODEL, version="tte-full-train-frozen",
+                                    forecasts={MODEL: cdf[i].tolist(), KM: km_cdf})
+        else:
+            e = int(step_event[i])
+            led.resolve(pid_of[i], resolved_at=when, outcome={"event_step": (e if 0 < e <= K_STEPS else None), "steps_obs": int(tte.steps_obs[i])})
+    led.verify()
+    return led
+
+
+def score_tte(arrs: list[dict[str, Any]], *, B: int = 2000, seed: int = 0) -> dict[str, Any]:
+    """Truncated CRPS (seconds) of the head and of the Kaplan-Meier constant over a world's deployments, people as clusters, and the paired difference."""
+    from understudy_engine.mlv2.tte import STEP_S
+
+    stream = np.concatenate([a["stream"] for a in arrs])
+    ev = np.concatenate([a["event_step"] for a in arrs])
+    obs = np.concatenate([a["steps_obs"] for a in arrs])
+    crps = {k: sc.truncated_crps(np.vstack([a["forecasts"][k] for a in arrs]), ev, obs, STEP_S) for k in (MODEL, KM)}
+    cl = sc.Clusters.from_labels(stream)
+    M = sc.multiplicities(cl.C, B, seed)
+    return {"n": int(ev.size), "n_clusters": cl.C, "unit": "seconds, truncated CRPS over the observed 30-second steps (lower is better)",
+            "model": sc.mean_with_interval(crps[MODEL], cl, M), "frozen_km": sc.mean_with_interval(crps[KM], cl, M), "model_minus_km": sc.paired_difference(crps[MODEL], crps[KM], cl, M),
+            "share_censored": float(np.mean(obs < 10)), "bootstrap": {"B": B, "seed": seed, "unit": "people"}}
+
+
+def run_tte_world(dep: DeployedTTE, deployments: list[tuple[str, list]], *, B: int = 2000, seed: int = 0, log=None) -> dict[str, Any]:
+    arrs = []
+    for name, eps in deployments:
+        led = replay_tte(dep, eps, name)
+        arrs.append(led.resolved("time_to_progress"))
+        if log:
+            log(f"  tte {name}: {arrs[-1]['steps_obs'].size} origins")
+    out = score_tte(arrs, B=B, seed=seed)
+    out["n_deployments"] = len(deployments)
+    return out
 
 
 # --------------------------------------------------------------------------------------------------------- scoring
@@ -231,7 +313,7 @@ def run_error_world(world: str, model: Any, base_rate: float, ks: tuple[int, ...
 
 
 # ------------------------------------------------------------------------------------------------------------ claims
-def judge_claims(v1: dict, shifted: dict[str, dict], route_same: dict | None = None, route_drift: dict | None = None) -> list[dict[str, Any]]:
+def judge_claims(v1: dict, shifted: dict[str, dict], route_same: dict | None = None, route_drift: dict | None = None, tte_v1: dict | None = None) -> list[dict[str, Any]]:
     """Apply the pass rules of PLAN.md section 4 (with amendment A1) to the world results. Pure; no data beyond the dicts."""
     out: list[dict[str, Any]] = []
     pv = v1["scores"]["paired_log_loss_vs"]
@@ -270,6 +352,10 @@ def judge_claims(v1: dict, shifted: dict[str, dict], route_same: dict | None = N
             pay[f] = {"model_minus_fallback": gap, "est": d["est"], "ci": d["ci"], "ok": d["est"] <= -0.02}
     out.append({"id": "P4d", "claim": "Payout: where the model is worse than the fallback by more than 0.05 nats the guard saves more than 0.02 nats against always-model",
                 "pass": (all(v["ok"] for v in pay.values()) if pay else None), "evidence": pay or "no family met the 0.05-nat condition"})
+    if tte_v1 is not None:
+        d = tte_v1["model_minus_km"]
+        out.append({"id": "P5", "claim": "Time to progress, v1 world: the head's truncated CRPS beats the Kaplan-Meier constant", "pass": bool(d["ci"][1] < 0),
+                    "evidence": {"est": d["est"], "ci": d["ci"], "model": tte_v1["model"]["est"], "frozen_km": tte_v1["frozen_km"]["est"], "unit": "seconds"}})
     if route_same is not None:
         pr = route_same["scores"]["paired_log_loss_vs"][ONLINE]
         cr = route_same["scores"]["predictors"][MODEL]["calibration"]

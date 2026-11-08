@@ -143,13 +143,18 @@ class Ledger:
             raise LedgerError(f"no prediction {pid} in the ledger")
         if p.resolved_at is not None:
             raise LedgerError(f"prediction {pid} already has an outcome: an outcome is written once")
-        if resolved_at < p.made_at + p.horizon_s - 1e-9:
-            raise LedgerError(f"prediction {pid}: an outcome at {resolved_at} comes before its horizon ends ({p.made_at + p.horizon_s})")
         if p.kind == "time_to_progress":
             if not isinstance(outcome, dict) or "steps_obs" not in outcome:
                 raise LedgerError("a time_to_progress outcome is {'event_step': int | None, 'steps_obs': int}")
-        elif outcome not in (0, 1, 0.0, 1.0, True, False):
-            raise LedgerError("a probability's outcome is 0 or 1")
+            # a CDF is scored over the steps that were observed: the outcome may not be written before the end of the observed span
+            span = int(outcome["steps_obs"]) * p.horizon_s / len(p.forecasts[p.primary])
+            if resolved_at < p.made_at + span - 1e-9:
+                raise LedgerError(f"prediction {pid}: an outcome at {resolved_at} comes before the observed span ends ({p.made_at + span})")
+        else:
+            if resolved_at < p.made_at + p.horizon_s - 1e-9:
+                raise LedgerError(f"prediction {pid}: an outcome at {resolved_at} comes before its horizon ends ({p.made_at + p.horizon_s})")
+            if outcome not in (0, 1, 0.0, 1.0, True, False):
+                raise LedgerError("a probability's outcome is 0 or 1")
         self._append({"type": "outcome", "pid": pid, "resolved_at": float(resolved_at), "outcome": outcome if isinstance(outcome, dict) else int(outcome)})
         p.outcome, p.resolved_at = outcome, float(resolved_at)
         if p.kind != "time_to_progress":

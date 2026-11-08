@@ -1500,6 +1500,21 @@ def agentic(ctx: Ctx) -> dict[str, Any]:
     return s
 
 
+def hrt_ledger(ctx: Ctx) -> dict[str, Any]:
+    """Prospective predictions (predict first, score later): the recorded held-out result of ``understudy_engine.hrt.run heldout --part ledger`` (evals/hrt/PLAN.md).
+    Read-only: the harness never runs the held-out command, and a part that has not been run says so (pending) instead of showing a dev result."""
+    from understudy_engine.hrt.evaluate import recorded_section
+
+    return recorded_section("ledger")
+
+
+def hrt_decisions(ctx: Ctx) -> dict[str, Any]:
+    """The decisions scoreboard: the recorded held-out result of ``understudy_engine.hrt.run heldout --part decisions`` (evals/hrt/PLAN.md), read-only."""
+    from understudy_engine.hrt.evaluate import recorded_section
+
+    return recorded_section("decisions")
+
+
 # ---------------------------------------------------------------------------------------------------------------- table
 @dataclass(frozen=True)
 class SectionSpec:
@@ -1545,5 +1560,7 @@ SECTIONS: tuple[SectionSpec, ...] = (
     SectionSpec("study", "platform", study, needs_synthetic=False),
     SectionSpec("study_sim", "study-sim", study_sim, needs_synthetic=False),
     SectionSpec("study_power", "engine-analytics", study_power, needs_synthetic=False),
+    SectionSpec("hrt_ledger", "hrt", hrt_ledger, needs_synthetic=False),
+    SectionSpec("hrt_decisions", "hrt", hrt_decisions, needs_synthetic=False),
 )
 SECTION_NAMES = tuple(s.name for s in SECTIONS)
