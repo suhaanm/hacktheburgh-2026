@@ -258,6 +258,14 @@ def test_the_web_profile_maps_the_navigation_actions(name, args, kind, expect):
     assert isinstance(a, Action) and a.kind == kind and a.args == expect
 
 
+def test_a_scroll_in_the_models_own_pixel_unit_is_honoured_and_clamped():
+    p, _ = web(call("scroll", direction="down", x=500, y=500, magnitude_in_pixels=400),
+               call("scroll", direction="up", magnitude_in_pixels=99999), call("scroll", direction="down", magnitude_in_pixels=True))
+    assert p.computer_step("g", PNG, [], session="task").args["scroll_y"] == 400
+    assert p.computer_step("g", PNG, [], session="task").args["scroll_y"] == -2000
+    assert p.computer_step("g", PNG, [], session="task").args["scroll_y"] == 360                 # a boolean is not a size: the default
+
+
 def test_an_action_nobody_maps_is_unsupported_which_is_still_a_failed_done_to_old_callers():
     from understudy_agent.models.port import Unsupported
 
