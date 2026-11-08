@@ -1,10 +1,14 @@
-# Thin role pack: data analyst (ROL-3). Onboarding, cogs, risk classes, tone, one sample routine,
-# persona parameters. No oracle, no tasks, stub expert policy.
+# Role pack: data analyst (ROL-3, deepened by the role-depth track RD on 7 Nov 2026). Validated against packages/schema/pack.schema.json.
+# depth is "standard": full content for the whole job (21 cogs, 18 expert checks in 5 task families, 16 curriculum skills, 13 routine
+# templates, five deeper onboarding questions, connection suggestions) and a role sandbox with a scoring oracle that lives in the agent
+# (services/agent/understudy_agent/sandbox_roles/analyst), not in the pack. It is NOT "deep" (no pack-level tasks, sites or oracle) and
+# it is NOT validated with people: the content is written from the job, and the only measured parts are the sandbox study's three skills.
+# The first ten cogs, five skills, seven checks and one routine are frozen (the role studies depend on them): new things get new ids.
 id: data-analyst
 version: 1
 name: Data analyst
 summary: Pulls numbers from a warehouse, checks them, and turns them into charts and reports others rely on.
-depth: thin
+depth: standard
 locale: en-GB
 
 onboarding:
@@ -19,6 +23,10 @@ onboarding:
         - { value: spreadsheet, label: "Spreadsheet", site: sheet }
         - { value: bi_tool, label: "Dashboard or BI tool", site: bi }
         - { value: ticket_queue, label: "Request queue" }
+        - { value: data_catalog, label: "Data catalog or lineage viewer", site: catalog }
+        - { value: writeup_tool, label: "Where you write findings up", site: writeup }
+        - { value: scheduler, label: "Scheduler or orchestrator" }
+        - { value: team_chat, label: "Team chat" }
     - id: risky
       prompt: Which actions must never run without you?
       why: Mistakes here reach other people's numbers. The agent stops and asks at each one.
@@ -29,6 +37,10 @@ onboarding:
         - { value: publish_dashboard, label: "Publish or share a dashboard", default: true, risk_class: outward, patterns: ["publish", "share dashboard", "make public"] }
         - { value: send_extract, label: "Email or export an extract", risk_class: outward, patterns: ["send extract", "email", "export csv", "export"] }
         - { value: schedule_job, label: "Schedule a recurring job", risk_class: outward, patterns: ["schedule", "run on production"] }
+        - { value: alter_schema, label: "Change a table's columns or types", default: true, risk_class: irreversible, patterns: ["alter table", "drop column", "rename column"] }
+        - { value: change_access, label: "Change who can see a dataset", default: true, risk_class: irreversible, patterns: ["grant", "revoke", "change access"] }
+        - { value: share_outside, label: "Share outside the company", risk_class: outward, patterns: ["share externally", "public link", "anyone with the link"] }
+        - { value: edit_metric, label: "Change a shared metric definition", risk_class: outward, patterns: ["update metric", "change definition", "edit metric"] }
     - id: tone
       prompt: How much explanation do you want with help?
       why: Analysts usually want the assumption stated, not just the next step.
@@ -49,19 +61,85 @@ onboarding:
       why: Starts the presence map. It learns from your own days.
       kind: hours
       default_hours: { start: "08:30", end: "17:00", days: [mon, tue, wed, thu, fri] }
+  # RD: five deeper questions, asked after the five fixed ones. Each answer sets named parameters (`sets`): pace and tone are the same
+  # words the fixed questions use, cue_daily_budget and cue_quiet_required_s are Cue's own knobs (cue/params.py), and `traits` are
+  # plain labels the engine can read later. Nothing here is a threshold for judging a person.
+  followups:
+    - id: data_sources
+      prompt: Where does the data you work with come from?
+      why: Tells Knack which sources your numbers start in, so it can offer the right connections later.
+      kind: multi
+      options:
+        - { value: warehouse, label: "A warehouse or database", default: true, sets: { traits: { source_warehouse: "yes" } } }
+        - { value: spreadsheets, label: "Spreadsheets and CSV files", sets: { traits: { source_files: "yes" } } }
+        - { value: saas_exports, label: "Exports from other tools", sets: { traits: { source_exports: "yes" } } }
+        - { value: apis, label: "APIs or scraped data", sets: { traits: { source_apis: "yes" } } }
+    - id: team_size
+      prompt: How many analysts are on your team?
+      why: A larger team means more shared definitions, so the metric skills matter earlier.
+      kind: single
+      options:
+        - { value: solo, label: "Just me", sets: { traits: { team_scale: solo } } }
+        - { value: small, label: "2 to 5", default: true, sets: { traits: { team_scale: small } } }
+        - { value: medium, label: "6 to 15", sets: { traits: { team_scale: medium } } }
+        - { value: large, label: "More than 15", sets: { traits: { team_scale: large } } }
+    - id: review_habit
+      prompt: Does anyone check your numbers before they go out?
+      why: A habit of peer checking changes which skills are worth practising first.
+      kind: single
+      options:
+        - { value: never, label: "No", sets: { traits: { peer_check: none } } }
+        - { value: sometimes, label: "Sometimes", default: true, sets: { traits: { peer_check: sometimes } } }
+        - { value: always, label: "Always", sets: { traits: { peer_check: always } } }
+    - id: reporting_cadence
+      prompt: How often do you refresh the same report?
+      why: Reports you refresh weekly or daily are the ones worth making reproducible and parameterised first.
+      kind: single
+      options:
+        - { value: adhoc, label: "Only when asked", sets: { traits: { report_cadence: adhoc } } }
+        - { value: monthly, label: "Monthly", sets: { traits: { report_cadence: monthly } } }
+        - { value: weekly, label: "Weekly", default: true, sets: { traits: { report_cadence: weekly } } }
+        - { value: daily, label: "Daily", sets: { traits: { report_cadence: daily } } }
+    - id: interruption
+      prompt: How do you feel about a short prompt while you work?
+      why: Sets how many prompts a day and how long Knack waits for a quiet moment. You can change it any time.
+      kind: single
+      options:
+        - { value: rarely, label: "Only when I am stuck for a while", sets: { cue_daily_budget: 6, cue_quiet_required_s: 4.0, traits: { interruptibility: low } } }
+        - { value: sometimes, label: "Now and then", default: true, sets: { cue_daily_budget: 12, cue_quiet_required_s: 2.0, traits: { interruptibility: normal } } }
+        - { value: often, label: "I like being nudged", sets: { cue_daily_budget: 16, cue_quiet_required_s: 1.5, traits: { interruptibility: high } } }
 
 cogs:
-  extra: [LOAD_DATA, PROFILE_DATA, WRITE_QUERY, RUN_QUERY, INSPECT_RESULT, PLOT, EXPORT_RESULT, CLEAN_DATA, RECONCILE_CONTROL, GROUP_AGG]
+  extra: [LOAD_DATA, PROFILE_DATA, WRITE_QUERY, RUN_QUERY, INSPECT_RESULT, PLOT, EXPORT_RESULT, CLEAN_DATA, RECONCILE_CONTROL, GROUP_AGG,
+    TRACE_SOURCE, JOIN_TABLES, SET_GRAIN, CHECK_MAGNITUDE, QUANTIFY_UNCERTAINTY, WRITE_FINDING, PEER_CHECK, MAKE_REPRODUCIBLE,
+    PARAMETERISE_REPORT, SCHEDULE_REFRESH, DOCUMENT_METRIC]
   mapping: mapping.yaml
 
 expert_policy:
   steps: expert_steps.yaml
-  coverage: stub
+  coverage: full
 
 risk_classes:
-  irreversible: ["drop", "truncate", "delete from", "overwrite", "create or replace", "replace table", "merge into"]
-  outward: ["publish", "share dashboard", "make public", "send extract", "email", "export", "schedule"]
+  irreversible: ["drop", "truncate", "delete from", "overwrite", "create or replace", "replace table", "merge into", "alter table", "drop column", "grant", "revoke"]
+  outward: ["publish", "share dashboard", "make public", "send extract", "email", "export", "schedule", "share externally", "public link", "update metric", "change definition"]
   sensitive_fields: sensitive_fields.json
+
+habits: habits.yaml
+# RD: which connection presets to suggest for an answer. Keys are `question:value`. Strings only: the CONNECTIONS track resolves the ids,
+# and nothing here connects to anything. A suggestion is a line in the onboarding result, never a connection made for the person.
+suggest_connections:
+  "tools:sql_console": [postgres]
+  "tools:spreadsheet": [sheets]
+  "tools:ticket_queue": [linear]
+  "tools:data_catalog": [notion]
+  "tools:writeup_tool": [notion]
+  "tools:team_chat": [slack]
+  "data_sources:warehouse": [postgres]
+  "data_sources:spreadsheets": [sheets]
+  "data_sources:saas_exports": [sheets]
+  "review_habit:always": [slack]
+  "reporting_cadence:weekly": [sheets]
+  "reporting_cadence:daily": [sheets]
 
 routines: routines.yaml
 tone_defaults: { length: detailed, voice: precise, pace: gentle }
