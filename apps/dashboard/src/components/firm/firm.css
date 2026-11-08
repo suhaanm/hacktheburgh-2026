@@ -139,6 +139,10 @@
   .firm-table td { display: block; padding: 0; border: 0; }
   .firm-table td.firm-ind { min-width: 0; text-align: right; }
   .firm-table tr.firm-expand td { padding: var(--space-3); }
+  /* label : value rows put the label above the value, so a long label wraps instead of squeezing its value to one character */
+  .firm .about__list, .risk__facts { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .firm .about__list dt, .risk__facts dt { overflow-wrap: anywhere; }
+  .firm .about__list dd, .risk__facts dd { margin: 0 0 var(--space-2); overflow-wrap: anywhere; }
 }
 
 /* -- Automation and risk --------------------------------------------------------------------------------------- */
