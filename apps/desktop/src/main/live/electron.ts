@@ -33,6 +33,7 @@ import { createFrameProvider } from './frame-provider'
 import { createLive, type LiveRegistration } from './index'
 import { createHttpLiveLedger } from './ledger'
 import { createUsageLog } from './meter'
+import { createScreenGate } from './point-ground'
 import { createRingPort } from './ring'
 import { LiveSettingsStore } from './settings'
 import { GateMonitor, createGateReader } from './gates'
@@ -52,8 +53,12 @@ export interface RegisterLiveOptions {
   cue: LiveCuePort
   // Hey Knack's `do_it_for_me` (wake sessions only). Late-bound by the caller; absent: the tool answers "not available".
   doIt?: (req: DoItRequest) => Promise<DoItAnswer>
+  // Screen Recording status ('granted' or not) and what to do when a find-it-anywhere request is turned away for want of it. Absent: no gate (tests).
+  screenStatus?: () => string
+  onScreenMissing?: () => void
   // The code-built context packet for a conversation (wake/context-packet.ts); late-bound by the caller.
   context?: (o: { tools: import('./wire').FunctionDeclaration[]; trigger: 'key' | 'wake' }) => string
+  opening?: () => string | null
   killed: () => boolean
   agentActing: () => boolean
   cueVoiceOn?: () => boolean
@@ -108,10 +113,11 @@ export function registerLive(o: RegisterLiveOptions): LiveRegistration {
     clips: bridge.clips,
     frames,
     cue: o.cue,
-    ground: createCompositeGround(o.domGround ?? null, vision),
+    ground: createCompositeGround(o.domGround ?? null, o.screenStatus ? createScreenGate(vision, { status: o.screenStatus, onMissing: o.onScreenMissing ?? (() => undefined) }) : vision),
     ring: createRingPort(o.overlay),
     doIt: o.doIt,
     context: o.context,
+    opening: o.opening,
     usage: createUsageLog(dir),
     // Reads the status only. The prompt is the owner's to accept in System Settings; this code never calls askForMediaAccess.
     micStatus: () => (process.platform === 'darwin' ? systemPreferences.getMediaAccessStatus('microphone') : 'granted'),

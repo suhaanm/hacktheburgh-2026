@@ -1,0 +1,105 @@
+# Habit definitions for the data-analyst pack, one or two per new skill (RD, 7 Nov 2026). Schema: pack.schema.json#/$defs/habits.
+#
+# What this file is: names. A habit is a way of working that costs time or quality, written so the Insights engine and the genome can
+# call it by name ("you often group the data before saying what one row is") instead of by cog ids. It follows how the benefits pack
+# names its deficits (persona.yaml apprentice.deficits: id, label, kind, cogs, skill), minus the planted price.
+#
+# What this file is NOT: planted truth. No synthetic generator emits these habits (the persona generators keep emitting the original
+# cogs, and their parameters are frozen), so nothing here has a measured price, a measured prevalence or a validated detector. Until real
+# traces exist the Insights engine shows "not enough data" for them. `visible` says how a habit could ever be seen:
+#   order   from the order of cogs in a task (an omitted or swapped step)
+#   time    from how long a cog lasted
+#   digest  from a local digest of the work (counts and enums only), never from a name, a query or a value
+#   none    not at L0: the capture sees that the step happened, not what was in it. Defined so the skill has a name; not detectable.
+# `seen_as` is the genome waterfall bar the habit would show up as ("none" when time saved by skipping hides it).
+version: 1
+role: data-analyst
+habits:
+  - id: trust_a_field_by_its_name
+    label: Uses a field without checking what its source says it means
+    skill: trace-the-source
+    cogs: [TRACE_SOURCE]
+    kind: omit
+    signature: A JOIN_TABLES or GROUP_AGG on a table with no TRACE_SOURCE in the task.
+    visible: order
+    seen_as: Skipped steps
+  - id: join_and_move_on
+    label: Joins two tables and moves on without counting the rows
+    skill: join-without-multiplying
+    cogs: [JOIN_TABLES, PROFILE_DATA, INSPECT_RESULT]
+    kind: omit
+    signature: A JOIN_TABLES that is not followed by PROFILE_DATA or INSPECT_RESULT before the next query.
+    visible: order
+    seen_as: Skipped steps
+  - id: group_before_naming_the_grain
+    label: Groups the data before saying what one row is
+    skill: aggregate-at-the-right-grain
+    cogs: [SET_GRAIN, GROUP_AGG]
+    kind: omit
+    signature: A GROUP_AGG with no SET_GRAIN before it in the task.
+    visible: order
+    seen_as: Skipped steps
+  - id: skip_the_scale_check
+    label: Reports a figure without checking its scale or units
+    skill: sanity-check-magnitudes
+    cogs: [CHECK_MAGNITUDE]
+    kind: omit
+    signature: A DECIDE or WRITE_FINDING with no CHECK_MAGNITUDE since the last query.
+    visible: order
+    seen_as: Skipped steps
+  - id: point_estimate_only
+    label: Reports a number with no interval or range
+    skill: state-the-uncertainty
+    cogs: [QUANTIFY_UNCERTAINTY]
+    kind: omit
+    signature: A WRITE_FINDING with no QUANTIFY_UNCERTAINTY since the last query.
+    visible: order
+    seen_as: Skipped steps
+  - id: finding_without_a_caveat
+    label: Writes the finding without saying what could make it wrong
+    skill: write-the-finding-with-its-caveat
+    cogs: [WRITE_FINDING]
+    kind: swap
+    signature: A WRITE_FINDING of a few seconds. The capture sees how long the writing took, not what it says.
+    visible: time
+    seen_as: none
+  - id: share_without_a_check
+    label: Shares or exports a figure before anyone has checked it
+    skill: get-a-second-pair-of-eyes
+    cogs: [PEER_CHECK, EXPORT_RESULT]
+    kind: omit
+    signature: An EXPORT_RESULT with no PEER_CHECK since the last WRITE_FINDING.
+    visible: order
+    seen_as: Skipped steps
+  - id: run_once_and_paste
+    label: Gets a number once and pastes it, without a clean rerun
+    skill: make-it-reproducible
+    cogs: [MAKE_REPRODUCIBLE]
+    kind: omit
+    signature: A COPY and PASTE of a result into a document with no MAKE_REPRODUCIBLE in the task.
+    visible: order
+    seen_as: Skipped steps
+  - id: retype_the_week_every_time
+    label: Edits the same query by hand every week instead of using a parameter
+    skill: parameterise-before-copying
+    cogs: [WRITE_QUERY, RUN_QUERY, PARAMETERISE_REPORT]
+    kind: swap
+    signature: The same WRITE_QUERY and RUN_QUERY sequence again each week with no PARAMETERISE_REPORT.
+    visible: order
+    seen_as: Other extra steps
+  - id: schedule_and_forget
+    label: Schedules a refresh without an alert for when it fails
+    skill: schedule-a-refresh-you-trust
+    cogs: [SCHEDULE_REFRESH]
+    kind: swap
+    signature: A SCHEDULE_REFRESH segment. The capture does not see whether an alert was set.
+    visible: none
+    seen_as: none
+  - id: share_a_metric_nobody_defined
+    label: Shares a metric that has no written definition
+    skill: document-the-metric
+    cogs: [DOCUMENT_METRIC, EXPORT_RESULT]
+    kind: omit
+    signature: The first EXPORT_RESULT of a metric with no DOCUMENT_METRIC before it.
+    visible: order
+    seen_as: Skipped steps

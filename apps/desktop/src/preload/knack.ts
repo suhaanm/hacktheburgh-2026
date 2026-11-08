@@ -31,6 +31,7 @@ const api: KnackShellApi = {
     state: () => ipcRenderer.invoke('wake:state') as Promise<KnackWakeStatus>,
     set: (listen: boolean) => ipcRenderer.invoke('wake:set', { listen: listen === true }) as Promise<KnackWakeStatus>,
     context: (c: KnackWakeContext) => ipcRenderer.invoke('wake:context', c) as Promise<boolean>,
+    arm: () => ipcRenderer.invoke('wake:arm') as Promise<KnackWakeStatus>,
   },
   models: {
     get: () => ipcRenderer.invoke(KNACK_IPC.modelsGet) as Promise<KnackModelsState>,

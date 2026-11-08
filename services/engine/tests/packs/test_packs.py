@@ -16,7 +16,8 @@ def test_three_packs_listed_with_depth():
     rows = {r["id"]: r for r in list_packs()}
     assert set(rows) >= PACK_IDS
     assert rows["benefits-processor"]["depth"] == "deep"
-    assert rows["data-analyst"]["depth"] == rows["programmer"]["depth"] == "thin"
+    # RD (7 Nov 2026): the two role packs are "standard" (full content, no pack-level oracle or tasks, not validated with people); "thin" stays a valid value for a future pack
+    assert rows["data-analyst"]["depth"] == rows["programmer"]["depth"] == "standard"
     for r in rows.values():
         assert set(r) == {"id", "name", "summary", "depth"} and r["name"] and r["summary"]
 
