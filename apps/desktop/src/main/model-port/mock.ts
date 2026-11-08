@@ -59,7 +59,7 @@ export const DEFAULT_RESPONDERS: Record<string, MockResponder> = {
     red_flags: [],
     advice: ['Do not click links or share details.', 'Check with the organisation using a number you already trust.'],
   }),
-  'scam.': () => ({ risk: 'medium', summary: 'Mock check: nothing was really analysed.', findings: [], message_text: '' }),
+  'scam.': () => ({ risk: 'medium', summary: 'Example data: nothing was really analysed.', findings: [], message_text: '' }),
 }
 
 export function createMockProvider(opts: MockOptions = {}): ModelProvider {
@@ -78,7 +78,7 @@ export function createMockProvider(opts: MockOptions = {}): ModelProvider {
     },
     async computerStep(req: ComputerStepRequest): Promise<ComputerStepResult> {
       if (opts.computerStep) return opts.computerStep(req)
-      return { kind: 'done', text: 'Mock mode: nothing was done.', model: ids.computer_use, ms: 1 }
+      return { kind: 'done', text: 'Example data: nothing was done.', model: ids.computer_use, ms: 1 }
     },
     async bootCheck(): Promise<BootReport> {
       return { ok: true, provider: 'mock', configured: ids, unset: [], missing: [], usable: Object.values(ids), listed: 3 }

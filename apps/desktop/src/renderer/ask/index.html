@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'none'; connect-src 'none'" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ask %APP_NAME%</title>
+    <link rel="stylesheet" href="./ask.css" />
+  </head>
+  <body>
+    <form id="card" class="card" role="search" aria-label="Ask Knack" autocomplete="off">
+      <div class="row">
+        <span class="mark" aria-hidden="true"><i class="disc"></i><i class="ring"></i></span>
+        <input id="input" type="text" name="ask" placeholder="Ask Knack" aria-label="Ask Knack" maxlength="500" spellcheck="false" autocomplete="off" autocapitalize="off" />
+        <kbd class="hint" aria-hidden="true">return</kbd>
+      </div>
+      <p id="reply" class="reply" role="status" hidden></p>
+    </form>
+    <script type="module" src="./ask.ts"></script>
+  </body>
+</html>

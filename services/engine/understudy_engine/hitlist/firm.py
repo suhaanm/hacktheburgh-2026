@@ -102,7 +102,9 @@ def tiny_firm(window_days: int, seed: int = 43) -> list[dict[str, Any]]:
         if role not in have:
             continue
         pack = load_pack(role)
-        templates = [t for t in pack.templates if t.get("automatable", True)]
+        # only templates the synthetic design plants (they have a rate above): a template written later from the job (RD, 7 Nov 2026) has no
+        # synthetic usage behind it, and a default rate here would invent a number for it
+        templates = [t for t in pack.templates if t.get("automatable", True) and str(t["id"]) in RUNS_PER_WEEK]
         for i in range(size):
             rng = random.Random(f"{seed}:{role}:{i}")
             speed = rng.lognormvariate(0.0, 0.3)

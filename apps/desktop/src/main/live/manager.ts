@@ -89,6 +89,8 @@ export interface ManagerDeps {
   // The code-built context packet for a conversation (enums, ids and counts only; wake/context-packet.ts). It goes into the system instruction at
   // start and, changed lines only, as an update every ten seconds. Absent or throwing: the session starts with the fixed fallback text.
   context?: (o: { tools: FunctionDeclaration[]; trigger: 'key' | 'wake' }) => string
+  // The code-written first turn of a wake conversation (the very first one has a welcome). Absent or null: none; the model waits for the worker.
+  opening?: () => string | null
   usage?: UsageLog
   breaker?: CircuitBreaker
   prices?: LivePrices
@@ -117,6 +119,8 @@ export interface LiveManager {
   /** The worker answered the question card: tell the running conversation which step they meant. */
   noteAnswer(id: string): void
   hasSession(): boolean
+  /** A line the worker typed into the Ask bar, into the conversation that is open (false when there is none, or it cannot be sent). It never opens a conversation. */
+  injectTyped(text: string): boolean
   voiceAllowed(): boolean
   /** What would stop a conversation from opening right now, leaving the worker's consent out (the first-wake cards ask for that): null when nothing would. */
   blocker(): Refusal | null
@@ -249,7 +253,7 @@ export function createLiveManager(d: ManagerDeps): LiveManager {
       lastPacket = context || null
     }
     const s = new LiveSession({
-      config: configFor(mode, wake, context),
+      config: { ...configFor(mode, wake, context), ...(wake && d.opening ? { openingText: ((): string | undefined => { try { return d.opening?.() ?? undefined } catch { return undefined } })() } : {}) },
       tokens: d.tokens,
       socketFactory: d.socketFactory,
       url: d.url,
@@ -418,6 +422,7 @@ export function createLiveManager(d: ManagerDeps): LiveManager {
     stopAll,
     workerUsedVoice: () => usedVoice,
     hasSession: () => session !== null && !session.isEnded,
+    injectTyped: (text) => (session !== null && !session.isEnded ? session.injectText(text) : false),
     voiceAllowed: () => startRefusal() === null,
     blocker: () => startRefusal({ ignoreConsent: true }),
     startFromWake() {

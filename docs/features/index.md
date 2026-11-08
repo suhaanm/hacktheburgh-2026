@@ -1,6 +1,8 @@
 # Knack feature index
 
-33 pages and 62 entries (features, plus four write-ups of results that did not hold up), for the pitch (Hack the Burgh XIII), the launch video, the demo and the submission video. The master document is `docs/PITCH_FEATURES.md`; the 20 video claims are in `video-beats.md`; the 25 hardest judge questions are in `faq.md`.
+As of Sun 08 Nov 2026, 01:17 UTC, checked against main at 049a7cb.
+
+35 pages and 66 entries (features, plus four write-ups of results that did not hold up), for the pitch (Hack the Burgh XIII), the launch video, the demo and the submission video. The master document is `docs/PITCH_FEATURES.md`; the 20 video claims are in `video-beats.md`; the 25 hardest judge questions are in `faq.md`.
 
 **Status words.** `verified`: the lead saw it work end to end (`docs/FEATURE_CATALOGUE.md`). `built`: built and tested by its track, on main, not yet seen end to end by the lead. `landing`: not on main yet (another agent's branch, or its document has not landed). `not run`: designed or built but never run. The status is taken from the sources at the time of writing (see the time stamp in `docs/PITCH_FEATURES.md`); nothing here was run by the author.
 
@@ -49,6 +51,7 @@
 | Background agents: parent and child | [background-agents](background-agents.md) | **built** | Wordsmith |
 | Overnight runs and the morning report | [background-agents](background-agents.md) | **built** | Wordsmith, HRT |
 | Stop everything: the kill switch | [stop-everything](stop-everything.md) | **built** | Wordsmith |
+| Open-ended tasks, skills in context and Claude background agents | [open-ended-tasks](open-ended-tasks.md) | **landing** (owner decision D63 (01:05 UTC); a vertical slice tested with a fake claude is on the Tasks branch (worktree-agent-a40520cb1ac55fcdc, Track T); docs/TASKS.md has not been seen; nothing run with the real command; not on main) | Wordsmith |
 
 ## Routines and automations
 
@@ -66,7 +69,7 @@
 
 | Feature | Page | Status | Targets |
 |---|---|---|---|
-| Connections: curated MCP plugins with role presets | [connections](connections.md) | **landing** (owner decision D55; the engine side and the agent side are committed on the CONNECTIONS branch (worktree-agent-a2c1788e3e4c0c876, 00:14 UTC); docs/CONNECTIONS.md has not been seen on any branch) | Wordsmith |
+| Connections: curated MCP plugins with role presets | [connections](connections.md) | **landing** (owner decision D55; built and documented on the CONNECTIONS branch (worktree-agent-a2c1788e3e4c0c876, docs/CONNECTIONS.md at 00:38 UTC); not on main yet; nothing real has been connected) | Wordsmith |
 
 ## Voice and Hey Knack
 
@@ -106,7 +109,7 @@
 | One attention layer: a router, a digest, quiet states | [attention-router](attention-router.md) | **built** (engine built; desktop wiring built; held-out simulated evaluation met 11 of 12 criteria) | HRT |
 | Context engineering: typed, bounded, fresh | [context-engineering](context-engineering.md) | **built** | Wordsmith |
 | One app, one window, one corner pill | [knack-shell](knack-shell.md) | **built** (merged to main; hidden end-to-end run passes; first visible launch with the owner pending) | Wordsmith |
-| First run in three clicks | [knack-shell](knack-shell.md) | **built** | G-Research |
+| First run: role, consent and a first look | [knack-shell](knack-shell.md) | **built** (the spec is three clicks; decision D58 (00:45 UTC) adds a permissions step and a Try it step, still landing) | G-Research |
 | Command palette and keyboard | [knack-shell](knack-shell.md) | **built** (shortcuts and the palette are on main; some of the spec's palette verbs are not) | Wordsmith |
 | Design system with budgets as tests | [design-system](design-system.md) | **built** (tokens, components and check scripts merged to main; screens still being brought to budget by their tracks) | G-Research |
 | The Knack mark and brand | [design-system](design-system.md) | **built** | G-Research |
@@ -129,6 +132,9 @@
 | ML v2, held-out: mostly negative | [what-did-not-hold-up](what-did-not-hold-up.md) | **verified** | HRT |
 | The simulated study sat at the floor | [what-did-not-hold-up](what-did-not-hold-up.md) | **verified** | HRT, G-Research |
 | Other results that went the wrong way | [what-did-not-hold-up](what-did-not-hold-up.md) | **verified** | G-Research |
+| Prospective prediction ledger and forward scoring | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **landing** (decision D59; plan registered at 00:35 UTC before any held-out run; code, held-out results and docs/HRT_BRIEF.md are on branch worktree-agent-a02c9cf8855c9f4ff, not on main; the running product does not write to the ledger yet) | HRT |
+| Drift guard: noticing when the model stops beating the baseline | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **landing** (as above: on the HRT branch, results landed, not on main) | HRT |
+| Decisions scoreboard: realised cost against a naive policy and an oracle | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **landing** (as above: on the HRT branch, results landed, not on main) | HRT |
 
 ## Roles
 

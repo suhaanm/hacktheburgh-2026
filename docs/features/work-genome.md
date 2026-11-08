@@ -4,6 +4,8 @@
 
 **Capability:** See the work · **Status:** verified · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
+**Navigation note (landing).** The lead's views rule (`docs/knack-ux/views.md`, from owner requests 4.1, 4.2, 4.11, 4.12 and 4.17 at about 00:50 UTC) is reorganising where screens live. Where this page says 'More, <screen>', check `apps/dashboard/src/components/home/navModel.ts` on main for the final place. For a worker, 'Where time goes' becomes a section of Growth ('my steps against an experienced worker's'), compared with one unnamed experienced worker and never with other learners.
+
 This page covers Work genome: aligned traces priced in seconds, Controls: placebo and shuffled-label null, What skipping costs in answers.
 
 ## Work genome: aligned traces priced in seconds
@@ -26,7 +28,7 @@ More, then Where time goes (address #/genome). The Home hero's action, See where
 
 ### Demo moment
 
-Open Where time goes. Point at the Synthetic badge, the ribbon (expert above, novice below, gaps hatched), and the waterfall that splits the seconds by habit. Say: the interval on the real gap does not include zero, and the badge says synthetic.
+Open Where time goes. Point at the provenance line (what the data are), the ribbon (expert above, novice below, gaps hatched), and the waterfall that splits the seconds by habit. Say: the interval on the real gap does not include zero, and say aloud that the data are synthetic.
 
 ### Evidence and its label
 

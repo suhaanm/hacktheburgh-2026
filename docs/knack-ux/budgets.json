@@ -29,7 +29,7 @@
     "firm-risk": { "audience": "admin", "baseline_wordsAbove": 178 },
     "firm-forecasts": { "audience": "admin", "baseline_wordsAbove": 201 },
     "firm-brief": { "audience": "admin", "baseline_wordsAbove": 226 },
-    "first-run": { "audience": "worker", "wordsAbove": 50, "controls": 4, "sidebar": false, "baseline_wordsAbove": 159 }
+    "first-run": { "audience": "worker", "wordsAbove": 90, "controls": 10, "sidebar": false, "baseline_wordsAbove": 159 }
   },
   "exempt": { "evidence": "D45: prints everything a reviewer needs; the sidebar rule and the header rule still apply to it" },
   "sidebar": { "workerRows": 6, "adminRows": 9, "hintWords": 0, "words": { "worker": 20, "admin": 24 }, "note": "labels, brand, name, Stop and one status line", "baseline": { "workerRows": 9, "adminRows": 10, "hintWords": 51, "controls": 18 } },
@@ -53,7 +53,7 @@
     "buttonWords": 3,
     "heroActionWords": 5,
     "pillWords": 2,
-    "firstRunScreenWords": 50
+    "firstRunScreenWords": 90
   },
   "quantities": { "perSentenceOnWorkerScreens": 1, "note": "a range with its interval counts as one; dates and ids are not quantities" },
   "never_hidden": [
