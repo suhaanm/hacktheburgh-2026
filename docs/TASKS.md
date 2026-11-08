@@ -1,6 +1,6 @@
 # Tasks: ask Knack for anything
 
-Written by Track T (Claude Sonnet 5.5), 8 Nov 2026, for owner requests 4.18 to 4.21 (`docs/OWNER_REQUESTS.md`) and decision D63. Code: `services/agent/understudy_agent/tasks/`. Tests: `services/agent/tests/tasks/` (119, all with a fake `claude` and a fake model: no model call and no real CLI run in any test).
+Written by Track T (Claude Sonnet 5.5), 8 Nov 2026, for owner requests 4.18 to 4.21 (`docs/OWNER_REQUESTS.md`) and decision D63. Code: `services/agent/understudy_agent/tasks/`. Tests: `services/agent/tests/tasks/` (141, all with a fake `claude` and a fake model: no model call and no real CLI run in any test). Closed shape of every row and card: `packages/schema/task_row.schema.json` (a test validates every state the service produces against it).
 
 ## What a worker can ask
 
@@ -76,4 +76,4 @@ It appears in Settings within 30 seconds (or `GET /skills?refresh=1`). The same 
 
 ## API
 
-See `docs/API_CONTRACT.md`, "Tasks API". Voice: `POST /tasks` with actor `voice` and `source: "voice"`, or `understudy_agent.tasks.submit_task(text, source="voice")`; creating a task never starts a Claude agent, a browser run or a click.
+See `docs/API_CONTRACT.md`, "Tasks API" and `packages/schema/task_row.schema.json`. Voice (the Live tool `start_task` follows this; the model itself is told only a closed answer, never the summary line): `POST /tasks` with actor `voice` and `source: "voice"`, or `understudy_agent.tasks.submit_task(text, source="voice")`; creating a task never starts a Claude agent, a browser run or a click.
