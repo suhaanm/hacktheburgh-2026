@@ -91,3 +91,16 @@ describe('screen ids and live readers', () => {
     expect(none.build({ tools, trigger: 'wake' })).toContain('screen=growth')
   })
 })
+
+describe('first run flag', () => {
+  it('is reported by the shell and reaches the packet', () => {
+    const hub = createContextHub(deps())
+    expect(hub.firstRun()).toBe(false)
+    expect(hub.build({ tools, trigger: 'wake' })).toContain('first_run=no')
+    hub.setFirstRun(true)
+    expect(hub.firstRun()).toBe(true)
+    expect(hub.build({ tools, trigger: 'wake' })).toContain('first_run=yes')
+    hub.setFirstRun(false)
+    expect(hub.build({ tools, trigger: 'wake' })).toContain('first_run=no')
+  })
+})
