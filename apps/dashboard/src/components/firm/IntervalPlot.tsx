@@ -40,7 +40,9 @@ export function IntervalPlot({ title, rows, domain, ticks, format, reference, ro
   const compact = !side && W < 520;
   const tf = tickFormat ?? format;
   const left = compact ? 10 : 132, right = 14, top = 6;
-  const rh = compact ? rowHeight + 20 : rowHeight;
+  // A label that wraps to two lines, with its figure under it, needs a taller row so it never runs into the next row's label.
+  const wraps = !compact && rows.some((r) => wrapLabel(r.label, 24).length > 1);
+  const rh = compact ? rowHeight + 20 : rowHeight + (wraps ? 14 : 0);
   const x = useMemo(() => scaleLinear().domain(domain).range([left, Math.max(left + 40, W - right)]).clamp(true), [domain, left, W]);
   const axisY = top + rh * rows.length + 4;
   const H = axisY + 24 + (reference ? 12 : 0);
