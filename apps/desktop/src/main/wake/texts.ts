@@ -73,6 +73,8 @@ export const INFO_CARDS: Readonly<Record<string, InfoCard>> = {
   click_not_ready: { title: 'I could not click for you.', body: 'Click for you is not ready on this Mac yet. I will show you instead.', buttons: [CLOSE], action: null },
   click_accessibility: { title: 'Click for you needs Accessibility.', body: 'Turn Knack on in System Settings, Accessibility. For now I will show you instead.', buttons: [{ id: 'accessibility', label: 'System Settings' }, CLOSE], action: 'accessibility' },
   click_screen_recording: { title: 'Click for you needs Screen Recording.', body: 'Turn Knack on in System Settings, Screen Recording. For now I will show you instead.', buttons: [{ id: 'screen', label: 'System Settings' }, CLOSE], action: 'screen' },
+  task_unavailable: { title: 'Hey Knack heard you.', body: 'The task service is not answering. Try again soon.', buttons: [CLOSE], action: null },
+  too_many_tasks: { title: 'Hey Knack heard you.', body: 'Too many tasks are running. Stop one or wait.', buttons: [CLOSE], action: null },
   ready: { title: 'Talking is on.', body: 'Hold Option-Space and talk, or say Hey Knack.', buttons: [CLOSE], action: null },
   mic_permission: { title: HEARD_TITLE, body: 'Live voice needs the microphone. Turn it on in System Settings.', buttons: [{ id: 'microphone', label: 'System Settings' }, CLOSE], action: 'microphone' },
   paused: { title: HEARD_TITLE, body: 'Knack is paused. Resume it from the menu bar.', buttons: [CLOSE], action: null },
@@ -125,6 +127,7 @@ export const SPOKEN_LINES: Readonly<Record<string, string>> = {
   'wake.done': 'Done.',
   'wake.did_not_work': 'That did not work. I stopped.',
   'wake.stopped': 'Stopped.',
+  'wake.started': 'Started. I will tell you when it is done.',
 }
 
 /**
@@ -143,4 +146,54 @@ export function clickFailureCard(reason: string | undefined): string {
   if (reason === 'accessibility_missing') return 'click_accessibility'
   if (reason === 'screen_recording_missing') return 'click_screen_recording'
   return 'click_not_ready'
+}
+
+// ------------------------------------------------------------------------------------------------ "Hey Knack, do X": the cards
+const words = (t: string): string[] => t.trim().split(/\s+/).filter(Boolean)
+/** At most `n` words, cut at the last sentence end that fits (or at n words with no ellipsis trick: never a half word). */
+export function fitWords(text: string, n: number): string {
+  const w = words(text)
+  if (w.length <= n) return text.trim()
+  const cut = w.slice(0, n).join(' ')
+  const end = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('? '), cut.lastIndexOf('! '))
+  return end > 0 ? cut.slice(0, end + 1) : `${cut.replace(/[,;:]$/, '')}.`
+}
+const lcfirst = (t: string): string => (t ? t[0].toLowerCase() + t.slice(1) : t)
+const stop = (t: string): string => t.replace(/[.\s]+$/, '')
+
+export interface TaskCardInput {
+  kind: string
+  can: string[]
+  cannot: string[]
+  folder: string | null
+  buttons: { allow: string; decline: string; more: Array<{ id: string; label: string }> }
+}
+const CONSENT_TITLES: Record<string, string> = { claude_agent: 'Start a Claude agent for this?', browser: "Open Knack's browser for this?" }
+
+/** The consent card for a task: what it can and cannot do, in the service's own plain lines, then Allow for this task, Not now, and More when the service offers a wider option. */
+export function taskConsentCard(nc: TaskCardInput): CardText {
+  const parts: string[] = []
+  if (nc.can[0]) parts.push(`It can ${lcfirst(stop(nc.can[0]))}.`)
+  if (nc.cannot[0]) parts.push(`It cannot ${lcfirst(stop(nc.cannot[0]))}.`)
+  let body = fitWords(parts.join(' '), 22)
+  if (nc.folder && words(`${body} Folder: ${nc.folder}.`).length <= 22) body = `${body} Folder: ${nc.folder}.`
+  const buttons = [{ id: 'allow', label: nc.buttons.allow }, { id: 'decline', label: nc.buttons.decline }, ...(nc.buttons.more.some((m) => m.id === 'everything') ? [{ id: 'more', label: 'More' }] : [])]
+  return { title: CONSENT_TITLES[nc.kind] ?? 'Start this task?', body: body || 'Knack asks before it starts anything.', buttons }
+}
+
+/** The second card behind More: the wider option, said plainly, for this one task. */
+export const EVERYTHING_CARD: CardText = {
+  title: 'Allow everything for this task?',
+  body: 'It can read and change files and run commands without asking again. Only for this task.',
+  buttons: [{ id: 'everything', label: 'Allow everything' }, { id: 'not_now', label: 'Not now' }],
+}
+
+/** A question the service asked about the request: the service's own template and option labels, as buttons. */
+export function taskQuestionCard(q: { text: string; options: Array<{ id: string; label: string }> }): CardText {
+  return { title: 'A quick question', body: fitWords(q.text, 22), buttons: q.options.slice(0, 4).map((o) => ({ id: o.id, label: o.label })) }
+}
+
+/** An answer that arrives when no conversation is open to read it out: the result line (data from the task), on a card. */
+export function taskResultCard(result: string): CardText {
+  return { title: 'Your answer', body: fitWords(result, 22), buttons: [{ id: 'close', label: 'Close' }] }
 }

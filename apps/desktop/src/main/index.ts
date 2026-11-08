@@ -77,12 +77,6 @@ const knackConfig = knackWanted ? prepareKnackEnv({ env: process.env, appPath: a
 applyDesktopDefaultFlags() // D48: voice and the REQ-5 layers are on unless a variable says '0'
 
 const flag = (name: string) => process.env[name] === '1'
-// System Settings panes the Hey Knack cards open (macOS deep links).
-const PANE_URLS = {
-  speech: 'x-apple.systempreferences:com.apple.preference.security?Privacy_SpeechRecognition',
-  accessibility: 'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility',
-  dictation: 'x-apple.systempreferences:com.apple.Keyboard-Settings.extension',
-} as const
 
 // KNACK: one app, a dashboard window plus a menu-bar item plus a corner pill, which starts the engine and the agent itself (src/main/knack). On by default; off
 // for headless runs and with KNACK_SHELL=0. The scheme must be declared before ready; a second launch hands over to the first instead of starting another.
@@ -160,7 +154,7 @@ void app.whenReady().then(async () => {
   // The awareness module is created below (it needs the coach poller); the legacy gate, the consent card and the tray read it through this box.
   const awarenessBox: { a: Awareness | null } = { a: null }
   // Hey Knack (the on-device listener) is created after Live and the attention layer; the tray and Live's `do_it_for_me` read it through this box.
-  const wakeBox: { ctl: WakeController | null; settings: { get(): { voiceAnswer: string; screenAnswer: string } } | null } = { ctl: null, settings: null }
+  const wakeBox: { ctl: WakeController | null; settings: { get(): { voiceAnswer: string; screenAnswer: string } } | null; running: (() => { n: number; t: number } | null) | null } = { ctl: null, settings: null, running: null }
   // The last coach decision's step id and capture zone (ids only), for the voice conversation's context packet.
   const coachBox: { last: { step: string | null; zone: string | null; t: number } | null } = { last: null }
 
@@ -378,6 +372,8 @@ void app.whenReady().then(async () => {
       return { voice: voiceOk ? 'yes' : (w?.voiceAnswer ?? 'unset'), screen: l?.liveFrames === true ? 'yes' : (w?.screenAnswer ?? 'unset'), frames: l?.liveFrames === true }
     },
     rung: () => readRung(dataDirPath()),
+    // A count of the tasks that are planning or running (never what they are).
+    tasksRunning: () => wakeBox.running?.() ?? null,
     // The Knack window's route, only while the worker is looking at it (otherwise the screen id would mislead the model).
     screen: () => {
       const id = knack?.mainWindow.window()?.webContentsId()
@@ -433,6 +429,8 @@ void app.whenReady().then(async () => {
         doIt: (req) => (wakeBox.ctl ? wakeBox.ctl.doIt(req) : Promise.resolve({ ok: false, reason: 'not_available' })),
         context: (o) => contextHub.build(o),
         opening: () => wakeBox.ctl?.openingText() ?? null,
+        // "Hey Knack, do X": the request goes to the task service (loopback) and a card asks the worker first; nothing starts by itself.
+        startTask: (text) => (wakeBox.ctl ? wakeBox.ctl.startTask(text) : Promise.resolve({ ok: false, reason: 'unavailable' })),
         domGround: chainGround(knackGround, extGround),
         screenStatus: () => (process.platform === 'darwin' && !flag('UNDERSTUDY_MOCK') && !flag('ALONGSIDE_MOCK') ? systemPreferences.getMediaAccessStatus('screen') : 'granted'),
         onScreenMissing: () => wakeBox.ctl?.explainRefusal('screen_recording'),
@@ -457,7 +455,7 @@ void app.whenReady().then(async () => {
   let pillVoice: 'Listening' | 'Thinking' | 'Speaking' | null = null
   const offVoicePill = live && knack
     ? live.manager.subscribe((s) => {
-        const next = s.phase === 'connecting' || s.phase === 'listening' ? 'Listening' : s.phase === 'thinking' || s.phase === 'waiting' ? 'Thinking' : s.phase === 'speaking' ? 'Speaking' : null
+        const next = s.phase === 'connecting' || s.phase === 'listening' || s.phase === 'waiting' ? 'Listening' : s.phase === 'thinking' ? 'Thinking' : s.phase === 'speaking' ? 'Speaking' : null
         if (next === pillVoice) return
         const was = pillVoice
         pillVoice = next
@@ -483,13 +481,14 @@ void app.whenReady().then(async () => {
         openSettings: () => knack?.openSettings(),
         openMicrophoneSettings: () => permissions.openSettings('microphone'),
         openScreenSettings: () => permissions.openSettings('screen'),
-        openPane: (pane) => void shell.openExternal(PANE_URLS[pane]).catch(() => undefined),
+        openPane: (pane) => (pane === 'dictation' ? void shell.openExternal('x-apple.systempreferences:com.apple.Keyboard-Settings.extension').catch(() => undefined) : permissions.openSettings(pane)),
         context: contextHub,
         log: ctx.log,
       })
     : null
   wakeBox.ctl = wake?.controller ?? null
   wakeBox.settings = wake?.settings ?? null
+  wakeBox.running = wake ? () => wake.running() : null
   wake?.controller.subscribe(() => shellTray?.refresh())
   const offWakeKill = wake ? understudy.kill.subscribe((k) => wake.controller.setKilled(k.killed)) : null
 
