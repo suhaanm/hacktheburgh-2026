@@ -65,7 +65,7 @@ Written by the lead on Sat 7 Nov 2026. **This is the sync point between the dash
 
 ```json
 { "id": "q_01", "created_at": "ISO", "routine_id": "calc-entry-3x|null", "run_id": "r_01",
-  "kind": "irreversible_step|outward_step|batch_result|injection_pause|shadow_mismatch",
+  "kind": "irreversible_step|outward_step|batch_result|injection_pause|shadow_mismatch|browser_step",
   "title": "Submit case note CN-2041", "summary": "One line, plain.",
   "risk_class": "irreversible|outward|normal",
   "evidence": { "screenshots": ["data/runs/r_01/s3.png"], "extracted": {}, "expected": {}, "diff": [], "tier_log": [{ "step": 3, "tier": 1 }] },

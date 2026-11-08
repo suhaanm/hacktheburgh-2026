@@ -27,7 +27,7 @@ from .security.paths import data_dir, queue_dir
 from .security.sanitize import safe_label, sanitize_untrusted
 from .security.settings import Origin, Setting, SettingsGuard
 
-KINDS = ("irreversible_step", "outward_step", "batch_result", "injection_pause", "shadow_mismatch")
+KINDS = ("irreversible_step", "outward_step", "batch_result", "injection_pause", "shadow_mismatch", "browser_step")
 RISK_CLASSES = ("irreversible", "outward", "normal")
 STATUSES = ("pending", "approved", "rejected", "expired")
 _ID = re.compile(r"^q_[A-Za-z0-9_\-]{1,40}$")
@@ -303,6 +303,52 @@ class ApprovalQueue:
     def reject(self, item_id: str, *, origin: Origin | None = None, decided_by: str = "human",
                auth: dict[str, Any] | None = None) -> dict[str, Any]:
         return self._decide(item_id, "rejected", decided_by, origin, auth)
+
+    def relabel_pending(self, item_id: str, *, kind: str, title: str, summary: str, risk_class: str | None = None,
+                        evidence_extra: dict[str, Any] | None = None) -> dict[str, Any] | None:
+        """Re-word a PENDING item the pipeline just raised, in the agent's own process (the integrity tag is made again, so an edit made
+        any other way is still caught). It never changes the status, the signature or who may decide: a browser task that is going to WAIT for
+        the worker's click on one action shows its question in plain words and with its own buttons (kind `browser_step`). Returns the item,
+        or None when it is no longer pending, was tampered with or does not exist."""
+        if kind not in KINDS:
+            raise ValueError(f"kind must be one of {KINDS}")
+        if risk_class is not None and risk_class not in RISK_CLASSES:
+            raise ValueError(f"risk_class must be one of {RISK_CLASSES}")
+        with self._locked():
+            try:
+                item = self._read(item_id)
+            except NotFound:
+                return None
+            if item["status"] != "pending" or self.integrity(item) == "tampered":
+                return None
+            item.update(kind=kind, title=safe_label(title, 120), summary=safe_label(summary, 240))
+            if risk_class is not None:
+                item["risk_class"] = risk_class
+            if evidence_extra:
+                ev = dict(item.get("evidence") or empty_evidence())
+                ex = dict(ev.get("extracted") or {})
+                ex.update(_clean_value(evidence_extra))
+                ev["extracted"] = ex
+                item["evidence"] = ev
+            self._write(item)
+        self._log("queue_relabelled", item, "pending")
+        return item
+
+    def withdraw(self, item_id: str, why: str = "withdrawn") -> bool:
+        """The agent takes back a question nobody answered in time (or that a Stop or the kill file made pointless): a PENDING item becomes
+        `expired`, decided by `system`. This can only close a question; nothing here can approve one."""
+        with self._locked():
+            try:
+                item = self._read(item_id)
+            except NotFound:
+                return False
+            if item["status"] != "pending":
+                return False
+            item["status"], item["decided_at"], item["decided_by"] = "expired", _iso(self._clock()), "system"
+            item["expired_reason"] = safe_label(why, 40)
+            self._write(item)
+        self._log("queue_decided", item, "expired_withdrawn", actor="system")
+        return True
 
     def expire_older_than(self, seconds: float) -> int:
         """Mark pending items older than `seconds` as expired (an expired approval never runs)."""

@@ -29,6 +29,7 @@ export const PAGE_ROWS = 50;
 export function approvalClass(q: Pick<QueueItem, "kind" | "risk_class">): NeedsClass {
   if (q.kind === "injection_pause" || q.risk_class === "irreversible") return 0;
   if (q.kind === "outward_step" || q.risk_class === "outward") return 1;
+  if (q.kind === "browser_step") return 1;     // a browser task is waiting, page open, for this one click
   return 2;
 }
 
@@ -141,6 +142,7 @@ export function approvalLabels(kind: QueueItem["kind"]): { yes: string; no: stri
     case "outward_step": return { yes: "Approve and send", no: "Reject" };
     case "injection_pause": return { yes: "Resume the run", no: "Cancel the run" };
     case "shadow_mismatch": return { yes: "Accept its answer", no: "Keep mine" };
+    case "browser_step": return { yes: "Allow once", no: "Not now" };
     default: return { yes: "Approve", no: "Reject" };
   }
 }

@@ -67,6 +67,7 @@ describe("classes", () => {
     expect(approvalClass({ kind: "injection_pause", risk_class: "normal" })).toBe(0);
     expect(approvalClass({ kind: "outward_step", risk_class: "outward" })).toBe(1);
     expect(approvalClass({ kind: "shadow_mismatch", risk_class: "normal" })).toBe(2);
+    expect(approvalClass({ kind: "browser_step", risk_class: "normal" })).toBe(1);   // a browser task is waiting, page open, for this one click
   });
   it("a paused run is a decision a job waits on", () => {
     const r = { ...runs[0], state: "paused" };
@@ -86,6 +87,7 @@ describe("the consequence is printed as plain words", () => {
     expect(approvalLabels("irreversible_step")).toEqual({ yes: "Approve and submit", no: "Reject" });
     expect(approvalLabels("outward_step").yes).toBe("Approve and send");
     expect(approvalLabels("shadow_mismatch")).toEqual({ yes: "Accept its answer", no: "Keep mine" });
+    expect(approvalLabels("browser_step")).toEqual({ yes: "Allow once", no: "Not now" });
   });
 });
 

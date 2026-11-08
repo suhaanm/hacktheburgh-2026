@@ -365,6 +365,12 @@ class StepBudget:
     def remaining_steps(self) -> int:
         return max(0, self.max_steps - self.steps)
 
+    def credit(self, seconds: float) -> None:
+        """Give back time the run spent WAITING for the worker (a question that only their click can answer): the clock did not run for
+        the agent. It only ever moves the start forward by a measured, non-negative amount of waiting, never past now."""
+        if seconds > 0:
+            self._start = min(self._clock(), self._start + seconds)
+
     def check(self) -> None:
         """Raise if the next step would exceed a budget. Does not consume a step."""
         if self.steps >= self.max_steps:

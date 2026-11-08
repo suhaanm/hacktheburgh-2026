@@ -135,6 +135,10 @@ class SafetyPipeline:
     def _ctx(self) -> RoutineContext:
         return self.routine.with_rung(self.rung)
 
+    def credit_wait(self, seconds: float) -> None:
+        """The run waited `seconds` for the worker's click: its deadline did not run during that time."""
+        self.budget.credit(seconds)
+
     def lower_rung(self, why: str) -> None:
         new = lower_rung(self.rung)
         if new != self.rung:

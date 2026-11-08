@@ -21,6 +21,7 @@ enum, start and stop, durations, byte counts); never the request, never a child'
 """
 from __future__ import annotations
 
+import inspect
 import os
 import subprocess
 import threading
@@ -873,7 +874,14 @@ class TaskManager:
 
             runner = BrowserTaskRunner(self._port, audit=self.audit)
         self._audit("agent", "task", t, "started", "browser", max_minutes=t.max_minutes)
-        res = runner(t, progress=lambda line: self.progress(t, line), should_stop=lambda: t.stop_requested or is_killed())
+        extra: dict[str, Any] = {}
+        try:        # a runner that can WAIT for the worker's click shows that on the task's line (a live status, not a step)
+            params = inspect.signature(runner).parameters
+            if "status" in params or any(p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values()):
+                extra["status"] = lambda line: self._status(t, line)
+        except (TypeError, ValueError):
+            pass
+        res = runner(t, progress=lambda line: self.progress(t, line), should_stop=lambda: t.stop_requested or is_killed(), **extra)
         if t.state in FINISHED:
             return
         if t.stop_requested:

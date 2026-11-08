@@ -8,6 +8,10 @@ data flow, stuck loop, the quarantined reader, the worker's denylist, the kill f
 * there is NO allowlist: it may go anywhere the worker has not denied (the optional denylist is checked on the start address and on every
   address the model opens and every click the pipeline authorises);
 * an irreversible step (buy, send, submit, delete) stops the run and waits in "Needs you" for a real click, as in every other run;
+* two stops WAIT instead of ending the run (8 Nov: they used to end it, and approving the item did nothing): a control that trusted code
+  cannot read, and the model's own safety check. The page stays open, the card in Needs you says what Knack wants to do, and only the
+  worker's real click (Allow once) lets that ONE action go ahead, through every gate; "Not now", ten minutes, Stop and the kill file end the
+  run. Nothing outward or irreversible is ever offered this way (tiers/wait_for_worker.py);
 * a task has no ground truth for code to check, so a finished run is reported as REPORTED, NOT CHECKED, never as verified.
 
 The model only proposes; the gates, the budgets and the stop are code. Progress lines are plain verbs ("Clicking", "Typing"), never page
@@ -30,6 +34,7 @@ from ..queue import ApprovalQueue
 from ..security.denylist import Denylist
 from ..tiers.base import GateStop, InjectionStop, StepBudgetExceeded, StepEvent, StuckLoop, TierError
 from ..tiers.browser import search_page
+from ..tiers.wait_for_worker import POLL_S, STOP_WAIT_S, QueueWaiter, WorkerDeclined
 from .model import one_line
 
 MAX_STEPS = 60
@@ -74,6 +79,8 @@ STOPPED_REASONS: dict[str, str] = {
     "model_check": "The model asked for a safety check, so Knack stopped. It is waiting in Needs you.",
     "injection": "A page tried to give Knack orders, so Knack stopped.",
     "you": "Stopped by you.",
+    "declined": "You chose not to allow that step, so Knack stopped. Nothing was done.",
+    "timeout": "Nobody answered within 10 minutes, so Knack stopped. Nothing was done.",
 }
 
 
@@ -96,16 +103,21 @@ class BrowserTaskRunner:
 
     def __init__(self, port_factory: Callable[[], Any], *, host_factory: Callable[..., Any] | None = None, headless: bool | None = None,
                  audit: AuditLog | None = None, queue: ApprovalQueue | None = None, denylist: Denylist | None = None,
-                 max_steps: int = MAX_STEPS, step_timeout_ms: int = 20000) -> None:
+                 max_steps: int = MAX_STEPS, step_timeout_ms: int = 20000, wait_for_worker: bool = True,
+                 wait_s: float = STOP_WAIT_S, poll_s: float = POLL_S) -> None:
+        # `wait_for_worker=False` is the earlier behaviour: the two stops that can wait (an unreadable control, the model's own safety check) end
+        # the run at once. A run that is not attended never waits whatever this says (tiers/computer_use.py `_can_wait`).
+        self.wait_for_worker, self.wait_s, self.poll_s = wait_for_worker, float(wait_s), float(poll_s)
         self.port_factory, self.host_factory = port_factory, host_factory
         self.headless = (os.environ.get("KNACK_TASK_HEADLESS", "") == "1") if headless is None else headless
         self.audit, self.queue, self.denylist = audit, queue, denylist
         self.max_steps, self.step_timeout_ms = max_steps, step_timeout_ms
         self.last_error: str | None = None            # the class name of the last unexpected error (never its message)
 
-    def __call__(self, task: Any, *, progress: Callable[[str], None], should_stop: Callable[[], bool]) -> dict[str, Any]:
+    def __call__(self, task: Any, *, progress: Callable[[str], None], should_stop: Callable[[], bool],
+                 status: Callable[[str], None] | None = None) -> dict[str, Any]:
         try:
-            return asyncio.run(self._run(task, progress, should_stop))
+            return asyncio.run(self._run(task, progress, should_stop, status))
         except Exception as exc:  # noqa: BLE001 - one plain reason for the worker; the class name is kept for the audit line
             self.last_error = type(exc).__name__
             if isinstance(exc, ImportError):
@@ -118,7 +130,8 @@ class BrowserTaskRunner:
                 return _failed("ledger")
             return _failed("crashed")
 
-    async def _run(self, task: Any, progress: Callable[[str], None], should_stop: Callable[[], bool]) -> dict[str, Any]:
+    async def _run(self, task: Any, progress: Callable[[str], None], should_stop: Callable[[], bool],
+                   status: Callable[[str], None] | None = None) -> dict[str, Any]:
         from ..tiers.browser import BrowserHost
         from ..tiers.computer_use import BrowserPageActuator, ComputerUse, ProviderSafetyStop
         from ..tiers.safety import Guard
@@ -177,9 +190,11 @@ class BrowserTaskRunner:
                 await page.goto(url, wait_until="domcontentloaded", timeout=self.step_timeout_ms)
             except Exception:  # noqa: BLE001
                 return _failed("no_page")
+            waiter = (QueueWaiter(queue, should_stop=should_stop, timeout_s=self.wait_s, poll_s=self.poll_s, status=status)
+                      if self.wait_for_worker else None)
             cu = ComputerUse(port, BrowserPageActuator(page), guard, navigator="task", emit=emit, max_steps=self.max_steps,
                              deadline_s=float(max(60, task.max_minutes * 60)), stall_limit=12,
-                             is_current=lambda: not should_stop(), profile="web")
+                             is_current=lambda: not should_stop(), profile="web", stop_waiter=waiter)
 
             async def verify() -> bool:                 # a free-text task has no ground truth: nothing is ever "verified" here
                 return False
@@ -188,6 +203,8 @@ class BrowserTaskRunner:
                 res = await cu.run(GOAL.format(text=text), verify)
             except asyncio.CancelledError:
                 return _stopped("you")
+            except WorkerDeclined as declined:          # "Not now", or nobody answered in ten minutes: nothing was done
+                return _stopped(declined.why if declined.why in STOPPED_REASONS else "declined")
             except GateStop as stop:
                 dec = getattr(stop, "decision", None)
                 if getattr(dec, "verdict", "") == "block":      # a refusal, not a question: nothing waits for the worker
