@@ -7,7 +7,7 @@ One list of everything known to be broken, unverified or unfinished, with an own
 |---|---|---|---|
 | S-25, S-26 | chord sets canonicalised; DOM read in an isolated world | agent-core (done) | reviewer re-verified 19:27 |
 | S-30 | frame captured and encoded in memory only (D30) | agent-core (done) | 48 tests pass, R0 ran with it |
-| S-28 | type or fill with an unreadable focus is needs_human; walk same-origin frames | AGENTIC-2 | **closed 7 Nov ~20:00: reviewer 172 of 172 pass** |
+| S-28 | type or fill with an unreadable focus is needs_human; walk same-origin frames | AGENTIC-2 | **closed 7 Nov ~20:00: reviewer 172 of 172 pass (183 of 183 after the later fixes; 185 with the two runtime tests)** |
 | S-27 | check_path also resolves the full path (realpath, stat identity) | AGENTIC-2 | **closed (same run)** |
 | S-29 | unnamed AX roles (outside a small allow-list) are needs_human; AXPress counts as a button | AGENTIC-2 | **closed (same run)** |
 | queue title | approver title from class and host, never the page label | AGENTIC-2 | test added |

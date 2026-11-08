@@ -5,7 +5,7 @@ import { EmptyState, Loading, SourceNote, ChartFoot } from "../common";
 import { WeekLegend, WeekRibbon } from "../WeekRibbon";
 import { Details } from "../ui";
 import { GrowthSection, SectionError, useReportSource } from "./GrowthSection";
-import { notKnown, unknownAsError, useOwnPerson } from "./own";
+import { isCalm, notKnown, unknownAsError, useOwnPerson } from "./own";
 import { Distance, GapTable, Suggestions, WeekTable } from "./WeekParts";
 import { ForecastSection, HoursMap, IdleStat, QuietEditor } from "./HoursParts";
 import { busiestWrap, meanRow, slotLabel, toGrid } from "../../lib/heatmap";
@@ -34,7 +34,7 @@ export function TimeSection({ open }: { open: boolean }) {
   const hours = stretch ? `You are usually at the machine from ${slotLabel(stretch[0])} to ${slotLabel(stretch[1])}.` : null;
 
   if (w.status === "error" && !w.data && p.status === "error" && !p.data) {
-    return <GrowthSection id="time" title="Where my time goes" headline="Your week could not be read just now."><SectionError error={w.error} retry={() => { w.reload(); p.reload(); }} what="your week and hours" empty="Nothing has been recorded for you yet." /></GrowthSection>;
+    return <GrowthSection id="time" title="Where my time goes" headline={isCalm(w.error) ? "Your week and hours appear here once a calendar is connected." : "Your week could not be read just now."}><SectionError error={w.error} retry={() => { w.reload(); p.reload(); }} what="your week and hours" empty="Nothing has been recorded for you yet." /></GrowthSection>;
   }
   if (!w.data && !p.data) return <GrowthSection id="time" title="Where my time goes" headline="Reading your week." busy><Loading label="Loading your week" /></GrowthSection>;
 

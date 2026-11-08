@@ -24,6 +24,9 @@ export const notKnown = <T,>(): Promise<T> => Promise.reject(new ApiError(404, "
  * example in that case; a worker's screen must not show it (it would be somebody else's week or case under an example tag), so it reads as an error the
  * section turns into "Nothing has been recorded for you yet". An engine that cannot be reached (status 0) still shows the example, under the example pill.
  */
+/** The calm "no such worker" answers (404 and 422): nothing recorded yet is a state, never an error phrase. */
+export const isCalm = (e: unknown): boolean => e instanceof ApiError && (e.status === 404 || e.status === 422);
+
 export function unknownAsError<T>(s: LoadState<T>): LoadState<T> {
   const st = s.why?.status;
   if (st === 404 || st === 422) {

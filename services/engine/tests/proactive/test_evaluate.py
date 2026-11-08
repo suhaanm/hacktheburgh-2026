@@ -9,8 +9,11 @@ from understudy_engine.memory.paths import data_dir as real_data_dir
 from understudy_engine.proactive import evaluate as E
 
 REAL = real_data_dir() / "synthetic"
-pytestmark = pytest.mark.skipif(not ((REAL / "learners" / "truth.json").exists() and (REAL / "nine-to-five" / "events.jsonl").exists()),
-                                reason="run `uv run understudy synth --all` first")
+# The replay also scores the calendar source (calendar_points returns nothing without calendars/truth.json), so the report only has the shape these
+# tests assert when the calendar cohort is present too. `synth --all` does not write it; the calendar layer's generate() does.
+pytestmark = pytest.mark.skipif(not ((REAL / "learners" / "truth.json").exists() and (REAL / "nine-to-five" / "events.jsonl").exists()
+                                     and (REAL / "calendars" / "truth.json").exists()),
+                                reason="run `uv run understudy synth --all` first, and generate the calendar cohort (understudy_engine.calendar.synth.generate())")
 
 
 @pytest.fixture(scope="module")

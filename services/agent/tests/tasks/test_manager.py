@@ -59,7 +59,7 @@ def test_allow_runs_the_child_in_the_task_folder_and_reports_one_line(make_manag
     assert t.state == "running"
     t = done(m, tid)
     assert t.state == "done" and t.scope == "files_and_commands"
-    assert t.result == "Wrote summary.md with three rows. (cost US$0.01)" and t.cost_usd == 0.0123   # the CLI's own number, to the cent
+    assert t.result == "Wrote summary.md with three rows." and t.cost_usd == 0.0123   # the cost is kept as a number in the row and the ledger, never in the line a worker reads
     assert t.steps == ["Started", "Reading data.csv", "Running a command", "Writing summary.md"]
     assert t.open == {"kind": "file", "path": str(Path(t.folder).resolve() / "summary.md")}      # exactly one file written: open that
     assert Path(t.folder).is_dir() and str(Path(t.folder).parent) == str(Path.home() / "Knack" / "work")
@@ -456,7 +456,7 @@ def test_events_follow_the_contract(make_manager):
     assert names[0] == "task_progress" and evs[0][2]["state"] == "waiting_consent"          # the card arrives as progress
     assert "task_started" in names and names[-1] == "task_finished" and names.count("task_started") == 1
     assert all(set(row) == ROW_KEYS for _, _, row in evs)
-    assert evs[-1][2]["state"] == "done" and evs[-1][2]["result"] == "Read six files. (cost US$0.01)"
+    assert evs[-1][2]["state"] == "done" and evs[-1][2]["result"] == "Read six files."
     started = names.index("task_started")
     progress_after = [row["latest"] for _, n, row in evs[started:] if n == "task_progress"]
     assert "Reading file0.txt" in progress_after or len(progress_after) >= 2

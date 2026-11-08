@@ -63,7 +63,15 @@ def test_landed_owner_sections_validate_and_carry_meta(landed):
 def test_owner_status_ok_is_not_mistaken_for_a_stub_and_timing_is_dropped(landed):
     for name in ("git", "localmodel"):
         s = landed["sections"][name]
-        assert s.get("owner_status") == "ok" and "elapsed_s" not in s and "wall_s" not in s
+        assert "elapsed_s" not in s and "wall_s" not in s
+    assert landed["sections"]["git"].get("owner_status") == "ok"
+    lm = landed["sections"]["localmodel"]
+    if lm.get("owner_status") == "model_not_run":
+        # The status depends on the machine: "ok" needs a cached run of the local model in the data dir, which a machine with no local model
+        # installed (a fresh clone, CI, a teammate's laptop) does not have. The shape rule is still checked above (timing dropped, no stub) and
+        # the "any other owner status is kept" rule is tested below on a stand-in, so skip only the machine-dependent part.
+        pytest.skip("no local model has been run on this machine (no cached run in the data dir), so the localmodel section reports model_not_run, not ok")
+    assert lm.get("owner_status") == "ok"
 
 
 def test_owner_limitations_are_merged_into_the_register_with_their_source(landed):

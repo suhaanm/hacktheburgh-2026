@@ -86,8 +86,21 @@ def test_s2_the_baselines_interrupt_the_meeting_the_router_does_not():
     assert out["contrast"]["B1"]["hard_quiet_breaches"] > 0
 
 
-def test_s4_learning_quietens_and_time_sensitive_items_stay_visible():
-    out = SC.s4_dismisses_everything(0, per_archetype=1, n_work_days=10, n_boot=100)
+@pytest.fixture(scope="module")
+def personas_root(tmp_path_factory):
+    """A private copy of the seeded personas (deterministic: the same files `understudy synth --all` writes). The simulated worker's schedule comes
+    from <root>/synthetic/<persona>/truth.json when it exists and from a fallback generator when it does not, so a test that read the repo's
+    git-ignored data/ gave different numbers on a fresh checkout than on the owner's machine (s4 below failed there: the late-minus-early interval's
+    upper end was +0.18 with the fallback and -1.9 with the personas, n = 4 workers)."""
+    from understudy_engine.personas import write_all_personas
+
+    root = tmp_path_factory.mktemp("attention_personas")
+    write_all_personas(root)
+    return root
+
+
+def test_s4_learning_quietens_and_time_sensitive_items_stay_visible(personas_root):
+    out = SC.s4_dismisses_everything(0, per_archetype=1, n_work_days=10, n_boot=100, root=personas_root)
     failed = [k for k, v in out["assertions"].items() if not v]
     assert not failed, (failed, out["numbers"])
     assert out["numbers"]["safety_missed"] == 0 and out["numbers"]["approval_toasts_shown"] > 0

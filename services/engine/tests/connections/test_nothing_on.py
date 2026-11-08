@@ -77,8 +77,8 @@ def _scan(attr: str, receiver_hint: str | None = None) -> set[str]:
                 continue
             try:
                 tree = ast.parse(f.read_text(encoding="utf-8"))
-            except SyntaxError:
-                continue
+            except (SyntaxError, OSError, UnicodeDecodeError):
+                continue      # a file another process is writing, renaming or removing right now (a shared tree under load): the scan sees every file that is whole
             for call in _calls(tree, attr):
                 recv = ast.unparse(call.func.value)
                 if receiver_hint is None or receiver_hint in recv:

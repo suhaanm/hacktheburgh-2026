@@ -35,7 +35,7 @@ from ..security.paths import data_dir, repo_root
 from . import claude_cli as cc
 from . import skills as sk
 from .model import (ACTIVE, FINISHED, SCOPES, TEXT_MAX, Task, first_sentence, looks_like_secret, make_title, new_task_id, now_iso,
-                    one_line, with_cost)
+                    one_line)
 from .routing import QUESTION_OPTIONS, QUESTION_TEXT, choose_route, decide_by_rules, extract_place, make_slug
 from .store import TaskStore, valid_id
 
@@ -712,7 +712,7 @@ class TaskManager:
                     except OSError:
                         pass
             t.open = target
-            self._finish(t, "done", result=with_cost(first_sentence(full) or "Finished. The files are in the folder.", outcome.cost_usd))
+            self._finish(t, "done", result=one_line(first_sentence(full) or "Finished. The files are in the folder.", 140))   # the cost stays in the row's cost_usd and the ledger: a worker screen shows no cost (views rule)
         else:
             t.open = target if outcome.why in ("wall", "stop", "kill", "idle", "flood", "budget") else None   # partial work can be opened
             self._finish(t, "stopped" if outcome.state == "stopped" else "failed", reason=outcome.reason)

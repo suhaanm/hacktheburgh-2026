@@ -1,5 +1,5 @@
 import { fmtInterval } from "../lib/format";
-import { liveFixSentence, liveRuns, liveSentence } from "../lib/evidence";
+import { liveFixSentence, liveRuns, liveSentence, plainScope } from "../lib/evidence";
 import { ChartFoot, OriginBadge } from "./common";
 import { Details } from "./ui";
 import type { AnalyticMeta } from "../types";
@@ -22,7 +22,7 @@ export function LiveRuns({ live, meta }: { live: unknown; meta: AnalyticMeta | n
           {v.households != null && <span className="pill">{v.households} households per condition</span>}
           <span className="pill">generated households, sandbox calculators</span>
         </div>
-        {v.note && <p className="ev-note">{v.note}</p>}
+        {v.note && <p className="ev-note">{plainScope(v.note)}</p>}
       </div>
 
       <ul className="live__list">
