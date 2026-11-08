@@ -11,7 +11,7 @@ import { AWAY_TEXT, WATCH_TEXT } from "../routines/consent";
 import { RunningRow } from "../routines/RunningRow";
 import { ApprovalRow } from "./ApprovalRow";
 import { PreparedRow } from "./PreparedRow";
-import { MoreWays, ProposalRow } from "./ProposalRow";
+import { ProposalDetails, ProposalRow } from "./ProposalRow";
 
 const queue = (queueFx as unknown as { data: QueueItem[] }).data;
 const routines = (routinesFx as unknown as { data: Routine[] }).data;
@@ -47,31 +47,35 @@ describe("an approval row", () => {
 
 describe("a routine proposal", () => {
   const html = renderToStaticMarkup(createElement(ProposalRow, { routine: proposal, onDecide: async () => undefined }));
-  it("offers Watch first, Not now and Never at one weight, none primary", () => {
-    for (const label of ["Watch first", "Not now", "Never"]) expect(html).toMatch(new RegExp(`btn btn--secondary[^>]*>${label}<`));
+  it("shows only Watch first and Not now, at one weight, none primary", () => {
+    for (const label of ["Watch first", "Not now"]) expect(html).toMatch(new RegExp(`btn btn--secondary[^>]*>${label}<`));
     expect(html).not.toMatch(/btn--primary/);
+    expect(html).not.toMatch(/>Never</);                       // behind Details, as light as the others
+    expect(html).not.toMatch(/Run with my approval|Allow while/);
   });
-  it("prints what it will never do, whole, as its own line", () => {
+  it("prints what it will never do, whole, as its own line, and never folds it", () => {
     const t = text(html);
     for (const n of proposal.proposal.never) expect(t.toLowerCase()).toContain(n.charAt(0).toLowerCase() + n.slice(1).replace(/\.$/, "").toLowerCase());
-    expect(t).toContain("It will never");
     expect(html).toMatch(/data-testid="never"[^>]*>(<p[^>]*>)?It will never/);
     if (proposal.proposal.never.length > 1) expect(html).toMatch(/<ul class="ny-never">/);       // several limits, one to a line
   });
-  it("keeps the other ways to say yes one click away, under a short visible label with the whole name for a screen reader", () => {
-    expect(html).toMatch(/aria-label="More ways to say yes"[^>]*aria-expanded="false"[^>]*>More ways</);
+  it("is one line of summary: what it would save as one range, and nothing about what it touches", () => {
+    expect(text(html)).toMatch(/Could save [\d.]+ to [\d.]+ hours\./);
+    expect(text(html)).not.toContain("Touches");
     expect(text(html)).not.toContain(WATCH_TEXT);
-    expect(html).not.toMatch(/data-testid="more-ways"/);
   });
-  it("opened, it prints what every way of saying yes does, with the away consent next to its own button", () => {
-    const open = text(renderToStaticMarkup(createElement(MoreWays, { routine: proposal, busy: false, onApproval: noop, onDecide: async () => undefined })));
+  it("keeps the rest under Details, closed", () => {
+    expect(html).toMatch(/aria-expanded="false"[^>]*>Details</);
+    expect(html).not.toMatch(/data-testid="proposal-details"/);
+  });
+  it("opened, Details prints what it touches, Never, and what every way of saying yes does, with the away consent next to its own button", () => {
+    const open = text(renderToStaticMarkup(createElement(ProposalDetails, { routine: proposal, touches: "a, b and c", busy: false, onApproval: noop, onNever: noop, onDecide: async () => undefined })));
+    expect(open).toContain("Touches a, b and c.");
+    expect(open).toContain("Never: do not suggest this again.");
     expect(open).toContain(WATCH_TEXT);
     expect(open).toContain("Run with my approval");
     expect(open).toContain(AWAY_TEXT);
     expect(open).toContain("Allow while I'm away");
-  });
-  it("says the interval behind the hours is in the hint, and prints one range", () => {
-    expect(text(html)).toMatch(/Could save [\d.]+ to [\d.]+ hours\./);
   });
 });
 

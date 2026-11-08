@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useRoute } from "../../router";
 import { useLoad, type LoadState } from "../../hooks";
 import { ErrorState, Loading, SourceNote } from "../../components/common";
-import { Breadcrumb } from "../../components/Breadcrumb";
 import { Details } from "../../components/ui";
 import { HitList } from "../../components/repeats/HitList";
 import { SYNTHETIC_NOTE } from "../../components/firm/Badges";
@@ -141,11 +140,9 @@ export default function Firm() {
     }
   }, [tab, openId]);
 
-  const sub = tab !== "overview" && tab !== "roles" && tab !== "onboarding";
   return (
     <div className="page page--wide firm" data-tab={tab}>
       <header className="screenhead">
-        {sub && <Breadcrumb items={[{ label: "Firm", href: "#/firm" }, { label: TITLE[tab] }]} />}
         <div className="screenhead__row">
           <h1 className="screenhead__title">{TITLE[tab]}</h1>
           <div className="page__aside">

@@ -50,6 +50,9 @@ describe("the linter itself", () => {
     expect(findBanned("Please wait.", cfg).map((f) => f.match)).toContain("Please");
     expect(findBanned("That was simply wrong.", cfg).map((f) => f.match)).toContain("simply");
     expect(phraseRegex("note:").test("a keynote: yes")).toBe(false);
+    // a lead-in counts at the start of a text or a sentence, not inside one
+    expect(findBanned("Copy the three results into the case note: open the form.", cfg)).toEqual([]);
+    expect(findBanned("Saved. Note: nothing was sent.", cfg).map((f) => f.match)).toContain("Note:");
   });
 
   it("does not trip on ordinary words that contain a banned one", () => {

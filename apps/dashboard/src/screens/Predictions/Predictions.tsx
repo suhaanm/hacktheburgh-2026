@@ -12,8 +12,8 @@ export default function Predictions() {
   useEffect(() => { document.title = "Forecasts · Knack"; }, []);
   return (
     <div className="page page--wide">
-      <PageHead eyebrow="Details" title="Predictions" lede="How well we forecast the moments when someone gets stuck." />
-      <ScorecardView load={load} read={read} />
+      <PageHead title="Forecasts" lede="Not validated on real people yet." />
+      <ScorecardView load={load} read={read} audience="worker" />
     </div>
   );
 }

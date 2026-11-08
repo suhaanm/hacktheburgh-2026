@@ -1,7 +1,7 @@
 import { Fragment, useMemo, useState } from "react";
 import { Range } from "../common";
 import { Hint } from "../Hint";
-import { FirmBadge } from "./Badges";
+import { Details } from "../ui";
 import {
   DEFAULT_SORT, SORT_KEYS, personName, TENURE_LABEL, TREND_GLYPH, TREND_HINT, TREND_LABEL, filterUsers, fmtNum, fmtShare, groupShown, pct, sortUsers, trendCounts, unitWord,
   type SortKey,
@@ -96,49 +96,49 @@ function Band({ r, min }: { r: FirmRole; min: number }) {
   );
 }
 
-function RoleSection({ r, firm, sort, filter, meta }: { r: FirmRole; firm: WireFirm; sort: SortKey; filter: Trend | null; meta: AnalyticMeta | null }) {
+function RoleSection({ r, firm, sort, filter, first }: { r: FirmRole; firm: WireFirm; sort: SortKey; filter: Trend | null; first: boolean }) {
   const [all, setAll] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
   const min = firm.privacy.min_group;
   const rows = useMemo(() => sortUsers(filterUsers(r.users, filter), sort), [r.users, filter, sort]);
-  const shown = all ? rows : rows.slice(0, 7);
+  const shown = all ? rows : rows.slice(0, 3);
   const cols = 7;
   return (
-    <section className="firm-role" aria-labelledby={`people-${r.role}`}>
-      <header className="firm-role__head">
-        <h3 id={`people-${r.role}`} className="firm-role__name">{r.name}</h3>
-        <span className="firm-role__count">{r.users.length} {r.users.length === 1 ? "person" : "people"}</span>
-        <Hint label="About group figures">
-          Group figures need at least {min} people. Smaller groups are merged, so a figure never describes two or three individuals. {firm.privacy.note ?? ""}
-        </Hint>
-        <FirmBadge meta={meta} />
-      </header>
-      <Band r={r} min={min} />
-      {rows.length === 0 ? (
-        <p className="firm-role__empty">No one in this group matches that filter.</p>
-      ) : (
-        <div className="table-wrap">
-          <table className="table firm-table">
-            <caption className="u-sr-only">{r.name}, sorted by {SORT_LABEL[sort].toLowerCase()}. Not ranked.</caption>
-            <thead>
-              <tr>
-                <th scope="col">Person</th>
-                <th scope="col" className="col-wide">Time in role</th>
-                <th scope="col">Help needed over time</th>
-                <th scope="col" className="num">Finished without help</th>
-                <th scope="col" className="num col-opt">Steps until independent</th>
-                <th scope="col" className="num col-opt">Needed help</th>
-                <th scope="col" className="num col-opt">Routines running</th>
-              </tr>
-            </thead>
-            <tbody>
-              {shown.map((u) => <Row key={u.id} u={u} open={open === u.id} onToggle={() => setOpen(open === u.id ? null : u.id)} cols={cols} />)}
-            </tbody>
-          </table>
-        </div>
-      )}
-      {rows.length > 7 && <button type="button" className="btn btn--quiet btn--sm" onClick={() => setAll((a) => !a)}>{all ? "Show fewer" : `Show all ${rows.length}`}</button>}
-    </section>
+    <Details summary={`${r.name}, ${r.users.length} ${r.users.length === 1 ? "person" : "people"}`} defaultOpen={first} wide className="firm-role-details">
+      <section className="firm-role" aria-labelledby={`people-${r.role}`}>
+        <header className="firm-role__head">
+          <h3 id={`people-${r.role}`} className="u-sr-only">{r.name}</h3>
+          <Hint label="About group figures">
+            Group figures need at least {min} people. Smaller groups are merged, so a figure never describes two or three individuals. {firm.privacy.note ?? ""}
+          </Hint>
+        </header>
+        <Band r={r} min={min} />
+        {rows.length === 0 ? (
+          <p className="firm-role__empty">No one in this group matches that filter.</p>
+        ) : (
+          <div className="table-wrap">
+            <table className="table firm-table">
+              <caption className="u-sr-only">{r.name}, sorted by {SORT_LABEL[sort].toLowerCase()}. Not ranked.</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Person</th>
+                  <th scope="col" className="col-wide">Time in role</th>
+                  <th scope="col">Help needed over time</th>
+                  <th scope="col" className="num">Finished without help</th>
+                  <th scope="col" className="num col-opt">Steps until independent</th>
+                  <th scope="col" className="num col-opt">Needed help</th>
+                  <th scope="col" className="num col-opt">Routines running</th>
+                </tr>
+              </thead>
+              <tbody>
+                {shown.map((u) => <Row key={u.id} u={u} open={open === u.id} onToggle={() => setOpen(open === u.id ? null : u.id)} cols={cols} />)}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {rows.length > 3 && <button type="button" className="btn btn--quiet btn--sm" onClick={() => setAll((a) => !a)}>{all ? "Show fewer" : `Show all ${rows.length}`}</button>}
+      </section>
+    </Details>
   );
 }
 
@@ -146,7 +146,7 @@ function RoleSection({ r, firm, sort, filter, meta }: { r: FirmRole; firm: WireF
  * Everyone in the firm, grouped by role. There is no single score and no league table: the only orders are by name and by time in role, and the
  * only filter is a class of trend. For coaching and onboarding, not for evaluating individuals.
  */
-export function PeopleTable({ firm, meta }: { firm: WireFirm; meta: AnalyticMeta | null }) {
+export function PeopleTable({ firm }: { firm: WireFirm; meta?: AnalyticMeta | null }) {
   const [sort, setSort] = useState<SortKey>(DEFAULT_SORT);
   const [filter, setFilter] = useState<Trend | null>(null);
   const all = useMemo(() => firm.roles.flatMap((r) => r.users), [firm]);
@@ -171,7 +171,7 @@ export function PeopleTable({ firm, meta }: { firm: WireFirm; meta: AnalyticMeta
           {filter ? TREND_HINT[filter] : "Each person has a class for how the help they need is changing. A class is a conversation starter for coaching, never a grade, and the list is never ranked."}
         </Hint>
       </div>
-      {firm.roles.map((r) => <RoleSection key={r.role} r={r} firm={firm} sort={sort} filter={filter} meta={meta} />)}
+      {firm.roles.map((r, i) => <RoleSection key={r.role} r={r} firm={firm} sort={sort} filter={filter} first={i === 0} />)}
     </div>
   );
 }

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ApiError, api } from "../api";
 import { prefersReducedMotion, useLoad, useWidth } from "../hooks";
-import { ChartFoot, EmptyState, ErrorState, Loading, OriginBadge, PageHead } from "../components/common";
+import { Details } from "../components/ui";
+import { ChartFoot, EmptyState, ErrorState, Loading, OriginBadge, PageHead, workerOriginLabel } from "../components/common";
 import { useToast } from "../components/Toasts";
 import { Hint } from "../components/Hint";
 import { NODE_COLOUR, NODE_LABEL, layoutGraph, nodeOpacity, placeLabels, radiusFn, type Placed } from "../lib/graph";
@@ -56,6 +57,7 @@ function capsule(ax: number, ay: number, bx: number, by: number, R: number): str
 export default function Graph() {
   const g = useLoad(() => api.workGraph(), []);
   const [sel, setSel] = useState<string | null>(null);
+  const [active, setActive] = useState<string | null>(null);
   const [box, width] = useWidth<HTMLDivElement>();
   const [combine, setCombine] = useState(false);
   const [shown, setShown] = useState(false);
@@ -80,6 +82,10 @@ export default function Graph() {
   const maxChars = narrowCanvas ? 24 : 34;
   const labelText = (n: WorkNode) => (n.label.length > maxChars ? `${n.label.slice(0, maxChars - 1)}…` : n.label);
   // Labels are placed once per layout (on the settled positions), then ride along with their node while it moves.
+  // Labels cost words, and a graph of twenty nodes with twenty labels is a wall of text: the strongest ones are written on the canvas, the rest
+  // name themselves on hover, on focus (the arrow keys) and when opened. Every node keeps its full accessible name and its <title>.
+  const LABELS_SHOWN = narrowCanvas ? 8 : 10;
+  const written = new Set([...graph.nodes].sort((a, b) => (b.strength + (b.type === "routine" ? 0.3 : 0)) - (a.strength + (a.type === "routine" ? 0.3 : 0))).slice(0, LABELS_SHOWN).map((n) => n.id));
   const labels = placeLabels(target.map((p) => { const n = byId.get(p.id); return { id: p.id, x: p.x, y: p.y, r: p.r, text: n ? labelText(n) : "", priority: n ? n.strength + (n.type === "routine" ? 0.3 : 0) : 0 }; }), width, height, sel);
   const node = sel ? byId.get(sel) ?? null : null;
   const faded = graph.nodes.filter((n) => n.strength < 0.4).length;
@@ -90,16 +96,29 @@ export default function Graph() {
         eyebrow="Graph"
         title="How your work connects"
         lede={`${graph.nodes.length} things Knack knows about your work${faded ? `, ${faded} fading now` : ""}.`}
-        aside={<OriginBadge meta={g.meta} />}
+        aside={<OriginBadge meta={g.meta} label={g.meta ? workerOriginLabel(g.meta.origin) : undefined} />}
       />
 
       {graph.nodes.length === 0 ? (
-        <EmptyState title="Nothing here yet" body="The graph fills in as Knack sees your routines, skills and the notes you keep. Finish set-up first, then come back." action={<a className="btn btn--secondary" href="#/onboarding">Go to set-up</a>} />
+        <EmptyState title="Nothing here yet" body="The graph fills in as Knack sees your routines, skills and the notes you keep. Finish set-up first, then come back." action={<a className="btn btn--secondary" href="#/setup">Go to set-up</a>} />
       ) : (
         <div className="stack">
           <div className="gcanvas__stage" ref={box} style={{ height }}>
             {width > 0 && (
-              <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} role="group" aria-label={`Work graph with ${graph.nodes.length} nodes. Use Tab to move between nodes and Enter to open one.`}>
+              <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} role="listbox" tabIndex={0} aria-label={`Work graph with ${graph.nodes.length} nodes. Use the arrow keys to move between nodes and Enter to open one.`}
+                aria-activedescendant={active ? `gn-${active}` : undefined}
+                onFocus={() => { if (!active && graph.nodes[0]) setActive(graph.nodes[0].id); }}
+                onKeyDown={(e) => {
+                  const ids = graph.nodes.map((n) => n.id);
+                  const at0 = Math.max(0, ids.indexOf(active ?? ids[0]));
+                  const go = (i: number) => { setActive(ids[(i + ids.length) % ids.length]); e.preventDefault(); };
+                  if (e.key === "ArrowRight" || e.key === "ArrowDown") go(at0 + 1);
+                  else if (e.key === "ArrowLeft" || e.key === "ArrowUp") go(at0 - 1);
+                  else if (e.key === "Home") go(0);
+                  else if (e.key === "End") go(ids.length - 1);
+                  else if (e.key === "Enter" || e.key === " ") { if (ids[at0]) { setSel(ids[at0]); e.preventDefault(); } }
+                  else if (e.key === "Escape") setSel(null);
+                }}>
                 {combine && graph.links.filter((l) => l.kind === "combined").map((l) => {
                   const a = at.get(l.a), b = at.get(l.b);
                   if (!a || !b) return null;
@@ -117,13 +136,13 @@ export default function Graph() {
                   const r = radius(n);
                   const op = shown ? nodeOpacity(n.strength) : 0;
                   return (
-                    <g key={n.id} className="gnode" transform={`translate(${p.x},${p.y})`} data-sel={sel === n.id} tabIndex={0} role="button"
-                      aria-label={`${NODE_LABEL[n.type]}: ${n.label}. Strength ${Math.round(n.strength * 100)} percent.`} aria-pressed={sel === n.id}
-                      onClick={() => setSel(n.id)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSel(n.id); } }}>
+                    <g key={n.id} id={`gn-${n.id}`} className="gnode" transform={`translate(${p.x},${p.y})`} data-sel={sel === n.id} data-active={active === n.id || undefined} role="option"
+                      aria-label={`${NODE_LABEL[n.type]}: ${n.label}. Strength ${Math.round(n.strength * 100)} percent.`} aria-selected={sel === n.id}
+                      onClick={() => { setSel(n.id); setActive(n.id); }}>
                       <g className="gnode__body" style={{ opacity: op }}><Shape type={n.type} r={r} /></g>
                       <circle className="gnode__ring" r={r + 6} />
                       <title>{n.label}</title>
-                      {(() => { const lp = labels.get(n.id); return lp && !lp.hidden ? <text className="gnode__label" x={lp.dx} y={lp.dy} textAnchor={lp.anchor} style={{ opacity: shown ? Math.max(0.7, op) : 0 }}>{labelText(n)}</text> : null; })()}
+                      {(() => { const lp = labels.get(n.id); return lp && !lp.hidden && (written.has(n.id) || sel === n.id || active === n.id) ? <text className="gnode__label" x={lp.dx} y={lp.dy} textAnchor={lp.anchor} style={{ opacity: shown ? Math.max(0.7, op) : 0 }}>{labelText(n)}</text> : null; })()}
                     </g>
                   );
                 })}
@@ -135,8 +154,8 @@ export default function Graph() {
               </aside>
             )}
           </div>
-          <Legend />
-          <ChartFoot variant="about" meta={g.meta} extra={<span>click a node for why it exists; the layout is for reading only</span>} />
+          <Details summary="Key"><Legend /></Details>
+          <ChartFoot variant="about" meta={g.meta} badge={false} extra={<span>click a node for why it exists; the layout is for reading only</span>} />
         </div>
       )}
     </div>
