@@ -215,7 +215,7 @@ export function SettingsPanel({ settings, onChange, personas, privacy, more }: S
           </Group>
 
           <Group title={APP_NAME}>
-            <Switch label="Use live models" hint="Real models when a key is set, otherwise example data. Changing it restarts the app." checked={settings.useLiveModels} onChange={toggle('useLiveModels')} />
+            <Switch label="Use live models" hint="Needs a Gemini key in .env. Changing it restarts the app." checked={settings.useLiveModels} onChange={toggle('useLiveModels')} />
             <Switch label="Show in the Dock" checked={settings.showInDock} onChange={toggle('showInDock')} />
             <Switch label="Step aside while it works" hint="The window minimises during a run and comes back when something needs you." checked={settings.moveAsideWhileWorking} onChange={toggle('moveAsideWhileWorking')} />
             <Switch label="Keep the Mac awake while it works" hint="Only during a run. Nothing is held between runs." checked={settings.keepAwakeWhileWorking} onChange={toggle('keepAwakeWhileWorking')} />

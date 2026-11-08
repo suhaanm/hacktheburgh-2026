@@ -16,7 +16,7 @@ n.toFixed(2)   the number as text with two decimals"""
 LABELS = {
     "v1": {"editor": "Editor", "run": "Run tests", "output": "Test output", "probe": "Try an expression", "probeRun": "Evaluate", "inputs": "Sample inputs",
            "docs": "Language docs", "diff": "Review diff", "message": "Message", "commit": "Commit", "done": "Mark done", "deploy": "Deploy to production"},
-    "v2": {"editor": "Source editor", "run": "Execute test suite", "output": "Suite results", "probe": "Quick check", "probeRun": "Try it", "inputs": "Example data",
+    "v2": {"editor": "Source editor", "run": "Execute test suite", "output": "Suite results", "probe": "Quick check", "probeRun": "Try it", "inputs": "Input values",
            "docs": "Reference", "diff": "Show changes", "message": "Snapshot note", "commit": "Save snapshot", "done": "Finish ticket", "deploy": "Release to live"},
 }
 

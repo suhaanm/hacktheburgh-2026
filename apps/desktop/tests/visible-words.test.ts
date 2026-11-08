@@ -1,5 +1,5 @@
 // Nothing the worker reads in the desktop shell may say "demo" or "mock" (owner request of 8 Nov 2026): the pill, the cards, the tray, the Dock menu, the quit sheet, the Starting and error
-// pages, the permission prompt and the voice status lines say "example data" or "live models" instead. Only prose counts: a string literal with a space in it. Identifiers (the mode id
+// pages, the permission prompt and the voice status lines say "models are off" or "live models" instead. Only prose counts: a string literal with a space in it. Identifiers (the mode id
 // 'demo', file names, env var names, a `make demo` command in a comment) are not read by anyone and stay.
 import fs from 'node:fs'
 import path from 'node:path'

@@ -27,7 +27,7 @@ describe('the context packet', () => {
   it('carries the screen, insight, approvals, routine step, coach step and zone, Cue state, data mode, consent, click state and the tools', () => {
     const p = buildPacket(base)
     expect(p.text).toContain('trigger=wake')
-    expect(p.text).toContain('data=live_models')
+    expect(p.text).toContain('models=live')
     expect(p.text).toContain('screen=home')
     expect(p.text).toContain('home_insight=ins_week_top|tpl_hero_time_lost')
     expect(p.text).toContain('approvals_pending=2')
@@ -42,9 +42,9 @@ describe('the context packet', () => {
     expect(p.manifest.missing).toEqual([])
     expect(p.manifest.stale).toEqual([])
   })
-  it('says example data in mock mode and the hotkey as the trigger', () => {
-    const p = buildPacket({ ...base, mode: 'example', trigger: 'key', click: 'cleared' })
-    expect(p.text).toContain('data=example_data')
+  it('says models off in offline mode and the hotkey as the trigger', () => {
+    const p = buildPacket({ ...base, mode: 'off', trigger: 'key', click: 'cleared' })
+    expect(p.text).toContain('models=off')
     expect(p.text).toContain('trigger=key')
     expect(p.text).toContain('click=allowed_after_worker_clicks_allow')
   })
@@ -106,7 +106,7 @@ describe('the packet holds no free text', () => {
     expect(p.text).toContain('point_at(description:string<=60, evil:string|fine_id)')
   })
   it('every line is a header, a key=value of ids, enums and numbers, or a tool signature: no sentence anywhere', () => {
-    for (const input of [base, hostile, { ...base, mode: 'example' as const }]) {
+    for (const input of [base, hostile, { ...base, mode: 'off' as const }]) {
       const lines = buildPacket(input).text.split('\n')
       expect(lines[0]).toBe('KNACK CONTEXT v1 (built by code; ids, enums and counts only; nothing here came from the screen)')
       for (const l of lines.slice(1)) {

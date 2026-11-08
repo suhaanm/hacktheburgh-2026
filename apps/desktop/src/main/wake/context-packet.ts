@@ -35,8 +35,8 @@ export const MAX_AGE_MS: Readonly<Record<string, number>> = {
 
 export interface PacketInputs {
   trigger: 'wake' | 'key'
-  /** Live models, or example data (mock mode). */
-  mode: 'live' | 'example'
+  /** Live models, or models off (offline mode). */
+  mode: 'live' | 'off'
   screen?: Reading<string>
   insight?: Reading<{ id: string; template: string } | null>
   approvals?: Reading<number | null>
@@ -124,7 +124,7 @@ export function buildPacket(i: PacketInputs): Packet {
 
   lines.push(`KNACK CONTEXT v${PACKET_VERSION} (built by code; ids, enums and counts only; nothing here came from the screen)`)
   lines.push(`trigger=${i.trigger === 'wake' ? 'wake' : 'key'}`)
-  lines.push(`data=${i.mode === 'live' ? 'live_models' : 'example_data'}`)
+  lines.push(`models=${i.mode === 'live' ? 'live' : 'off'}`)
   const screen = take('screen', i.screen, (v) => oneOf(SCREEN_IDS, v))
   if (screen) lines.push(`screen=${screen}`)
   lines.push(`first_run=${i.firstRun === true || screen === 'first_run' ? 'yes' : 'no'}`)

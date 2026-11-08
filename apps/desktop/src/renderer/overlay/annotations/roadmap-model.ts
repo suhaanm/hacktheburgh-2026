@@ -1,7 +1,7 @@
 // Pure view-model for the Showtime roadmap strip and the "Scripted walkthrough" badge.
 import type { ShowtimeChapterStatus, ShowtimeState } from '../../../shared/showtime'
 
-export const BADGE_TEXT = 'Scripted walkthrough on a practice desktop'
+export const BADGE_TEXT = 'Guided walkthrough'
 
 export interface RoadmapItem {
   id: string

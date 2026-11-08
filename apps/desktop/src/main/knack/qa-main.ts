@@ -63,7 +63,7 @@ function fakeService(health: () => unknown, route?: (req: http.IncomingMessage, 
         if (req.url?.startsWith('/agents/runs')) return send([])
         if (req.method === 'POST') return send({ ok: true })
         res.statusCode = 404
-        send({ error: { code: 'not_found', message: 'stand-in' } })
+        send({ error: { code: 'not_found', message: 'not available' } })
       })
     })
     server.listen(0, '127.0.0.1', () => resolve({ server, port: (server.address() as { port: number }).port }))
@@ -450,7 +450,7 @@ async function run(): Promise<void> {
   } catch {
     patched = false
   }
-  check('the harness can fake a second display (the screen module accepts the stand-ins)', patched && screen.getDisplayNearestPoint({ x: 0, y: 0 }).id === 4242, patched)
+  check('the harness can fake a second display (the screen module accepts the test displays)', patched && screen.getDisplayNearestPoint({ x: 0, y: 0 }).id === 4242, patched)
   if (patched) {
     const inside = (b: { x: number; y: number; width: number; height: number } | undefined, wa: typeof fake.workArea, tol = 20): boolean => !!b && b.x >= wa.x - tol && b.y >= wa.y - tol && b.x + b.width <= wa.x + wa.width + tol && b.y + b.height <= wa.y + wa.height + tol
     const card2 = createCardWindow({ hidden: true })

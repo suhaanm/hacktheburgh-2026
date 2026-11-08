@@ -15,9 +15,9 @@ describe('the Starting page', () => {
   })
   it('maps the lifecycle to what the page shows: starting, ready, or one plain error', () => {
     expect(uiStateOf({ phase: 'idle' }, APP_NAME)).toEqual({ kind: 'starting', text: 'Starting Knack…' })
-    expect(uiStateOf({ phase: 'starting', step: 'agent' }, APP_NAME, 'Running with example data')).toEqual({ kind: 'starting', text: 'Starting Knack…', notice: 'Running with example data' })
+    expect(uiStateOf({ phase: 'starting', step: 'agent' }, APP_NAME, 'Models are off')).toEqual({ kind: 'starting', text: 'Starting Knack…', notice: 'Models are off' })
     expect(uiStateOf({ phase: 'starting', step: 'engine' }, APP_NAME)).toEqual({ kind: 'starting', text: 'Starting Knack…' })
-    expect(uiStateOf({ phase: 'ready', started: [], dashboard: 'dist', mock: null }, APP_NAME, 'Running with example data')).toEqual({ kind: 'ready' })
+    expect(uiStateOf({ phase: 'ready', started: [], dashboard: 'dist', mock: null }, APP_NAME, 'Models are off')).toEqual({ kind: 'ready' })
     expect(uiStateOf({ phase: 'failed', code: 'engine_failed', message: FAIL_MESSAGES.engine_failed, hint: 'See data/logs/knack-engine.log.' }, APP_NAME)).toEqual({ kind: 'error', message: 'The engine did not start.', hint: 'See data/logs/knack-engine.log.' })
   })
   it('has one button (Try again), no inline script or style, the brand glyph and no remote address', () => {
@@ -44,9 +44,9 @@ describe('the Starting page', () => {
 })
 
 describe('a slow start', () => {
-  it('after thirty seconds the page says it is still starting, in the same one line, and keeps the example data notice', () => {
-    expect(uiStateOf({ phase: 'starting', step: 'engine' }, 'Knack', 'Running with example data')).toEqual({ kind: 'starting', text: 'Starting Knack…', notice: 'Running with example data' })
-    expect(uiStateOf({ phase: 'starting', step: 'engine' }, 'Knack', 'Running with example data', true)).toEqual({ kind: 'starting', text: 'Still starting Knack…', notice: 'Running with example data' })
+  it('after thirty seconds the page says it is still starting, in the same one line, and keeps the models-off notice', () => {
+    expect(uiStateOf({ phase: 'starting', step: 'engine' }, 'Knack', 'Models are off')).toEqual({ kind: 'starting', text: 'Starting Knack…', notice: 'Models are off' })
+    expect(uiStateOf({ phase: 'starting', step: 'engine' }, 'Knack', 'Models are off', true)).toEqual({ kind: 'starting', text: 'Still starting Knack…', notice: 'Models are off' })
     expect(SLOW_START_MS).toBe(30_000)
   })
   it('a ready or failed stack is never "slow"', () => {

@@ -438,7 +438,7 @@ describe('the words always get an answer', () => {
     const strings: string[] = [t.LISTENING_LINE, t.SWITCH_LABEL, t.SWITCH_NOTE, ...Object.values(t.SPOKEN_LINES), ...Object.values(t.REFUSAL_LINE), ...Object.values(t.BLOCKED_LINE), ...Object.values(DORMANT_LINE)]
     for (const c of [...Object.values(t.CARDS), ...Object.values(t.INFO_CARDS)] as Array<{ title: string; body: string; buttons: ReadonlyArray<{ label: string }> }>) strings.push(c.title, c.body, ...c.buttons.map((b) => b.label))
     strings.push(t.EVERYTHING_CARD.title, t.EVERYTHING_CARD.body, t.FIRST_WELCOME, t.FIRST_WAKE_OPENING)
-    for (const s of strings) expect(s).not.toMatch(/demo|mock|example mode|example data|synthetic|simulated/i)
+    for (const s of strings) expect(s).not.toMatch(/demo|mock|example mode|example data|sample data|stand-in|for this build|synthetic|simulated/i)
   })
 })
 

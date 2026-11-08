@@ -56,7 +56,7 @@ def _pct(kind: str, fx: float, fy: float, **extra: Any) -> dict[str, Any]:
 
 _NOTEPAD = (
     _pct("click", 0.5, 0.5, button="left"),
-    {"kind": "type", "text": "Understudy mock run"},
+    {"kind": "type", "text": "Typed by Knack"},
     {"kind": "key", "keys": ["Enter"]},
     {"kind": "done", "summary": "typed one line into the text area", "ok": True},
 )
@@ -84,7 +84,7 @@ SCENARIOS: dict[str, Scenario] = {
         "computer_safety_stop", "Returns a provider safety check on the second step.",
         computer=(_pct("click", 0.3, 0.3, button="left"),
                   {"kind": "safety_stop", "checks": [{"id": "sc_mock_1", "code": "malicious_instructions",
-                                                      "message": "mock: the page may contain instructions"}]})),
+                                                      "message": "the page may contain instructions"}]})),
     "computer_stuck": Scenario(
         "computer_stuck", "Repeats the same click forever (stuck-loop tests).",
         computer=tuple(_pct("click", 0.5, 0.5, button="left") for _ in range(40))),
@@ -285,7 +285,7 @@ class MockProvider:
         if scripted is not None:
             return scripted
         if schema is None:
-            return {"text": "mock plan"}
+            return {"text": "a plan"}
         return blank_for(schema)
 
     def read(self, untrusted: str, schema: dict[str, Any]) -> dict[str, Any]:
@@ -313,7 +313,7 @@ class MockProvider:
                 ok = False
             else:
                 ok = kind != "goto"  # a step to an address the goal does not mention is off-goal
-            return {"serves_goal": ok, "reason": "mock: overlaps the goal" if ok else "mock: nothing in the goal explains this step"}
+            return {"serves_goal": ok, "reason": "overlaps the goal" if ok else "nothing in the goal explains this step"}
         return blank_for(schema)
 
     def vision(self, image: bytes, prompt: str, schema: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -322,7 +322,7 @@ class MockProvider:
         if scripted is not None:
             return scripted
         if schema is None:
-            return {"text": "mock screenshot description"}
+            return {"text": "a screenshot"}
         return blank_for(schema)
 
     def computer_step(self, goal: str, screenshot: bytes, history: list[dict[str, Any]],

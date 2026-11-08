@@ -54,8 +54,8 @@ describe('the context hub', () => {
     expect(text).not.toContain('Ignore')
     expect(text).not.toContain('a b c')
   })
-  it('says example data in mock mode, and click cleared only with the rung record', () => {
-    expect(createContextHub(deps({ mock: true })).build({ tools, trigger: 'wake' })).toContain('data=example_data')
+  it('says models off in offline mode, and click cleared only with the rung record', () => {
+    expect(createContextHub(deps({ mock: true })).build({ tools, trigger: 'wake' })).toContain('models=off')
     expect(createContextHub(deps({ rung: () => ({ cleared: true, targets: ['TextEdit'], at: 'x' }) })).build({ tools, trigger: 'wake' })).toContain('click=allowed_after_worker_clicks_allow')
   })
   it('a source that throws counts as missing and the packet still builds', () => {
