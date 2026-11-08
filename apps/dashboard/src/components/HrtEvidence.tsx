@@ -82,7 +82,7 @@ export function HrtLedger({ rep }: { rep: EvalReport }) {
         </div>
       </div>
 
-      <Details summary={`The worlds, one row each (${worlds.length})`}>
+      <Details wide summary={`The worlds, one row each (${worlds.length})`}>
         <div className="table-wrap"><table className="table" style={{ minWidth: 700 }}>
           <thead><tr><th>World</th><th className="num">Forecasts</th><th className="num">Model log loss</th><th className="num">Model minus best naive</th><th className="num">Calibration slope</th><th className="num">Guard flags</th></tr></thead>
           <tbody>{worlds.map((w) => (
@@ -92,13 +92,13 @@ export function HrtLedger({ rep }: { rep: EvalReport }) {
         </table></div>
         <p className="ev-note">Where the world changes the model is worse than a one-line baseline and its calibration slope turns negative, so it points the wrong way. The guard compares the model with the online base rate episode by episode and falls back when the evidence says the model is no better.</p>
       </Details>
-      <Details summary={`Every registered claim, as run (${claims.length})`}>
+      <Details wide summary={`Every registered claim, as run (${claims.length})`}>
         <div className="table-wrap"><table className="table">
           <thead><tr><th>Id</th><th>Claim, registered before any number existed</th><th>Result</th></tr></thead>
           <tbody>{claims.map((c) => <tr key={c.id}><td>{c.id}</td><td>{c.claim}<br /><span className="u-muted">{c.evidence}</span></td><td><Result ok={c.result === "passed"} /></td></tr>)}</tbody>
         </table></div>
       </Details>
-      <Details summary="The guard: what falling back cost and saved">
+      <Details wide summary="The guard: what falling back cost and saved">
         <div className="table-wrap"><table className="table" style={{ minWidth: 700 }}>
           <thead><tr><th>World</th><th className="num">Flags</th><th className="num">Always model</th><th className="num">Always fallback</th><th className="num">Guarded</th><th className="num">Oracle</th><th className="num">Guarded minus always model</th></tr></thead>
           <tbody>{guard.map((g) => (
@@ -108,7 +108,7 @@ export function HrtLedger({ rep }: { rep: EvalReport }) {
         <p className="ev-note">Mean log loss per forecast. The oracle is the better of the first two in hindsight. Intervals resample deployments, eight a world, so they are wide.</p>
       </Details>
       {recal && (
-        <Details summary={`Recalibrating online instead of discarding the model (${recal.claims.filter((c) => c.result === "passed").length} of ${recal.claims.length} claims passed)`}>
+        <Details wide summary={`Recalibrating online instead of discarding the model (${recal.claims.filter((c) => c.result === "passed").length} of ${recal.claims.length} claims passed)`}>
           <p className="ev-note">{recal.statement} The recalibrated forecast passes the frozen model's forecast through a logistic map fitted only on outcomes the ledger has already resolved.</p>
           <div className="table-wrap"><table className="table" style={{ minWidth: 760 }}>
             <thead><tr><th>World</th><th className="num">Model</th><th className="num">Recalibrated</th><th className="num">Recent 2,000 only</th><th className="num">Online base rate</th><th className="num">Recalibrated minus model</th><th className="num">Recalibrated minus best naive</th></tr></thead>
@@ -123,7 +123,7 @@ export function HrtLedger({ rep }: { rep: EvalReport }) {
           </table></div>
         </Details>
       )}
-      {limits.length > 0 && <Details summary={`Limits (${limits.length})`}><ul className="plain-list">{limits.map((l) => <li key={l.id} className="ev-note">{l.text}</li>)}</ul></Details>}
+      {limits.length > 0 && <Details wide summary={`Limits (${limits.length})`}><ul className="plain-list">{limits.map((l) => <li key={l.id} className="ev-note">{l.text}</li>)}</ul></Details>}
       <ChartFoot meta={meta} extra={<span>registered in evals/hrt/PLAN.md; run once</span>} />
     </Block>
   );
@@ -160,7 +160,7 @@ export function HrtDecisions({ rep }: { rep: EvalReport }) {
       </div>
       <p className="ev-note">Four contrasts were registered before any number existed. Four wins is what one expects when the same people write the generator and the rule, so read the cells where a rule does not win: building at once costs less than the shipped build-timing rule at the pack's own build costs (4 to 9 runs), and the review router's edge over random review partly comes from signal the generator hands it.</p>
 
-      <Details summary="The four registered contrasts, with the adjusted interval">
+      <Details wide summary="The four registered contrasts, with the adjusted interval">
         <div className="table-wrap"><table className="table" style={{ minWidth: 700 }}>
           <thead><tr><th>Decision</th><th className="num">Shipped</th><th>Naive</th><th className="num">Oracle</th><th className="num">Shipped minus naive</th><th className="num">Adjusted 98.75%</th></tr></thead>
           <tbody>{rows.map((r) => (
@@ -171,10 +171,10 @@ export function HrtDecisions({ rep }: { rep: EvalReport }) {
         </div>
       </Details>
       {board.map((b) => (
-        <Details key={b.id} summary={`${SHORT[b.id] ?? b.id}: every cell, exploratory unless marked registered`}>
+        <Details wide key={b.id} summary={`${SHORT[b.id] ?? b.id}: every cell, exploratory unless marked registered`}>
           {Object.entries(b.cells).map(([k, cell]) => (
             <div key={k} className="stack" style={{ gap: "var(--space-2)" }}>
-              <span className="t-label">{Object.keys(b.cells).length > 1 ? `setting ${k}` : "all"}</span>
+              <span className="t-label">{Object.keys(b.cells).length < 2 ? "all" : b.id === "D1" ? `build cost ${k} manual runs` : b.id === "D2" ? `review budget ${Math.round(Number(k) * 100)}%` : b.id === "D3" ? `collision cost to run value, L/G = ${k}` : `setting ${k}`}</span>
               <div className="table-wrap"><table className="table">
                 <thead><tr><th>Contrast</th><th className="num">Estimate</th><th className="num">95% interval</th><th>Reading</th></tr></thead>
                 <tbody>{Object.values(cell.contrasts).map((c) => (
@@ -188,7 +188,7 @@ export function HrtDecisions({ rep }: { rep: EvalReport }) {
       {cueShipped && isNum(cueShipped.est) && (
         <p className="ev-note">Recorded, not re-run: Cue saves {cueShipped.est.toFixed(1)} s per hour of work net of interruptions {ci(cueShipped.ci, 1)} against 0 for staying silent, and met one of its two registered targets. The help-level ladder is not scored: it is deterministic code with no outcome to score until the live study.</p>
       )}
-      {limits.length > 0 && <Details summary={`Limits (${limits.length})`}><ul className="plain-list">{limits.map((l) => <li key={l.id} className="ev-note">{l.text}</li>)}</ul></Details>}
+      {limits.length > 0 && <Details wide summary={`Limits (${limits.length})`}><ul className="plain-list">{limits.map((l) => <li key={l.id} className="ev-note">{l.text}</li>)}</ul></Details>}
       <ChartFoot meta={meta} extra={<span>registered in evals/hrt/PLAN.md; run once</span>} />
     </Block>
   );
