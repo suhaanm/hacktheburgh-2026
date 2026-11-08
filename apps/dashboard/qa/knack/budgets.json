@@ -101,8 +101,7 @@
     },
     "forecasts": {
       "path": "/forecasts",
-      "audience": "details",
-      "view": "admin"
+      "audience": "admin"
     },
     "agents": {
       "path": "/agents",
