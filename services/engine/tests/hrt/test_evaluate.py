@@ -52,7 +52,7 @@ def test_shape_ledger_is_schema_valid_and_carries_origin_n_split_and_every_regis
     assert any("v1" in w for w in worlds) and any("markov" in w for w in worlds) and any("rule change" in w for w in worlds)
     assert s["reliability_v1"] and all(0 <= b["p_mean"] <= 1 and 0 <= b["freq"] <= 1 for b in s["reliability_v1"])
     assert any(l["severity"] == "high" for l in s["limitations"]) and "no live predictions" in " ".join(l["text"] for l in s["limitations"])
-    assert "synthetic" in s["label"]
+    assert "generated" in s["label"]
 
 
 def test_shape_decisions_is_schema_valid_with_the_primary_family_and_the_unscored_rows_named():
@@ -63,7 +63,35 @@ def test_shape_decisions_is_schema_valid_with_the_primary_family_and_the_unscore
     for r in s["rows"]:
         assert r["verdict"] in ("win", "loss", "no clear difference") and len(r["ci95"]) == 2 and len(r["ci_adjusted_98_75"]) == 2
     assert s["not_scored"][0]["id"] == "D6" and s["recorded"][0]["id"] == "D5"
-    assert "synthetic" in s["label"] and s["meta"]["origin"] == "synthetic"
+    assert "generated" in s["label"] and s["meta"]["origin"] == "synthetic"
+
+
+def _strings(o, skip=("origin",)):
+    if isinstance(o, str):
+        yield o
+    elif isinstance(o, dict):
+        for k, v in o.items():
+            if k not in skip:
+                yield from _strings(v, skip)
+    elif isinstance(o, list):
+        for v in o:
+            yield from _strings(v, skip)
+
+
+def test_no_text_the_app_can_show_says_synthetic_or_simulated_and_none_is_a_banned_phrase():
+    """Owner decision D57: the app says 'generators we wrote', 'generated worlds'. The data's origin enum keeps its value; every other string is in plain words
+    and passes the banned-phrase list of docs/knack-ux/banned-phrases.json."""
+    import re
+
+    cfg = json.loads((repo_root() / "docs" / "knack-ux" / "banned-phrases.json").read_text(encoding="utf-8"))
+    for name, section in (("ledger", ev.shape_ledger(_dev("ledger"))), ("decisions", ev.shape_decisions(_dev("decisions")))):
+        assert section["meta"]["origin"] == "synthetic"
+        for text in _strings(section):
+            assert not re.search(r"\b(synthetic|simulat\w*)\b", text, re.I), f"{name}: {text[:120]}"
+            for p in cfg["phrases"] + cfg["visible_words"]:
+                pat = r"(?:^|[.!?]\s+)" + re.escape(p) if p.endswith(":") else r"\b" + re.escape(p) + r"\b"
+                assert not re.search(pat, text, re.I), f"{name}: banned phrase {p!r} in {text[:120]}"
+    assert ev.app_words("a simulated worker, the simulator's reward, Synthetic data") == "a generated worker, the generator reward, Generated data"
 
 
 def test_the_markdown_renders_both_sections_with_their_claims_and_limits():
@@ -98,4 +126,4 @@ def test_a_recorded_held_out_result_becomes_a_section(tmp_path, monkeypatch):
             pytest.skip("no dev result to stand in for a held-out file")
         shutil.copy(src, d / f"heldout_{part}.json")
     a, b = hrt_ledger(Ctx()), hrt_decisions(Ctx())
-    assert a["meta"]["origin"] == "synthetic" and a["rows"] and b["rows"] and b["meta"]["n_unit"] == "simulated worlds"
+    assert a["meta"]["origin"] == "synthetic" and a["rows"] and b["rows"] and b["meta"]["n_unit"] == "generated worlds"

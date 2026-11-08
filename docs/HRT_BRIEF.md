@@ -149,7 +149,9 @@ python -m pytest tests/hrt -q                                   # ledger, scorin
 python -m understudy_engine.hrt.run dev                         # DEV pools only, writes evals/hrt/results/dev_*.json
 python -m understudy_engine.hrt.run freeze                      # hashes the code and the plan
 UNDERSTUDY_HRT_HELDOUT=1 python -m understudy_engine.hrt.run heldout --part ledger      # once; refuses a second run
-python3 scripts/hrt_brief.py                                    # re-renders this document from the reports
+make hrt-brief                                                  # re-renders this document from the reports (same as: python3 scripts/hrt_brief.py)
 ```
+
+After every `make eval`, or any change under `evals/hrt/results` or `evals/mlv2/results`, run `make hrt-brief` and commit `docs/HRT_BRIEF.md`; `tests/hrt/test_brief.py` fails while the committed text is stale.
 
 The plan, with its amendments, is `evals/hrt/PLAN.md`. The held-out log is `evals/hrt/heldout_log.jsonl`.

@@ -8,6 +8,7 @@ import { Facts } from "../components/Facts";
 import { Reliability, RiskCoverage, type RcPoint, type RelPoint } from "../components/EvidenceCharts";
 import { EvidenceMap, OtherSections, PrivacyEvidence, useHashOpen } from "../components/EvidenceMap";
 import { LiveRuns } from "../components/LiveRuns";
+import { HrtEvidence } from "../components/HrtEvidence";
 import { Details } from "../components/ui";
 import { mapRows, otherSections } from "../lib/evidence";
 import { fmtInterval, fmtPct, fmtPctInterval, signed } from "../lib/format";
@@ -116,6 +117,7 @@ export default function Evidence() {
         <Ope rep={rep} />
         <Redteam rep={rep} />
         <Ski rep={rep} />
+        <HrtEvidence rep={rep} />
         <Deficits rep={rep} />
         <PresenceBlock rep={rep} />
         <Claims rep={rep} />

@@ -6,6 +6,7 @@ Read-only: the harness (`make eval`) never runs the held-out command; it reads `
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from understudy_engine.store.paths import evals_dir
@@ -14,6 +15,39 @@ GEN = "synthetic"
 WORLD_LABEL = {"v1": "v1 world (fresh seeds, no shift)", "markov": "shifted: markov", "latent_skill": "shifted: latent skill", "process_trace": "shifted: process trace",
                "route_no_drift": "error risk, no drift", "route_drift": "error risk, rule change at case 1,500"}
 WORLD_ORDER = tuple(WORLD_LABEL)
+
+
+# D57: no text in the app says "synthetic" or "simulated". The data's ``origin`` field keeps its enum value (the app maps it to words); every other string that
+# came from the frozen runs is put into plain words here, at the shaping layer, so the recorded results stay exactly as they were produced.
+_APP_RULES = (
+    (re.compile(r"\bthis simulation\b", re.I), "these generated worlds"),
+    (re.compile(r"\bsimulator(?:'s)?\b", re.I), "generator"),
+    (re.compile(r"\bsimulation\b", re.I), "generated test"),
+    (re.compile(r"\bsimulated\b", re.I), "generated"),
+    (re.compile(r"\bsynthetic\b", re.I), "generated"),
+)
+_KEEP_KEYS = frozenset({"origin"})
+
+
+def _cap(rep: str, like: str) -> str:
+    return rep[:1].upper() + rep[1:] if like[:1].isupper() else rep
+
+
+def _plain(text: str) -> str:
+    for pat, rep in _APP_RULES:
+        text = pat.sub(lambda m, rep=rep: _cap(rep, m.group(0)), text)
+    return text
+
+
+def app_words(o: Any) -> Any:
+    """The same structure with every string in the app's words (no 'synthetic', no 'simulated'); keys named ``origin`` keep their enum value."""
+    if isinstance(o, str):
+        return _plain(o)
+    if isinstance(o, dict):
+        return {k: (v if k in _KEEP_KEYS else app_words(v)) for k, v in o.items()}
+    if isinstance(o, list):
+        return [app_words(v) for v in o]
+    return o
 
 
 def _r(x: Any, nd: int = 4) -> Any:
@@ -41,14 +75,14 @@ LEDGER_LIMITS = [
     ("hrt-ledger-guard-guarantee", "medium", "The guard's bound on false flags assumes each episode's loss difference has conditional mean at most zero given the past. Episodes of one person are not independent, so the bound is a design target that the no-drift deployments check, not a proof."),
     ("hrt-ledger-eight", "medium", "Eight deployments per world give wide intervals for guard counts and for the strategy comparison; counts are shown with exact intervals."),
     ("hrt-ledger-one-direction", "medium", "The guard compares the model with a naive predictor. A model that drifts but stays better than that predictor is not flagged (the error-risk world after the rule change); the loss of calibration shows in the reliability table and the intercept, and nothing recalibrates the model in this version."),
-    ("hrt-ledger-no-live", "medium", "The ledger is built and tested, but the running product has recorded no live predictions yet, so no real prospective result exists. These are replays of simulated time."),
+    ("hrt-ledger-no-live", "medium", "The ledger is built and tested, but the running product has recorded no live predictions yet, so no real prospective result exists. These are replays of generated time."),
     ("hrt-ledger-oracle", "low", "The oracle strategy picks the better of two predictors in hindsight; it bounds what is possible and is not implementable."),
 ]
 DECISION_LIMITS = [
-    ("hrt-decisions-ours", "high", "Every decision is scored in a simulator we wrote, with a cost we chose. The ordering of policies is a statement about these mechanisms, not about real routines, real reviewers, real workdays or real people."),
+    ("hrt-decisions-ours", "high", "Every decision is scored in a world we generated, with a cost we chose. The ordering of policies is a statement about these mechanisms, not about real routines, real reviewers, real workdays or real people."),
     ("hrt-decisions-costs", "medium", "The review minutes per case, the cost of an escaped error, the build cost b, the ratio of a collision's cost to a finished run's value (L/G) and the intervention reward are assumptions; each row prints a sweep or says which cost it hangs on."),
     ("hrt-decisions-routing-signals", "medium", "In the routing generator the worker's check, the agent's stated confidence and the worker's trace are drawn from the realised error. Part of the model's edge over random review is signal our generator hands it."),
-    ("hrt-decisions-build-now", "medium", "At the pack's own build costs (4 to 9 manual runs) building at once is cheaper than the shipped build-timing rule in this simulation; the rule beats break-even, the classical reference, which is the registered primary contrast."),
+    ("hrt-decisions-build-now", "medium", "At the pack's own build costs (4 to 9 manual runs) building at once is cheaper than the shipped build-timing rule in these generated worlds; the rule beats break-even, the classical reference, which is the registered primary contrast."),
     ("hrt-decisions-family", "low", "Four primary contrasts were registered; every other cell is exploratory and is never used to say a rule works. The adjusted level is Bonferroni, which is conservative."),
 ]
 
@@ -86,6 +120,10 @@ def _claim_text(c: dict[str, Any]) -> str:
 
 
 def shape_ledger(res: dict[str, Any]) -> dict[str, Any]:
+    return app_words(_shape_ledger(res))
+
+
+def _shape_ledger(res: dict[str, Any]) -> dict[str, Any]:
     worlds = res["worlds"]
     rows, guard_rows = [], []
     n_preds = 0
@@ -126,7 +164,7 @@ def shape_ledger(res: dict[str, Any]) -> dict[str, Any]:
         "meta": {"origin": GEN, "n": n_preds, "n_unit": "scored predictions", "split": "models frozen at deployment on a training pool; every prediction written to a hash-chained ledger before its outcome and scored forward in time, on new seeds",
                  "interval_level": 0.95, "note": "Cluster bootstrap resampling people (error risk: blocks of 100 cases), B = 2000, paired across predictors. Pre-registered in evals/hrt/PLAN.md; run once on held-out seeds.", "generated_at": res.get("generated_at") or "1970-01-01T00:00:00Z"},
         "statement": " ".join(bits),
-        "label": "synthetic, held-out seeds, single frozen run; the ledger has recorded no live predictions yet",
+        "label": "generated worlds, held-out seeds, single frozen run; the ledger has recorded no live forecasts yet",
         "rows": claims, "worlds": rows, "guard": guard_rows, "guard_sensitivity": sens,
         "reliability_v1": [{k: b[k] for k in ("p_mean", "freq", "n", "freq_lo", "freq_hi", "lo", "hi")} for b in v1["scores"]["predictors"]["model"]["reliability"]],
         "reliability_v1_online_base": [{k: b[k] for k in ("p_mean", "freq", "n", "lo", "hi")} for b in v1["scores"]["predictors"]["online_base"]["reliability"]],
@@ -152,17 +190,21 @@ def _row_values(row: dict[str, Any]) -> dict[str, Any]:
 
 
 def shape_decisions(res: dict[str, Any]) -> dict[str, Any]:
+    return app_words(_shape_decisions(res))
+
+
+def _shape_decisions(res: dict[str, Any]) -> dict[str, Any]:
     rows = [_row_values(r) for r in res["rows"]]
     n = sum(res["replicates"].values())
     fam = res["primary_family"]
     wins = [r["id"] for r in rows if r["verdict"] == "win"]
     cue = (res.get("recorded") or [{}])[0]
-    stmt = (f"Four registered contrasts, each the shipped rule against a naive policy on fresh simulated worlds, judged at the Bonferroni-adjusted level ({fam['adjusted_level']:.2%}): "
+    stmt = (f"Four registered contrasts, each the shipped rule against a naive policy in fresh generated worlds, judged at the Bonferroni-adjusted level ({fam['adjusted_level']:.2%}): "
             f"{len(wins)} of 4 are wins ({', '.join(wins) if wins else 'none'}). Costs that the data cannot supply are swept, not assumed.")
     return {
-        "meta": {"origin": GEN, "n": n, "n_unit": "simulated worlds", "split": "fresh replicate worlds on new seeds; shipped, naive and oracle policies scored on the same world; paired bootstrap over worlds",
+        "meta": {"origin": GEN, "n": n, "n_unit": "generated worlds", "split": "fresh replicate worlds on new seeds; shipped, naive and oracle policies scored on the same world; paired bootstrap over worlds",
                  "interval_level": 0.95, "note": "Primary family of 4 at the Bonferroni-adjusted level; every other cell is exploratory. Pre-registered in evals/hrt/PLAN.md; run once on held-out seeds.", "generated_at": res.get("generated_at") or "1970-01-01T00:00:00Z"},
-        "statement": stmt, "label": "synthetic, held-out seeds, single frozen run",
+        "statement": stmt, "label": "generated worlds, held-out seeds, single frozen run",
         "rows": rows, "primary_family": fam, "scoreboard": res["rows"], "recorded": res.get("recorded"), "not_scored": res.get("not_scored"),
         "replicates": res["replicates"], "split_label": res.get("split_label"), "code_fingerprint": res.get("code_fingerprint"),
         "limitations": [{"id": i, "severity": s, "text": t} for i, s, t in DECISION_LIMITS],

@@ -1,6 +1,6 @@
 # Understudy. Lead-owned. Services that do not exist yet are skipped by scripts/dev.sh.
 # Python: `uv run --package <pkg>` (plain `uv run pytest` at the root does not see the service dependencies).
-.PHONY: setup check refs synth dev stop demo preflight eval redteam test test-engine test-agent test-packs test-ui lint
+.PHONY: setup check refs synth dev stop demo preflight eval hrt-brief redteam test test-engine test-agent test-packs test-ui lint
 
 UV_E = uv run --package understudy-engine
 UV_A = uv run --package understudy-agent
@@ -49,6 +49,10 @@ preflight:
 # Writes evals/report.json and evals/report.md (the Evidence page reads them). Add FAST=1 for a quick run.
 eval:
 	UNDERSTUDY_MOCK=1 $(UV_A) python -m understudy_engine.eval $(if $(FAST),--fast,)
+
+# Re-renders docs/HRT_BRIEF.md from the reports under evals/ (run it after `make eval`; tests/hrt/test_brief.py fails while the committed brief is stale).
+hrt-brief:
+	python3 scripts/hrt_brief.py
 
 # Red-team ablation table (deterministic, offline, scripted vulnerable planner).
 redteam:
