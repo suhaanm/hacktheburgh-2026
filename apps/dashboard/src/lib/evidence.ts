@@ -318,3 +318,14 @@ export function liveFixSentence(f: LiveFix): string {
   const before = f.before && f.before.pass != null ? ` Before the fix, the same condition: ${f.before.pass} of ${f.before.n ?? "?"} passed${f.before.falseClaims != null ? `, ${f.before.falseClaims} false claims` : ""}.` : "";
   return `${after}${before}`;
 }
+
+/**
+ * A sentence in the eval report is written for the report's own readers and can name a field of it ("live.false_claims_by_condition").
+ * A reviewer reading the page has no such field, so a dotted or snake_case name is said in words. Plain words are left alone.
+ */
+export function plainScope(text: string): string {
+  return text
+    .replace(/\blive\.false_claims_by_condition\b/g, "the real-model table below")
+    .replace(/\*_by_condition\b/g, "by-condition")
+    .replace(/\b[a-z]+(?:_[a-z0-9]+)+\b/g, (m) => m.replace(/_/g, " "));
+}

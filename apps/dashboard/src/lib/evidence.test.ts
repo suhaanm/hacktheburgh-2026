@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import reportFx from "../fixtures/eval-report.json";
 import type { EvalReport } from "../types";
-import { ANCHORS, ORIGIN_LABEL, describeSection, hasInterval, mapCounts, mapRows, nText, originKind, originWords, otherSections, sectionTitle } from "./evidence";
+import { ANCHORS, ORIGIN_LABEL, describeSection, hasInterval, mapCounts, mapRows, nText, originKind, originWords, otherSections, plainScope, sectionTitle } from "./evidence";
 
 const rep = reportFx as unknown as EvalReport & { evidence_map: unknown[] };
 
@@ -224,5 +224,15 @@ describe("the origin badge for something that has not run", () => {
     expect(originWords("mixed").text).toBe("");
     expect(originWords("unknown")).toEqual({ text: "not run", data: "not_run", sr: ", nothing was measured yet" });
     expect(originWords("").text).toBe("not run");
+  });
+});
+
+describe("plainScope", () => {
+  it("says a report field in words and leaves plain words alone", () => {
+    expect(plainScope("the mock-model clean and robust runs only; the real-model false claims are by condition in live.false_claims_by_condition")).toBe(
+      "the mock-model clean and robust runs only; the real-model false claims are by condition in the real-model table below",
+    );
+    expect(plainScope("fresh worlds on new seeds")).toBe("fresh worlds on new seeds");
+    expect(plainScope("counts in false_claims and the *_by_condition maps")).toBe("counts in false claims and the by-condition maps");
   });
 });
