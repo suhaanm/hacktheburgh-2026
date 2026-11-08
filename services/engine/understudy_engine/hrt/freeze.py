@@ -16,10 +16,11 @@ from understudy_engine.store.paths import evals_dir
 
 from .worlds import HELDOUT_ENV
 
-PARTS = ("ledger", "decisions")
+PARTS = ("ledger", "decisions", "recal")
 PART_FILES = {
     "ledger": ("__init__", "ledger", "scoring", "guard", "worlds", "prospective", "run"),
     "decisions": ("__init__", "scoreboard", "worlds", "run"),
+    "recal": ("__init__", "ledger", "scoring", "worlds", "prospective", "recal", "run_recal"),     # the follow-up of PLAN_RECAL.md: its own plan, its own freeze
 }
 
 
@@ -43,6 +44,9 @@ def code_hashes(part: str | None = None) -> dict[str, str]:
     plan = out_dir() / "PLAN.md"
     if plan.exists():
         h["PLAN.md"] = hashlib.sha256(plan.read_bytes()).hexdigest()
+    own = out_dir() / f"PLAN_{part.upper()}.md" if part else None            # a part with a plan of its own (PLAN_RECAL.md) is gated by it as well
+    if own is not None and own.exists():
+        h[own.name] = hashlib.sha256(own.read_bytes()).hexdigest()
     return h
 
 

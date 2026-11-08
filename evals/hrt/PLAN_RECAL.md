@@ -67,4 +67,20 @@ not what an intercept and a slope can repair. A negative result on R3 would say 
 
 ## Amendment log
 
-(empty)
+**A1, Sun 8 Nov 2026 about 01:40 GMT, after one dev run (DEV seeds k = 29, 30, never reported as evidence), before the freeze and before any run on the new seeds.**
+The dev run showed the registered arm `recal` (a fit on **all** resolved outcomes) is slow to follow a rule change: in the drift world after the change its calibration
+intercept was still about +0.6 (the frozen model's was about +1.1), because 1,500 outcomes from before the change keep pulling the fit back. R4 as registered (the
+intercept interval of `recal` contains 0) failed on dev for that reason and **stays registered and will be reported whatever it does**. The registered arm is not
+changed. Added, before the freeze, one further arm with a fixed setting chosen here from first principles (a window of the 2,000 most recent resolved outcomes, so that
+a fit forgets a regime after a few thousand outcomes; no other window was tried, on dev or anywhere) and three further claims:
+
+* **`recal_w`**: as `recal` (same ridge 20, refit every 200 resolved outcomes, same clipping) but fitted only on the **2,000 most recent resolved outcomes** (all of them
+  while fewer than 2,000 have resolved).
+* **R5** Error risk, rule change: after the change `recal_w` beats the frozen model **and** beats `recal` on log loss. Pass: the upper ends of both paired intervals < 0.
+* **R6** Error risk, rule change: after the change the 95% interval of `recal_w`'s calibration intercept contains 0.
+* **R7** No harm for `recal_w`: in the v1 world and in the error-risk world with no change, `recal_w` is not worse than the frozen model by more than **0.01** nats
+  (non-inferiority; a windowed fit is noisier than a growing one, so the margin is twice R2's, fixed here). Pass: upper end of both intervals <= +0.01.
+
+Reported, not claims: `recal_w` against the best naive predictor in each shifted world, and `recal_w` against the frozen model in each shifted world. The dev run also
+showed, for reading only: in the shifted hazard worlds `recal` came close to the online base rate (it did not clearly beat it), so this plan makes no claim that
+recalibration beats a naive predictor there; it asks whether it **rescues the model from being far worse than one**.
