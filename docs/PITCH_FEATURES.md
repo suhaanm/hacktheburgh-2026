@@ -1,6 +1,6 @@
 # Knack: the features, for the pitch and the launch video
 
-Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sun 08 Nov 2026, 02:47 UTC, checked against main at 1a2cdc6. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
+Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sun 08 Nov 2026, 03:10 UTC, checked against main at 24d960c. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
 
 This is the master document. It lists 70 entries (66 features and 4 write-ups of results that did not hold up) on 35 pages, grouped by capability. One page per feature (with a 30-second spoken script and slide bullets) is in `docs/features/`; the index with status is `docs/features/index.md`; the 25 video claims are in `docs/features/video-beats.md`; the 28 hardest judge questions are in `docs/features/faq.md`.
 
@@ -2250,8 +2250,8 @@ Open Evidence: the map of sections with their origin labels in plain words, the 
 
 | What | Label | Source |
 |---|---|---|
-| 37 sections in the evidence map: 35 with numbers, 0 pending, 2 not run (the live study and the study across roles), 0 failed; 219 limitations (70 high, 119 medium, 30 low); 7 generated findings | synthetic origin throughout except the not-run live study | `evals/report.md; evals/report.facts.json` |
-| About 8,126 test functions across the code base (a static count; parametrised cases not expanded) | offline tests | `evals/report.facts.json (tests)` |
+| 37 sections in the evidence map: 35 with numbers, 0 pending, 2 not run (the live study and the study across roles), 0 failed; 220 limitations (70 high, 120 medium, 30 low); 7 generated findings | synthetic origin throughout except the not-run live study | `evals/report.md; evals/report.facts.json` |
+| About 8,193 test functions across the code base (a static count; parametrised cases not expanded) | offline tests | `evals/report.facts.json (tests)` |
 
 #### Honest limit
 
@@ -2837,7 +2837,7 @@ Not verified: any comparison with commercial products. The sources here do not c
 
 ## Numbers you may quote
 
-Only with the n, the split, the interval and the origin printed beside them. Numbers that have no interval in their source (the dignity gate table, the 14 of 14 replay, the pooled start-or-wait figures, the calendar table, the section and limitation counts) are left out of this box on purpose; they stay on their pages with their label. Where two numbers are marked 'quote both', quoting one without the other would mislead. All are from the report as regenerated on 8 Nov 2026 at 02:22 UTC (git 48723dd) unless the source says otherwise; the author re-checked each number against it, and the wording but not the numbers changed under D57; if the report is regenerated, re-check each line against its source file before the freeze.
+Only with the n, the split, the interval and the origin printed beside them. Numbers that have no interval in their source (the dignity gate table, the 14 of 14 replay, the pooled start-or-wait figures, the calendar table, the section and limitation counts) are left out of this box on purpose; they stay on their pages with their label. Where two numbers are marked 'quote both', quoting one without the other would mislead. All are from the report as regenerated on 8 Nov 2026 at 02:58 UTC (git 9780781) unless the source says otherwise; the author re-checked each number against it, and the wording but not the numbers changed under D57; if the report is regenerated, re-check each line against its source file before the freeze.
 
 | Number | n and split | Origin | Source |
 |---|---|---|---|
@@ -2893,9 +2893,9 @@ Found while writing. Each row names both files; the third column says which one 
 
 | Topic | Followed | Disagrees | Used |
 |---|---|---|---|
-| Privacy canary count | evals/report.md and evals/report.facts.json (regenerated 8 Nov 02:22 UTC; the same counts as 7 Nov 21:40): 0 of 11,456 planted tokens, 88 runs of 11 flows, one-sided bound 3.35% per run | README.md and docs/drafts/CLAIMS.md (C40): 0 of 11,336, 80 runs of 10 flows, 3.7% | the generated report |
-| Size of the report and register | evals/report.md (regenerated 8 Nov 02:22 UTC): 37 sections in the evidence map (35 with numbers, 2 not run), 219 limitations (70 high, 119 medium, 30 low) | docs/FEATURE_CATALOGUE.md and docs/drafts/DEVPOST.md: 32 sections, a register of 124 (34 high, 69 medium, 21 low); docs/MVP_STATUS.md: 32 sections ok, 1 pending, 2 not run | the generated report |
-| Test counts | docs/MVP_STATUS.md (about 21:20): 3,889 + 1,726 + 541 + 2,684 passed across engine and packs, agent, dashboard and desktop; docs/FIRST_LAUNCH.md (23:50): dashboard 741, desktop 3,079 | evals/report.facts.json (8 Nov 02:22 UTC): 8,126 test functions, a static count with parametrised cases not expanded | quote none as a pass count without saying how and when it was counted; re-run `make test` at the freeze |
+| Privacy canary count | evals/report.md and evals/report.facts.json (regenerated 8 Nov 02:58 UTC; the same counts as 7 Nov 21:40): 0 of 11,456 planted tokens, 88 runs of 11 flows, one-sided bound 3.35% per run | README.md and docs/drafts/CLAIMS.md (C40): 0 of 11,336, 80 runs of 10 flows, 3.7% | the generated report |
+| Size of the report and register | evals/report.md (regenerated 8 Nov 02:58 UTC): 37 sections in the evidence map (35 with numbers, 2 not run), 220 limitations (70 high, 120 medium, 30 low) | docs/FEATURE_CATALOGUE.md and docs/drafts/DEVPOST.md: 32 sections, a register of 124 (34 high, 69 medium, 21 low); docs/MVP_STATUS.md: 32 sections ok, 1 pending, 2 not run | the generated report |
+| Test counts | docs/MVP_STATUS.md (about 21:20): 3,889 + 1,726 + 541 + 2,684 passed across engine and packs, agent, dashboard and desktop; docs/FIRST_LAUNCH.md (23:50): dashboard 741, desktop 3,079 | evals/report.facts.json (8 Nov 02:58 UTC): 8,193 test functions, a static count with parametrised cases not expanded | quote none as a pass count without saying how and when it was counted; re-run `make test` at the freeze |
 | Reviewer reproducers | docs/FIRST_LAUNCH.md (23:50): 185 on the agent branch, not yet merged; docs/MVP_STATUS.md and evals/agentic/ITERATIONS_8.md: 183 of 183 | README.md and docs/FIX_LEDGER.md: 172 of 172 | 183 of 183, the last figure on a merged tree |
 | Simulated-study power at n = 16 | evals/report.md (Study power): false positives 4.9%; power 10.2%, 27.3%, 74.8% for small, medium, large | evals/study_sim/REPORT.md and the register entry sim-power: about 6% false positives and 12%, 29%, 76% | the Study power table |
 | Always-listening microphone | docs/DECISIONS.md D52 and docs/knack-ux/09-wake-voice.md: 'hey knack' listening is on by default, on-device | docs/FLAGS.md and docs/FEATURE_CATALOGUE.md: hold to talk only, no always-listening microphone | D52 (later); the other two are stale |

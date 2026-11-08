@@ -34,8 +34,8 @@ Open Evidence: the map of sections with their origin labels in plain words, the 
 
 | What | Label | Source |
 |---|---|---|
-| 37 sections in the evidence map: 35 with numbers, 0 pending, 2 not run (the live study and the study across roles), 0 failed; 219 limitations (70 high, 119 medium, 30 low); 7 generated findings | synthetic origin throughout except the not-run live study | `evals/report.md; evals/report.facts.json` |
-| About 8,126 test functions across the code base (a static count; parametrised cases not expanded) | offline tests | `evals/report.facts.json (tests)` |
+| 37 sections in the evidence map: 35 with numbers, 0 pending, 2 not run (the live study and the study across roles), 0 failed; 220 limitations (70 high, 120 medium, 30 low); 7 generated findings | synthetic origin throughout except the not-run live study | `evals/report.md; evals/report.facts.json` |
+| About 8,193 test functions across the code base (a static count; parametrised cases not expanded) | offline tests | `evals/report.facts.json (tests)` |
 
 ### Honest limit
 
@@ -90,7 +90,7 @@ It improves readability, not accuracy: a sentence can still mislead with numbers
 ## Slide bullets
 
 - `make eval` rebuilds the report from the code that owns each number.
-- 37 sections: 35 with numbers, 2 not run, 0 failed; 219 limitations (70 high).
+- 37 sections: 35 with numbers, 2 not run, 0 failed; 220 limitations (70 high).
 - Origin labels in plain words: generators we wrote, language-model participants, live, real and generated, not run; the live study says 'not run'.
 - Explainer: every number must trace to the data; template by default.
 - The check proves traceability, not truth.
