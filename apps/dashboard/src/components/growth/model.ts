@@ -351,7 +351,7 @@ export function cardsOf(w: WireGrowth): ComponentCard[] {
 /* -- The composite, always with its parts ------------------------------------------------------ */
 export interface CompositePart { id: string; label: string; weight: number; value: number | null; shown: string }
 export interface CompositeView {
-  /** Always true: the composite overstated improvement on simulated learners whose skill did not change. */
+  /** Always true: the composite overstated improvement on generated learners whose skill did not change. */
   experimental: true;
   caveat: string;
   value: number;
@@ -448,10 +448,10 @@ export function claimOf(rows: SkillRowView[]): string {
 
 /* -- Origin wording ---------------------------------------------------------------------------- */
 export function originSentence(detail: OriginDetail | undefined, origin: "real" | "synthetic" | "mixed" | undefined): string {
-  if (detail === "simulated_participants") return "Simulated participants (language model), not people.";
-  if (detail === "synthetic_learner") return "Synthetic learners with planted learning curves, not people.";
+  if (detail === "simulated_participants") return "Language-model participants, not people.";
+  if (detail === "synthetic_learner") return "Generated learners with planted learning curves, not people.";
   if (detail === "live_worker") return "Your own work on this computer. One person is not a study.";
-  if (origin === "synthetic") return "Synthetic data, not people.";
+  if (origin === "synthetic") return "Generated data, not people.";
   if (origin === "real") return "Real work. One person is not a study.";
   return "";
 }

@@ -33,7 +33,9 @@ describe("buildBrief", () => {
   });
   it("lists the limits, and none of them ranks anyone", () => {
     expect(b.limits).toBe(BRIEF_LIMITS);
-    expect(b.limits.join(" ")).toMatch(/synthetic/);
+    // D57: the two banned words are gone from the app; the limit still says the firm is made up and its people are generated
+    expect(b.limits.join(" ")).toMatch(/made-up firm/);
+    expect(b.limits.join(" ")).not.toMatch(/synthetic|simulated/i);
     expect(JSON.stringify(b)).not.toMatch(/best performer|top performer|league|ranking of/i);
   });
   it("does not compare a role whose groups are under the minimum", () => {
