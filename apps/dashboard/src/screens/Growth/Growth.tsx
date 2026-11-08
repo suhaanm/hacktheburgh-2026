@@ -11,7 +11,7 @@ import { LedgerControls } from "../../components/growth/LedgerControls";
 import { AboutGrowth } from "../../components/growth/About";
 import { Details } from "../../components/ui";
 import { EarlyHero, EmptyHero, HowStepsAreCounted } from "../../components/growth/States";
-import { SectionSources, useExampleSource } from "../../components/growth/GrowthSection";
+import { SectionSources, WhenNear, useExampleSource } from "../../components/growth/GrowthSection";
 import { TimeSection } from "../../components/growth/TimeSection";
 import { StepsSection } from "../../components/growth/StepsSection";
 import { MapSection } from "../../components/growth/MapSection";
@@ -179,10 +179,11 @@ export default function Growth() {
     <SectionSources>
       <div className="page page--wide gr-page">
         <Progress />
-        <TimeSection open={section === "time"} />
-        <StepsSection open={section === "steps"} />
-        <MapSection open={section === "map"} />
-        {commits && <CommitsSection open={section === "commits"} />}
+        {/* Below the fold: each reads its data when it is within 400 px of the screen or named by the address, not all at once on arrival. */}
+        <WhenNear id="time" title="Where my time goes" headline="Reading your week." open={section === "time"}><TimeSection open={section === "time"} /></WhenNear>
+        <WhenNear id="steps" title="My steps" headline="Reading your steps." open={section === "steps"}><StepsSection open={section === "steps"} /></WhenNear>
+        <WhenNear id="map" title="How my routines connect" headline="Reading how your routines connect." open={section === "map"}><MapSection open={section === "map"} /></WhenNear>
+        {commits && <WhenNear id="commits" title="My commits" headline="Reading your commit habits." open={section === "commits"}><CommitsSection open={section === "commits"} /></WhenNear>}
       </div>
     </SectionSources>
   );

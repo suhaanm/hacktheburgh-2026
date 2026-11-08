@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ApiError } from "../../api";
 import { safeWhy } from "../../lib/voice";
 import { Details } from "../ui";
@@ -25,6 +25,26 @@ export function GrowthSection({ id, title, headline, children, open = false, sum
       {children != null && <Details key={open ? "open" : "closed"} summary={summary} wide defaultOpen={open}>{children}</Details>}
     </section>
   );
+}
+
+/**
+ * A section below the fold reads its data only when it is near the screen (400 px away) or opened by the address (`?section=`). Until then a short placeholder with the
+ * same id and title stands in, so the page loads one or two reads, not seven at once. Without IntersectionObserver (tests, very old webviews) it loads at once.
+ */
+export function WhenNear({ id, title, headline, open = false, children }: { id: string; title: string; headline: string; open?: boolean; children?: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [near, setNear] = useState(open || typeof IntersectionObserver === "undefined");
+  useEffect(() => { if (open) setNear(true); }, [open]);
+  useEffect(() => {
+    if (near) return;
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver((entries) => { if (entries.some((e) => e.isIntersecting)) { setNear(true); io.disconnect(); } }, { rootMargin: "400px 0px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [near]);
+  if (near) return <>{children}</>;
+  return <div ref={ref} style={{ minHeight: "12rem" }}><GrowthSection id={id} title={title} headline={headline} busy /></div>;
 }
 
 /* -- One origin pill for the whole page -----------------------------------------------------------------------------------------
