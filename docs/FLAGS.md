@@ -11,6 +11,7 @@ A running service applies `DEFAULT_ON` once at startup (`understudy_engine/api/f
 | Flag | What it turns on | Notes |
 |---|---|---|
 | `UNDERSTUDY_X` | Every engine and agent extension layer: privacy, local model, calendar, git, proactive, Cue, awareness, evidence, attention, repeat list, insights, background agents, model routes | Awareness still sends no frame until the worker records consent (below) |
+| `UNDERSTUDY_X_CONNECTIONS` | The connections layer: the curated plugin and MCP presets, consent, revoke, the `mcp_call` runtime tool (docs/CONNECTIONS.md) | **Every connection stays OFF until the worker clicks it**; nothing starts at boot, in mock mode, in a test or in a demo. The default only makes the routes and the Settings panel available. An explicit `0` removes the routes and the agent's start and stop routes (and `/health` then reports the layer as off) |
 | `UNDERSTUDY_X_GEMINI` | Gemini routes for glance, pointing, verifier, and now every role | Through the egress guard and the ledger |
 | `UNDERSTUDY_X_LIVE`, `UNDERSTUDY_FLAG_VOICE` | Live voice in the desktop build | Hold to talk only; no always-listening microphone. The agent service's `live` router does not exist (agent health shows `live: false`): Live voice is a desktop feature |
 | `UNDERSTUDY_VOICE` | ElevenLabs spoken lines | Fixed vocabulary. Cue still speaks only on request (D36) |

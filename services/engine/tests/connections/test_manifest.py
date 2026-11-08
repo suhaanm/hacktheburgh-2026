@@ -171,3 +171,31 @@ def test_preset_view_is_immutable_data():
     assert isinstance(p, Preset) and p.tools.counts()["send"] == 1 and p.tools.lookup("conversations_add_message") == "send"
     d = copy.deepcopy(p.real)
     assert d == p.real
+
+
+def test_a_kind_tool_manifest_needs_an_entry_that_is_a_callable_and_a_connection_block():
+    m = _load("filesystem")
+    m["kind"] = "tool"
+    assert any("entry" in x or "required" in x for x in check_manifest(m)), "a tool without an entry is refused"
+    m["entry"] = "understudy_engine.plugins.manifest:resolve_tool_entry"
+    assert check_manifest(m) == []
+    m["entry"] = "os.path:sep"
+    assert any("not callable" in x for x in check_manifest(m))
+    m["entry"] = "no_such_module_xyz:thing"
+    assert any("cannot load" in x for x in check_manifest(m))
+    del m["connection"]
+    m["entry"] = "understudy_engine.plugins.manifest:resolve_tool_entry"
+    assert check_manifest(m), "a tool without a connection block is refused"
+
+
+def test_a_source_preset_keeps_its_source_rules_and_may_carry_a_connection_block():
+    import yaml
+    from understudy_engine.plugins.loader import BUILTIN_DIR
+
+    m = yaml.safe_load((BUILTIN_DIR / "graph_outlook" / "plugin.yaml").read_text())
+    assert m["kind"] == "source" and m["connection"]["real"]["transport"] == "plugin" and check_manifest(m) == []
+    m["egress"] = "app_only"
+    assert check_manifest(m), "a source can never be app_only: its raw items stay on this machine"
+    m = yaml.safe_load((BUILTIN_DIR / "graph_outlook" / "plugin.yaml").read_text())
+    m["connection"]["real"]["transport"] = "stdio"
+    assert check_manifest(m), "a source preset cannot pretend to be a stdio server"
