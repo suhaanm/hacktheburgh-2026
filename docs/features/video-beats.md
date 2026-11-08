@@ -49,4 +49,4 @@ From `docs/KNACK_DEMO.md` (on main), which holds the full shot list, spoken line
 
 ## Optional beat if it lands
 
-- 'Connect a few tools, read-only, off by default.' Shot: first run, role card Programmer, the Dev preset with everything off and the local stand-ins. Status: landing (`docs/CONNECTIONS.md`); do not film until it is on main.
+- 'Connect a few tools, read-only, off by default.' Shot: first run, role card Programmer, the Dev preset with everything off and the local stand-ins. Status: on main since 01:28 UTC (`docs/CONNECTIONS.md`, section 11): film the chips, the consent lines, Connect with the Example badge, and Settings, Connections; do not film an agent run that uses a connection, which the product does not show yet.

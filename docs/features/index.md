@@ -1,6 +1,6 @@
 # Knack feature index
 
-As of Sun 08 Nov 2026, 01:30 UTC, checked against main at 97b633f.
+As of Sun 08 Nov 2026, 01:33 UTC, checked against main at 97b633f.
 
 35 pages and 66 entries (features, plus four write-ups of results that did not hold up), for the pitch (Hack the Burgh XIII), the launch video, the demo and the submission video. The master document is `docs/PITCH_FEATURES.md`; the 20 video claims are in `video-beats.md`; the 25 hardest judge questions are in `faq.md`.
 
@@ -69,7 +69,7 @@ As of Sun 08 Nov 2026, 01:30 UTC, checked against main at 97b633f.
 
 | Feature | Page | Status | Targets |
 |---|---|---|---|
-| Connections: curated MCP plugins with role presets | [connections](connections.md) | **landing** (owner decision D55; built and documented on the CONNECTIONS branch (worktree-agent-a2c1788e3e4c0c876, docs/CONNECTIONS.md at 00:38 UTC); not on main yet; nothing real has been connected) | Wordsmith |
+| Connections: curated MCP plugins with role presets | [connections](connections.md) | **built** (owner decision D55; merged to main at 01:28 UTC (97b633f) with docs/CONNECTIONS.md; built and tested by its track, not seen end to end by the lead; nothing real has been connected) | Wordsmith |
 
 ## Voice and Hey Knack
 
@@ -132,7 +132,7 @@ As of Sun 08 Nov 2026, 01:30 UTC, checked against main at 97b633f.
 | ML v2, held-out: mostly negative | [what-did-not-hold-up](what-did-not-hold-up.md) | **verified** | HRT |
 | The simulated study sat at the floor | [what-did-not-hold-up](what-did-not-hold-up.md) | **verified** | HRT, G-Research |
 | Other results that went the wrong way | [what-did-not-hold-up](what-did-not-hold-up.md) | **verified** | G-Research |
-| Prospective prediction ledger and forward scoring | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **landing** (decision D59; plan registered at 00:35 UTC before any held-out run; code, held-out results and docs/HRT_BRIEF.md are on branch worktree-agent-a02c9cf8855c9f4ff (latest commit 7517c33, 01:19 UTC), not on main; an engine route for live ledger entries exists behind UNDERSTUDY_X_HRT but nothing in the running product writes a forecast to it yet) | HRT |
+| Prospective prediction ledger and forward scoring | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **landing** (decision D59; plan registered at 00:35 UTC before any held-out run; code, held-out results and docs/HRT_BRIEF.md are on branch worktree-agent-a02c9cf8855c9f4ff (latest commit 943c071, 01:28 UTC), not on main; an engine route for live ledger entries exists behind UNDERSTUDY_X_HRT but nothing in the running product writes a forecast to it yet) | HRT |
 | Drift guard: noticing when the model stops beating the baseline | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **landing** (as above: on the HRT branch, results landed, not on main) | HRT |
 | Decisions scoreboard: realised cost against a naive policy and an oracle | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **landing** (as above: on the HRT branch, results landed, not on main) | HRT |
 

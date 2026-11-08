@@ -8,7 +8,7 @@ This page covers Prospective prediction ledger and forward scoring, Drift guard:
 
 ## Prospective prediction ledger and forward scoring
 
-**Status:** landing (decision D59; plan registered at 00:35 UTC before any held-out run; code, held-out results and docs/HRT_BRIEF.md are on branch worktree-agent-a02c9cf8855c9f4ff (latest commit 7517c33, 01:19 UTC), not on main; an engine route for live ledger entries exists behind UNDERSTUDY_X_HRT but nothing in the running product writes a forecast to it yet) · **Page:** `docs/features/hrt-prospective-ledger.md` · **Targets:** HRT
+**Status:** landing (decision D59; plan registered at 00:35 UTC before any held-out run; code, held-out results and docs/HRT_BRIEF.md are on branch worktree-agent-a02c9cf8855c9f4ff (latest commit 943c071, 01:28 UTC), not on main; an engine route for live ledger entries exists behind UNDERSTUDY_X_HRT but nothing in the running product writes a forecast to it yet) · **Page:** `docs/features/hrt-prospective-ledger.md` · **Targets:** HRT
 
 ### What it does
 
@@ -80,7 +80,7 @@ One sentence each: in the first world the guard never flagged (0 of 8), so it co
 
 ### Honest limit
 
-The false-flag bound needs each episode's loss difference to have conditional mean at most zero given the past; episodes of one person are not independent, so it is a design target checked on eight deployments, not a proof. Eight deployments per world give wide intervals. After a flag there is no return rule. The guard catches 'the model is no better than a plain predictor', not 'the model is still better but miscalibrated'. A follow-up that recalibrates the model online from resolved outcomes is pre-registered (evals/hrt/PLAN_RECAL.md, written about 01:25 UTC, after the held-out result was seen, which the plan says; four claims R1 to R4 fixed in advance) and has not been run, so it is not a result.
+The false-flag bound needs each episode's loss difference to have conditional mean at most zero given the past; episodes of one person are not independent, so it is a design target checked on eight deployments, not a proof. Eight deployments per world give wide intervals. After a flag there is no return rule. The guard catches 'the model is no better than a plain predictor', not 'the model is still better but miscalibrated'. A follow-up that recalibrates the model online from resolved outcomes is pre-registered (evals/hrt/PLAN_RECAL.md, written about 01:25 UTC after the held-out result was seen, which the plan says; claims R1 to R4, then one amendment, A1, after a dev run, which added a windowed arm and claims R5 to R7) and was frozen at 01:26 UTC (evals/hrt/results/frozen.json). Its held-out run has not been made, so none of it is a result.
 
 ### Hackathon target
 

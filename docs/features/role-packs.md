@@ -75,7 +75,7 @@ The edge you did not try (sandbox task 'Wrong number of pages'): the fix passes 
 
 ### Honest limit
 
-Written from the job, not validated with people. The selectors for real tools (GitHub and GitLab pull requests, CI dashboards, logs, release consoles) are best-effort and not tested against live sites. Dwell priors are expert medians written into the pack, not measured. Minutes, cost and risk on a routine are illustrations (a flat 15 pounds an hour is a placeholder). Judgement shares come from an authored list. The pack suggests connection presets by id, including linear, which is not among the 13 preset files on the CONNECTIONS branch (it has jira).
+Written from the job, not validated with people. The selectors for real tools (GitHub and GitLab pull requests, CI dashboards, logs, release consoles) are best-effort and not tested against live sites. Dwell priors are expert medians written into the pack, not measured. Minutes, cost and risk on a routine are illustrations (a flat 15 pounds an hour is a placeholder). Judgement shares come from an authored list. The pack suggests connection presets by id, including linear, which is not among the 13 preset files on main (it has jira).
 
 ### Hackathon target
 
@@ -112,7 +112,7 @@ The total that does not match (sandbox task 'Net sales against the ledger'): the
 
 ### Honest limit
 
-Written from the job, not validated with people. Selectors for real warehouse consoles, notebooks, spreadsheets and BI tools are best-effort and not tested against live sites. Dwell priors, routine minutes and costs and judgement shares are authored, not measured. The pack suggests connection presets by id, including sheets and linear, which are not among the 13 preset files on the CONNECTIONS branch (it has google_workspace and jira). No stuck-model variant qualified for this role.
+Written from the job, not validated with people. Selectors for real warehouse consoles, notebooks, spreadsheets and BI tools are best-effort and not tested against live sites. Dwell priors, routine minutes and costs and judgement shares are authored, not measured. The pack suggests connection presets by id, including sheets and linear, which are not among the 13 preset files on main (it has google_workspace and jira). No stuck-model variant qualified for this role.
 
 ### Hackathon target
 
