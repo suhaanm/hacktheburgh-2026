@@ -59,7 +59,7 @@ export function liveModels(i: LiveInput): LiveView {
  */
 export const DEFAULTS = {
   "live-models": { shown: "on when a key is set", value: "on" },
-  interruptions: { shown: "Rarely", value: "rarely" },
+  interruptions: { shown: "Balanced", value: "balanced" },
   coaching: { shown: "on", value: "on" },
   "help-level": { shown: "Automatic", value: "auto" },
   "hey-knack": { shown: "on", value: "on" },
