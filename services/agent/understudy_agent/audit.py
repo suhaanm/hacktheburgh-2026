@@ -30,7 +30,7 @@ _MAX_META_KEYS = 16
 # kinds the product writes (others are accepted if they are plain tokens)
 KINDS = (
     "run_start", "run_end", "step", "tier_escalation", "gate", "queue_enqueued", "queue_decided",
-    "injection_pause", "drift_pause", "stuck_loop", "dataflow", "denylist", "settings_blocked", "budget",
+    "injection_pause", "drift_pause", "drift_check", "stuck_loop", "dataflow", "denylist", "settings_blocked", "budget",
     "kill", "rung_lowered", "completion_check", "false_claim", "consent", "shadow", "offhours", "observation",
 )
 
