@@ -197,6 +197,22 @@ def test_a_model_that_answers_in_prose_is_asked_to_act_then_reports_it_did_nothi
     assert "DONE:" in port.goals[1] and "final screen" not in port.goals[1]    # the ask says what to reply, not "a final screen is not showing"
 
 
+@pytest.mark.parametrize("status,why", [(403, "blocked"), (429, "blocked"), (503, "blocked"), (401, "login"), (404, "no_action")])
+def test_a_vague_ending_names_the_page_status_trusted_code_saw(tmp_path, status, why):
+    """A model that only chats while the page answers 403 or 401 is reported as blocked or needing a login, from the browser's own
+    HTTP status for the last page; any other status leaves the ending as it was."""
+    async def serve(route):
+        await route.fulfill(status=status, content_type="text/html", body=LINK_PAGE)
+
+    class Chatty(Scripted):
+        def computer_step(self, goal, screenshot, history, **kw):
+            self.asked += 1
+            return Done(summary="I am not sure what to do", claimed_success=False)
+
+    out = runner(Chatty([]), routed_host(serve), tmp_path)(task(), progress=lambda s: None, should_stop=lambda: False)
+    assert out["state"] == "failed" and out["why"] == why, out
+
+
 def test_a_proper_done_is_reported_at_once_and_never_sent_back_for_a_final_screen_a_free_task_does_not_have(tmp_path):
     port = Scripted([])                                                    # the first call already answers DONE
     out = runner(port, routed_host(serve_link), tmp_path)(task(), progress=lambda s: None, should_stop=lambda: False)
