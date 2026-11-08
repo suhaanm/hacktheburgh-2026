@@ -401,20 +401,24 @@ def test_a_model_proposal_cannot_introduce_a_risky_route(make_manager, port):
     assert r["route"] == "unclear" and r["question"]
 
 
-def test_desktop_tasks_show_instead_and_never_click(make_manager, port):
-    m = make_manager()
+def test_desktop_tasks_without_a_cleared_first_click_test_show_the_steps_and_say_why(make_manager, port):
+    from .desktop_fakes import FakeMac
+
+    m = make_manager(desktop_env=FakeMac(), desktop_armed=lambda: True)
     r = m.create("click on the Save button in Excel", "typed")
-    assert r["route"] == "desktop" and "doesn't click on your screen yet" in r["summary"] and r["needs_consent"] is None
+    assert r["route"] == "desktop" and r["summary"].startswith("Knack's first supervised click test hasn't been done") and r["needs_consent"] is None
     t = done(m, r["task_id"])
-    assert t.state == "done" and t.result == "Knack doesn't click on your screen yet. Here are the steps."
+    assert t.state == "done" and t.result == "Knack's first supervised click test hasn't been done on this Mac, so it won't click yet. Run that test first. Here are the steps."
     assert t.steps == ["Open the app", "Press the button"] and not (Path.home() / "Knack").exists()
 
 
-def test_desktop_with_a_rung_record_still_does_not_click_from_a_typed_task(make_manager):
+def test_desktop_with_a_record_that_is_not_valid_still_does_not_click(make_manager):
+    from .desktop_fakes import FakeMac
+
     (Path(os.environ["UNDERSTUDY_DATA_DIR"]) / "rung_cleared.json").write_text("{}")
-    m = make_manager(offline=True)
+    m = make_manager(offline=True, desktop_env=FakeMac(), desktop_armed=lambda: True)
     t = done(m, m.create("click the Save button in Excel", "typed")["task_id"])
-    assert t.state == "done" and t.result.startswith("Typed tasks don't use desktop clicking yet")
+    assert t.state == "done" and t.result.startswith("The record of Knack's first click test isn't valid")
 
 
 def test_browser_tasks_wait_for_a_click_then_run_through_the_runner(make_manager):

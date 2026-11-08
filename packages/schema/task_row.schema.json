@@ -13,7 +13,7 @@
       "type": "object", "additionalProperties": false,
       "required": ["kind", "scope_text", "can", "cannot", "folder", "command_hash", "cost_note", "max_minutes", "max_budget_usd", "buttons"],
       "properties": {
-        "kind": {"enum": ["claude_agent", "browser"]},
+        "kind": {"enum": ["claude_agent", "browser", "desktop"]},
         "scope_text": {"type": "string", "minLength": 1, "maxLength": 300},
         "can": {"type": "array", "maxItems": 8, "items": {"type": "string", "maxLength": 200}},
         "cannot": {"type": "array", "maxItems": 8, "items": {"type": "string", "maxLength": 200}},
