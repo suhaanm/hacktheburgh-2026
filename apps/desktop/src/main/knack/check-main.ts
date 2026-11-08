@@ -64,7 +64,11 @@ function fakeService(name: string, health: () => unknown): Promise<{ server: htt
         }
         if (req.url === '/health') return send(health())
         if (req.url?.startsWith('/agents/runs')) return send([])
-        send({ ok: true, echo: req.url })
+        if (req.method === 'POST') return send({ ok: true, echo: req.url })
+        // A route the stand-in does not know is a plain 404, as a service that is up but has not that layer: the dashboard then shows its example data
+        // instead of choking on a made-up shape.
+        res.statusCode = 404
+        send({ error: { code: 'not_found', message: 'stand-in' } })
       })
     })
     server.listen(0, '127.0.0.1', () => resolve({ server, port: (server.address() as { port: number }).port }))
@@ -153,6 +157,17 @@ async function run(): Promise<void> {
   const write = (await wc.executeJavaScript(`fetch('/agent/agents/spawn', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Understudy-Actor': 'worker', 'x-understudy-token': 'forged' }, body: JSON.stringify({ kind: 'shadow' }) }).then((r) => r.status)`)) as number
   const spawnReq = seen.filter((s) => s.name === 'agent' && s.url === '/agents/spawn').at(-1)
   check('a write reaches the agent with the dashboard Origin, the JSON body, and a forged token replaced by the real one', write === 200 && spawnReq?.headers.origin === `http://127.0.0.1:${config.ports.dashboard}` && spawnReq?.headers['x-understudy-token'] === TOKEN && spawnReq?.body === '{"kind":"shadow"}')
+
+  // ---- 2b. the dashboard's Settings switches reach the desktop settings through the page's own bridge, and only the listed ones
+  const bridge = (await wc.executeJavaScript(`(async () => {
+    const before = await window.knackSettings.getSettings()
+    const after = await window.knackSettings.patchSettings({ minimiseWhileWorking: false, useLiveModels: false, fileFolders: ['/'], awaySeconds: 1 })
+    const models = await window.knackShell.models.get()
+    return { before, after, models }
+  })()`)) as { before: Record<string, unknown>; after: Record<string, unknown>; models: Record<string, unknown> }
+  check('the page reads the desktop switches and changes the move-aside one, and the other keys it sent are dropped', bridge.before.minimiseWhileWorking === true && bridge.after.minimiseWhileWorking === false && settings.get().moveAsideWhileWorking === false && settings.get().useLiveModels === true && bridge.after.useLiveModels === true && !('fileFolders' in bridge.after), bridge)
+  check('the live models switch reports its state to the page and is separate from the settings bridge', typeof bridge.models.useLiveModels === 'boolean' && typeof bridge.models.keyPresent === 'boolean' && typeof bridge.models.running === 'boolean', bridge.models)
+  settings.patch({ moveAsideWhileWorking: true })
 
   // ---- 3. pictures of the dashboard, light and dark, at the window's own size
   for (const theme of ['light', 'dark'] as const) {

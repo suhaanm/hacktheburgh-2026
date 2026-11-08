@@ -151,10 +151,19 @@ export function awayLine(rep: { ran: unknown[]; failed: unknown[]; queued?: unkn
   return `Since you were away: ${n} ${n === 1 ? "run" : "runs"} finished, ${f} failed.`;
 }
 
-/** The rows Needs you shows: at least three, and every safety or blocking row; all of them once the worker asks. */
+/**
+ * The rows Needs you shows: at least three, and every safety or blocking row; all of them once the worker asks. The first routine proposal is never
+ * folded: saying yes or no to a routine is two clicks from Home (Needs you, then Watch first, Not now or Never), however many approvals wait.
+ */
 export function visibleItems(items: NeedsItem[], showAll: boolean): NeedsItem[] {
+  if (showAll) return items;
   const urgent = items.filter((i) => i.cls < 2).length;
-  return showAll ? items : items.slice(0, Math.max(NEEDS_ROWS, urgent));
+  const shown = items.slice(0, Math.max(NEEDS_ROWS, urgent));
+  const proposal = items.find((i) => i.kind === "proposal");
+  if (!proposal || shown.includes(proposal)) return shown;
+  // Make room for it: it takes the place of the last row that is not urgent, or follows the urgent rows when everything shown is urgent.
+  const last = shown.length - 1;
+  return shown.length > urgent ? [...shown.slice(0, last), proposal] : [...shown, proposal];
 }
 
 /** Counts of a list: how many show, how many are folded. */

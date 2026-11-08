@@ -20,6 +20,19 @@ export interface ContextSourceDeps {
   cue: () => string
   consent: () => { voice: string; screen: string; frames: boolean }
   rung: () => RungReading
+  /** Optional live readers for what the shell owns. Absent (or null): the value `hub.set*` last reported, or unknown. */
+  screen?: () => string | null
+  insight?: () => { id: string; template: string } | null | undefined
+  routine?: () => { id: string; step: number; of: number } | null | undefined
+}
+
+/** The dashboard's route (the URL hash of the Knack window) as the packet's closed screen id. Anything unknown is 'other'. Pure. */
+export function screenIdFromUrl(url: string): string {
+  if (!url.includes('#')) return 'home' // the dashboard opens on Home when the address names no screen
+  const m = /#\/?([a-z0-9-]+)/i.exec(url)
+  const seg = (m?.[1] ?? '').toLowerCase()
+  const map: Record<string, string> = { home: 'home', 'needs-you': 'needs_you', routines: 'routines', growth: 'growth', 'your-data': 'your_data', settings: 'settings', firm: 'admin', roles: 'admin', onboarding: 'admin', 'first-run': 'first_run', setup: 'first_run' }
+  return map[seg] ?? 'other'
 }
 
 export interface ContextHub {
@@ -52,12 +65,15 @@ export function createContextHub(d: ContextSourceDeps): ContextHub {
       const approvals = safe(d.approvals)
       const task = safe(d.task)
       const coach = safe(d.coach)
+      const liveScreen = d.screen ? safe(d.screen) : null
+      const liveInsight = d.insight ? safe(d.insight) : undefined
+      const liveRoutine = d.routine ? safe(d.routine) : undefined
       const inputs: PacketInputs = {
         trigger: o.trigger,
         mode: d.mock ? 'example' : 'live',
-        screen,
-        insight,
-        routine,
+        screen: liveScreen ? { value: liveScreen, t } : screen,
+        insight: liveInsight !== undefined ? { value: liveInsight, t } : insight,
+        routine: liveRoutine !== undefined ? { value: liveRoutine, t } : routine,
         approvals: approvals === undefined ? undefined : { value: approvals, t },
         task: task === undefined ? undefined : { value: task ? { id: task.id, step: task.step, of: task.stepsTotal } : null, t },
         coach: coach === undefined ? undefined : coach === null ? { value: null, t } : { value: { step: coach.step, zone: coach.zone }, t: coach.t },

@@ -11,7 +11,7 @@ const attn = (attentionFx as unknown as { data: AttentionSettings }).data;
 const noop = () => undefined;
 const props = (over: Partial<SettingsViewProps> = {}): SettingsViewProps => ({
   live: liveModels({ health: { mock: true, key_present: true }, canSwitch: true, running: false, changing: false }), onLive: noop,
-  attention: attn, attentionExample: false, attentionError: null, onPreset: noop, onMode: noop,
+  attention: attn, attentionExample: false, attentionError: null, onPreset: noop, onMode: noop, onResetLearned: noop, onLevelGlance: noop, wake: null, onWake: noop,
   desktop: null, onDesktop: noop, theme: "auto", onTheme: noop, view: "worker", onView: noop, pinned: false, onPinned: noop, version: "0.1.0", ...over,
 });
 const html = (over?: Partial<SettingsViewProps>) => renderToStaticMarkup(createElement(SettingsView, props(over)));
@@ -54,10 +54,21 @@ describe("Settings", () => {
   });
   it("a desktop-only row says so in a browser tab instead of vanishing", () => {
     const t = text(html());
-    expect((t.match(/Available in the Knack app\./g) ?? []).length).toBe(3);
+    expect((t.match(/Available in the Knack app\./g) ?? []).length).toBe(4);   // coaching, Hey Knack, move aside, open at login
+  });
+  it("Hey Knack is a switch with its note printed, and says why when it is on but quiet", () => {
+    const on = text(html({ wake: { switchOn: true, listening: true, line: "Listening for Hey Knack. Stays on this Mac, nothing stored." } }));
+    expect(on).toContain("Listen for Hey Knack");
+    expect(on).toContain("Stays on this Mac. Nothing is stored.");
+    expect(html({ wake: { switchOn: true, listening: true, line: "x" } })).toMatch(/aria-label="Listen for Hey Knack"[^>]*checked/);
+    const quiet = text(html({ wake: { switchOn: true, listening: false, line: "Not listening while the screen is locked" } }));
+    expect(quiet).toContain("Stays on this Mac. Nothing is stored. Not listening while the screen is locked");
+    const off = text(html({ wake: { switchOn: false, listening: false, line: "Hey Knack is off" } }));
+    expect(off).toContain("Stays on this Mac. Nothing is stored.");
+    expect(off).not.toContain("Hey Knack is off");
   });
   it("with the app: coaching, move aside and open at login are real switches with their lines", () => {
-    const h = html({ desktop: { cueEnabled: true, minimiseWhileWorking: true, launchAtLogin: false } });
+    const h = html({ desktop: { cueEnabled: true, minimiseWhileWorking: true, launchAtLogin: false }, wake: { switchOn: true, listening: true, line: "" } });
     const t = text(h);
     expect(t).toContain("Knack can offer hints while you work.");
     expect(t).toContain("The window minimises while an agent works.");
