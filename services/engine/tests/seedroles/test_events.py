@@ -181,6 +181,39 @@ def test_the_programmers_commit_history_is_theirs(client):
     assert not [s for s in _strings(d.json()) if BAD.search(s)]
 
 
+@pytest.mark.parametrize("task,role", [("programmer", PR), ("fix-a-failing-build", PR), ("data-analyst", DA)])
+def test_the_steps_against_an_experienced_worker_are_the_workers_own_and_name_nobody_else(client, task, role):
+    switch(client, role)
+    r = client.get(f"/genome/{task}?person={PERSON}")
+    assert r.status_code == 200, r.text
+    d, meta = r.json()["data"], r.json()["meta"]
+    assert d["scope"] == "person" and d["person"] == PERSON and d["task"] in (task, role)
+    assert len(d["alignment"]) >= 8 and d["expert"]["segments"] and d["novice"]["segments"] and isinstance(d["person_gap_s"], float)
+    assert len(d["cases"]) == E.COHORT_CASES and all(isinstance(c["gap_s"], float) for c in d["cases"]) and len({round(c["gap_s"]) for c in d["cases"]}) >= 6       # a case each, varied
+    assert {w["label"] for w in d["person_waterfall"]} >= {"Slower on shared steps", "Other extra steps"}
+    assert meta["n_unit"] == "cases" and meta["n"] == E.COHORT_CASES
+    blob = json.dumps(r.json())
+    assert re.findall(r"\bp_[a-z0-9_]+", blob) == [PERSON] * blob.count(PERSON)                                                    # no other person's id anywhere
+    assert not {"people", "waterfall", "controls", "decomposition", "expert_person"} & set(d)                                       # no cohort figure, no named expert
+    assert not [s for s in _strings(r.json()) if BAD.search(s)]
+    one = client.get(f"/genome/{task}?person={PERSON}&episode={d['cases'][2]['episode']}").json()["data"]
+    assert one["episode"] == d["cases"][2]["episode"] and one["person_gap_s"] == d["cases"][2]["gap_s"]
+    assert client.get(f"/genome/{task}?person={PERSON}&reference=consensus").status_code == 200
+    tr = client.get(f"/graph/transitions?task={task}&person={PERSON}")
+    assert tr.status_code == 200 and len(tr.json()["data"]["edges"]) >= 20 and tr.json()["meta"]["n_unit"] == "cases"
+    assert client.get(f"/genome/{task}?person=p_pt005003").status_code in (404, 422)                                                # another learner of the cohort is not reachable by id
+    assert client.get("/genome/no-such-task").status_code == 404
+
+
+def test_the_role_cohort_is_written_apart_from_the_week_and_the_workers_own_cases_are_among_its_learners(seeded):
+    for role in (PR, DA):
+        d = seeded.dd / "roles" / role / "cohort"
+        levels = json.loads((d / "roster.json").read_text())
+        assert levels[PERSON] == "novice" and sum(v == "expert" for v in levels.values()) >= 3 and len(levels) == E.COHORT_PEOPLE
+        assert (d / "events.jsonl").stat().st_size > 1_000_000
+        assert not list((seeded.dd / "history").rglob("roster*")) and not list((seeded.dd / "history").rglob("events.jsonl"))          # the cohort never sits in the worker's week
+
+
 def test_switching_roles_keeps_each_history_apart_in_any_order(client):
     def snap(role: str) -> dict:
         switch(client, role)

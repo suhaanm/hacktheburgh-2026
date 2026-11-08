@@ -195,7 +195,33 @@ def seed(dd: Path, role: str, now: datetime, out: Callable[[str], None] = print)
 
             make_repo(_repo_spec(role, now), repo)
             git = "written"
+    cases = _write_cohort(dd, role, now)
     marker.write_text(json.dumps({"seeded": now.astimezone(timezone.utc).isoformat(timespec="seconds"), "role": role, "events": len(rows), "files": n_files, **info}) + "\n")
     out(f"events ({role}): {len(rows)} events on {n_files} days for {PERSON} ({info['tasks']} tasks, routines {', '.join(info['routines'])}; one week away from {info['off_week']})"
-        + (f"; commit history {git}" if git else "") + f"; written to {folder}")
-    return {"events": True, "written": True, "rows": len(rows), "files": n_files, "skipped_days": skipped, "git": git, **info}
+        + (f"; commit history {git}" if git else "") + f"; {cases} cases of the role's main task against the experienced workers'; written to {folder}")
+    return {"events": True, "written": True, "rows": len(rows), "files": n_files, "skipped_days": skipped, "git": git, "cohort_cases": cases, **info}
+
+
+#: the role's cohort of the main task (experienced workers and learners, twelve cases each), the worker's own cases among the learners: what "my steps against an experienced worker's" compares
+COHORT_SEED = {"programmer": 5, "data-analyst": 9}
+COHORT_PEOPLE, COHORT_CASES = 14, 12
+
+
+def _write_cohort(dd: Path, role: str, now: datetime) -> int:
+    """``<data>/roles/<role>/cohort/{events.jsonl, roster.json}`` from ``personas_v2.generate_cohort`` (the role's own cogs and expert policy), the first learner of it being the worker:
+    its person id is the worker's. Kept apart from the worker's week (``history/``), so it never counts as hours, routines or a day's work. Returns the worker's number of cases (0 when the
+    cohort was already there)."""
+    from ..personas_v2 import generate_cohort
+    from ..store.jsonl import EventStore
+
+    d = dd / "roles" / role / "cohort"
+    if (d / "roster.json").exists():
+        return 0
+    start, _n = _window(now)
+    co = generate_cohort("process_trace", role, n_people=COHORT_PEOPLE, cases_per_person=COHORT_CASES, seed=COHORT_SEED[role], start=datetime(start.year, start.month, start.day, tzinfo=timezone.utc))
+    me = max((p for p in co.people if p.level == "novice"), key=lambda p: (p.learn_alpha, -p.idx)).id          # the learner who picks the task up fastest: a curve worth looking at
+    rows = [{**r, "person": PERSON} if r["person"] == me else r for r in co.rows]
+    levels = {(PERSON if k == me else k): v for k, v in sorted(co.levels.items())}
+    EventStore(dd).write_file(d / "events.jsonl", rows)                       # the roster is the commit point: a half-written events file is simply replaced
+    (d / "roster.json").write_text(json.dumps(levels, indent=1, sort_keys=True) + "\n")
+    return sum(1 for r in rows if r["person"] == PERSON and r["type"] == "task_start")
