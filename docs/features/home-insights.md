@@ -4,7 +4,7 @@
 
 **Capability:** Insights and admin · **Status:** built · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
-**Navigation note (landing).** The lead's views rule (`docs/knack-ux/views.md`, from owner requests 4.1, 4.2, 4.11, 4.12 and 4.17 at about 00:50 UTC) is reorganising where screens live. Where this page says 'More, <screen>', check `apps/dashboard/src/components/home/navModel.ts` on main for the final place. Home also gains a task box ('What should Knack do?', type or speak) and a short list of background tasks (owner request 4.18, landing). A worker's Home shows only their own insight and approval, never firm-wide data.
+**Navigation note (on main since 02:05 UTC).** The lead's views rule (`docs/knack-ux/views.md`) is implemented: a worker has five sidebar rows (Home, Needs you, Routines, Growth, Your data); Growth is one page with the sections My progress, Where my time goes, My steps, How my routines connect and My commits; the Admin view has Firm, Brief, Forecasts, Roles, People, Onboarding, Automation and Risk, then More: Models and cost, Evidence, Background runs. Old addresses redirect (`apps/dashboard/src/routeRedirects.ts`). The final list is `apps/dashboard/src/components/home/navModel.ts`. Home also holds the task box ('What should Knack do?', type or speak, owner request 4.18, D66) and a short list of background tasks, both on main. A worker's Home shows only their own insight and approval, never firm-wide data.
 
 This page covers Home: one sentence, one action, Top insights engine: a few pointers, chosen by code.
 
@@ -24,11 +24,11 @@ The hero is the top pointer written from a fixed template: 'On {step} you usuall
 
 ### Where to see it
 
-Home, the first item in the sidebar and the page Knack opens on.
+Home, the first item in the sidebar and the page Knack opens on. Under D66 it also holds the task box and a short list of background tasks, within a budget of 70 words and 6 controls.
 
 ### Demo moment
 
-Open Knack: the date, one sentence with its provenance badge (the wording is being changed by decision D57: no 'synthetic' on screen; a fixture still reads 'Example data'), the button 'See where the time goes' and, if anything waits, one row '1 thing needs you'.
+Open Knack: the date, one sentence (since decision D57 no 'synthetic' tag is drawn; when the engine cannot answer, a sample stands in and the screen reads 'Example data'), the button 'See where the time goes' and, if anything waits, one row '1 thing needs you'.
 
 ### Evidence and its label
 
@@ -38,7 +38,7 @@ Open Knack: the date, one sentence with its provenance badge (the wording is bei
 
 ### Honest limit
 
-The 47 words are the prototype's headline content; real screens land a little above it. Only three of the engine's pointer shapes match the hero template, so another pointer kind would show its raw headline (gap G4 in docs/KNACK_DEMO.md); the seeded kind is fine. The example sentence comes from the synthetic firm and carries its provenance badge (Example data, or the wording the D57 track settles on). These are measurements of the interface, not of people.
+The 47 words are the prototype's headline content; real screens land a little above it. Only three of the engine's pointer shapes match the hero template, so another pointer kind would show its raw headline (gap G4 in docs/KNACK_DEMO.md); the seeded kind is fine. The example sentence comes from the synthetic firm and carries the 'Example data' badge when a sample stands in. These are measurements of the interface, not of people.
 
 ### Hackathon target
 

@@ -59,7 +59,8 @@ describe("the example list", () => {
   it("flags the unmaintained Notion server and the source-available Sentry licence on the chip itself", () => {
     expect(get("notion").caution).toBe("Vendor says unmaintained");
     expect(get("sentry").caution).toBe("Source-available licence");
-    expect(all.filter((c) => c.caution).map((c) => c.id).sort()).toEqual(["google_workspace", "jira", "jupyter", "notion", "sentry", "sharepoint", "slack"]);
+    expect(all.filter((c) => c.caution).map((c) => c.id).sort(), "only the two honesty flags are printed on a chip; who made a server is in the consent lines").toEqual(["notion", "sentry"]);
+    for (const id of ["slack", "jira", "jupyter", "google_workspace", "sharepoint"]) expect(get(id).modes.real?.summary, id).toMatch(/\(community( author)?\)|community author/);
   });
 });
 

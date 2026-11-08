@@ -117,11 +117,19 @@ export function readyLines(q: OnboardingQuestions, a: OnboardingAnswers): string
   return lines;
 }
 
-/** The one line under a role's name: its summary cut at the first comma, " for ", " and ", " that " or " to ", at most four words ("Runs entitlement checks"). */
+/** Words a phrase cannot end on: they need the word after them ("Pulls numbers from a" is not a line). */
+const DANGLING = new Set(["a", "an", "the", "of", "from", "to", "for", "and", "or", "in", "on", "at", "by", "with", "as", "that", "into", "over", "your", "their", "its", "each", "every"]);
+
+/**
+ * The one line under a role's name: its summary cut at the first comma, " for ", " and ", " that " or " to ", at most four words, and never ending on a word that
+ * needs the next one ("Runs entitlement checks"; "Pulls numbers from a database" is "Pulls numbers").
+ */
 export function cardLine(summary: string): string {
   const first = (summary ?? "").split(/(?<=[.!?])\s/)[0].replace(/[.!?]$/, "");
   const cut = first.split(/,| (?:for|and|that|to) /)[0];
-  return cut.split(/\s+/).filter(Boolean).slice(0, 4).join(" ");
+  const words = cut.split(/\s+/).filter(Boolean).slice(0, 4);
+  while (words.length > 1 && DANGLING.has(words[words.length - 1].toLowerCase())) words.pop();
+  return words.join(" ");
 }
 
 export interface RoleCard { id: string; name: string; line: string; /** How far the pack is built (depthLabel); empty for Not sure yet. */ tag: string }

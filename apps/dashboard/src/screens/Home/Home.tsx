@@ -95,6 +95,9 @@ export default function Home() {
     window.addEventListener("focus", again);
     return () => { window.clearInterval(t); window.removeEventListener("focus", again); };
   }, []);
+  const [coachGrace, setCoachGrace] = useState(false);
+  useEffect(() => { const t = window.setTimeout(() => setCoachGrace(true), 1500); return () => window.clearTimeout(t); }, []);
+  const coachSettled = coach.status !== "loading" || coachGrace;
   useEffect(() => { document.title = "Home · Knack"; }, []);
   useEffect(() => setGone(new Set()), [story, person]);
 
@@ -138,7 +141,8 @@ export default function Home() {
   if (second) candidates.push(<Row key="second" href={heroAction(second)?.href ?? "#/growth"} icon="growth">{rowSentence(second.headline)}</Row>);
   if (rLine) candidates.push(<Row key="repeats" href="#/routines?tab=could-automate" icon="routines" hint={{ label: "About the repeated time", text: repeatsHint(repeats) ?? "" }}>{rLine}</Row>);
   if (pointers.length > 0) candidates.push(<Row key="growth" href="#/growth" icon="growth">{GROWTH_ROW}</Row>);
-  const rows = candidates.slice(0, 2);
+  // The quiet rows wait for the coach's answer (at most a second and a half), so a late "Coaching you on..." row does not take the place of one already drawn.
+  const rows = coachSettled ? candidates.slice(0, 2) : [];
 
   return (
     <div className="page page--read home" aria-busy={w.status === "loading"}>

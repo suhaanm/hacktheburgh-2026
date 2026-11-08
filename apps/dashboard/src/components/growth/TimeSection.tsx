@@ -5,7 +5,7 @@ import { EmptyState, Loading, SourceNote, ChartFoot } from "../common";
 import { WeekLegend, WeekRibbon } from "../WeekRibbon";
 import { Details } from "../ui";
 import { GrowthSection, SectionError, useReportSource } from "./GrowthSection";
-import { notKnown, useOwnPerson } from "./own";
+import { notKnown, unknownAsError, useOwnPerson } from "./own";
 import { Distance, GapTable, Suggestions, WeekTable } from "./WeekParts";
 import { ForecastSection, HoursMap, IdleStat, QuietEditor } from "./HoursParts";
 import { busiestWrap, meanRow, slotLabel, toGrid } from "../../lib/heatmap";
@@ -24,8 +24,8 @@ const EXAMPLE_PERSON = "p_ninetofive";
  */
 export function TimeSection({ open }: { open: boolean }) {
   const own = useOwnPerson(EXAMPLE_PERSON);
-  const w = useLoad(() => (own.ready ? (own.blocked ? notKnown<Loaded<CalendarWeek>>() : api.calendarWeek(own.person!, undefined)) : idle<CalendarWeek>()), [own.ready, own.blocked, own.person]);
-  const sg = useLoad(() => (own.ready ? (own.blocked ? notKnown<Loaded<CalSuggestion[]>>() : api.calendarSuggestions(own.person!, undefined)) : idle<CalSuggestion[]>()), [own.ready, own.blocked, own.person]);
+  const w = unknownAsError(useLoad(() => (own.ready ? (own.blocked ? notKnown<Loaded<CalendarWeek>>() : api.calendarWeek(own.person!, undefined)) : idle<CalendarWeek>()), [own.ready, own.blocked, own.person]));
+  const sg = unknownAsError(useLoad(() => (own.ready ? (own.blocked ? notKnown<Loaded<CalSuggestion[]>>() : api.calendarSuggestions(own.person!, undefined)) : idle<CalSuggestion[]>()), [own.ready, own.blocked, own.person]));
   // the working hours are this device's own, whoever the engine thinks the worker is
   const p = useLoad(() => (own.ready ? api.presence() : idle<PresenceData>()), [own.ready]);
   useReportSource("time", w.why ?? p.why ?? null);

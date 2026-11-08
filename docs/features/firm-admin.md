@@ -4,13 +4,13 @@
 
 **Capability:** Insights and admin · **Status:** built · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
-**Navigation note (landing).** The lead's views rule (`docs/knack-ux/views.md`, from owner requests 4.1, 4.2, 4.11, 4.12 and 4.17 at about 00:50 UTC) is reorganising where screens live. Where this page says 'More, <screen>', check `apps/dashboard/src/components/home/navModel.ts` on main for the final place. Admin main navigation under the rule: Firm, Brief, Forecasts, Roles, People, Onboarding, Automation, Risk; More: Models and cost, Evidence, Background runs. Owner request 4.4 asks for the Admin view to be filled with made-up people for several users with no tag anywhere saying so; that sits against the honesty rule that synthetic data is labelled (see D57 and 'Things we do not claim'), so say aloud in any video that the firm is made up.
+**Navigation note (on main since 02:05 UTC).** The lead's views rule (`docs/knack-ux/views.md`) is implemented: a worker has five sidebar rows (Home, Needs you, Routines, Growth, Your data); Growth is one page with the sections My progress, Where my time goes, My steps, How my routines connect and My commits; the Admin view has Firm, Brief, Forecasts, Roles, People, Onboarding, Automation and Risk, then More: Models and cost, Evidence, Background runs. Old addresses redirect (`apps/dashboard/src/routeRedirects.ts`). The final list is `apps/dashboard/src/components/home/navModel.ts`. Admin main navigation under the rule: Firm, Brief, Forecasts, Roles, People, Onboarding, Automation, Risk; More: Models and cost, Evidence, Background runs. Owner request 4.4 asks for the Admin view to be filled with made-up people for several users with no tag anywhere saying so; that sits against the honesty rule that synthetic data is labelled (see D57 and 'Things we do not claim'), so say aloud in any video that the firm is made up. Request 4.4: Track R found the live Admin view was blank because the engine read this device's own ledger (one person), so every comparison was withheld under the minimum group of 5; the fix (32 made-up people in 3 teams, python -m understudy_engine.demo seed-firm) is on main, and the multi-person Admin screens stay landing until the seed has run on the live data.
 
 This page covers Admin views: Firm, Roles, Onboarding, Monday note, firm brief and prediction scorecard.
 
 ## Admin views: Firm, Roles, Onboarding
 
-**Status:** built (UI merged to main; the firm is synthetic) · **Page:** `docs/features/firm-admin.md` · **Targets:** G-Research, HRT
+**Status:** built (UI merged to main; the firm is synthetic; owner request 4.4 (made-up people for several users): Track R found the cause of the blank live Admin view, the engine read this device's own ledger (one person), so every comparison was withheld under the minimum group of 5; on main since 01:51 UTC (merge e52c6b1) the engine can write 32 made-up people in 3 teams with twelve weeks of history to the data folder (python -m understudy_engine.demo seed-firm, also part of demo seed), with the rules unchanged; per the lead the item stays landing until that seed has run on the live data) · **Page:** `docs/features/firm-admin.md` · **Targets:** G-Research, HRT
 
 ### What it does
 
@@ -24,11 +24,11 @@ Roles are Worker and Admin; the admin switch lives in the account menu and is re
 
 ### Where to see it
 
-Account menu, View as Admin; sidebar Firm, Roles, Onboarding; More, Firm rows (People, Automation, Risk and coverage, Forecasts, Firm brief).
+Account menu, View as Admin; the Admin sidebar rows Firm, Brief, Forecasts, Roles, People, Onboarding, Automation and Risk; then More: Models and cost, Evidence, Background runs.
 
 ### Demo moment
 
-Switch to Admin: Firm lists three rows with n and interval; open Roles: experts and juniors on a shared 0 to 100% scale, one row per role (the seeded firm shows, for example, benefits-processor experts at 94% and juniors at 63%, n = 7 and 22, synthetic); open Onboarding ('Half reach the target by step 82'); show the provenance badge (its Admin wording is being changed by D57) and say the names are made up and the firm is made for this build.
+Only once the people exist on the engine you are showing (owner request 4.4 stays landing until the seed has run on the live data; on a device with only its own history the screens hold no people). Switch to Admin: Firm lists three rows with n and interval; open Roles: experts and juniors on a shared 0 to 100% scale, one row per role (the seeded firm shows, for example, benefits-processor experts at 94% and juniors at 63%, n = 7 and 22, synthetic); open Onboarding ('Half reach the target by step 82'); note that since D57 the Firm head draws no origin tag for generated data, so say aloud that the names are made up and the firm is made for this build.
 
 ### Evidence and its label
 
@@ -39,7 +39,7 @@ Switch to Admin: Firm lists three rows with n and interval; open Roles: experts 
 
 ### Honest limit
 
-Full per-user visibility for the admin was the owner's choice (D41); the lead recommended aggregates plus opt-in individuals. Per-user visibility is workplace monitoring: a real deployment needs a lawful basis (in the UK and EU, for example a documented legitimate-interest assessment), a clear notice to workers before any data is shared, and possibly consultation. This build supplies the worker's 'what your admin can see' page but not the lawful basis or the notice. It also changes the earlier promise that logs never leave the device: these summaries are the only thing that would, and only if a deployment chooses to.
+Full per-user visibility for the admin was the owner's choice (D41); the lead recommended aggregates plus opt-in individuals. Per-user visibility is workplace monitoring: a real deployment needs a lawful basis (in the UK and EU, for example a documented legitimate-interest assessment), a clear notice to workers before any data is shared, and possibly consultation. This build supplies the worker's 'what your admin can see' page but not the lawful basis or the notice. It also changes the earlier promise that logs never leave the device: these summaries are the only thing that would, and only if a deployment chooses to. The multi-person data is not on the live engine until the firm seed has run (owner request 4.4; the seed is on main, the live data not yet seeded as far as the lead has reported). The seeded firm is 32 made-up people in 3 teams, kept in a folder that the Worker view never reads, so a worker's own export and delete never touch it (services/engine/understudy_engine/insights/firmstore.py).
 
 ### Hackathon target
 
@@ -62,11 +62,11 @@ The Monday note is a few plain sentences built from the same deterministic insig
 
 ### Where to see it
 
-Command palette, Print the firm brief (and Copy my Monday note once it lands); More, Forecasts.
+Admin sidebar, Brief (a print view) and Forecasts; the command palette has Print the firm brief (and Copy my Monday note once it lands).
 
 ### Demo moment
 
-Press Command-K, choose Print the firm brief; then open More, Forecasts to show the scorecard.
+Press Command-K, choose Print the firm brief; then open Forecasts in the Admin sidebar to show the scorecard.
 
 ### Evidence and its label
 

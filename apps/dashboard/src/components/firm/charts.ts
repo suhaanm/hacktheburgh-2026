@@ -49,7 +49,7 @@ export function gapChart(roles: WireRoles, min = MIN_N): (ChartData & { any: boo
     if (!compareShown(r, min) || !m?.gap) return [];
     const g = m.gap;
     const est: Est = { value: g.value * 100, ci: g.ci ? [g.ci[0] * 100, g.ci[1] * 100] : null };
-    return [{ id: r.role, label: shortName(r.name, 22), est, tone: "neutral" as const, hollow: m.verdict !== "gap" }];
+    return [{ id: r.role, label: shortName(r.name, 48), est, tone: "neutral" as const, hollow: m.verdict !== "gap" }];
   });
   const axis = pointsAxis(rows.flatMap((r) => (r.est ? [r.est.value, ...(r.est.ci ?? [])] : [])));
   return { rows, any: rows.length > 0, ...axis };
@@ -58,7 +58,7 @@ export function gapChart(roles: WireRoles, min = MIN_N): (ChartData & { any: boo
 /** The median step at which each readable role reaches the target, with its interval, on one 0-based axis. */
 export function onboardingChart(data: WireOnboarding, min = MIN_N): (ChartData & { any: boolean }) {
   const ok = readableOnboarding(data.roles, min).sort((a, b) => (a.median_to_target?.value ?? 0) - (b.median_to_target?.value ?? 0));
-  const rows: ChartRow[] = ok.map((r: OnboardingRole) => ({ id: r.role, label: shortName(r.name, 22), est: r.median_to_target ? { value: r.median_to_target.value, ci: r.median_to_target.ci } : null, tone: "neutral" as const }));
+  const rows: ChartRow[] = ok.map((r: OnboardingRole) => ({ id: r.role, label: shortName(r.name, 48), est: r.median_to_target ? { value: r.median_to_target.value, ci: r.median_to_target.ci } : null, tone: "neutral" as const }));
   const top = Math.max(0, ...rows.flatMap((r) => (r.est ? [r.est.value, ...(r.est.ci ?? [])] : [])));
   const { top: hi, ticks } = niceTop(top * 1.05, 2);
   return { rows, any: rows.length > 0, domain: [0, hi], ticks };
@@ -71,7 +71,7 @@ const f1 = (x: number): string => String(Math.round(x * 10) / 10);
 /** Hours a week of the biggest repeated actions, with intervals, on one 0-based axis. */
 export function hoursChart(rows: FirmRow[], n = 3): (ChartData & { any: boolean }) {
   const top = sortHours(rows).slice(0, n);
-  const out: ChartRow[] = top.map((r) => ({ id: r.id, label: shortName(r.label, 24), est: hrs(r.hours_per_week), tone: "neutral" as const }));
+  const out: ChartRow[] = top.map((r) => ({ id: r.id, label: shortName(r.label, 48), est: hrs(r.hours_per_week), tone: "neutral" as const }));
   const hi = Math.max(0, ...out.flatMap((r) => (r.est ? [r.est.value, ...(r.est.ci ?? [])] : [])));
   const { top: axisTop, ticks } = niceTop(hi * 1.05, 2);
   return { rows: out, any: out.length > 0, domain: [0, axisTop], ticks };

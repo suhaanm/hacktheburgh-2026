@@ -100,6 +100,7 @@
 .firm-band dd { margin: 0; font: 500 var(--text-sm)/1.4 var(--font-mono); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .firm-band--none { margin: 0; font-size: var(--text-sm); color: var(--muted); padding: var(--space-3) 0; border-top: var(--hair) dashed var(--line-strong); border-bottom: var(--hair) dashed var(--line-strong); }
 .firm-band__slope { color: var(--muted); }
+.nobr { white-space: nowrap; }
 .firm-table { min-width: 560px; }
 .firm-person { font-weight: 600; max-width: 30ch; overflow-wrap: anywhere; }
 .firm-person__btn { display: inline-flex; align-items: center; gap: var(--space-2); padding: 2px 0; background: none; border: 0; color: var(--fg); font: inherit; font-weight: 600; text-align: left; cursor: pointer; max-width: 100%; }
@@ -127,6 +128,21 @@
   .firm-person__tenure { display: block; }
   .firm-table { min-width: 0; }
   .firm-person { white-space: normal; }
+}
+/* A phone: a person is a small card, the name on its own line with the trend and the figure under it, not a name squeezed to one word a line. */
+@media (max-width: 480px) {
+  .firm-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .firm-table, .firm-table tbody { display: block; width: 100%; }
+  .firm-table tr { display: block; }
+  .firm-table tr:not(.firm-expand) { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: var(--space-1) var(--space-3); padding: var(--space-3) 0; border-top: var(--hair) solid var(--line); }
+  .firm-table th.firm-person { grid-column: 1 / -1; max-width: none; padding: 0; border: 0; }
+  .firm-table td { display: block; padding: 0; border: 0; }
+  .firm-table td.firm-ind { min-width: 0; text-align: right; }
+  .firm-table tr.firm-expand td { padding: var(--space-3); }
+  /* label : value rows put the label above the value, so a long label wraps instead of squeezing its value to one character */
+  .firm .about__list, .risk__facts { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .firm .about__list dt, .risk__facts dt { overflow-wrap: anywhere; }
+  .firm .about__list dd, .risk__facts dd { margin: 0 0 var(--space-2); overflow-wrap: anywhere; }
 }
 
 /* -- Automation and risk --------------------------------------------------------------------------------------- */
@@ -215,8 +231,8 @@
 
 /* -- Forecasts: up to three cards, text beside its chart ------------------------------------------------------ */
 .fc-panel { gap: var(--space-5); }
-.fc-list { display: grid; border-top: var(--hair) solid var(--line); }
-.fc { display: grid; gap: var(--space-2); padding: var(--space-4) 0; border-bottom: var(--hair) solid var(--line); min-width: 0; max-width: 720px; }
+.fc-list { display: grid; border-top: var(--hair) solid var(--line); max-width: 720px; }
+.fc { display: grid; gap: var(--space-2); padding: var(--space-4) 0; border-bottom: var(--hair) solid var(--line); min-width: 0; }
 .fc__head { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
 .fc__n { font: var(--text-xs)/1.2 var(--font-mono); color: var(--muted); overflow-wrap: anywhere; }
 .fc__toggle { margin-left: auto; display: inline-grid; place-items: center; width: 32px; height: 32px; padding: 0; background: none; border: 0; border-radius: var(--radius-2); color: var(--muted); cursor: pointer; }

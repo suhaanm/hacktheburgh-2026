@@ -4,9 +4,9 @@
 
 **Capability:** A calm product: window, attention, context · **Status:** built · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
-**Navigation note (landing).** The lead's views rule (`docs/knack-ux/views.md`, from owner requests 4.1, 4.2, 4.11, 4.12 and 4.17 at about 00:50 UTC) is reorganising where screens live. Where this page says 'More, <screen>', check `apps/dashboard/src/components/home/navModel.ts` on main for the final place. The account menu holds the worker's name and role, View as, Settings (including Connections and Advanced), Set up again and Change role (owner requests 4.8 and 4.9, landing).
+**Navigation note (on main since 02:05 UTC).** The lead's views rule (`docs/knack-ux/views.md`) is implemented: a worker has five sidebar rows (Home, Needs you, Routines, Growth, Your data); Growth is one page with the sections My progress, Where my time goes, My steps, How my routines connect and My commits; the Admin view has Firm, Brief, Forecasts, Roles, People, Onboarding, Automation and Risk, then More: Models and cost, Evidence, Background runs. Old addresses redirect (`apps/dashboard/src/routeRedirects.ts`). The final list is `apps/dashboard/src/components/home/navModel.ts`. The account menu (name and role, View as, Settings with Connections and Advanced, Set up again, Change role) is on main in the dashboard shell (owner requests 4.8 and 4.9).
 
-This page covers One app, one window, one corner pill, First run: role, consent and a first look, Command palette and keyboard.
+This page covers One app, one window, one corner pill, First run: role, three consents and a check, Command palette and keyboard.
 
 ## One app, one window, one corner pill
 
@@ -45,37 +45,39 @@ Not yet seen by the owner on a real desktop with real windows behind it; the cor
 
 - **Wordsmith (most complicated end-to-end browser-use workflow)**: an agent that works in the background and tells the worker in five words
 
-## First run: role, consent and a first look
+## First run: role, three consents and a check
 
-**Status:** built (the spec is three clicks; decision D58 (00:45 UTC) adds a permissions step and a Try it step, still landing) · **Page:** `docs/features/knack-shell.md` · **Targets:** G-Research
+**Status:** built (owner decision D58; on main since 02:39 UTC (d9f8929): a role screen, one consent card each for capture, screen glances and voice, and a 'Check it works' screen; the spoken 'Say Hey Knack' Try it step in docs/knack-ux/capabilities-and-permissions.md is not a screen on main (the check screen shows Hey Knack's listening state and a Show me ring instead); not seen end to end by the lead) · **Page:** `docs/features/knack-shell.md` · **Targets:** G-Research
 
 ### What it does
 
-First launch asks two questions and shows one summary: a role card, one capture consent, and 'Show my week'. Everything else takes the role pack's safe defaults and is editable in Your data. Decision D58 (owner, after the first launch showed the old eight-step wizard) makes this the only onboarding: it opens on the first launch whatever the engine knows, adds three equal consent cards, a permissions step (microphone, speech, screen) and a Try it step, and the legacy wizard never renders in the Knack shell.
+First launch asks for a role (a card per role pack, or 'Not sure yet', which picks nothing), then shows one consent card each for capture, screen glances and voice (the last two only where the desktop app can act on them), each with Yes, Not now and Never of equal weight and none pre-selected, then a 'Check it works' screen: the macOS permissions as they are (never a wall: each says what will not work without it), Hey Knack's listening state, and Show me, which draws the annotation ring on a sample. Then 'Show my week'. Every screen has a Skip and skipping picks nothing. Everything else takes the role pack's safe defaults and is editable in Your data.
 
 ### How it works
 
-Click 1 picks a role (three cards from the packs); the pack's tools, risky actions set to 'never without me', short tone, gradual pace and hours are written to the memory file. Click 2 is the one consent: 'It records when you are active, never what you read: no page text, no URLs, no field values. The record stays on this laptop.' Yes, Not now and Never have equal weight; Not now asks again once after a week; Never never asks again. Click 3 shows four plain lines from the file just written and opens Home. Screen glances, the microphone, Accessibility, Screen Recording and Open at login are each asked once, in context, when first needed. The role card will also offer 'Connect your tools' chips for the chosen role (landing), all off. Permissions are asked one at a time and in context: on the step 'Turn on Hey Knack' the worker clicks Turn on (or Not now), and only then does the listener start, so no prompt appears at launch out of context; macOS asks for the microphone and then speech recognition. Screen Recording is asked only when the worker turns on screen glances or says Yes to the screen card and then asks Knack to find something outside Knack or a browser tab with the extension; Accessibility only for 'click for me', after the first supervised test. Input Monitoring, Automation and Full Disk Access are never asked. A last Try it step says 'Say Hey Knack', then 'show me where the Needs you list is', with a Skip button.
+When the second screen is done, the pack's tools, risky actions set to 'never without me', tone, gradual pace and hours are written to the memory file; capture is on only if the worker said Yes. 'Not now' asks again once after a week and 'Never' never asks again; the answers are remembered on the device and an unfinished first run resumes where it stopped. Back is the only way back, and not while the file is being written. With the connection chips for the chosen role (every chip off; only Connect turns on the Example version) there is one more click. A consent is a real click on a card, recorded by the code that handles the click; the first-run file itself never consents to anything.
+
+Permissions are asked one at a time and in context, Screen Recording only when screen glances are on and Knack is asked to find something outside Knack, Accessibility only for 'click for me' after the first supervised test, and Input Monitoring, Automation and Full Disk Access never; a missing permission or key is never silence, it is a card or a status line in plain words with a button that opens the fix (docs/knack-ux/capabilities-and-permissions.md).
 
 **What is different.** Two questions and one summary, with a consent whose three buttons weigh the same.
 
 ### Where to see it
 
-The first window on first launch (no sidebar yet). Settings, Set up again reruns it.
+The first window on first launch (no sidebar yet). Account menu, Set up again, reruns it; Account menu, Change profile, changes the name and the role.
 
 ### Demo moment
 
-Launch fresh: role card, the consent with three equal buttons, 'Here is what Knack will remember', then Home with the example insight badged Example data.
+Launch fresh: the role cards (and 'Not sure yet'), the three consent cards with Yes, Not now and Never, then 'Check it works' with the permissions as they are and Show me, then Home. The count from the code: 1 click for the role, one answer per consent card and one for 'Show my week', so 3 clicks with capture only, 5 in the desktop app, 6 with connection chips.
 
 ### Evidence and its label
 
 | What | Label | Source |
 |---|---|---|
-| In the spec: about 20 clicks over 15 screens before; 3 clicks after. Words on the first screen 159 to 20. D58 adds steps, so the shipped count is higher and has not been re-measured | design measurement of a prototype | `docs/knack-ux/07-first-run.md; docs/knack-ux/after/after-measurements.json` |
+| The click count is computed by the first-run model (clicksToHome) and covered by its tests; the spec measured about 20 clicks over 15 screens for the old set-up and 159 words on its first screen against 20 after | design measurement of a prototype and unit tests; nobody has done it | `apps/dashboard/src/screens/FirstRun/model.ts; docs/knack-ux/07-first-run.md; docs/knack-ux/after/after-measurements.json` |
 
 ### Honest limit
 
-Measured on a prototype and by the reducer's tests; no person has done it, and the D58 steps are not in the measurement. Permission dialogs (Accessibility, Screen Recording, Microphone) can only be granted by the owner in System Settings.
+Measured as a design and by the reducer's tests; no person has done it. The permission dialogs (Accessibility, Screen Recording, Microphone, Speech Recognition) can only be granted by the owner in System Settings, and the Hey Knack side of the first conversation (a fixed welcome line and a ring on the Needs you row) is specified in the capabilities document and built in the desktop wake code, but there is no separate Try it screen for it on main.
 
 ### Hackathon target
 
@@ -119,14 +121,14 @@ The tap-to-type Ask bar is a lower-priority item in the build plan and may not b
 
 ## 30-second spoken script
 
-> Knack is one app. A calm window with five destinations, a menu-bar item, and when an agent starts working on your real screen, the window gets out of the way and a small pill in the corner says what is happening in five words and offers Stop. It does not pop back on its own. First launch is a short first run: your role, a consent with three equal buttons, the permissions Knack needs, and a first look at your week.
+> Knack is one app. A calm window with five destinations, a menu-bar item, and when an agent starts working on your real screen, the window gets out of the way and a small pill in the corner says what is happening in five words and offers Stop. It does not pop back on its own. First launch is a short first run: your role, a consent card for each of capture, screen glances and voice with three equal buttons, a check that it works, and a first look at your week.
 
 ## Slide bullets
 
 - One app: window, Dock, menu bar, corner pill; five destinations.
 - Window minimises when an agent works; the pill says it in five words and offers Stop.
 - One interrupting surface at a time; never over a password field.
-- First run: the spec cut about 20 clicks over 15 screens to 3; D58 adds a permissions step and a Try it step.
+- First run: a role, three equal-weight consent cards and a check that it works; the old set-up took about 20 clicks over 15 screens.
 - No keystroke ever approves anything.
 
 ## Sources

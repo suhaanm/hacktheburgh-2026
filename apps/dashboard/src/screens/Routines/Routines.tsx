@@ -77,7 +77,7 @@ export default function Routines() {
   };
   const onRun = async (r: { id: string; status: string; title: string }): Promise<string | null> => {
     const started = await runNow(r.id, r.status);
-    if (!started) return "Example data: the agent service did not answer, so nothing started.";
+    if (!started) return "The agent service did not answer, so nothing started. Try again in a moment.";
     toast({ tone: "success", text: "Started.", detail: `${r.title}. Stop it any time with Stop.` });
     if (started.run_id) trackRoutineRun(r.id, started.run_id);      // the voice context learns which routine runs and at which step (when the agent says how many there are)
     return `Started${started.run_id ? ` (${started.run_id})` : ""}. Stop it any time with Stop.`;

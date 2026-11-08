@@ -13,7 +13,6 @@ connection:
   app: SharePoint
   reads: Sites, lists and document libraries you can already open.
   short: Sites, lists, libraries
-  caution: Community server
   standin:
     label: Example SharePoint
     script: packages/connections/standins/fixture_server.py

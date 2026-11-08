@@ -9,7 +9,8 @@
 .firstrun__q { margin: 0; font: 600 var(--text-3xl)/1.1 var(--font-display); letter-spacing: var(--tracking-display); text-wrap: balance; outline: none; }
 .firstrun__lede { margin: 0; max-width: 52ch; font-size: var(--text-md); line-height: 1.5; }
 .firstrun__note { margin: 0; font-size: var(--text-sm); color: var(--muted); }
-.firstrun__cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: var(--space-4); }
+.firstrun__cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); align-items: stretch; }   /* four cards (three roles and Not sure yet) make a 2 by 2, never 3 and 1 */
+@media (max-width: 420px) { .firstrun__cards { grid-template-columns: minmax(0, 1fr); } }
 .rolecard {
   position: relative; display: grid; gap: 4px; padding: 20px 16px; text-align: left; background: var(--panel); border: var(--hair) solid var(--line); border-radius: var(--radius-3);
   color: var(--fg); transition: border-color var(--dur-fast) var(--ease-out);
@@ -20,7 +21,8 @@
 .rolecard__btn::after { content: ""; position: absolute; inset: 0; border-radius: var(--radius-3); }
 .rolecard__btn:focus-visible { outline: none; }
 .rolecard:has(.rolecard__btn:focus-visible) { outline: var(--ring-w) solid var(--focus); outline-offset: 2px; }
-.rolecard__wrap { display: grid; gap: var(--space-3); align-content: start; }
+.rolecard__wrap { display: grid; gap: var(--space-3); align-content: stretch; }
+.rolecard__wrap > .rolecard { height: 100%; }
 .rolecard__wrap[data-picked] { grid-column: 1 / -1; }
 .rolecard__chips { display: grid; gap: var(--space-3); justify-items: start; }
 .rolecard__name { font: 600 var(--text-md)/1.25 var(--font-display); }

@@ -21,6 +21,16 @@ export function plural(n: number, one: string, many = `${one}s`): string {
 }
 
 /** A name kept to a length a sentence can carry. A very long role or person name is cut with an ellipsis, never allowed to break the line. */
+/** "Data analyst" as a group of people: "data analysts". Lower case unless the word is an acronym (UK), an s on the last word. */
+export function groupName(name: string | null | undefined): string {
+  const s = shortName(name, 40);
+  if (s === "this role") return "people in this role";
+  const words = s.split(" ").map((w, i) => (i === 0 && !/^[A-Z]{2,}$/.test(w) ? w.toLowerCase() : w));
+  const last = words.length - 1;
+  if (!/s$/i.test(words[last])) words[last] = `${words[last]}s`;
+  return words.join(" ");
+}
+
 export function shortName(name: string | null | undefined, max = 32): string {
   const s = (name ?? "").replace(/\s+/g, " ").trim();
   if (!s) return "this role";
@@ -110,6 +120,8 @@ export function firmHeadline(o: WireOverview): string {
   const attention = o.top.filter((i) => i.polarity === "attention").length;
   if (o.top.length === 0) return `Nothing stands out this week${where}.`;
   if (attention === 0) return `Nothing needs attention this week${where}.`;
+  // The list under the headline holds every finding, the good ones too: the two numbers must agree with it.
+  if (attention < o.top.length) return `${plural(o.top.length, "thing")} this week, ${attention} of them ${attention === 1 ? "needs" : "need"} a look${where}.`;
   return `${plural(attention, "thing")} ${attention === 1 ? "needs" : "need"} a look this week${where}.`;
 }
 
@@ -127,8 +139,8 @@ export function rolesHeadline(roles: WireRoles, min = MIN_N): string {
   const top = gaps[0];
   const pts = Math.abs(Math.round(top.g * 100));
   const dir = top.g < 0 ? "fewer" : "more";
-  const base = `Juniors in ${shortName(top.r.name)} finish ${pts} points ${dir} of their steps without help than experts`;
-  return gaps.length > 1 ? `${base}, the widest gap of ${gaps.length}.` : `${base}.`;
+  const base = `Junior ${groupName(top.r.name)} finish ${pts} points ${dir} of their steps without help than experts`;
+  return gaps.length > 1 ? `${base}, the widest gap across ${gaps.length} roles.` : `${base}.`;
 }
 
 /** How the help people need is changing: how many need less, how many could use a conversation. */
@@ -174,7 +186,7 @@ export function automationHeadline(d: Pick<FirmWire, "total" | "rows">): string 
   if (!fin(h) || h <= 0 || d.rows.length === 0) return `No repeated work stands out across ${plural(people, "person", "people")} yet.`;
   const top = [...d.rows].sort((a, b) => (fin(b.hours_per_week?.point) ? b.hours_per_week.point : 0) - (fin(a.hours_per_week?.point) ? a.hours_per_week.point : 0))[0];
   const hours = h >= 100 ? Math.round(h).toLocaleString("en-GB") : String(Math.round(h * 10) / 10);
-  const label = top?.label ? `, the biggest piece being “${shortName(top.label, 40)}”` : "";
+  const label = top?.label ? `, the biggest piece being “${shortName(top.label, 50)}”` : "";
   return `About ${hours} hours a week of repeated work across ${plural(people, "person", "people")}${label}.`;
 }
 
@@ -182,17 +194,17 @@ export function automationHeadline(d: Pick<FirmWire, "total" | "rows">): string 
 export function riskHeadline(o: WireOverview): string {
   const r = o.risk;
   if (!r) return "No risk figures have been sent yet.";
-  const parts: string[] = [];
+  const parts: { long: string; short: string }[] = [];
   if (r.open_approvals > 0) {
     const age = r.approval_backlog_age_h && fin(r.approval_backlog_age_h.max) ? `, the oldest for ${Math.round(r.approval_backlog_age_h.max)} hours` : "";
-    parts.push(`${plural(r.open_approvals, "approval")} ${r.open_approvals === 1 ? "is" : "are"} waiting${age}`);
+    parts.push({ long: `${plural(r.open_approvals, "approval")} ${r.open_approvals === 1 ? "is" : "are"} waiting${age}`, short: plural(r.open_approvals, "waiting approval") });
   }
-  if (r.injection_pauses_30d > 0) parts.push(`${plural(r.injection_pauses_30d, "run")} ${r.injection_pauses_30d === 1 ? "was" : "were"} paused by an injected page`);
-  if (r.kill_events_30d > 0) parts.push(`everything was stopped ${plural(r.kill_events_30d, "time")}`);
+  if (r.injection_pauses_30d > 0) parts.push({ long: `${plural(r.injection_pauses_30d, "run")} ${r.injection_pauses_30d === 1 ? "was" : "were"} paused after a page tried to instruct ${r.injection_pauses_30d === 1 ? "it" : "them"}`, short: plural(r.injection_pauses_30d, "paused run") });
+  if (r.kill_events_30d > 0) parts.push({ long: `everything was stopped ${plural(r.kill_events_30d, "time")}`, short: plural(r.kill_events_30d, "full stop") });
   if (parts.length === 0) return "Nothing is waiting and nothing was stopped in the last 30 days.";
-  // One sentence: the first thing, then how many others there are. The figures are one line each under it.
-  const rest = parts.length - 1;
-  return `${capFirst(parts[0])}${rest > 0 ? `; ${rest} more ${rest === 1 ? "thing needs" : "things need"} a look` : ""}.`;
+  // One sentence: the first thing in full, then the others by name. The figures are one line each under it.
+  const rest = parts.slice(1).map((p) => p.short);
+  return `${capFirst(parts[0].long)}${rest.length > 0 ? `; also ${rest.length > 1 ? `${rest.slice(0, -1).join(", ")} and ${rest[rest.length - 1]}` : rest[0]}` : ""}.`;
 }
 
 /** The firm brief's first line: how many people, how many roles, how many have enough data for a trend. */
