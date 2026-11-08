@@ -82,7 +82,7 @@ describe("ConnectionChips (the first-run role card)", () => {
     await flush();
     await click(host.querySelector(".cx-chip"));
     const region = host.querySelector('[role="region"]') as HTMLElement;
-    expect(region.textContent).toContain("Example data: invented and kept on this Mac.");
+    expect(region.textContent).toContain("Runs on this Mac.");
     expect(region.textContent).toContain("No account is used");
     expect(region.textContent).toContain("Revoke any time");
     expect(calls.filter((c) => c.op === "connect")).toHaveLength(0);
@@ -92,7 +92,7 @@ describe("ConnectionChips (the first-run role card)", () => {
     expect(seen).toEqual([["github"]]);
     const chip = host.querySelector(".cx-chip") as HTMLElement;
     expect(chip.getAttribute("data-state")).toBe("connected");
-    expect(chip.querySelector(".pill")?.textContent).toBe("Example");
+    expect(chip.querySelector(".pill")?.textContent).toBe("On");
   });
 
   it("'Not now' closes the consent and connects nothing", async () => {
@@ -128,11 +128,11 @@ describe("ConnectionChips (the first-run role card)", () => {
     expect((host.querySelector(".cx-chip") as HTMLElement).getAttribute("data-state")).toBe("off");
   });
 
-  it("says when these are example connections", async () => {
+  it("draws no note about the engine or about example connections, whichever list the client returns", async () => {
     const { client } = fakeClient({ example: true });
     await act(async () => { root.render(createElement(ConnectionChips, { role: "benefits-processor", client })); });
     await flush();
-    expect(host.textContent).toContain("Example connections: the engine is not running.");
+    expect(host.textContent).not.toMatch(/example (connections|data)|engine is not running|stand[- ]in/i);
   });
 });
 
@@ -159,11 +159,11 @@ describe("ConnectionsPanel (Settings)", () => {
     await flush();
     await click(button("Connect GitHub"));
     const form = host.querySelector("form") as HTMLElement;
-    expect(form.textContent).toContain("Example data: invented and kept on this Mac.");
+    expect(form.textContent).toContain("Runs on this Mac.");
     expect(calls.some((c) => c.op === "connect")).toBe(false);
     await click(form.querySelector('button[type="submit"]'));
     expect(calls.filter((c) => c.op === "connect")).toEqual([{ op: "connect", id: "github", body: { mode: "example", confirm: true } }]);
-    expect(host.querySelector("#conn-github .pill")?.textContent).toBe("Example");
+    expect(host.querySelector("#conn-github .pill")?.textContent).toBe("On");
     expect(host.querySelector(".cx-row")?.id).toBe("conn-github");
   });
 
@@ -254,16 +254,16 @@ describe("ConnectionsPanel (Settings)", () => {
     await act(async () => { root.render(createElement(ConnectionsPanel, { client })); });
     await flush();
     expect([...host.querySelectorAll(".cx-group")].map((d) => (d as HTMLDetailsElement).open)).toEqual([false, true, false]);
-    expect(host.querySelector("#conn-notion .pill")?.textContent).toBe("Example");
+    expect(host.querySelector("#conn-notion .pill")?.textContent).toBe("On");
     expect(host.querySelector("#conn-notion .cx-flag")?.textContent).toBe("Vendor says unmaintained");
   });
 
-  it("puts what is on first, and marks the example list when the engine is away", async () => {
+  it("puts what is on first, and marks nothing when the engine is away", async () => {
     const { client, state } = fakeClient({ example: true });
     Object.assign(state.get("sentry") as Connection, { state: "connected", mode: "example", example: true });
     await act(async () => { root.render(createElement(ConnectionsPanel, { client })); });
     await flush();
-    expect(host.textContent).toContain("Example connections");
+    expect(host.textContent).not.toMatch(/example (connections|data)|stand[- ]in/i);
     const devRows = [...host.querySelectorAll('[aria-label="Dev tools"] .cx-row')].map((r) => r.id);
     expect(devRows[0]).toBe("conn-sentry");
   });

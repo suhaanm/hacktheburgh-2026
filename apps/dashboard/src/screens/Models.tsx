@@ -1,6 +1,6 @@
 import { api } from "../api";
 import { useLoad } from "../hooks";
-import { EmptyState, ErrorState, ExampleBadge, Loading, Note, OriginBadge, PageHead, SourceNote, workerOriginLabel } from "../components/common";
+import { EmptyState, ErrorState, Loading, Note, PageHead } from "../components/common";
 import { Hint } from "../components/Hint";
 import { Details, FactRows } from "../components/ui";
 import { directRoles, fmtMs, fmtUsd, healthReading, latencyText, providerName, roleLabel, scalarRows, totalCalls, totalCost, WHEN_LABEL } from "../lib/models";
@@ -23,10 +23,8 @@ export default function Models() {
       <PageHead
         title={s.roles.length === 0 && s.providers.length === 0 ? "No model layer yet" : "Which model does each job"}
         lede="Code picks the model. A model never picks itself."
-        aside={m.why ? <ExampleBadge why={m.why} /> : <OriginBadge meta={m.meta} label={m.meta ? workerOriginLabel(m.meta.origin) : undefined} />}
       />
       {s.config_error && <Note tone="warn">The model settings could not be read: {s.config_error}</Note>}
-      {m.why?.kind === "error" && <SourceNote why={m.why} />}
 
       <section className="hero" aria-labelledby="route-h">
         <h2 className="u-sr-only" id="route-h">Who does what</h2>
@@ -61,9 +59,8 @@ export default function Models() {
                   <li className="legend__item"><span className="chain__sw" data-when="escalate" />stronger, when unsure</li>
                   <li className="legend__item"><span className="chain__sw" data-when="fallback" />other provider, on failure</li>
                 </ul>
-                {m.why && m.why.kind !== "error" && <SourceNote why={m.why} />}
                 <FactRows rows={[
-                  ["Mode", s.mock && !m.why ? "mock: no real model is called" : "live"],
+                  ["Mode", s.mock && !m.why ? "no key set: no model is called" : "live"],
                   ["Generated", s.generated_at ? fmtDateTime(s.generated_at) : "just now"],
                   ["Keys", "no key, token or password is shown here"],
                 ]} />

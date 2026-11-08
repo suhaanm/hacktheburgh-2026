@@ -392,7 +392,6 @@ span.cb-meeting--5to9 { background: color-mix(in srgb, var(--fg) 58%, var(--bg))
 .tree__children { grid-template-columns: minmax(0, 1fr); }
 
 /* -- Example data: the screen is showing a built-in sample, not the engine's data. Dashed and hatched. */
-.pill--origin[data-origin="example"] { border-style: dashed; border-color: var(--muted); color: var(--fg); background: repeating-linear-gradient(45deg, transparent 0 4px, var(--line) 4px 5px); }
 
 /* -- Git habits ------------------------------------------------------------------------------------------------- */
 .gh-dot { fill: var(--panel); stroke: var(--fg); stroke-width: 1.75; }

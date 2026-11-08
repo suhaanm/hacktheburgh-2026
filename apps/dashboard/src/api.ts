@@ -219,7 +219,7 @@ function knownOff(layer: ExtensionName | undefined, who: { service: string }): F
   if (!s.extReady || s.ext[layer] !== false) return null;
   // The agents flag comes from the agent service: believe it only when that service answered. (When the engine is unreachable every flag reads true.)
   if (layer === "agents" && s.agentUp !== true) return null;
-  return { kind: "extension_off", status: 404, code: "extension_off", message: `This feature is switched off in ${who.service}. Start it with ${FLAG_FOR[layer]}=1 (or UNDERSTUDY_X=1 for every extension) to see your own data. Until then Knack shows example data.` };
+  return { kind: "extension_off", status: 404, code: "extension_off", message: `This feature is switched off in ${who.service}. Start it with ${FLAG_FOR[layer]}=1 (or UNDERSTUDY_X=1 for every extension).` };
 }
 
 async function read<T>(path: string, fallback: () => { data: T; meta?: AnalyticMeta | null }, base = ENGINE_URL, opts: ReadOpts = {}): Promise<Loaded<T>> {
@@ -291,10 +291,10 @@ const DEMO_CHILDREN: Record<string, string[]> = {
   "creative.weekly_summary": ["digest reader", "writer"],
 };
 
-function metaOf(fixture: unknown): AnalyticMeta | null {
-  return (fixture as Analytic<unknown>).meta ?? null;
+function metaOf(payload: unknown): AnalyticMeta | null {
+  return (payload as Analytic<unknown>).meta ?? null;
 }
-const dataOf = <T,>(fixture: unknown) => (fixture as Analytic<T>).data;
+const dataOf = <T,>(payload: unknown) => (payload as Analytic<T>).data;
 
 /* -- Reads ------------------------------------------------------------------------------------ */
 export const api = {
@@ -373,8 +373,8 @@ export const api = {
       const c = dataOf<CoachState>(coachFx);
       const d: CoachDecision = {
         action: "nudge", message: c.message, why: c.why, target: null, missed: [], confidence: 0.8, level: c.level, chip: c.chip,
-        decision_id: "d_demo", task_id: c.task.id, step: c.task.step, trigger: "example data", reason_codes: [],
-        gate: { consecutive: 2, reason: "example data" }, p_stuck: null, p_source: null, candidate: null, mastery: c.mastery,
+        decision_id: "d_demo", task_id: c.task.id, step: c.task.step, trigger: "idle", reason_codes: [],
+        gate: { consecutive: 2, reason: "two stuck steps in a row" }, p_stuck: null, p_source: null, candidate: null, mastery: c.mastery,
       };
       return { data: d, meta: metaOf(coachFx) };
     }),

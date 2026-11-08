@@ -37,7 +37,7 @@ export async function loadBundle(story: Story): Promise<GrowthBundle> {
 /** What the engine sends for a person with no ledger rows yet (or after the ledger was deleted). */
 export function emptyGrowth(person: string, skill: string | null, template: Envelope<WireGrowth>["meta"]): Envelope<WireGrowth> {
   return {
-    meta: template ? { ...template, n: 0, note: template.origin === "real" ? template.note : "Example data: no occurrences yet." } : null,
+    meta: template ? { ...template, n: 0, note: template.origin === "real" ? template.note : "No occurrences yet." } : null,
     data: {
       person, skill, window: 20,
       readiness: { occurrences: 0, needed: 10, ready: false, trend_needed: 30 },

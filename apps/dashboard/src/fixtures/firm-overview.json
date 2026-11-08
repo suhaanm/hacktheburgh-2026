@@ -1,7 +1,7 @@
 {
  "data": {
   "as_of": "2026-11-09",
-  "badge": "made-up firm",
+  "badge": "firm",
   "coverage": {
    "by_status": {
     "no_data": 1,
@@ -133,7 +133,7 @@
      "label": "Open the queue",
      "to": "queue"
     },
-    "badge": "made-up firm",
+    "badge": "firm",
     "drill": "i_1adf226dca1a",
     "effect": {
      "ci": null,
@@ -164,7 +164,7 @@
      "label": "Open Routines",
      "to": "routines"
     },
-    "badge": "made-up firm",
+    "badge": "firm",
     "drill": "i_afa43090701c",
     "effect": {
      "ci": null,
@@ -201,7 +201,7 @@
      "label": "Open the queue",
      "to": "queue"
     },
-    "badge": "made-up firm",
+    "badge": "firm",
     "drill": "i_4edfcbf0c8bc",
     "effect": {
      "ci": null,
@@ -233,7 +233,7 @@
      "query": "roles",
      "to": "firm"
     },
-    "badge": "made-up firm",
+    "badge": "firm",
     "drill": "i_0aa24caf8d91",
     "effect": {
      "ci": [
@@ -276,7 +276,7 @@
      "query": "roles",
      "to": "firm"
     },
-    "badge": "made-up firm",
+    "badge": "firm",
     "drill": "i_eaf2d8ab87bc",
     "effect": {
      "ci": [
@@ -318,7 +318,7 @@
      "label": "Open the firm view",
      "to": "firm"
     },
-    "badge": "made-up firm",
+    "badge": "firm",
     "drill": "i_5c0e723ef8f7",
     "effect": {
      "ci": [
@@ -357,7 +357,7 @@
      "query": "onboarding",
      "to": "firm"
     },
-    "badge": "made-up firm",
+    "badge": "firm",
     "drill": "i_b5ba4655820a",
     "effect": {
      "ci": [
@@ -395,7 +395,7 @@
  "meta": {
   "as_of": "2026-11-09T09:00:00Z",
   "audience": "admin",
-  "badge": "made-up firm",
+  "badge": "firm",
   "generated_at": "2026-11-09T09:00:00Z",
   "interval_level": 0.95,
   "n": 60,

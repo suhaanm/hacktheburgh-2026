@@ -185,7 +185,7 @@ describe("edge cases: Needs you", () => {
     expect(plainWords(undefined)).toBe("");
     expect(plainWords(null)).toBe("");
     expect(plainWords(5 as unknown as string)).toBe("");
-    expect(plainWords("A shadow run of the Demo")).toBe("A practice run of the Example");
+    expect(plainWords("A shadow run of the Demo")).toBe("A practice run of the Test");
   });
 });
 
@@ -291,9 +291,9 @@ describe("edge cases: ghosts and old records (a clock is fixed in every test)", 
 
 describe("edge cases: Your data", () => {
   T("YD-01", "what it measures with no view reads 'Reading', and counts that are negative or NaN are zero with both buttons off", () => {
-    const h = render(Measured, { capture: false, view: null, example: false, onExport: async () => undefined, onDelete: async () => 0 });
+    const h = render(Measured, { capture: false, view: null, onExport: async () => undefined, onDelete: async () => 0 });
     expect(text(h)).toContain("Reading");
-    const odd = render(Measured, { capture: true, view: { counts: { assist: -4, delegated: Number.NaN, automation: undefined } }, example: false, onExport: async () => undefined, onDelete: async () => 0 });
+    const odd = render(Measured, { capture: true, view: { counts: { assist: -4, delegated: Number.NaN, automation: undefined } }, onExport: async () => undefined, onDelete: async () => 0 });
     expect(text(odd)).toContain("0 counted, 0 done for you, 0 overnight");
     expect(odd.match(/disabled/g)?.length).toBe(2);
   });
@@ -345,7 +345,7 @@ describe("edge cases: Your data", () => {
 describe("edge cases: Settings", () => {
   const base = (over: Partial<SettingsViewProps> = {}): SettingsViewProps => ({
     live: liveModels({ health: { mock: true, key_present: true }, canSwitch: true, running: false, changing: false }), onLive: noop,
-    attention: attn, attentionExample: false, attentionError: null, onPreset: noop, onMode: noop, onGroup: noop, onResetLearned: noop, onLevelGlance: noop, wake: null, onWake: noop,
+    attention: attn, attentionError: null, onPreset: noop, onMode: noop, onGroup: noop, onResetLearned: noop, onLevelGlance: noop, wake: null, onWake: noop,
     desktop: null, onDesktop: noop, theme: "auto", onTheme: noop, view: "worker", onView: noop, version: null, ...over,
   });
   const html = (over?: Partial<SettingsViewProps>) => renderToStaticMarkup(createElement(SettingsView, base(over)));
@@ -386,7 +386,7 @@ describe("edge cases: Settings", () => {
   });
   T("ST-08", "the headline says how Knack is set, and says nothing it does not know", () => {
     expect(settingsHeadline({ live: true, preset: "rarely" })).toBe("Knack uses live models and interrupts you rarely.");
-    expect(settingsHeadline({ live: false, preset: null })).toBe("Knack runs on example data.");
+    expect(settingsHeadline({ live: false, preset: null })).toBe("Knack does not use live models.");
     expect(settingsHeadline({ live: null, preset: null })).toBe("");
   });
   T("ST-10", "the two limits on a task live inside Advanced, and the live line only says 'because a key is set' when the engine said so", () => {

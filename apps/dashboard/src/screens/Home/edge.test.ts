@@ -3,9 +3,10 @@
 import { describe, expect, it } from "vitest";
 import { quantitiesIn } from "../../lib/oneQuantity";
 import {
-  COULD_NOT_LOAD, EXAMPLE_LINE, HERO_MAX_WORDS, ROW_MAX_WORDS, exampleLine, heroAction, heroSentence, measure, needsLine, originBadge, quietFor,
+  COULD_NOT_LOAD, HERO_MAX_WORDS, ROW_MAX_WORDS, heroAction, heroSentence, measure, needsLine, quietFor,
   repeatsHint, repeatsRow, rowSentence, shapeOf, tryLine, weekLabel, weekOf, wordCount,
 } from "./model";
+import * as homeModel from "./model";
 
 const gap = (step: string, n: string | number, unit = "seconds", dir = "longer") => `On ${step}, you usually take about ${n} ${unit} ${dir} than the expert's median.`;
 
@@ -119,28 +120,10 @@ describe("the date line", () => {
   it("a missing week is not drawn", () => { expect(weekOf(null)).toBeNull(); expect(weekLabel(null)).toBeNull(); expect(weekOf({ from: undefined, to: undefined } as never)).toBeNull(); });
 });
 
-describe("the origin badge", () => {
-  it("example data wins over the data's own origin", () => { expect(originBadge({ example: true, origin: "real", badge: null })).toBe("Example data"); });
-  it("no origin draws a chip but example data (D57: none for generated or mixed data); a real one says nothing; an unknown one says nothing", () => {
-    expect(originBadge({ example: false, origin: "mixed", badge: null })).toBeNull();
-    expect(originBadge({ example: false, origin: "real", badge: "real" })).toBeNull();
-    expect(originBadge({ example: false, origin: "odd", badge: "   " })).toBeNull();
+describe("no origin tag and no example line", () => {
+  it("the model has no badge for any origin and no first-week example sentence", () => {
+    for (const name of ["originBadge", "exampleLine", "EXAMPLE_LINE"]) expect(name in homeModel, name).toBe(false);
   });
-  it("the engine's badge text is never drawn, whatever its case", () => { expect(originBadge({ example: false, origin: "synthetic", badge: "SYNTHETIC FIRM" })).toBeNull(); });
-});
-
-describe("the example line and stale or skewed clocks", () => {
-  const now = new Date("2026-11-10T10:00:00Z");
-  it("shows for a week after first run, then stops", () => {
-    expect(exampleLine(true, "2026-11-09T10:00:00Z", now)).toBe(EXAMPLE_LINE);
-    expect(exampleLine(true, "2026-11-03T10:01:00Z", now)).toBe(EXAMPLE_LINE);
-    expect(exampleLine(true, "2026-11-03T10:00:00Z", now)).toBeNull();
-  });
-  it("a first-run time a few hours in the future (a slow clock) still shows; one more than a day ahead is a clock fault and does not", () => {
-    expect(exampleLine(true, "2026-11-10T14:00:00Z", now)).toBe(EXAMPLE_LINE);
-    expect(exampleLine(true, "2026-11-12T10:00:00Z", now)).toBeNull();
-  });
-  it("an unreadable first-run time shows nothing", () => { for (const bad of ["", "not a time", "0000-00-00"]) expect(exampleLine(true, bad, now), bad).toBeNull(); });
 });
 
 describe("the quiet and error states", () => {

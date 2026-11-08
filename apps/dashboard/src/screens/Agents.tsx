@@ -4,8 +4,7 @@ import { useViewRole } from "../components/home/viewAs";
 import { useLoad } from "../hooks";
 import { useLive, useRegisteredStreams } from "../lib/live";
 import { anyActiveRun } from "../lib/tasks";
-import { CheckChip, EmptyState, ErrorState, Loading, PageHead, SourceNote, StatePill } from "../components/common";
-import { OriginBadge } from "../components/needsyou/Origin";
+import { CheckChip, EmptyState, ErrorState, Loading, PageHead, StatePill } from "../components/common";
 import { Hint } from "../components/Hint";
 import { Details } from "../components/ui";
 import { Facts } from "../components/Facts";
@@ -53,9 +52,7 @@ function BackgroundRuns() {
       <PageHead
         title={n.active > 0 ? `${n.active} background ${n.active === 1 ? "run is" : "runs are"} working` : "No background run is working"}
         lede="A planner splits a job into helpers."
-        aside={<OriginBadge sources={[runs]} />}
       />
-      <SourceNote why={runs.why} also={runs.why ? "These are example runs. Stop, Revoke and Run in background here only change this screen: nothing is started or stopped for real." : undefined} />
 
       {list.length === 0 ? (
         <EmptyState title="No background runs yet" body="A run works in an isolated copy and never applies a change without your approval." />
@@ -66,7 +63,7 @@ function BackgroundRuns() {
         </section>
       )}
 
-      <Spawn onStarted={runs.reload} example={!!runs.why} />
+      <Spawn onStarted={runs.reload} />
     </div>
   );
 }
@@ -236,7 +233,7 @@ function Detail({ id }: { id: string }) {
   );
 }
 
-function Spawn({ onStarted, example }: { onStarted: () => void; example: boolean }) {
+function Spawn({ onStarted }: { onStarted: () => void }) {
   const toast = useToast();
   const kinds = useLoad(() => api.agentsKinds(), []);
   const list: AgentKind[] = kinds.data ?? [];
@@ -261,7 +258,7 @@ function Spawn({ onStarted, example }: { onStarted: () => void; example: boolean
             {list.map((k) => <option key={k.kind} value={k.kind}>{k.title || kindLabel(k.kind)}</option>)}
           </select>
         </div>
-        <p className="note" data-testid="spawn-describe">{current?.describe ?? KIND_DOES[kind] ?? ""}{current?.roles?.length ? ` Helpers: ${current.roles.map((r) => r.replace(/_/g, " ")).join(", ")}.` : ""} It runs in an isolated workspace on sample data.</p>
+        <p className="note" data-testid="spawn-describe">{current?.describe ?? KIND_DOES[kind] ?? ""}{current?.roles?.length ? ` Helpers: ${current.roles.map((r) => r.replace(/_/g, " ")).join(", ")}.` : ""} It runs in an isolated workspace.</p>
         <div className="field">
           <span className="field__label" id="spawn-mode">When<Hint label="What each choice does">{mode === "foreground" ? "Works while you work, steps aside the moment you touch the keyboard, and reports at a natural break." : "Waits for a quiet window when you are away, using the same start-or-wait rule as your other routines."}</Hint></span>
           <div className="segmented" role="group" aria-labelledby="spawn-mode">
@@ -270,7 +267,7 @@ function Spawn({ onStarted, example }: { onStarted: () => void; example: boolean
           </div>
         </div>
         {err && <p className="field__error" role="alert">{err}</p>}
-        <div className="row"><button type="button" className="btn btn--primary" disabled={busy || !current} onClick={go}>{busy ? "Starting" : "Run in background"}</button>{example && <span className="note">Example mode: this adds a pretend run to the list above.</span>}</div>
+        <div className="row"><button type="button" className="btn btn--primary" disabled={busy || !current} onClick={go}>{busy ? "Starting" : "Run in background"}</button></div>
       </div>
     </Details>
   );

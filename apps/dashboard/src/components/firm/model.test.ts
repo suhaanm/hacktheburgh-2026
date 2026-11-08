@@ -88,21 +88,21 @@ describe("formatting", () => {
 
 describe("the worker's answer", () => {
   const w = normaliseWorker(workerFx);
-  it("reads the engine's sample: pointers with a word for how they look, no statistics, an origin badge, one action each", () => {
+  it("reads the engine's answer: pointers with a word for how they look, no statistics, one action each", () => {
     expect(w.pointers.length).toBeGreaterThanOrEqual(1);
     expect(w.pointers.length).toBeLessThanOrEqual(3);
     expect(w.status).toBe("ok");
     expect(w.week).toEqual({ from: "2026-11-09", to: "2026-11-15" });
     for (const p of w.pointers) {
       expect(p.polarity_label).toBeTruthy();
-      expect(p.badge).toBe("made-up firm");
+      expect(p.badge).toBe("firm");
       expect(p.n).toBeNull();
       expect(p.headline.length).toBeGreaterThan(10);
       expect(p.action?.to).toBeTruthy();
     }
     expect(w.monday_note).toMatch(/pointers? for your week/);
   });
-  it("knows when an example week stands in for the profile", () => {
+  it("reads the stand_in flag of the wire without drawing anything for it", () => {
     expect(normaliseWorker(workerFx).stand_in).toBe(false);
     expect(normaliseWorker({ data: { pointers: [], stand_in: true, stand_in_label: "BP-06" } }).stand_in).toBe(true);
   });

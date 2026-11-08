@@ -104,12 +104,12 @@ describe("Delete everything states exactly what is cleared", () => {
 
 describe("forgetting the step counts", () => {
   it("says what is deleted in the worker's words, with the counts, and what stays", () => {
-    const t = stepForgetText({ assist: 100, delegated: 12, automation: 8 }, false);
+    const t = stepForgetText({ assist: 100, delegated: 12, automation: 8 });
     expect(t.question).toBe("Forget 120 rows?");
     expect(t.consequence).toContain("100 counted, 12 done for you, 8 overnight");
     expect(t.consequence).toContain("Nothing else is touched.");
     expect(t.consequence).not.toMatch(/ledger|Cue\b|occurrence/i);
-    expect(stepForgetText({ assist: 1, delegated: 0, automation: 0 }, true).consequence).toContain("example data");
+    expect(stepForgetText({ assist: 1, delegated: 0, automation: 0 }).consequence).not.toMatch(/example|sample|stand[- ]in/i);
   });
 });
 

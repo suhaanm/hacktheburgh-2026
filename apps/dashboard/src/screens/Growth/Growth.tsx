@@ -3,7 +3,7 @@ import { useRoute } from "../../router";
 import { useAppState } from "../../store";
 import { growthSectionOf } from "../../components/home/navModel";
 import { useLoad, prefersReducedMotion } from "../../hooks";
-import { ErrorState, ExampleBadge, Loading, OriginBadge, PageHead, SourceNote, workerOriginLabel } from "../../components/common";
+import { ErrorState, Loading, PageHead } from "../../components/common";
 import { GrowthChart, GrowthKey } from "../../components/growth/GrowthChart";
 import { SkillRows } from "../../components/growth/SkillRows";
 import { Offloaded } from "../../components/growth/Offloaded";
@@ -11,7 +11,6 @@ import { LedgerControls } from "../../components/growth/LedgerControls";
 import { AboutGrowth } from "../../components/growth/About";
 import { Details } from "../../components/ui";
 import { EarlyHero, EmptyHero, HowStepsAreCounted } from "../../components/growth/States";
-import { SectionSources, useExampleSource } from "../../components/growth/GrowthSection";
 import { TimeSection } from "../../components/growth/TimeSection";
 import { StepsSection } from "../../components/growth/StepsSection";
 import { MapSection } from "../../components/growth/MapSection";
@@ -36,13 +35,12 @@ function Progress() {
   const [skill, setSkill] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
   const heroRef = useRef<HTMLElement>(null);
-  const anyExample = useExampleSource();
 
   const g = useLoad(() => loadGrowth(skill, story), [skill, story, tick]);
   const needsMarks = g.data ? normalizeGrowth(g.data).readiness.occurrences < normalizeGrowth(g.data).readiness.needed : false;
   const led = useLoad(() => loadLedger(story, needsMarks), [story, needsMarks, tick]);
 
-  // A story is only a thing to pick when the screen shows example data.
+  // A story is only a thing to pick when the engine did not answer.
   const example = g.source === "demo";
   useEffect(() => { document.title = "Growth · Knack"; }, []);
 
@@ -80,14 +78,9 @@ function Progress() {
     return count;
   };
 
-  // One origin badge per screen: the sample badge when the screen shows built-in example data, else the engine's origin in a worker's words.
-  // A live answer with nothing counted shows no numbers, so there is nothing to qualify: no badge. The origin is still printed in "About this data".
-  const liveAndEmpty = !g.why && g.source === "live" && view.status === "empty";
-  const badge = g.why ? <ExampleBadge why={g.why} /> : anyExample ? <ExampleBadge why={anyExample} /> : liveAndEmpty ? null : <OriginBadge meta={g.meta} label={g.meta ? workerOriginLabel(g.meta.origin) : undefined} />;
-
   return (
     <div className="gr-progress" aria-busy={busy}>
-      <PageHead hero title={view.title} lede={GROWTH_LIMIT} aside={badge} />
+      <PageHead hero title={view.title} lede={GROWTH_LIMIT} />
 
       <section ref={heroRef} className={`gr-hero${busy ? " gr-busy" : ""}`} aria-label="Independence curve" style={{ scrollMarginTop: "var(--space-5)" }}>
         {view.status === "empty" && <EmptyHero needed={view.needed} />}
@@ -107,13 +100,11 @@ function Progress() {
             </figure>
           </>
         )}
-        {g.why?.kind === "error" && <SourceNote why={g.why} />}
         <AboutGrowth view={view} meta={g.meta} n={n}>
-          {g.why && g.why.kind !== "error" && <SourceNote why={g.why} />}
           {view.status !== "ready" && <HowStepsAreCounted needed={view.needed} window={view.window} />}
           {example && (
-            <div className="gr-story" role="group" aria-label="Which example learner to show">
-              <span>Example learner</span>
+            <div className="gr-story" role="group" aria-label="Which learner to show">
+              <span>Learner</span>
               <span className="segmented">
                 {STORIES.map((s) => (
                   <button key={s.id} type="button" aria-pressed={story === s.id} onClick={() => { setStory(s.id); setSkill(null); }}>{s.label}</button>
@@ -140,7 +131,7 @@ function Progress() {
         )}
         {hasLedger && (
           <Details summary="Your record" wide>
-            <LedgerControls counts={counts} fields={ledgerFields(rows)} example={example} onExport={onExport} onDelete={onDelete} />
+            <LedgerControls counts={counts} fields={ledgerFields(rows)} onExport={onExport} onDelete={onDelete} />
           </Details>
         )}
         {hasOffloaded && (
@@ -176,14 +167,12 @@ export default function Growth() {
   }, [section]);
 
   return (
-    <SectionSources>
-      <div className="page page--wide gr-page">
-        <Progress />
-        <TimeSection open={section === "time"} />
-        <StepsSection open={section === "steps"} />
-        <MapSection open={section === "map"} />
-        {commits && <CommitsSection open={section === "commits"} />}
-      </div>
-    </SectionSources>
+    <div className="page page--wide gr-page">
+      <Progress />
+      <TimeSection open={section === "time"} />
+      <StepsSection open={section === "steps"} />
+      <MapSection open={section === "map"} />
+      {commits && <CommitsSection open={section === "commits"} />}
+    </div>
   );
 }

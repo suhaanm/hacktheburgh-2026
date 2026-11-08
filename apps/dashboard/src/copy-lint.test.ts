@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { findBanned, isBareEnum, phraseRegex, stringsIn, stripIdentifiers, type BannedConfig } from "./lib/copyLint";
 import { jsxTexts, looksLikePath, tokenise, type Hit } from "./lib/visibleWords";
-import { PENDING_D57, PENDING_D57_MAX } from "./lib/pendingCopy";
+import { PENDING_D57, PENDING_D57_MAX, EVIDENCE_PAGE } from "./lib/pendingCopy";
 import { buildView, normalizeGrowth } from "./components/growth/model";
 import improves from "./fixtures/growth.json";
 import plateau from "./fixtures/growth-plateau.json";
@@ -87,23 +87,22 @@ describe("the linter itself", () => {
 });
 
 /**
- * Files of other tracks that still carry the old name or a banned phrase, listed on 7 Nov at about 23:15 UTC so this test is green on a track branch (trimmed at 23:25 after Tracks B and C landed).
- * It is a ratchet, not an allow-list: a file that is not listed may have no finding at all; a listed file must still have one (so the entry is deleted the
- * moment its track lands); and the list can only get shorter. Run with KNACK_LINT_STRICT=1 to ignore it and see every finding. The lead flips the default
- * (STRICT below) once the tracks are merged; nothing here is ever a reason to ship a finding.
+ * The ratchet is empty: every file that carried the old name or a banned phrase has been cleaned (the last four fixtures on 8 Nov 2026, 05:15). The mechanism stays:
+ * a file that is not listed may have no finding at all; a listed file must still have one; and the list can only get shorter. KNACK_LINT_STRICT=1 ignores it.
  */
-const PENDING_OLD: Record<string, string> = {
-  "apps/dashboard/src/fixtures/attention-why.json": "the example data of the attention layer: the old name is in the engine's sentence",
-  "apps/dashboard/src/fixtures/briefing.json": "the example data of Briefing, which Track C moves into Needs you",
-  "apps/dashboard/src/fixtures/home-worker-good.json": "the example data of Home (the Monday note), Track B",
-  "apps/dashboard/src/fixtures/home-worker.json": "the example data of Home (the Monday note), Track B",
-};
+const PENDING_OLD: Record<string, string> = {};
 /** The old pending files, plus the files still to be cleaned for owner decision D57 (the words synthetic and simulated), each naming its track: src/lib/pendingCopy.ts. */
 const PENDING: Record<string, string> = { ...PENDING_OLD, ...PENDING_D57 };
-/** The Evidence page is the reviewers' page: its report fixture may say "made-up" (what a measurement was made on), never "synthetic" or "simulated". */
-const REVIEWERS_PAGE = new Set(["apps/dashboard/src/fixtures/eval-report.json"]);
+/**
+ * The Evidence page (admin More) is the reviewers' page. Its "Measured on" column, limitations and findings say how each evaluation result was obtained (what a
+ * measurement was made on, which stand-in a test ran against), and removing that would make the research claims false. So these files, and only these, may use the
+ * words of the example family (made-up, example data, sample data, stand-in, fixture and the rest), never "synthetic" or "simulated". No pill, badge or banner of
+ * the example kind is allowed there either: the page draws none (words.test.ts checks the markup).
+ */
+const REVIEWERS_PAGE = new Set(EVIDENCE_PAGE);
+const EXEMPT_ON_EVIDENCE = /^(made[- ]up|example data|example week|sample data|stand[- ]in|not real workers|for this build|fixture)$/i;
 const STRICT = process.env.KNACK_LINT_STRICT === "1";
-const PENDING_MAX = 6;
+const PENDING_MAX = 0;
 
 /** Findings by repo-relative file, then split into the ones a pending entry covers and the ones nothing covers. */
 function judge(byFile: Map<string, string[]>, inScope: (file: string) => boolean): { unexpected: string[]; stale: string[] } {
@@ -131,7 +130,7 @@ describe("no banned copy in the dashboard", () => {
     const by = new Map<string, string[]>();
     for (const f of files) {
       const rel = relative(repo, f);
-      for (const h of read(f)) for (const x of findBanned(h.text, cfg).filter((y) => !(REVIEWERS_PAGE.has(rel) && /^made[- ]up$/i.test(y.match)))) by.set(rel, [...(by.get(rel) ?? []), `${rel}${h.at}  [${x.kind}: ${x.match}]  ${h.text.slice(0, 80)}`]);
+      for (const h of read(f)) for (const x of findBanned(h.text, cfg).filter((y) => !(REVIEWERS_PAGE.has(rel) && EXEMPT_ON_EVIDENCE.test(y.match)))) by.set(rel, [...(by.get(rel) ?? []), `${rel}${h.at}  [${x.kind}: ${x.match}]  ${h.text.slice(0, 80)}`]);
     }
     return by;
   };

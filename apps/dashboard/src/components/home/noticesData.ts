@@ -41,7 +41,7 @@ export async function exportNotices(person: string | null): Promise<NoticesFile>
   const r = await call(`/attention/export${qs({ person })}`, "GET");
   if (unknownPerson(r)) return { filename, text: JSON.stringify({ origin: "live", settings: null, note: "Nothing is stored yet." }, null, 2), example: false };
   if (isMissing(r)) {
-    const body = exampleCleared ? { origin: "example data", settings: null } : { origin: "example data", settings: envelope<unknown>(attentionSettingsFx).data };
+    const body = exampleCleared ? { settings: null } : { settings: envelope<unknown>(attentionSettingsFx).data };
     return { filename, text: JSON.stringify(body, null, 2), example: true };
   }
   if (r.reached && r.status >= 400) throw errorOf(r);

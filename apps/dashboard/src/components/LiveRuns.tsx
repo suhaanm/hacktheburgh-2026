@@ -1,6 +1,6 @@
 import { fmtInterval } from "../lib/format";
 import { liveFixSentence, liveRuns, liveSentence, plainScope } from "../lib/evidence";
-import { ChartFoot, OriginBadge } from "./common";
+import { ChartFoot } from "./common";
 import { Details } from "./ui";
 import type { AnalyticMeta } from "../types";
 
@@ -17,7 +17,6 @@ export function LiveRuns({ live, meta }: { live: unknown; meta: AnalyticMeta | n
       <div className="stack" style={{ gap: "var(--space-2)" }}>
         <p className="t-label">Real model, small n</p>
         <div className="row" style={{ gap: "var(--space-2)" }}>
-          <OriginBadge meta={meta} always />
           <span className="pill">{v.label}</span>
           {v.households != null && <span className="pill">{v.households} households per condition</span>}
           <span className="pill">generated households, sandbox calculators</span>

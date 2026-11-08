@@ -1,7 +1,7 @@
 {
  "data": {
   "audience": "admin",
-  "badge": "made-up firm",
+  "badge": "firm",
   "items": [
    {
     "id": "counts",
@@ -149,7 +149,7 @@
  "meta": {
   "as_of": "2026-11-09T09:00:00Z",
   "audience": "worker",
-  "badge": "made-up firm",
+  "badge": "firm",
   "generated_at": "2026-11-09T09:00:00Z",
   "interval_level": null,
   "n": 1,

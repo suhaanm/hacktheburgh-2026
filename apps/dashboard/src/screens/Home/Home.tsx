@@ -14,11 +14,10 @@ import { TaskBox } from "../../components/home/TaskBox";
 import { WhyThis } from "../../components/home/PointerCard";
 import { Hint } from "../../components/Hint";
 import { Icon } from "../../components/shell/icons";
-import { FIRST_RUN_KEY } from "../FirstRun/model";
 import { loadRepeats } from "../Repeats/data";
 import { loadWorker, parseStory } from "./data";
 import { blockingItem, remainingAfter } from "./approval";
-import { COULD_NOT_LOAD, GROWTH_ROW, coachLine, exampleLine, heroAction, heroSentence, needsLine, originBadge, quietFor, repeatsHint, repeatsRow, rowSentence, tryLine, weekOf, type Quiet } from "./model";
+import { COULD_NOT_LOAD, GROWTH_ROW, coachLine, heroAction, heroSentence, needsLine, quietFor, repeatsHint, repeatsRow, rowSentence, tryLine, weekOf, type Quiet } from "./model";
 import { useExampleWeek } from "./story";
 import "../../components/home/home.css";
 
@@ -72,7 +71,6 @@ const BackgroundTasks = lazy(async () => {
   return { default: (m?.default ?? m?.BackgroundTasks ?? (() => null)) as ComponentType<{ limit?: number }> };
 });
 
-const firstRunAt = (): string | null => { try { return window.localStorage.getItem(FIRST_RUN_KEY); } catch { return null; } };
 
 export default function Home() {
   const route = useRoute();
@@ -117,16 +115,13 @@ export default function Home() {
   if (w.status === "error" && !data) return <div className="page page--read home"><QuietState q={COULD_NOT_LOAD} onRetry={w.reload} /></div>;
   if (!data) return <Reading />;
 
-  const example = w.source === "demo";
   const status = pointers.length === 0 && data.status === "ok" ? "nothing_stands_out" : data.status;
   const quiet = pointers.length === 0 ? quietFor(status, { setUp: !!app.role || !!person }) : null;
-  const badge = originBadge({ example, origin: w.meta?.origin, badge: (w.meta as { badge?: string } | null)?.badge });
   const date = weekOf(data.week);
-  const standInNote = data.stand_in ? ((w.meta as { note?: string } | null)?.note ?? "An example week stands in for this profile.") : null;
 
   const [first, second] = pointers;
   const action = first ? heroAction(first) : null;
-  const toTry = tryLine(data.try) ?? exampleLine(data.stand_in, firstRunAt());
+  const toTry = tryLine(data.try);
   const needs = needsLine(remainingAfter(Math.max(app.pendingQueue, pending.length), !!blocking));
   const repeats = rep.data && rep.data.state === "ok" ? rep.data.total : null;
   const rLine = repeatsRow(repeats);
@@ -150,7 +145,6 @@ export default function Home() {
       <Suspense fallback={null}><BackgroundTasks limit={3} /></Suspense>
       <div className="home__meta">
         <span>{date ?? "This week"}</span>
-        {badge && <span className="pill pill--origin" data-origin={example ? "example" : w.meta?.origin ?? "synthetic"}>{badge}</span>}
       </div>
 
       {blocking ? <ApprovalHero item={blocking} onDone={decided} /> : quiet ? <QuietState q={quiet} onRetry={retry} /> : first && (
@@ -159,7 +153,7 @@ export default function Home() {
           {toTry && <p className="home__why">{toTry}</p>}
           <div className="home__actions">
             {action && <a className="btn btn--primary" href={action.href}>{action.label}</a>}
-            {first.details_available && <WhyThis p={first} person={person} note={standInNote} onGone={onGone} />}
+            {first.details_available && <WhyThis p={first} person={person} onGone={onGone} />}
           </div>
         </section>
       )}

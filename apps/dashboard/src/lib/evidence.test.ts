@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import reportFx from "../fixtures/eval-report.json";
 import type { EvalReport } from "../types";
-import { ANCHORS, ORIGIN_LABEL, describeSection, hasInterval, mapCounts, mapRows, nText, originKind, originWords, otherSections, plainScope, sectionTitle } from "./evidence";
+import { ANCHORS, ORIGIN_LABEL, describeSection, hasInterval, mapCounts, mapRows, nText, originKind, otherSections, plainScope, sectionTitle } from "./evidence";
 
 const rep = reportFx as unknown as EvalReport & { evidence_map: unknown[] };
 
@@ -217,13 +217,6 @@ describe("the origin badge for something that has not run", () => {
       expect(r.originLabel).toBe("not run");
     }
     expect(realRows.some((r) => r.status === "not_run")).toBe(true);
-  });
-  it("words a single analytic's badge the same way", () => {
-    expect(originWords("real")).toEqual({ text: "real", data: "real", sr: ", measured from real people" });
-    expect(originWords("synthetic").text).toBe("");
-    expect(originWords("mixed").text).toBe("");
-    expect(originWords("unknown")).toEqual({ text: "not run", data: "not_run", sr: ", nothing was measured yet" });
-    expect(originWords("").text).toBe("not run");
   });
 });
 

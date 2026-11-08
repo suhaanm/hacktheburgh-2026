@@ -3,9 +3,10 @@ import workerFx from "../../fixtures/home-worker.json";
 import goodFx from "../../fixtures/home-worker-good.json";
 import { quantitiesIn } from "../../lib/oneQuantity";
 import {
-  ACTION_MAX_WORDS, COULD_NOT_LOAD, EXAMPLE_LINE, coachLine, GROWTH_ROW, HERO_MAX_WORDS, ROW_MAX_WORDS, TRY_MAX_WORDS, exampleLine, heroAction, heroSentence, needsLine,
-  originBadge, quietFor, repeatsHint, repeatsRow, rowSentence, shapeOf, tryLine, weekLabel, weekOf, wordCount,
+  ACTION_MAX_WORDS, COULD_NOT_LOAD, coachLine, GROWTH_ROW, HERO_MAX_WORDS, ROW_MAX_WORDS, TRY_MAX_WORDS, heroAction, heroSentence, needsLine,
+  quietFor, repeatsHint, repeatsRow, rowSentence, shapeOf, tryLine, weekLabel, weekOf, wordCount,
 } from "./model";
+import * as homeModel from "./model";
 
 type Pointer = { headline: string; kind: string; action: { id: string; label: string; to: string; query?: string | null } | null };
 const pointers = (fx: unknown): Pointer[] => (fx as { data: { pointers: Pointer[] } }).data.pointers;
@@ -136,19 +137,7 @@ describe("dates, badge and the example line", () => {
     expect(weekLabel({ from: "2026-11-30", to: "2026-12-06" })).toBe("30 November to 6 December");
     expect(weekLabel({ from: "soon", to: "later" })).toBeNull();
   });
-  it("draws one origin badge in sentence case", () => {
-    expect(originBadge({ example: true, origin: "synthetic", badge: "synthetic firm" })).toBe("Example data");
-    expect(originBadge({ example: false, origin: "synthetic", badge: "made-up firm" })).toBeNull();
-    expect(originBadge({ example: false, origin: "mixed", badge: null })).toBeNull();
-    expect(originBadge({ example: false, origin: "real", badge: null })).toBeNull();
-    expect(originBadge({ example: false, origin: "real", badge: null })).toBeNull();
-    expect(originBadge({ example: false, origin: null, badge: null })).toBeNull();
-  });
-  it("says the example line only while an example stands in, in the first week after first run", () => {
-    const now = new Date("2026-11-10T10:00:00Z");
-    expect(exampleLine(true, "2026-11-09T10:00:00Z", now)).toBe(EXAMPLE_LINE);
-    expect(exampleLine(true, "2026-11-01T10:00:00Z", now)).toBeNull();
-    expect(exampleLine(false, "2026-11-09T10:00:00Z", now)).toBeNull();
-    expect(exampleLine(true, null, now)).toBeNull();
+  it("draws no origin badge and no example line (owner, 8 Nov 2026): the model has nothing that makes either", () => {
+    for (const name of ["originBadge", "exampleLine", "EXAMPLE_LINE"]) expect(name in homeModel, name).toBe(false);
   });
 });

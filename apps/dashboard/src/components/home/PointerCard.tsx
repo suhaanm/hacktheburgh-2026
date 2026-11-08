@@ -11,7 +11,7 @@ export const pointerHref = (a: NonNullable<WirePointer["action"]>): string => `#
  * "Why this?": the method (fixed rules, not a model), the reason behind one pointer read when it is opened, its sources, the limits, the example
  * sentence when an example week stands in, and the three ways to tell Knack how it landed. Every one of those only makes things quieter.
  */
-export function WhyThis({ p, person, note, onGone }: { p: Pick<WirePointer, "id" | "headline">; person: string | null; note: string | null; onGone: (id: string) => void }) {
+export function WhyThis({ p, person, onGone }: { p: Pick<WirePointer, "id" | "headline">; person: string | null; onGone: (id: string) => void }) {
   const [state, setState] = useState<{ status: "idle" | "loading" | "ready" | "error"; why: Loaded<WireWhy> | null }>({ status: "idle", why: null });
   const [said, setSaid] = useState<string | null>(null);
   const open = (o: boolean) => {
@@ -33,7 +33,6 @@ export function WhyThis({ p, person, note, onGone }: { p: Pick<WirePointer, "id"
     <Details summary="Why this?" onToggle={open} wide>
       <div className="home__reason">
         <p>Chosen by fixed rules, not by a model.</p>
-        {note && <p className="home__limits">{note}</p>}
         {state.status === "loading" && <p>Reading the reason.</p>}
         {state.status === "error" && <p>The reason could not be loaded. The pointer itself is unchanged.</p>}
         {why && (

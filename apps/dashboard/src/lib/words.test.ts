@@ -3,7 +3,7 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { jsxTexts, scanJson, scanSource, tokenise } from "./visibleWords";
-import { PENDING_D57, PENDING_D57_MAX } from "./pendingCopy";
+import { PENDING_D57, PENDING_D57_MAX, EVIDENCE_PAGE } from "./pendingCopy";
 
 // The owner's rule (7 Nov): the word "demo" never appears in anything a person can see or a screen reader reads. This test reads every source
 // file of the dashboard and of the desktop renderer, and every fixture, and fails on a visible "demo". The allow-list is empty: the only thing
@@ -27,8 +27,8 @@ const isTest = (p: string) => /\.test\.(ts|tsx)$/.test(p);
 const dashboardSources = walk(join(dashboard, "src"), (p) => /\.(ts|tsx)$/.test(p) && !isTest(p));
 const fixtures = walk(join(dashboard, "src", "fixtures"), (p) => p.endsWith(".json"));
 const rendererRoot = join(repo, "apps", "desktop", "src", "renderer");
-// The renderer's own render harnesses are developer tools, not product screens (overlay/demo.* and the harness folders).
-const rendererSources = walk(rendererRoot, (p) => /\.(ts|tsx|js)$/.test(p) && !isTest(p) && !/[\\/](overlay[\\/]demo\.|overlay[\\/]harness[\\/]|cue[\\/]harness[\\/])/.test(p));
+// The renderer's own render harnesses are developer tools, not product screens (overlay/demo.*, the harness folders and design/preview, which builds docs/design-preview).
+const rendererSources = walk(rendererRoot, (p) => /\.(ts|tsx|js)$/.test(p) && !isTest(p) && !/[\\/](overlay[\\/]demo\.|overlay[\\/]harness[\\/]|cue[\\/]harness[\\/]|design[\\/]preview[\\/])/.test(p));
 
 describe("the scanner itself", () => {
   it("finds the word in strings, templates and JSX text, and only there", () => {
@@ -147,5 +147,57 @@ describe("no visible banned word anywhere", () => {
     expect(scanSource('o = { origin: "synthetic" }; p = "ana-synthetic-origin";', "synthetic")).toEqual([]);
     expect(scanJson({ meta: { origin: "synthetic", note: "Generated people." } }, "synthetic")).toEqual([]);
     expect(scanJson({ meta: { origin: "synthetic", note: "Synthetic personas." } }, "synthetic").map((h) => h.path)).toEqual(["$.meta.note"]);
+  });
+});
+
+/**
+ * The example family (owner, 8 Nov 2026, 05:00): no pill, chip, badge, banner, status line, footer note, tooltip, aria label, toast or sentence says or implies that
+ * what is on screen is example data, a sample, a stand-in, a fixture, made up, or "not real workers", or that something was built "for this build". The words are in
+ * docs/knack-ux/banned-phrases.json (visible_words). The one exemption is the Evidence page and the report it reads (EVIDENCE_PAGE in pendingCopy.ts), whose
+ * "Measured on" column, limitations and findings state how each result was obtained. There is no ratchet: the list below is empty.
+ */
+const FAMILY = ["example data", "example week", "sample data", "stand-in", "stand in", "not real workers", "for this build", "fixture"] as const;
+const FAMILY_ALL = [...FAMILY, "made-up", "made up"] as const;
+const onEvidence = new Set<string>(EVIDENCE_PAGE);
+
+describe("no example-family phrase anywhere a person can see or hear it", () => {
+  const rel = (f: string) => relative(repo, f);
+  const sourceHitsOf = (files: string[], words: readonly string[]) => files.filter((f) => !onEvidence.has(rel(f))).flatMap((f) => words.flatMap((w) => scanSource(readFileSync(f, "utf8"), w).map((h) => `${rel(f)}:${h.line}  [${w}] ${h.text.slice(0, 90)}`)));
+
+  it("finds the phrases the way it finds demo", () => {
+    expect(scanSource('t = "Showing example data: the engine is not answering.";', "example data").length).toBe(1);
+    expect(scanSource('t = "An example week stands in for this profile.";', "example week").length).toBe(1);
+    expect(scanSource('t = "Computer use ran against a stand-in actuator.";', "stand-in").length).toBe(1);
+    expect(scanSource('t = "made for this build, not real workers";', "for this build").length).toBe(1);
+    expect(scanSource('t = "the fixture generator";', "fixture").length).toBe(1);
+    expect(scanSource('const fixtures = 1; import x from "./fixtures/a.json"; const exampleData = 2;', "fixture")).toEqual([]);
+    expect(scanJson({ meta: { note: "Example data: a generated learner." } }, "example data").map((h) => h.path)).toEqual(["$.meta.note"]);
+  });
+
+  it("not in the dashboard's screens, components and libraries (the Evidence page apart)", () => {
+    expect(sourceHitsOf(dashboardSources, FAMILY_ALL)).toEqual([]);
+  });
+
+  it("not in the dashboard's fixtures (the report the Evidence page reads apart)", () => {
+    const bad = fixtures.filter((f) => !onEvidence.has(rel(f))).flatMap((f) => {
+      let v: unknown;
+      try { v = JSON.parse(readFileSync(f, "utf8")); } catch { return []; }
+      return FAMILY_ALL.flatMap((w) => scanJson(v, w).filter((h) => !/\.badge$/.test(h.path)).map((h) => `${rel(f)} ${h.path}  [${w}] ${h.text.slice(0, 90)}`));
+    });
+    expect(bad).toEqual([]);
+  });
+
+  it("not in the desktop renderer's panel, dock or overlay", () => {
+    expect(sourceHitsOf(rendererSources, FAMILY_ALL)).toEqual([]);
+  });
+
+  it("not in the page itself", () => {
+    const html = readFileSync(join(dashboard, "index.html"), "utf8").replace(/<!--[\s\S]*?-->/g, "");
+    for (const w of FAMILY_ALL) expect(new RegExp(`\\b${w}\\b`, "i").test(html), w).toBe(false);
+  });
+
+  it("only the Evidence page and its report are exempt, and they exist", () => {
+    for (const f of EVIDENCE_PAGE) expect(statSync(join(repo, f)).isFile(), f).toBe(true);
+    expect(EVIDENCE_PAGE.length).toBeLessThanOrEqual(8);
   });
 });

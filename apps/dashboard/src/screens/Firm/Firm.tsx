@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { useRoute } from "../../router";
 import { useLoad, type LoadState } from "../../hooks";
-import { ErrorState, Loading, SourceNote } from "../../components/common";
+import { ErrorState, Loading } from "../../components/common";
 import { Details } from "../../components/ui";
 import { AutomationBody } from "../../components/firm/AutomationBody";
 import { FirmBrief } from "../../components/firm/FirmBrief";
@@ -42,7 +42,6 @@ function Panel<T>({ q, what, children }: { q: LoadState<T>; what: string; childr
   return (
     <section className="firm-panel" aria-busy={q.status === "loading"}>
       {children(q.data)}
-      <SourceNote why={q.why} />
     </section>
   );
 }

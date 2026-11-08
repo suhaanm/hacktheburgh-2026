@@ -5,7 +5,7 @@
   "n_unit": "days",
   "split": null,
   "interval_level": 0.95,
-  "note": "Generated calendar with planted structure; the expert reference is 8 experts generated from the role template. Intervals cover the uncertainty in the expert reference only. Nothing here is validated on real people.",
+  "note": "The expert reference is 8 experts from the role template. Intervals cover the uncertainty in the expert reference only. Nothing here is validated on real people.",
   "generated_at": "2026-11-07T17:24:45+00:00"
  },
  "data": {

@@ -6,7 +6,7 @@
 // body and is not kept: nothing here stores, logs or returns it.
 import { ENGINE_URL } from "../../api";
 import { requestBody, requestHeaders } from "../../lib/http";
-import fixture from "./fixture.json";
+import offlineList from "./fixture.json";
 import { connectBody, type Connection, type ConnMode } from "./model";
 
 export interface ConnectionsClient {
@@ -26,8 +26,8 @@ export class ConnectionsError extends Error {
 
 type Fetch = typeof fetch;
 const clone = <T,>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
-const exampleList = (): Connection[] => clone((fixture as { data: Connection[] }).data);
-const roleOrder = (role: string): string[] => ((fixture as { roles?: Record<string, string[]> }).roles ?? {})[role] ?? [];
+const exampleList = (): Connection[] => clone((offlineList as { data: Connection[] }).data);
+const roleOrder = (role: string): string[] => ((offlineList as { roles?: Record<string, string[]> }).roles ?? {})[role] ?? [];
 /** The role's connections in the order its pack gives them (the engine does the same). */
 export function forRole(all: Connection[], role?: string): Connection[] {
   if (!role) return all;

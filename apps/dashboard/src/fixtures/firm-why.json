@@ -15,7 +15,7 @@
   "limits": [
    "These figures are for coaching and onboarding, not for evaluating individuals.",
    "Comparisons are within the same tasks and need at least 5 people per group.",
-   "The data is generated until a real deployment says otherwise.",
+   "The numbers are for the people in this firm only.",
    "Insights are chosen by fixed rules, and worded from a fixed list of sentences."
   ],
   "parts": {
@@ -42,7 +42,7 @@
  "meta": {
   "as_of": "2026-11-09T09:00:00Z",
   "audience": "admin",
-  "badge": "made-up firm",
+  "badge": "firm",
   "generated_at": "2026-11-09T09:00:00Z",
   "interval_level": null,
   "n": 0,

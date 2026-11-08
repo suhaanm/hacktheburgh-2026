@@ -140,7 +140,7 @@ export default function Settings({ section }: { section?: string }) {
 
   return (
     <SettingsView section={section} live={liveView} onLive={(on) => void onLive(on)}
-      attention={attention} attentionExample={!!attn.why} attentionError={attentionError} onPreset={onPreset} onMode={onMode} onGroup={onGroup} onResetLearned={onResetLearned} onLevelGlance={onLevelGlance} wake={wakeApi ? wake : null} onWake={onWake}
+      attention={attention} attentionError={attentionError} onPreset={onPreset} onMode={onMode} onGroup={onGroup} onResetLearned={onResetLearned} onLevelGlance={onLevelGlance} wake={wakeApi ? wake : null} onWake={onWake}
       today={today.data && attention ? <TodayStrip digest={today.data} budgetPerDay={attention.budget_per_day} /> : null}
       desktop={bridge ? desktop : null} onDesktop={onDesktop}
       theme={theme} onTheme={setTheme}

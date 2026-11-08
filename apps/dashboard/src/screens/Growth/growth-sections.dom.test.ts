@@ -81,10 +81,10 @@ describe("Growth, the one worker page", () => {
     expect(host.querySelector("h1")).not.toBeNull();
   });
 
-  it("holds exactly one origin pill for the page, whatever the sections show", async () => {
+  it("holds no origin pill, tag or note for the page, whatever the sections show", async () => {
     await mount();
-    const pills = [...host.querySelectorAll(".page__aside .pill, .screenhead .pill")];
-    expect(pills.length).toBe(1);
+    expect(host.querySelectorAll(".page__aside .pill, .screenhead .pill, .pill--origin, .sourcenote").length).toBe(0);
+    expect(all()).not.toMatch(/example (data|learner|week)|sample data|stand[- ]in|not real workers|for this build/i);
   });
 
   it("draws nothing a worker must not see, closed disclosures included", async () => {
@@ -93,7 +93,7 @@ describe("Growth, the one worker page", () => {
     // the explanation of the worker's case is part of the page text, so the rules below read it too
     expect(text).toMatch(/Explain this case/);
     expect(host.querySelector("#explain")).not.toBeNull();
-    expect(host.querySelector("[data-testid=explain-footer]"), "the explanation ran on the example data").not.toBeNull();
+    expect(host.querySelector("[data-testid=explain-footer]"), "the explanation ran").not.toBeNull();
     for (const [name, re] of [...FIRM, ...INTERNALS]) { const h = hit(text, re); expect(h === null, `${name}: ${h}`).toBe(true); }
   });
 

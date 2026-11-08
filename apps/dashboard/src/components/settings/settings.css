@@ -13,7 +13,6 @@
 .st-kind { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-4); min-height: var(--control-h, 32px); }
 .st-kind__name { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-size: var(--text-sm); }
 .st-kind__line { display: block; width: 100%; color: var(--muted); font-size: var(--text-xs); font-weight: 400; }
-.st-default { color: var(--muted); }
 .st-kind-note { margin: 0; color: var(--muted); font-size: var(--text-sm); }
 .st-switch { margin: 0; }
 .st-switch input:disabled + .toggle__track { opacity: 0.5; cursor: not-allowed; }

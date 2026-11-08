@@ -1,15 +1,15 @@
 import { useState } from "react";
 import { api } from "../../api";
 import { idle, useLoad } from "../../hooks";
-import { ChartFoot, EmptyState, LegendItem, Loading, SourceNote } from "../common";
+import { ChartFoot, EmptyState, LegendItem, Loading } from "../common";
 import { HabitDeltas } from "../HabitDeltas";
 import { Hint } from "../Hint";
 import { Details, fitItems } from "../ui";
-import { GrowthSection, SectionError, useReportSource } from "./GrowthSection";
+import { GrowthSection, SectionError } from "./GrowthSection";
 import { isCalm, notKnown, unknownAsError, useOwnPerson } from "./own";
 import { splitSentence } from "../../lib/week";
 import { DIGEST_LABEL, fmtPoints, fmtPointsInterval, fmtShare, readHabit, sortHabits, splitCounts } from "../../lib/git";
-import { oneExpert, safeWhy } from "../../lib/voice";
+import { oneExpert } from "../../lib/voice";
 import { ownMeta } from "../../lib/ownMeta";
 import type { GitHabit, GitHabits } from "../../types";
 import type { Loaded } from "../../api";
@@ -31,7 +31,6 @@ export function CommitsSection({ open }: { open: boolean }) {
   const me = own.person;
   const h = unknownAsError(useLoad(() => (own.ready ? (own.blocked ? notKnown<Loaded<GitHabits>>() : api.gitHabits(me, undefined)) : idle<GitHabits>()), [own.ready, own.blocked, me]));
   const [allHabits, setAllHabits] = useState(false);
-  useReportSource("commits", h.why ?? null);
 
   if (h.status === "error" && !h.data) {
     // A programmer with no repository yet: a calm sentence, never an error phrase.
@@ -69,12 +68,11 @@ export function CommitsSection({ open }: { open: boolean }) {
             <div className="stack">
               <p className="note"><b className="tabular">{d.n_commits.toLocaleString("en-GB")}</b> commits were counted. {DIGEST_LABEL[d.digest_source] ?? d.digest_source}. {d.digest_source === "rules" ? "No model was involved." : "It ran on this laptop and saw digests, not commit text."}{d.digest_warming ? " The model is still warming up, so rules answered for now." : ""}</p>
               <Details summary="The habits as a table" wide><HabitTable habits={habits} /></Details>
-              <ChartFoot variant="about" meta={meta} badge={false} />
+              <ChartFoot variant="about" meta={meta} />
             </div>
           </Details>
         </div>
       )}
-      {h.why && <SourceNote why={safeWhy(h.why)} />}
     </GrowthSection>
   );
 }

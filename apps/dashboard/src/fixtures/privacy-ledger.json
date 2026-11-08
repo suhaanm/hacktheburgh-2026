@@ -5,7 +5,7 @@
   "n_unit": "episodes",
   "split": null,
   "interval_level": 0.95,
-  "note": "Example rows. In your own ledger each line is one call to a remote model; lines marked mock reached no model.",
+  "note": "Each line is one call to a remote model; lines marked mock reached no model.",
   "generated_at": "2026-11-07T17:05:00Z"
  },
  "data": [

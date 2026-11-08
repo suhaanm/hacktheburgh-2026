@@ -5,3 +5,18 @@
 // KNACK_LINT_STRICT=1 ignores it in both and shows every finding.
 export const PENDING_D57: Record<string, string> = {};
 export const PENDING_D57_MAX = 0;
+
+/**
+ * The only files that may carry the example family of words (example data, sample data, stand-in, made-up, fixture, and the rest of the list in
+ * docs/knack-ux/banned-phrases.json): the Evidence page (admin More) and the report it reads. Its "Measured on" column, limitations and findings state how each
+ * evaluation result was obtained, so removing them would make the research claims false (owner, 8 Nov 2026). Every other screen carries none of them.
+ */
+export const EVIDENCE_PAGE: readonly string[] = [
+  "apps/dashboard/src/screens/Evidence.tsx",
+  "apps/dashboard/src/components/EvidenceMap.tsx",
+  "apps/dashboard/src/components/EvidenceCharts.tsx",
+  "apps/dashboard/src/components/HrtEvidence.tsx",
+  "apps/dashboard/src/components/LiveRuns.tsx",
+  "apps/dashboard/src/lib/evidence.ts",
+  "apps/dashboard/src/fixtures/eval-report.json",
+];

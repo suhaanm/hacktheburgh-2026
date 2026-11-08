@@ -293,7 +293,7 @@ function CheckStep({ answers, heading, onBack, onFinish, writing, slow, wakeApi 
         </div>
       )}
 
-      {noKey && <p className="firstrun__note" data-testid="no-key">No Gemini key found, so Knack runs on example data. Add it to .env and reopen Knack.</p>}
+      {noKey && <p className="firstrun__note" data-testid="no-key">No Gemini key found. Add it to .env and reopen Knack.</p>}
       {error && <p className="firstrun__note firstrun__note--error" role="alert">{error}</p>}
       {writing && <p className="firstrun__note" role="status">{slow ? "Still saving. You can carry on." : "Saving your choices"}</p>}
 

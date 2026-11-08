@@ -28,7 +28,7 @@ describe("the example list", () => {
       expect(wordCount(metaLine(c))).toBeLessThanOrEqual(BUDGET.rowMetaWords);
     }
     for (const w of ["Connect", "Cancel", "Revoke", "Keep", "Confirm again", "Not now", "Close"]) expect(wordCount(w)).toBeLessThanOrEqual(BUDGET.buttonWords);
-    for (const s of ["Off", "Example", "On", "Changed", "Needs setup", "Problem"]) expect(wordCount(s)).toBeLessThanOrEqual(BUDGET.pillWords);
+    for (const s of ["Off", "On", "Changed", "Needs setup", "Problem"]) expect(wordCount(s)).toBeLessThanOrEqual(BUDGET.pillWords);
   });
 
   it("has well-formed consent lines (no stray full stops, a closing line, the example says no account)", () => {
@@ -67,7 +67,7 @@ describe("the example list", () => {
 describe("state words", () => {
   it("says one short thing per state, and the colour only repeats it", () => {
     expect(stateWord(get("github"))).toBe("Off");
-    expect(stateWord(on("github"))).toBe("Example");
+    expect(stateWord(on("github"))).toBe("On");
     expect(stateWord(on("github", { mode: "real", example: false }))).toBe("On");
     expect(stateWord(on("github", { state: "needs_reconfirm" }))).toBe("Changed");
     expect(stateWord(on("github", { state: "needs_setup" }))).toBe("Needs setup");

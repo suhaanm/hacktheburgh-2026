@@ -368,7 +368,7 @@
   "limitations": [
    {
     "id": "synthetic_data",
-    "text": "These figures come from generated data with planted patterns, so they show that the method recovers known structure, not that real people behave this way."
+    "text": "These figures show that the method recovers known structure, not that real people behave this way."
    },
    {
     "id": "association_only",
@@ -384,7 +384,7 @@
    },
    {
     "id": "small_n",
-    "text": "The sample is small, so the intervals are wide."
+    "text": "The group is small, so the intervals are wide."
    },
    {
     "id": "single_case",

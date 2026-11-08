@@ -121,7 +121,7 @@ export function useDisplayName(): [string | null, (v: unknown) => string | null]
 /* -- What the form says ------------------------------------------------------------------------------------------------------------ */
 
 export const SAVED_LIVE = "Saved.";
-export const SAVED_EXAMPLE = "Saved on this device. Knack is showing example data, so Home keeps its example week.";
+export const SAVED_EXAMPLE = "Saved on this device.";
 export const SAVE_FAILED = "That did not go through. Nothing was changed.";
 export const ROLE_NOTE = "Your history stays. Home, Growth and coaching follow the new role.";
 

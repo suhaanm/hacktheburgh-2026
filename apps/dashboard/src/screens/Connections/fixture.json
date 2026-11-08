@@ -5,7 +5,7 @@
   "n_unit": "connections",
   "split": null,
   "interval_level": 0.95,
-  "note": "Example connections.",
+  "note": "Every connection starts off.",
   "generated_at": null
  },
  "roles": {
@@ -48,9 +48,9 @@
    "modes": {
     "example": {
      "mode": "example",
-     "summary": "Example data: invented and kept on this Mac. Reads meeting times and counts only. No titles, no people. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
+     "summary": "Runs on this Mac. Reads meeting times and counts only. No titles, no people. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
      "lines": [
-      "Example data: invented and kept on this Mac.",
+      "Runs on this Mac.",
       "Reads meeting times and counts only. No titles, no people.",
       "No account is used and nothing leaves this Mac.",
       "Any change needs your click. Revoke any time."
@@ -102,9 +102,9 @@
    "modes": {
     "example": {
      "mode": "example",
-     "summary": "Example data: invented and kept on this Mac. Reads meeting times, length and attendance counts only. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
+     "summary": "Runs on this Mac. Reads meeting times, length and attendance counts only. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
      "lines": [
-      "Example data: invented and kept on this Mac.",
+      "Runs on this Mac.",
       "Reads meeting times, length and attendance counts only.",
       "No account is used and nothing leaves this Mac.",
       "Any change needs your click. Revoke any time."
@@ -156,9 +156,9 @@
    "modes": {
     "example": {
      "mode": "example",
-     "summary": "Example data: invented and kept on this Mac. Reads datasets, tables and query results in one Google Cloud project. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
+     "summary": "Runs on this Mac. Reads datasets, tables and query results in one Google Cloud project. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
      "lines": [
-      "Example data: invented and kept on this Mac.",
+      "Runs on this Mac.",
       "Reads datasets, tables and query results in one Google Cloud project.",
       "No account is used and nothing leaves this Mac.",
       "Any change needs your click. Revoke any time."
@@ -240,9 +240,9 @@
    "modes": {
     "example": {
      "mode": "example",
-     "summary": "Example data: invented and kept on this Mac. Reads files and folder names inside the one folder you pick. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
+     "summary": "Runs on this Mac. Reads files and folder names inside the one folder you pick. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
      "lines": [
-      "Example data: invented and kept on this Mac.",
+      "Runs on this Mac.",
       "Reads files and folder names inside the one folder you pick.",
       "No account is used and nothing leaves this Mac.",
       "Any change needs your click. Revoke any time."
@@ -322,9 +322,9 @@
    "modes": {
     "example": {
      "mode": "example",
-     "summary": "Example data: invented and kept on this Mac. Reads issues, pull requests, commits and code you can already see on GitHub. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
+     "summary": "Runs on this Mac. Reads issues, pull requests, commits and code you can already see on GitHub. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
      "lines": [
-      "Example data: invented and kept on this Mac.",
+      "Runs on this Mac.",
       "Reads issues, pull requests, commits and code you can already see on GitHub.",
       "No account is used and nothing leaves this Mac.",
       "Any change needs your click. Revoke any time."
@@ -406,9 +406,9 @@
    "modes": {
     "example": {
      "mode": "example",
-     "summary": "Example data: invented and kept on this Mac. Reads spreadsheets and Drive files you can already open. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
+     "summary": "Runs on this Mac. Reads spreadsheets and Drive files you can already open. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
      "lines": [
-      "Example data: invented and kept on this Mac.",
+      "Runs on this Mac.",
       "Reads spreadsheets and Drive files you can already open.",
       "No account is used and nothing leaves this Mac.",
       "Any change needs your click. Revoke any time."
@@ -497,9 +497,9 @@
    "modes": {
     "example": {
      "mode": "example",
-     "summary": "Example data: invented and kept on this Mac. Reads issues, boards and sprints you can already see in Jira. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
+     "summary": "Runs on this Mac. Reads issues, boards and sprints you can already see in Jira. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
      "lines": [
-      "Example data: invented and kept on this Mac.",
+      "Runs on this Mac.",
       "Reads issues, boards and sprints you can already see in Jira.",
       "No account is used and nothing leaves this Mac.",
       "Any change needs your click. Revoke any time."
@@ -591,9 +591,9 @@
    "modes": {
     "example": {
      "mode": "example",
-     "summary": "Example data: invented and kept on this Mac. Reads notebooks and cells in your own JupyterLab. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
+     "summary": "Runs on this Mac. Reads notebooks and cells in your own JupyterLab. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
      "lines": [
-      "Example data: invented and kept on this Mac.",
+      "Runs on this Mac.",
       "Reads notebooks and cells in your own JupyterLab.",
       "No account is used and nothing leaves this Mac.",
       "Any change needs your click. Revoke any time."
@@ -680,9 +680,9 @@
    "modes": {
     "example": {
      "mode": "example",
-     "summary": "Example data: invented and kept on this Mac. Reads commits, diffs and branches of one repository on this Mac. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
+     "summary": "Runs on this Mac. Reads commits, diffs and branches of one repository on this Mac. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
      "lines": [
-      "Example data: invented and kept on this Mac.",
+      "Runs on this Mac.",
       "Reads commits, diffs and branches of one repository on this Mac.",
       "No account is used and nothing leaves this Mac.",
       "Any change needs your click. Revoke any time."
@@ -762,9 +762,9 @@
    "modes": {
     "example": {
      "mode": "example",
-     "summary": "Example data: invented and kept on this Mac. Reads pages and databases you shared with your Notion integration. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
+     "summary": "Runs on this Mac. Reads pages and databases you shared with your Notion integration. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
      "lines": [
-      "Example data: invented and kept on this Mac.",
+      "Runs on this Mac.",
       "Reads pages and databases you shared with your Notion integration.",
       "No account is used and nothing leaves this Mac.",
       "Any change needs your click. Revoke any time."
@@ -846,9 +846,9 @@
    "modes": {
     "example": {
      "mode": "example",
-     "summary": "Example data: invented and kept on this Mac. Reads tables, rows and statistics in the one database you name. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
+     "summary": "Runs on this Mac. Reads tables, rows and statistics in the one database you name. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
      "lines": [
-      "Example data: invented and kept on this Mac.",
+      "Runs on this Mac.",
       "Reads tables, rows and statistics in the one database you name.",
       "No account is used and nothing leaves this Mac.",
       "Any change needs your click. Revoke any time."
@@ -945,9 +945,9 @@
    "modes": {
     "example": {
      "mode": "example",
-     "summary": "Example data: invented and kept on this Mac. Reads errors, traces and releases in your Sentry projects. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
+     "summary": "Runs on this Mac. Reads errors, traces and releases in your Sentry projects. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
      "lines": [
-      "Example data: invented and kept on this Mac.",
+      "Runs on this Mac.",
       "Reads errors, traces and releases in your Sentry projects.",
       "No account is used and nothing leaves this Mac.",
       "Any change needs your click. Revoke any time."
@@ -1029,9 +1029,9 @@
    "modes": {
     "example": {
      "mode": "example",
-     "summary": "Example data: invented and kept on this Mac. Reads sites, lists and document libraries you can already open. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
+     "summary": "Runs on this Mac. Reads sites, lists and document libraries you can already open. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
      "lines": [
-      "Example data: invented and kept on this Mac.",
+      "Runs on this Mac.",
       "Reads sites, lists and document libraries you can already open.",
       "No account is used and nothing leaves this Mac.",
       "Any change needs your click. Revoke any time."
@@ -1113,9 +1113,9 @@
    "modes": {
     "example": {
      "mode": "example",
-     "summary": "Example data: invented and kept on this Mac. Reads channels, threads and people you can already see in Slack. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
+     "summary": "Runs on this Mac. Reads channels, threads and people you can already see in Slack. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
      "lines": [
-      "Example data: invented and kept on this Mac.",
+      "Runs on this Mac.",
       "Reads channels, threads and people you can already see in Slack.",
       "No account is used and nothing leaves this Mac.",
       "Any change needs your click. Revoke any time."
@@ -1197,9 +1197,9 @@
    "modes": {
     "example": {
      "mode": "example",
-     "summary": "Example data: invented and kept on this Mac. Reads tables and rows in the one database file you pick. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
+     "summary": "Runs on this Mac. Reads tables and rows in the one database file you pick. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
      "lines": [
-      "Example data: invented and kept on this Mac.",
+      "Runs on this Mac.",
       "Reads tables and rows in the one database file you pick.",
       "No account is used and nothing leaves this Mac.",
       "Any change needs your click. Revoke any time."

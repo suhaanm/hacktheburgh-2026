@@ -6,8 +6,6 @@ import { loadOnboarding, loadOverview, loadRoles } from "../../screens/Firm/data
 import { BRIEF_LIMITS, buildBrief, longDate } from "./brief";
 import { FreshNote, Headline, NumbersTable, SeeNumbers } from "./InsightFirst";
 import { OnboardingCurves } from "./OnboardingCurves";
-import { AboutData } from "../ui";
-import { originLine } from "../../lib/evidence";
 import { briefHeadline } from "./insights";
 
 /**
@@ -43,7 +41,7 @@ export function FirmBrief() {
         )}
         <div className="brief-bar">
           <button type="button" className="btn btn--primary btn--sm" onClick={() => window.print()}>Print the brief</button>
-          <span className="brief-bar__text">One A4 page. Save it as a PDF from the print dialog.{example ? " Example numbers." : ""}</span>
+          <span className="brief-bar__text">One A4 page. Save it as a PDF from the print dialog.</span>
         </div>
         <SeeNumbers>
           <div className="stack">
@@ -101,7 +99,7 @@ export function FirmBrief() {
           <h3 className="brief-sec__title">What this cannot show</h3>
           <ul className="brief-limits">{BRIEF_LIMITS.map((l) => <li key={l}>{l}</li>)}</ul>
         </section>
-        <footer className="brief-page__foot">Built from the same data as the Firm screens.<AboutData rows={[["where from", originLine(o.meta?.origin ?? "synthetic")]]} /></footer>
+        <footer className="brief-page__foot">Built from the same data as the Firm screens.</footer>
       </article>
     </div>
   );
