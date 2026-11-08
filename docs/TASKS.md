@@ -1,6 +1,6 @@
 # Tasks: ask Knack for anything
 
-Written by Track T (Claude Sonnet 5.5), 8 Nov 2026, for owner requests 4.18 to 4.21 (`docs/OWNER_REQUESTS.md`) and decision D63. Code: `services/agent/understudy_agent/tasks/`. Tests: `services/agent/tests/tasks/` (141, all with a fake `claude` and a fake model: no model call and no real CLI run in any test). Closed shape of every row and card: `packages/schema/task_row.schema.json` (a test validates every state the service produces against it).
+Written by Track T (Claude Sonnet 5.5), 8 Nov 2026, for owner requests 4.18 to 4.21 (`docs/OWNER_REQUESTS.md`) and decision D63. Code: `services/agent/understudy_agent/tasks/`. Tests: `services/agent/tests/tasks/` (143, all with a fake `claude` and a fake model: no model call and no real CLI run in any test). Closed shape of every row and card: `packages/schema/task_row.schema.json` (a test validates every state the service produces against it).
 
 ## What a worker can ask
 
