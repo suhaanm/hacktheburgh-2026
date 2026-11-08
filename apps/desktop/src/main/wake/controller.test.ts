@@ -660,16 +660,18 @@ const CONSENT = {
   max_minutes: 30,
   buttons: { allow: 'Allow for this task', decline: 'Not now', more: [{ id: 'everything', label: 'Allow everything for this task' }] },
 }
-const row = (state: TaskRow['state'], over: Partial<TaskRow> = {}): TaskRow => ({ task_id: 'tk_ab12cd34', route: 'claude_agent', state, result: null, answer: null, needs_consent: null, question: null, ...over })
+const row = (state: TaskRow['state'], over: Partial<TaskRow> = {}): TaskRow => ({ task_id: 'tk_ab12cd34', route: 'claude_agent', state, result: null, answer: null, reason: null, needs_consent: null, question: null, ...over })
 
 function fakeTasks(o: { created?: Record<string, unknown> | 'fail:too_many_tasks' | 'fail:kill_switch' | 'fail:unavailable'; rows?: TaskRow[]; consent?: 'ok' | 'too_many_tasks' | 'no_token'; answerRow?: TaskRow | null } = {}) {
   const calls: string[] = []
+  const sources: string[] = []
   const consents: ConsentChoice[] = []
   const answers: string[] = []
   const rows = [...(o.rows ?? [])]
   const client: TaskClient = {
-    async create(text) {
+    async create(text, source) {
       calls.push(`create:${text}`)
+      sources.push(source ?? 'voice')
       if (typeof o.created === 'string') return { ok: false, reason: o.created.slice(5) as 'too_many_tasks' }
       const c = o.created ?? {}
       return { ok: true, created: { task_id: 'tk_ab12cd34', route: 'claude_agent', summary: 'Knack will start a Claude agent for this once you allow it.', needs_consent: CONSENT, question: null, ...(c as object) } as never }
@@ -694,7 +696,7 @@ function fakeTasks(o: { created?: Record<string, unknown> | 'fail:too_many_tasks
       return true
     },
   }
-  return { client, calls, consents, answers }
+  return { client, calls, sources, consents, answers }
 }
 
 describe('start_task: the request goes to the task service and a card asks first', () => {
@@ -877,5 +879,160 @@ describe('start_task: the request goes to the task service and a card asks first
     await r2.ctl.startTask('when does the office open')
     for (let i = 0; i < 40; i++) await r2.flush()
     expect(r2.cardsSeen.at(-1)).toMatchObject({ title: 'Your answer', body: 'The office opens at nine.' })
+  })
+})
+
+describe('typing a task in the Ask bar (Return with no conversation open)', () => {
+  const FAILED_REASON = 'Your request looks like it holds a key or a password, so it was not started.'
+  it('without a task service the bar says so in one sentence and keeps the text', async () => {
+    const r = rig()
+    r.ctl.start()
+    expect(await r.ctl.submitTyped('summarise my notes')).toEqual({ ok: false, line: 'Tasks are not available right now.' })
+  })
+  it('sends the worker’s own line as a typed task and shows the same consent card; the bar closes', async () => {
+    const t = fakeTasks()
+    const r = rig({ tasks: t.client })
+    r.ctl.start()
+    r.answers.push(null)
+    expect(await r.ctl.submitTyped('summarise‮   my notes  ')).toEqual({ ok: true })
+    await r.flush()
+    expect(t.calls).toEqual(['create:summarise my notes'])
+    expect(t.sources).toEqual(['typed'])
+    expect(r.cardsSeen[0]).toMatchObject({ title: 'Start a Claude agent for this?' })
+    expect(r.cardsSeen[0].buttons.map((b) => b.label)).toEqual(['Allow for this task', 'Not now', 'More'])
+    expect(t.consents).toEqual([])
+  })
+  it('a real click on Allow posts consent; the started words appear on a card and nothing is spoken; the finished task shows Done. on a card', async () => {
+    const t = fakeTasks({ rows: [row('running'), row('done', { result: 'The folder has 12 files.' })] })
+    const r = rig({ tasks: t.client })
+    r.ctl.start()
+    r.answers.push({ buttonId: 'allow', via: 'mouse' }, null, null)
+    await r.ctl.submitTyped('summarise my notes')
+    for (let i = 0; i < 10; i++) await r.flush()
+    expect(t.consents).toEqual(['allow'])
+    expect(r.cardsSeen.map((c) => c.title)).toEqual(['Start a Claude agent for this?', 'Started.', 'Done.'])
+    expect(r.cardsSeen[1].body).toBe('I will tell you when it is done.')
+    expect(r.cardsSeen[2].body).toBe('The folder has 12 files.')
+    expect(r.said).toEqual([])
+    expect(r.readOuts).toEqual([])
+  })
+  it('Allow by a key, a closed card and Not now behave as for a spoken request: nothing starts', async () => {
+    for (const a of [{ buttonId: 'allow', via: 'other' as const }, null]) {
+      const t = fakeTasks()
+      const r = rig({ tasks: t.client })
+      r.ctl.start()
+      r.answers.push(a)
+      await r.ctl.submitTyped('summarise my notes')
+      await r.flush()
+      expect(t.consents).toEqual([])
+    }
+    const t = fakeTasks()
+    const r = rig({ tasks: t.client })
+    r.ctl.start()
+    r.answers.push({ buttonId: 'decline', via: 'mouse' })
+    await r.ctl.submitTyped('summarise my notes')
+    await r.flush()
+    expect(t.consents).toEqual(['decline'])
+  })
+  it('More offers Allow everything for this task on its own card, as for a spoken request', async () => {
+    const t = fakeTasks()
+    const r = rig({ tasks: t.client })
+    r.ctl.start()
+    r.answers.push({ buttonId: 'more', via: 'mouse' }, { buttonId: 'everything', via: 'mouse' }, null)
+    await r.ctl.submitTyped('summarise my notes')
+    for (let i = 0; i < 6; i++) await r.flush()
+    expect(r.cardsSeen[1]).toMatchObject({ title: 'Allow everything for this task?' })
+    expect(t.consents).toEqual(['everything'])
+  })
+  it('the refusals are one plain sentence and the text stays in the box: too many tasks, everything stopped, service down, not taken', async () => {
+    for (const [created, line] of [['fail:too_many_tasks', 'Too many tasks are running. Stop one or wait.'], ['fail:kill_switch', 'Everything is stopped. Resume from the menu bar.'], ['fail:unavailable', 'The task service is not answering. Try again soon.']] as const) {
+      const r = rig({ tasks: fakeTasks({ created }).client })
+      r.ctl.start()
+      expect(await r.ctl.submitTyped('summarise my notes')).toEqual({ ok: false, line })
+      expect(r.cardsSeen).toHaveLength(0)
+    }
+    const t = fakeTasks()
+    const r = rig({ tasks: t.client })
+    r.ctl.start()
+    r.ctl.setKilled(true)
+    expect(await r.ctl.submitTyped('summarise my notes')).toEqual({ ok: false, line: 'Everything is stopped. Resume from the menu bar.' })
+    expect(t.calls).toEqual([])
+  })
+  it('a request the service refuses at once shows the service’s own plain reason, and the text stays', async () => {
+    const t = fakeTasks({ created: { route: 'unclear', needs_consent: null }, rows: [row('failed', { reason: FAILED_REASON })] })
+    const r = rig({ tasks: t.client })
+    r.ctl.start()
+    expect(await r.ctl.submitTyped('my password is hunter2hunter2')).toEqual({ ok: false, line: FAILED_REASON })
+  })
+  it('an empty line or an over-long one is not sent at all', async () => {
+    const t = fakeTasks()
+    const r = rig({ tasks: t.client })
+    r.ctl.start()
+    expect(await r.ctl.submitTyped('   ')).toEqual({ ok: false })
+    expect(await r.ctl.submitTyped('a'.repeat(501))).toEqual({ ok: false })
+    expect(t.calls).toEqual([])
+  })
+  it('the clarifying question is the same card, and its click answers it', async () => {
+    const t = fakeTasks({ created: { route: 'unclear', needs_consent: null, question: { text: 'Which do you mean?', options: [{ id: 'answer', label: 'Answer here' }, { id: 'browser', label: 'Use a browser' }] } } })
+    const r = rig({ tasks: t.client })
+    r.ctl.start()
+    r.answers.push({ buttonId: 'answer', via: 'mouse' })
+    expect(await r.ctl.submitTyped('check the site for me')).toEqual({ ok: true })
+    for (let i = 0; i < 4; i++) await r.flush()
+    expect(r.cardsSeen[0]).toMatchObject({ title: 'A quick question', body: 'Which do you mean?' })
+    expect(t.answers).toEqual(['answer'])
+  })
+  it('an answered question is shown on a card, Your answer, and is never read out even when a conversation is open', async () => {
+    const t = fakeTasks({ created: { route: 'answer', needs_consent: null }, rows: [row('running', { route: 'answer' }), row('done', { route: 'answer', result: 'The office opens.', answer: 'The office opens at nine.' })] })
+    const r = rig({ tasks: t.client, readOut: () => true })
+    r.ctl.start()
+    r.answers.push(null)
+    expect(await r.ctl.submitTyped('when does the office open')).toEqual({ ok: true })
+    for (let i = 0; i < 8; i++) await r.flush()
+    expect(r.cardsSeen.at(-1)).toMatchObject({ title: 'Your answer', body: 'The office opens at nine.' })
+    expect(r.readOuts).toEqual([])
+  })
+  it('the desktop route shows I will show you instead on a card with the service’s own steps, and clicks nothing', async () => {
+    const t = fakeTasks({ created: { route: 'desktop', needs_consent: null, summary: 'Open Finder, then drag the file to the folder.' }, rows: [row('running', { route: 'desktop' })] })
+    const r = rig({ tasks: t.client })
+    r.ctl.start()
+    r.answers.push(null)
+    expect(await r.ctl.submitTyped('move the file to the folder')).toEqual({ ok: true })
+    await r.flush()
+    expect(r.cardsSeen[0]).toMatchObject({ title: 'I will show you instead.', body: 'Open Finder, then drag the file to the folder.' })
+    expect(t.consents).toEqual([])
+  })
+  it('a typed task that fails says so on a card, not aloud', async () => {
+    const t = fakeTasks({ rows: [row('failed', { reason: 'Reached the spend limit you set.' })] })
+    const r = rig({ tasks: t.client })
+    r.ctl.start()
+    r.answers.push({ buttonId: 'allow', via: 'mouse' }, null, null)
+    await r.ctl.submitTyped('summarise my notes')
+    for (let i = 0; i < 10; i++) await r.flush()
+    expect(r.cardsSeen.at(-1)).toMatchObject({ title: 'That did not work.', body: 'Reached the spend limit you set.' })
+    expect(r.said).toEqual([])
+  })
+})
+
+describe('the first conversation’s welcome', () => {
+  it('still comes with the first Hey Knack after first run, and only once', async () => {
+    const f = { on: true }
+    const r = rig({ firstRun: f, live: { consented: true, frames: true } })
+    r.ctl.start()
+    f.on = false // first run is over
+    r.ctl.refresh()
+    expect(r.ctl.openingText()).toContain('Hi, I am Knack. Try saying: show me where the Needs you list is.')
+    await r.ctl.onHeard()
+    expect(r.ctl.openingText()).toBeNull()
+  })
+  it('while set-up is still open the example points at a button that exists on that screen', () => {
+    const f = { on: true }
+    const r = rig({ firstRun: f })
+    r.ctl.start()
+    r.ctl.arm()
+    const t = r.ctl.openingText() as string
+    expect(t).toContain('Try saying: show me where the Show my week button is.')
+    expect(t).toContain('"Show my week"')
+    expect(t).not.toContain('Needs you')
   })
 })
