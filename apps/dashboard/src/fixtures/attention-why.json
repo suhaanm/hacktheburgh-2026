@@ -14,7 +14,7 @@
   "channel": "toast",
   "deliver_at": "next_natural_break",
   "reason_code": "held_state_unknown",
-  "reason_text": "Held because Understudy could not tell whether you were busy.",
+  "reason_text": "Held because Knack could not tell whether you were busy.",
   "mode": "normal",
   "learned_drop": 0,
   "count": 1,
@@ -32,7 +32,7 @@
     "t": 1794076648.183,
     "state": "held",
     "reason_code": "held_state_unknown",
-    "reason_text": "Held because Understudy could not tell whether you were busy."
+    "reason_text": "Held because Knack could not tell whether you were busy."
    }
   ],
   "budget": {

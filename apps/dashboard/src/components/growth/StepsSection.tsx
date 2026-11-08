@@ -1,18 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../../api";
 import { idle, useLoad } from "../../hooks";
-import { ChartFoot, EmptyState, LegendItem, Loading, SourceNote } from "../common";
+import { ChartFoot, EmptyState, LegendItem, Loading } from "../common";
 import { Ribbon } from "../Ribbon";
 import { Explain } from "../Explain";
 import { Details, FactRows } from "../ui";
-import { GrowthSection, SectionError, useReportSource } from "./GrowthSection";
+import { GrowthSection, SectionError } from "./GrowthSection";
 import { useAppState } from "../../store";
 import { isCalm, notKnown, unknownAsError, useOwnPerson } from "./own";
 import { describeColumn, layoutRibbon } from "../../lib/ribbon";
 import { cogLabel, fmtDuration } from "../../lib/format";
 import { stepsHeadline, topLosses } from "../../lib/steps";
 import { ownMeta } from "../../lib/ownMeta";
-import { safeWhy } from "../../lib/voice";
 import type { Genome as GenomeData } from "../../types";
 import type { Loaded } from "../../api";
 
@@ -28,7 +27,6 @@ export function StepsSection({ open }: { open: boolean }) {
   const me = own.person;
   const task = taskFor(useAppState().role);
   const g = unknownAsError(useLoad(() => (own.ready ? (own.blocked ? notKnown<Loaded<GenomeData>>() : api.genome(task, me, "nearest_expert")) : idle<GenomeData>()), [own.ready, own.blocked, me, task]));
-  useReportSource("steps", g.why ?? null);
   const cols = useMemo(() => (g.data ? layoutRibbon(g.data, 1000).columns : []), [g.data]);
 
   if (g.status === "error" && !g.data) {
@@ -52,7 +50,6 @@ export function StepsSection({ open }: { open: boolean }) {
           <Details summary="Key and more" wide><KeyAndMore data={data} cols={cols} meta={ownMeta(g.meta, { n: 1, unit: "case" })} /></Details>
         </div>
       )}
-      {g.why && <SourceNote why={safeWhy(g.why)} />}
     </GrowthSection>
   );
 }
@@ -140,7 +137,7 @@ function KeyAndMore({ data, cols, meta }: { data: GenomeData; cols: ReturnType<t
               </table>
             </div>
           </Details>
-          <ChartFoot variant="about" meta={meta} badge={false} />
+          <ChartFoot variant="about" meta={meta} />
         </div>
       </Details>
     </div>

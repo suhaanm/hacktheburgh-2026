@@ -58,7 +58,7 @@ export const isOn = (c: Connection): boolean => c.state !== "off";
 export function stateWord(c: Connection): string {
   switch (c.state) {
     case "off": return "Off";
-    case "connected": return c.mode === "example" ? "Example" : "On";
+    case "connected": return "On";
     case "needs_reconfirm": return "Changed";
     case "needs_setup": return "Needs setup";
     case "error": return "Problem";

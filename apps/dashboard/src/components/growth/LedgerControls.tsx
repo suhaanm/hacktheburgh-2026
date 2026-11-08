@@ -5,10 +5,9 @@ import { ConfirmRow, Details } from "../ui";
 import { deleteCopy, plural, totalRows, type LedgerCounts } from "./model";
 
 /** Export and delete the ledger. Delete asks once in an inline row ("Forget it" or "Keep"), says what goes and what stays, then works. */
-export function LedgerControls({ counts, fields, example, onExport, onDelete }: {
+export function LedgerControls({ counts, fields, onExport, onDelete }: {
   counts: LedgerCounts;
   fields: string[];
-  example: boolean;
   onExport: () => Promise<void>;
   onDelete: () => Promise<number>;
 }) {
@@ -17,7 +16,7 @@ export function LedgerControls({ counts, fields, example, onExport, onDelete }: 
   const [busy, setBusy] = useState<"export" | "delete" | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const total = totalRows(counts);
-  const copy = deleteCopy(counts, example);
+  const copy = deleteCopy(counts);
 
   const doExport = async () => {
     setErr(null); setBusy("export");
@@ -30,7 +29,7 @@ export function LedgerControls({ counts, fields, example, onExport, onDelete }: 
     try {
       const n = await onDelete();
       setConfirm(false);
-      toast({ tone: "success", text: `Deleted ${plural(n, "row")}.`, detail: example ? "That was example data, so only this screen changed." : "Your record is empty. Nothing else was touched. An audit line records the deletion." });
+      toast({ tone: "success", text: `Deleted ${plural(n, "row")}.`, detail: "Your record is empty. Nothing else was touched. An audit line records the deletion." });
     } catch (e) { setErr(e instanceof ApiError || e instanceof Error ? e.message : "Could not delete your record. Nothing was deleted."); }
     finally { setBusy(null); }
   };

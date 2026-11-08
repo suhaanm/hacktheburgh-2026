@@ -13,7 +13,7 @@ const attn = (attentionFx as unknown as { data: AttentionSettings }).data;
 const noop = () => undefined;
 const props = (over: Partial<SettingsViewProps> = {}): SettingsViewProps => ({
   live: liveModels({ health: { mock: true, key_present: true }, canSwitch: true, running: false, changing: false }), onLive: noop,
-  attention: attn, attentionExample: false, attentionError: null, onPreset: noop, onMode: noop, onGroup: noop, onResetLearned: noop, onLevelGlance: noop, wake: null, onWake: noop,
+  attention: attn, attentionError: null, onPreset: noop, onMode: noop, onGroup: noop, onResetLearned: noop, onLevelGlance: noop, wake: null, onWake: noop,
   desktop: null, onDesktop: noop, theme: "auto", onTheme: noop, view: "worker", onView: noop, version: "0.1.0", ...over,
 });
 const html = (over?: Partial<SettingsViewProps>) => renderToStaticMarkup(createElement(SettingsView, props(over)));
@@ -67,17 +67,24 @@ describe("Settings", () => {
     const waitMixed = m.slice(m.indexOf('data-testid="group-wait"'), m.indexOf('data-testid="group-info"'));
     expect(waitMixed).not.toMatch(/aria-pressed="true"/);
   });
-  it("every setting that has a default prints it, and the doc lists the same ones", () => {
+  it("no setting prints a default (owner, 8 Nov 2026), the values stay in code, and the doc lists the same settings", () => {
     const h = html({ desktop: { cueEnabled: true, minimiseWhileWorking: true, launchAtLogin: true }, wake: { switchOn: true, listening: true, line: "" }, skills: { use_claude_skills: true, off: [], max_minutes: 30, max_budget_usd: 2, skills: [] } });
     const doc = readFileSync(resolve(__dirname, "../../../../../docs/knack-ux/defaults.md"), "utf8");
-    for (const [id, d] of Object.entries(DEFAULTS)) {
-      if (id === "help-level") { expect(text(h)).toContain(`Default: ${d.shown}.`); continue; }
-      expect(h).toContain(`data-testid="default-${id}"`);
-      expect(text(h)).toContain(`Default: ${d.shown}.`);
-    }
+    expect(text(h)).not.toMatch(/\bDefault:/i);
+    expect(h).not.toMatch(/data-testid="default-|st-default/);
+    // The values that apply, and the doc that explains them.
+    expect(DEFAULTS).toEqual({
+      "live-models": { value: "on" }, interruptions: { value: "balanced" }, coaching: { value: "on" }, "help-level": { value: "auto" }, "hey-knack": { value: "on" },
+      "move-aside": { value: "on" }, "open-at-login": { value: "on" }, skills: { value: "on" }, "max-minutes": { value: 30 }, "max-budget": { value: 2 },
+    });
     for (const w of ["Use live models", "Interruptions", "Coaching", "Help level", "Hey Knack", "Move aside while Knack works", "Open at login", "Use my skills", "Longest a task runs", "Most a task may spend"]) expect(doc).toContain(w);
-    expect(DEFAULTS.interruptions.value).toBe("balanced");
-    expect(text(html())).toContain("Default: Balanced.");   // the engine's own, evaluated policy; the row must agree with what the engine answers
+    expect(doc).toContain("30 minutes");
+    expect(doc).toContain("US$2");
+    expect(doc).toMatch(/Interruptions \| Balanced/);
+    // The controls apply the same values: the engine's evaluated policy is Balanced, the live default is the 30 minute and US$2 caps.
+    expect(h).toMatch(/aria-pressed="true"[^>]*>Balanced</);
+    expect(h).toMatch(/<option value="30" selected="">30 minutes<\/option>/);
+    expect(h).toMatch(/<option value="2" selected="">US\$2<\/option>/);
   });
   it("the defaults never switch on a consent, an approval or an unattended run", () => {
     expect(Object.keys(DEFAULTS).join(" ")).not.toMatch(/consent|approv|unattended|away|irreversible|frame|glance/i);
@@ -109,8 +116,11 @@ describe("Settings", () => {
     const t = text(html());
     expect(t).toContain("Views");
     expect(t).not.toContain("Pinned views");
-    expect(t).not.toContain("Example week");
-    expect(text(html({ stories: [{ id: "pointers", label: "Worth a look", selected: true }] }))).toContain("Example week");
+    expect(t).not.toMatch(/Example week|\bexample\b/i);
+    // The week picker is still offered when the engine did not answer, with no word about what kind of data it is.
+    const picked = text(html({ stories: [{ id: "pointers", label: "Worth a look", selected: true }] }));
+    expect(picked).toContain("Week");
+    expect(picked).not.toMatch(/Example week|\bexample\b/i);
   });
   it("has no link to Models and cost: that page is the admin's", () => {
     const h = html();
@@ -129,7 +139,7 @@ describe("Settings", () => {
     const skills = { use_claude_skills: true, off: ["Beta"], skills: [{ name: "Beta", description: "Second one." }, { name: "Alpha", description: "First one." }, { name: "Alpha" }, { name: "" }, null as never] };
     const h = html({ skills });
     expect(text(h)).toContain("Use my skills");
-    expect(text(h)).toContain("Default: on.");
+    expect(text(h)).not.toContain("Default:");
     expect(h).toMatch(/aria-label="Use my skills"[^>]*checked/);
     expect(h.indexOf("Alpha")).toBeLessThan(h.indexOf("Beta"));
     expect(h).toMatch(/aria-label="Use the skill Alpha"[^>]*checked/);
@@ -151,7 +161,7 @@ describe("Settings", () => {
     expect(text(h)).toContain("Longest a task runs");
     expect(h).toMatch(/<option value="45" selected="">45 minutes<\/option>/);
     expect(h).toMatch(/<option value="30">30 minutes<\/option>/);
-    expect(text(h)).toContain("Default: 30 minutes.");
+    expect(text(h)).not.toContain("Default:");
   });
   it("offers the most a task may spend once the service says it, in US dollars, with a value off the list still listed", () => {
     expect(text(html({ skills: { use_claude_skills: true, off: [], skills: [] } }))).not.toContain("Most a task may spend");
@@ -159,7 +169,7 @@ describe("Settings", () => {
     expect(text(h)).toContain("Most a task may spend");
     expect(h).toMatch(/<option value="3" selected="">US\$3<\/option>/);
     expect(h).toMatch(/<option value="0.5">US\$0.50<\/option>/);
-    expect(text(html({ skills: { use_claude_skills: true, off: [], max_budget_usd: 2, skills: [] } }))).toContain("Default: US$2.");
+    expect(text(html({ skills: { use_claude_skills: true, off: [], max_budget_usd: 2, skills: [] } }))).not.toContain("Default:");
   });
   it("the two limits on a task are inside Advanced (closed), not among the worker's rows (QA Q1-11)", () => {
     const h = html({ skills: { use_claude_skills: true, off: [], max_minutes: 30, max_budget_usd: 2, skills: [] } });

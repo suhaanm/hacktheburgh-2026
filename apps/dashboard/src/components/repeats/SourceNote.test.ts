@@ -1,41 +1,30 @@
-// @vitest-environment jsdom
-// The shared SourceNote as the Repeats page uses it: one plain visible line from the shared EXAMPLE_LINE for every kind of fallback, and the
-// engine's full sentence (flag name included) in a closed in-place Details, never in the first line a worker reads.
-import { createElement as h } from "react";
-import { act } from "react";
-import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { EXAMPLE_LINE, type Fallback } from "../../lib/fallback";
-import { SourceNote } from "../common";
+// A service that did not answer is a connection fact, never a label about the data (owner, 8 Nov 2026): the fallback's own sentences say what happened to the
+// request and carry no word about example, sample or stand-in data, and no screen draws a note for them.
+import { describe, expect, it } from "vitest";
+import * as fallback from "../../lib/fallback";
+import * as common from "../common";
+import { classify } from "../../lib/fallback";
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-let host: HTMLDivElement;
-let root: Root;
-beforeEach(() => { host = document.createElement("div"); document.body.appendChild(host); root = createRoot(host); });
-afterEach(() => { act(() => root.unmount()); host.remove(); });
+const WHO = { service: "The engine", flag: "UNDERSTUDY_X_HITLIST" };
+const WORDS = /example|sample|stand[- ]in|made[- ]up|synthetic|simulated|your own data/i;
 
-const RAW = "This feature is switched off in The engine. Start it with UNDERSTUDY_X_HITLIST=1 (or UNDERSTUDY_X=1 for every extension) to see your own data.";
-const why = (kind: Fallback["kind"]): Fallback => ({ kind, status: 404, code: "not_found", message: RAW });
-
-describe("example data note on the Repeats page", () => {
-  it("for every kind prints the one plain line and keeps the engine's sentence in a closed Details", () => {
-    for (const k of ["offline", "extension_off", "missing", "error"] as const) {
-      act(() => root.render(h(SourceNote, { why: why(k) })));
-      const wrap = host.querySelector(".sourcenote")!;
-      expect(wrap.getAttribute("data-kind")).toBe(k);
-      const line = wrap.querySelector("p.note")!;
-      expect(line.textContent).toBe(EXAMPLE_LINE[k]);
-      expect(line.textContent).not.toContain("UNDERSTUDY_X");
-      const details = wrap.querySelector("details")!;
-      expect(details.open).toBe(false);
-      expect(details.querySelector("summary")?.textContent).toBe("Details");
-      expect(details.querySelector("[data-testid=source-detail]")?.textContent).toBe(RAW);
-    }
-    expect(EXAMPLE_LINE.offline).toBe("Showing example data: the engine is not answering yet.");
+describe("the fallback sentences", () => {
+  it("name the connection fact and never the kind of data drawn instead", () => {
+    const all = [
+      classify({ reached: false }, WHO),
+      classify({ reached: true, status: 404, body: { error: { code: "extension_off", message: "layer is off" } } }, WHO),
+      classify({ reached: true, status: 404, body: {} }, WHO),
+      classify({ reached: true, status: 501 }, WHO),
+      classify({ reached: true, status: 500, body: { error: { message: "boom" } } }, WHO),
+      classify({ reached: true, status: 503 }, WHO),
+    ];
+    expect(all.map((f) => f.kind)).toEqual(["offline", "extension_off", "missing", "missing", "error", "error"]);
+    for (const f of all) expect(f.message, f.kind).not.toMatch(WORDS);
+    expect(all[1].message).toContain("UNDERSTUDY_X_HITLIST=1");
   });
 
-  it("draws nothing when the data is live", () => {
-    act(() => root.render(h(SourceNote, { why: null })));
-    expect(host.innerHTML).toBe("");
+  it("have no one-line note, label or badge component left", () => {
+    for (const name of ["EXAMPLE_LINE", "FALLBACK_LABEL", "needsNote"]) expect(name in fallback, name).toBe(false);
+    for (const name of ["SourceNote", "ExampleBadge"]) expect(name in common, name).toBe(false);
   });
 });

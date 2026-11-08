@@ -82,7 +82,7 @@ export function Sent({ entries: all, summary, onChanged }: { entries: LedgerEntr
             {summary?.local_only_note && <p className="kc-sub">{summary.local_only_note}</p>}
             {c && <p className="kc-sub" data-testid="canary">{c.text}</p>}
             {summary && (summary.blocked_attempts ?? 0) > 0 && <p className="kc-sub">The guard also refused {summary.blocked_attempts} {summary.blocked_attempts === 1 ? "attempt" : "attempts"} to send text. Nothing from them was sent.</p>}
-            {summary && (summary.mock_calls ?? 0) > 0 && <p className="kc-sub">{summary.mock_calls} of these were made on example data and reached no model.</p>}
+            {summary && (summary.mock_calls ?? 0) > 0 && <p className="kc-sub">{summary.mock_calls} of these reached no model.</p>}
           </div>
         </Details>
       )}
@@ -97,7 +97,7 @@ function Row({ e }: { e: LedgerEntry }) {
     const fields = Array.isArray(e.fields) ? e.fields : [];
     return (
       <li className="ledger__row yd-call">
-        <p className="yd-call__top"><span className="t-data">{when}</span> <b>{purposeLabel(e.purpose ?? "")}</b> <span className="u-muted">{dot([text(e.model ?? "model not recorded", 40), fmtBytes(e.bytes), e.mock && "example data, reached no model"])}</span></p>
+        <p className="yd-call__top"><span className="t-data">{when}</span> <b>{purposeLabel(e.purpose ?? "")}</b> <span className="u-muted">{dot([text(e.model ?? "model not recorded", 40), fmtBytes(e.bytes), e.mock && "reached no model"])}</span></p>
         <Details summary="Payload, exactly as sent">
           {fields.length > 0 && <p className="kc-sub">{fields.map((f) => <code key={f}>{f}</code>)}</p>}
           <pre className="payload">{JSON.stringify(e.payload ?? {}, null, 2)}</pre>
@@ -115,7 +115,7 @@ function Row({ e }: { e: LedgerEntry }) {
   }
   return (
     <li className="ledger__row yd-call">
-      <p className="yd-call__top"><span className="t-data">{when}</span> <b>{kind}</b> <span className="u-muted">{dot([sourceLabel(e.source), imageSize(e), e.image?.sha8 ? `hash ${e.image.sha8}` : null, fmtBytes(e.image?.bytes ?? e.bytes), typeof e.latency_ms === "number" ? `${Math.round(e.latency_ms)} ms` : null, text(e.model ?? "model not recorded", 40), e.status && e.status !== "ok" ? e.status : null, e.mock && "example data, reached no model"])}</span></p>
+      <p className="yd-call__top"><span className="t-data">{when}</span> <b>{kind}</b> <span className="u-muted">{dot([sourceLabel(e.source), imageSize(e), e.image?.sha8 ? `hash ${e.image.sha8}` : null, fmtBytes(e.image?.bytes ?? e.bytes), typeof e.latency_ms === "number" ? `${Math.round(e.latency_ms)} ms` : null, text(e.model ?? "model not recorded", 40), e.status && e.status !== "ok" ? e.status : null, e.mock && "reached no model"])}</span></p>
     </li>
   );
 }

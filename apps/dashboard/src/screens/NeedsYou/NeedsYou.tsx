@@ -4,7 +4,6 @@ import { ErrorState, Loading } from "../../components/common";
 import { useToast } from "../../components/Toasts";
 import { ApprovalRow } from "../../components/needsyou/ApprovalRow";
 import { AwayDetails } from "../../components/needsyou/AwayDetails";
-import { OriginBadge, OriginDetails } from "../../components/needsyou/Origin";
 import { PausedRow } from "../../components/needsyou/PausedRow";
 import { TaskNeedRow } from "../../components/needsyou/TaskNeedRow";
 import { PreparedRow } from "../../components/needsyou/PreparedRow";
@@ -83,16 +82,13 @@ export default function NeedsYou() {
     }
   };
   const away = awayLine(rep.data);
-  const sources = [q, rt, br, ag];
 
   return (
     <div className="page page--read kc-page">
       <div className="kc-head">
         <h1 className="kc-title">Needs you</h1>
-        <OriginBadge sources={sources} />
       </div>
       {ready && items.length > 0 && <p className="kc-headline" data-testid="headline">{needsHeadline(items)}</p>}
-      <OriginDetails sources={sources} />
       {made && <p className="note" role="status" data-testid="fired">{made.title}: {made.text}</p>}
 
       {items.length === 0 ? (

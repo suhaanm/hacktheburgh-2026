@@ -5,7 +5,7 @@
   "n_unit": "episodes",
   "split": null,
   "interval_level": 0.95,
-  "note": "Runs on a generated repo and a sample CSV in isolated workspaces. Patch drafts are never applied without your approval.",
+  "note": "Runs on a repository and a CSV file in isolated workspaces. Patch drafts are never applied without your approval.",
   "generated_at": "2026-11-07T17:05:00Z"
  },
  "data": [
@@ -264,7 +264,7 @@
     },
     "steps": [
      {
-      "step": "Load the sample file",
+      "step": "Load the file",
       "check": "verified"
      },
      {

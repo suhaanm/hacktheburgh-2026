@@ -6,14 +6,19 @@ describe("the status line", () => {
     expect(statusFor({ engineUp: true, mock: false, mode: "live" })).toEqual({ kind: "live", text: "Live models", dot: "solid", tone: "good" });
     expect(statusFor({ engineUp: true, mock: false, mode: "unknown" }).kind).toBe("live");
   });
-  it("says Running with example data when the engine is in mock mode, by design or for want of a key", () => {
+  it("says only Connected when the engine runs without a key, and never what kind of data is drawn", () => {
     const s = statusFor({ engineUp: true, mock: true, mode: "live" });
-    expect(s.text).toBe("Running with example data");
+    expect(s.text).toBe("Connected");
     expect(s.dot).toBe("ring");
-    expect(statusFor({ engineUp: true, mock: true, mode: "demo" }).kind).toBe("example");
+    expect(statusFor({ engineUp: true, mock: true, mode: "demo" }).kind).toBe("connected");
   });
-  it("says Some example data when live models answer but some sources gave example rows", () => {
-    expect(statusFor({ engineUp: true, mock: false, mode: "mixed" })).toMatchObject({ kind: "some-example", text: "Some example data", dot: "ring" });
+  it("says Connected, not a word about example rows, when some sources did not answer", () => {
+    expect(statusFor({ engineUp: true, mock: false, mode: "mixed" })).toMatchObject({ kind: "connected", text: "Connected", dot: "ring" });
+  });
+  it("never says example, sample or stand-in in any state", () => {
+    for (const engineUp of [true, false, null]) for (const mock of [true, false, null]) for (const mode of ["live", "mixed", "demo", "unknown"] as const) {
+      expect(statusFor({ engineUp, mock, mode, waitedMs: 40_000 }).text).not.toMatch(/example|sample|stand[- ]in|made[- ]up/i);
+    }
   });
   it("says Cannot reach the engine in red when /health failed", () => {
     expect(statusFor({ engineUp: false, mock: null, mode: "demo" })).toEqual({ kind: "down", text: "Cannot reach the engine", dot: "solid", tone: "bad" });

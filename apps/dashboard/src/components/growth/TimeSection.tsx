@@ -1,10 +1,10 @@
 import { useMemo } from "react";
 import { api } from "../../api";
 import { idle, useLoad } from "../../hooks";
-import { EmptyState, Loading, SourceNote, ChartFoot } from "../common";
+import { EmptyState, Loading, ChartFoot } from "../common";
 import { WeekLegend, WeekRibbon } from "../WeekRibbon";
 import { Details } from "../ui";
-import { GrowthSection, SectionError, useReportSource } from "./GrowthSection";
+import { GrowthSection, SectionError } from "./GrowthSection";
 import { isCalm, notKnown, unknownAsError, useOwnPerson } from "./own";
 import { Distance, GapTable, Suggestions, WeekTable } from "./WeekParts";
 import { ForecastSection, HoursMap, IdleStat, QuietEditor } from "./HoursParts";
@@ -13,7 +13,6 @@ import { weekHeadline, weekLabel, weekWindow } from "../../lib/week";
 import type { CalSuggestion, CalendarWeek, Presence as PresenceData } from "../../types";
 import type { Loaded } from "../../api";
 import { ownMeta } from "../../lib/ownMeta";
-import { safeWhy } from "../../lib/voice";
 
 /** The example worker the built-in example week belongs to. Used only when the engine does not know the worker yet. */
 const EXAMPLE_PERSON = "p_ninetofive";
@@ -28,7 +27,6 @@ export function TimeSection({ open }: { open: boolean }) {
   const sg = unknownAsError(useLoad(() => (own.ready ? (own.blocked ? notKnown<Loaded<CalSuggestion[]>>() : api.calendarSuggestions(own.person!, undefined)) : idle<CalSuggestion[]>()), [own.ready, own.blocked, own.person]));
   // the working hours are this device's own, whoever the engine thinks the worker is
   const p = useLoad(() => (own.ready ? api.presence() : idle<PresenceData>()), [own.ready]);
-  useReportSource("time", w.why ?? p.why ?? null);
 
   const stretch = useMemo(() => (p.data ? busiestWrap(meanRow(toGrid(p.data.bins)), 0.5) : null), [p.data]);
   const hours = stretch ? `You are usually at the machine from ${slotLabel(stretch[0])} to ${slotLabel(stretch[1])}.` : null;
@@ -55,12 +53,11 @@ export function TimeSection({ open }: { open: boolean }) {
               {d.expert.days && d.expert.days.length > 0 && <WeekRibbon title="An experienced worker's week" days={d.expert.days} window={win!} />}
             </div>
             <WeekLegend />
-            <ChartFoot variant="about" meta={wMeta} badge={false} extra={<span>Only the kind of block, its time and the size of the meeting are used.{d.timezone ? <> Times are in <b>{d.timezone}</b>.</> : null}</span>} />
+            <ChartFoot variant="about" meta={wMeta} extra={<span>Only the kind of block, its time and the size of the meeting are used.{d.timezone ? <> Times are in <b>{d.timezone}</b>.</> : null}</span>} />
           </>
         ) : (
           <EmptyState title="No calendar blocks this week" body="Nothing is on the calendar for this week, or no calendar is connected yet. Nothing is read until you connect one." />
         )}
-        {w.why && <SourceNote why={safeWhy(w.why)} />}
         {d && !empty && <WeekTable days={d.days} />}
         {d && d.gap.rows.length > 0 && <Details summary="Where your week differs" wide><GapTable rows={d.gap.rows} meta={wMeta} /></Details>}
         {d && <Details summary="Ideas for a calmer week" wide><Suggestions state={sg} /></Details>}

@@ -54,10 +54,10 @@ describe("the Graph screen", () => {
     expect(host.querySelector(".pill--origin")).toBeNull();
     expect(host.querySelector("svg.gcanvas")).not.toBeNull();
     expect(host.querySelector(".gkey")).not.toBeNull();
-    // The origin stays in the foot's "About this data" rows.
+    // The foot's "About this data" holds n, split and intervals, and says nothing about where the numbers came from.
     const foot = host.querySelector(".chart__foot")!;
     expect(foot.textContent).toContain("About this data");
-    expect(foot.textContent).toMatch(/where from/);
+    expect(foot.textContent).not.toMatch(/where from|example|sample|stand[- ]in/i);
   });
   it("embedded, an empty graph shows the empty state without a page wrapper", async () => {
     api.workGraph.mockResolvedValue({ data: { nodes: [], links: [] }, meta, source: "demo", why: null });

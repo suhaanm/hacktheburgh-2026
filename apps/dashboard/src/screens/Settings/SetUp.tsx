@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ApiError, api } from "../../api";
 import { useLoad } from "../../hooks";
-import { ErrorState, Loading, OriginBadge } from "../../components/common";
+import { ErrorState, Loading } from "../../components/common";
 import { buildPreview } from "../../lib/memoryPreview";
 import { normDays } from "../../lib/days";
 import { depthWords } from "./model";
@@ -81,7 +81,6 @@ export default function Onboarding() {
             <div className="progress-line" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(pct)} aria-label="Set-up progress" style={{ ["--p" as string]: `${Math.max(pct, 4)}%` }}><i /></div>
             <div className="row row--between">
               <span className="ob__step">{finished ? "Done" : `Question ${Math.min(step + 1, total)} of ${total}`}</span>
-              <OriginBadge meta={qs.meta} />
             </div>
           </div>
 

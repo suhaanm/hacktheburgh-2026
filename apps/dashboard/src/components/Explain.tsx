@@ -2,14 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { ApiError, api, type Loaded } from "../api";
 import { useLoad } from "../hooks";
 import { useAppState } from "../store";
-import { Note, OriginBadge, SourceNote } from "./common";
+import { Note } from "./common";
 import { Hint } from "./Hint";
 import { Details, fitItems } from "./ui";
 import { CHIPS, MAX_QUESTION, actionsOf, askedTimeNote, bodySentences, checkReading, cleanQuestion, fallbackReading, fmtFact, isAnswer, limitsOf, pathWords, sourceReading, usesWithFacts } from "../lib/explain";
-import { aboutCohort, isCohortFact, restsOnCohort, safeWhy, workerText } from "../lib/voice";
-import { ownMeta } from "../lib/ownMeta";
+import { aboutCohort, isCohortFact, restsOnCohort, workerText } from "../lib/voice";
 import { readRemembered, writeRemembered } from "../lib/remember";
-import type { Fallback } from "../lib/fallback";
 import type { ExplainResult, PacketFact } from "../types";
 
 /**
@@ -60,7 +58,6 @@ export function Explain({ person }: { person?: string }) {
 
   const submit = (text: string, hint: string) => { setQuestion(text); void ask(cleanQuestion(text), hint); };
   const facts = (packet.data?.facts ?? []).filter((f) => !isCohortFact(f.path));
-  const example = !!(res?.why ?? packet.why);
 
   return (
     <section className="explain" id="explain" aria-labelledby="ex-h">
@@ -68,8 +65,6 @@ export function Explain({ person }: { person?: string }) {
         <h2 id="ex-h" className="section__title">Where did my time go?<Hint label="How this is written">Reads the numbers behind this case. Code checks each number in the words against the data.</Hint></h2>
         <p className="u-sr-only">Reads the numbers behind this case. Code checks each number in the words against the data.</p>
       </div>
-      {example && <p className="note">Example data: the answers do not change with what you ask.</p>}
-      {(res?.why ?? (phase === "idle" ? packet.why : null))?.kind === "error" && <SourceNote why={safeWhy(res?.why ?? packet.why)} />}
 
       <p className="u-sr-only" role="status" aria-live="polite">{phase === "loading" ? "Writing the answer." : phase === "ready" ? "The answer is ready." : phase === "error" ? "The answer could not be made." : ""}</p>
 
@@ -96,13 +91,13 @@ export function Explain({ person }: { person?: string }) {
         </div>
       )}
 
-      {res && phase !== "loading" && phase !== "error" && <Answer r={res.data} facts={facts} example={example} />}
+      {res && phase !== "loading" && phase !== "error" && <Answer r={res.data} facts={facts} />}
 
       <Details summary="Ask about this case" wide>
         <Ask question={question} onChange={setQuestion} onSubmit={submit} busy={phase === "loading"} />
       </Details>
 
-      {res && phase === "ready" && <Backing r={res.data} facts={facts} why={res.why ?? packet.why ?? null} />}
+      {res && phase === "ready" && <Backing r={res.data} facts={facts} />}
     </section>
   );
 }
@@ -117,7 +112,7 @@ function Progress({ elapsed }: { elapsed: number }) {
 }
 
 /** The words, the coaching, and under them where the words came from. */
-function Answer({ r, facts, example }: { r: ExplainResult; facts: PacketFact[]; example: boolean }) {
+function Answer({ r, facts }: { r: ExplainResult; facts: PacketFact[] }) {
   const body = bodySentences(r).filter((x) => !restsOnCohort(x.uses));
   const src = sourceReading(r);
   const chk = checkReading(r.check);
@@ -144,7 +139,6 @@ function Answer({ r, facts, example }: { r: ExplainResult; facts: PacketFact[]; 
         {!chk.ok && <Note tone="warn">{chk.text}</Note>}
       </div>
 
-      {example && <p className="u-sr-only">Example answer.</p>}
     </div>
   );
 }
@@ -177,12 +171,12 @@ function Ask({ question, onChange, onSubmit, busy }: { question: string; onChang
         <label className="u-sr-only" htmlFor="ex-q">Ask about this case</label>
         <div className="explain__bar">
           <input id="ex-q" className="input" type="text" value={question} maxLength={MAX_QUESTION} autoComplete="off" spellCheck={false}
-            placeholder="For example, why was I slow?" onChange={(e) => onChange(e.target.value)} />
+            placeholder="Why was I slow?" onChange={(e) => onChange(e.target.value)} />
           <button type="submit" className="btn btn--secondary" disabled={busy}>{busy ? "Asking" : "Ask"}</button>
         </div>
         <span className="field__hint">Code turns your words into a fixed question. A model never sees them.</span>
       </div>
-      <div className="row" style={{ gap: "var(--space-2)" }} role="group" aria-label="Example questions">
+      <div className="row" style={{ gap: "var(--space-2)" }} role="group" aria-label="Suggested questions">
         {CHIPS.map((c) => <button key={c.id} type="button" className="chip" aria-label={c.text} disabled={busy} onClick={() => onSubmit(c.text, c.id)}>{c.label}</button>)}
       </div>
     </form>
@@ -191,28 +185,25 @@ function Ask({ question, onChange, onSubmit, busy }: { question: string; onChang
 
 /**
  * Always shown with an answer: the footer with its badge (and, when the engine listed no limits, that fact, which is itself a problem). Everything else
- * is one closed "More" holding closed rows: the other sentences, what is worth practising, the limits, the numbers, and why this is example data.
+ * is one closed "More" holding closed rows: the other sentences, what is worth practising, the limits and the numbers.
  */
-function Backing({ r, facts, why }: { r: ExplainResult; facts: PacketFact[]; why: Fallback | null }) {
+function Backing({ r, facts }: { r: ExplainResult; facts: PacketFact[] }) {
   const limits = limitsOf(r).filter((l) => !aboutCohort(l.text));
   const body = bodySentences(r).filter((x) => !restsOnCohort(x.uses)).slice(1);
   const actions = actionsOf(r).filter((a) => !restsOnCohort(a.uses));
-  const meta = ownMeta({ origin: r.badge.origin as "real" | "synthetic" | "mixed", n: r.badge.n, n_unit: r.badge.n_unit, split: r.badge.split, interval_level: 0.95, note: null, generated_at: "" }, { n: 1, unit: "case" })!;
   const row = (x: { text: string; uses: string[] }, i: number) => <li key={i} className="explain__text">{workerText(x.text)}<Uses uses={x.uses} facts={facts} /></li>;
   const kSent = fitItems(body.map((x) => x.text), 52).shown.length;
   const kLim = fitItems(limits.map((l) => l.text), 48).shown.length;
-  const hasMore = body.length > 0 || actions.length > 0 || limits.length > 0 || facts.length > 0 || (why && why.kind !== "error");
+  const hasMore = body.length > 0 || actions.length > 0 || limits.length > 0 || facts.length > 0;
   return (
     <div className="stack explain__backing">
       {limits.length === 0 && <div data-testid="explain-limits"><p className="note">The engine listed no limits for this answer. That is itself a problem: every answer must list its limits.</p></div>}
       <p className="explain__footer" data-testid="explain-footer">
-        <OriginBadge meta={meta} always />
         <span>{workerText(r.footer)}</span>
       </p>
       {hasMore && (
         <Details summary="More" wide>
           <div className="stack">
-            {why && why.kind !== "error" && <SourceNote why={safeWhy(why)} />}
             {body.length > 0 && (
               <Details summary={`${body.length} more ${body.length === 1 ? "sentence" : "sentences"}`}>
                 <ul className="plain-list explain__more">{body.slice(0, kSent).map(row)}</ul>

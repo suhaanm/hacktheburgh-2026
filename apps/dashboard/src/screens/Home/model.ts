@@ -149,8 +149,6 @@ export function tryLine(t: WireWorker["try"] | undefined): string | null {
   return wordCount(line) <= TRY_MAX_WORDS ? line : null;
 }
 
-export const EXAMPLE_LINE = "This is an example. Knack starts counting now.";
-
 /* -- Quiet rows --------------------------------------------------------------------------------------------------------------- */
 
 /** "1 thing needs you", "3 things need you". Null at zero: the row is not drawn. */
@@ -202,27 +200,6 @@ export function quietFor(status: string, opts: { setUp: boolean } = { setUp: tru
   return { kind: "nothing", title: "Nothing stands out this week.", body: "No number moved far enough to matter.", action: null };
 }
 export const COULD_NOT_LOAD: Quiet = { kind: "error", title: "Could not read your week.", body: "Nothing was changed.", action: "try-again" };
-
-/* -- The origin badge ---------------------------------------------------------------------------------------------------------- */
-
-/**
- * The one origin badge Home may draw: "Example data" when the engine could not answer and a built-in sample stands in. Null for everything else: real data,
- * and data the engine generated (owner decision D57 and its clarification, 8 Nov 2026: no chip, pill or label says that data was generated, in any wording;
- * the one plain sentence is `originLine`, inside the closed "About this data").
- */
-export function originBadge(opts: { example: boolean; origin?: string | null; badge?: string | null }): string | null {
-  return opts.example ? "Example data" : null;
-}
-
-/* -- The first-week example line ---------------------------------------------------------------------------------------------- */
-
-/** "This is an example. Knack starts counting now." only while an example week stands in and first run finished less than a week ago. */
-export function exampleLine(standIn: boolean, firstRunAt: string | null, now = new Date()): string | null {
-  if (!standIn || !firstRunAt) return null;
-  const t = Date.parse(firstRunAt);
-  const age = now.getTime() - t;
-  return Number.isFinite(t) && age < 7 * 86_400_000 && age > -86_400_000 ? EXAMPLE_LINE : null;
-}
 
 /* -- The coaching row -------------------------------------------------------------------------------------------------------------- */
 

@@ -14,14 +14,14 @@ const count = (v: unknown): number => (typeof v === "number" && Number.isFinite(
  * and ONE row of actions: export it, or forget it with the same "Forget it" or "Keep" as everywhere in Your data. The capture consent is printed once, beside
  * its switch under Capture and screen glances.
  */
-export function Measured({ capture, view, example, onExport, onDelete }: { capture: boolean; view: LedgerView | null; example: boolean; onExport: () => Promise<void>; onDelete: () => Promise<number> }) {
+export function Measured({ capture, view, onExport, onDelete }: { capture: boolean; view: LedgerView | null; onExport: () => Promise<void>; onDelete: () => Promise<number> }) {
   const toast = useToast();
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState<"export" | "delete" | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const counts: LedgerCounts = { assist: count(view?.counts?.assist), delegated: count(view?.counts?.delegated), automation: count(view?.counts?.automation) };
   const total = totalRows(counts);
-  const copy = stepForgetText(counts, example);
+  const copy = stepForgetText(counts);
 
   const doExport = async () => {
     setErr(null); setBusy("export");
@@ -31,7 +31,7 @@ export function Measured({ capture, view, example, onExport, onDelete }: { captu
   };
   const doDelete = async () => {
     setErr(null); setBusy("delete");
-    try { const n = await onDelete(); setConfirm(false); toast({ tone: "success", text: `Forgot ${plural(n, "row")}.`, detail: example ? "That was example data, so only this screen changed." : "Nothing else was touched." }); }
+    try { const n = await onDelete(); setConfirm(false); toast({ tone: "success", text: `Forgot ${plural(n, "row")}.`, detail: "Nothing else was touched." }); }
     catch (e) { setErr(e instanceof ApiError || e instanceof Error ? e.message : "Could not forget it. Nothing was deleted."); }
     finally { setBusy(null); }
   };

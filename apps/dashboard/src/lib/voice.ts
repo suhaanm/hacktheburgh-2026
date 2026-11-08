@@ -46,5 +46,5 @@ export const aboutCohort = (text: string): boolean => /\bcohort\b|\baverage over
 export function safeWhy(why: Fallback | null | undefined): Fallback | null {
   if (!why) return null;
   const leaks = /\bp_[a-z0-9_]*\d|\bp_(?:irregular|nightowl|ninetofive|shiftwkr)\b|Try one of|\b\d[\d,]*\s+(?:people|learners|users|workers|experts)\b/i.test(why.message);
-  return leaks ? { ...why, message: "Nothing has been recorded for you yet, so Knack shows example data." } : why;
+  return leaks ? { ...why, message: "Nothing has been recorded for you yet." } : why;
 }

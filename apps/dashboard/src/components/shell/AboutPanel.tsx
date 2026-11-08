@@ -2,7 +2,6 @@
 // and what it cannot tell you, in fixed words (about.ts). The facts a worker must see stay printed on the screen itself; this panel only explains.
 import { useEffect, useRef } from "react";
 import { screenOf, useRoute } from "../../router";
-import { dataMode, useAppState } from "../../store";
 import { GROWTH_SECTION_LABEL, growthSectionOf, labelOf } from "../home/navModel";
 import { closeAbout, useOverlay } from "../home/overlayStore";
 import { aboutFor } from "./about";
@@ -18,7 +17,6 @@ function Panel() {
   const route = useRoute();
   const current = screenOf(route);
   const status = useStatus();
-  const mode = dataMode(useAppState());
   const box = useRef<HTMLDivElement>(null);
   const opener = useRef<Element | null>(typeof document === "undefined" ? null : document.activeElement);
   useEffect(() => {
@@ -49,7 +47,7 @@ function Panel() {
           ) : <p>Open a screen from the menu and ask again.</p>}
           <section>
             <h3 className="about__h">Right now</h3>
-            <p>{status.text}.{mode === "demo" || mode === "mixed" ? " This screen is showing example data where a number comes from the built-in sample." : ""}</p>
+            <p>{status.text}.</p>
           </section>
         </div>
       </div>

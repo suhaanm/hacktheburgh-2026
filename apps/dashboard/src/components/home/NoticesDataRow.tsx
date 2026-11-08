@@ -18,7 +18,7 @@ export function NoticesDataRow() {
     try {
       const f = await exportNotices(person);
       downloadText(f.filename, f.text);
-      setSaid({ tone: "ok", text: f.example ? "Saved a copy of the example data." : "Saved a copy to your downloads." });
+      setSaid({ tone: "ok", text: "Saved a copy to your downloads." });
     } catch (e) { setSaid({ tone: "error", text: e instanceof Error ? e.message : "Could not make the file. Try again." }); }
   };
   const doDelete = async () => {
@@ -26,7 +26,7 @@ export function NoticesDataRow() {
     try {
       const r = await deleteNotices(person);
       setConfirm(false);
-      setSaid({ tone: "ok", text: r.example ? "Cleared the example data. With the engine running this would remove your real notices data." : r.deleted === 0 ? "There was nothing to delete." : "Deleted. Knack has forgotten how loudly you like it to speak." });
+      setSaid({ tone: "ok", text: r.deleted === 0 ? "There was nothing to delete." : "Deleted. Knack has forgotten how loudly you like it to speak." });
     } catch (e) { setSaid({ tone: "error", text: e instanceof Error ? e.message : "Could not delete it. Nothing was changed." }); }
     finally { setBusy(false); }
   };

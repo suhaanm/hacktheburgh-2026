@@ -450,7 +450,7 @@ export function claimOf(rows: SkillRowView[]): string {
 /* -- Origin wording ---------------------------------------------------------------------------- */
 export function originSentence(detail: OriginDetail | undefined, origin: "real" | "synthetic" | "mixed" | undefined): string {
   if (detail === "simulated_participants") return "Language-model participants, not people.";
-  if (detail === "synthetic_learner") return "Generated learners with planted learning curves, not people.";
+  if (detail === "synthetic_learner") return "Learning curves built from a model, not people.";
   if (detail === "live_worker") return "Your own work on this computer. One person is not a study.";
   if (origin === "synthetic") return "Generated data, not people.";
   if (origin === "real") return "Real work. One person is not a study.";
@@ -495,12 +495,10 @@ export function countsOf(w: WireGrowth, fromLedger?: Partial<LedgerCounts> | nul
 export const totalRows = (c: LedgerCounts) => c.assist + c.delegated + c.automation;
 
 /** What deleting does, in the words the worker sees. The engine states the same list (CUE-ENGINE, 7 Nov). */
-export function deleteCopy(c: LedgerCounts, example: boolean): { what: string; kept: string; button: string } {
+export function deleteCopy(c: LedgerCounts): { what: string; kept: string; button: string } {
   const total = totalRows(c);
   const what = `This deletes ${plural(total, "row")} from your record on this computer (${c.assist} assist, ${c.delegated} delegated, ${c.automation} overnight), the answers you gave to Cue's questions, and the one-line summary in your memory file's Skill state section. It adds one line to the audit log with counts only. Your curve is worked out from the ledger, so it starts again from nothing.`;
-  const kept = example
-    ? "These rows are example data, so clearing them only changes this screen."
-    : "Nothing else is touched: your memory file's other lines, routines, queue and settings stay as they are.";
+  const kept = "Nothing else is touched: your memory file's other lines, routines, queue and settings stay as they are.";
   return { what, kept, button: `Delete ${plural(total, "row")}` };
 }
 
@@ -611,7 +609,7 @@ export function limitations(v: Pick<GrowthView, "needed" | "window" | "levelPct"
     "Work you hand to the agent, and automations that ran overnight, are never counted. Handing work off cannot raise this score.",
     "A trend whose interval includes zero is not evidence of no change. At this many steps a real improvement is often missed, so the page says it cannot tell yet.",
   ];
-  if (origin !== "real") out.push("This is an example, not your work. The method has not been tested on real people yet.");
+  if (origin !== "real") out.push("The method has not been tested on real people yet.");
   else out.push("This is one person's own work. One person is not a study.");
   return out;
 }

@@ -33,7 +33,7 @@ export interface LiveView { checked: boolean; disabled: boolean; line: string }
 export const LIVE_LINES = {
   on: "On, because a key is set. Every call is listed under Advanced.",
   onPlain: "On. Every call is listed under Advanced.",
-  off: "Off. Everything runs on example data.",
+  off: "Off. Knack does not call a live model.",
   noKey: "No key found. Add it to .env and reopen Knack.",
   restart: "Switching restarts the engine. About 20 seconds.",
   running: "A job is running. Stop it first.",
@@ -55,24 +55,23 @@ export function liveModels(i: LiveInput): LiveView {
 }
 
 /**
- * What each setting starts as, and why (owner request REQ-9, 8 Nov 2026: every default as automated as the safety layers allow). The row prints the short
- * `shown` text after its line ("Default: on."). The reasons and the safety note for each are in docs/knack-ux/defaults.md, and a test keeps the two in step.
+ * What each setting starts as (owner request REQ-9, 8 Nov 2026: every default as automated as the safety layers allow). The values apply; no row prints them
+ * (owner, 8 Nov 2026: no "Default: X" text on any setting). The reasons and the safety note for each are in docs/knack-ux/defaults.md, and a test keeps the two in step.
  * Never a default here: auto-granting a consent card, auto-approving, unattended runs, irreversible actions. Those stay off until the worker says otherwise.
  */
 export const DEFAULTS = {
-  "live-models": { shown: "on when a key is set", value: "on" },
-  interruptions: { shown: "Balanced", value: "balanced" },
-  coaching: { shown: "on", value: "on" },
-  "help-level": { shown: "Automatic", value: "auto" },
-  "hey-knack": { shown: "on", value: "on" },
-  "move-aside": { shown: "on", value: "on" },
-  "open-at-login": { shown: "on", value: "on" },
-  skills: { shown: "on", value: "on" },
-  "max-minutes": { shown: "30 minutes", value: 30 },
-  "max-budget": { shown: "US$2", value: 2 },
+  "live-models": { value: "on" },     // on when a key is set
+  interruptions: { value: "balanced" },
+  coaching: { value: "on" },
+  "help-level": { value: "auto" },
+  "hey-knack": { value: "on" },
+  "move-aside": { value: "on" },
+  "open-at-login": { value: "on" },
+  skills: { value: "on" },
+  "max-minutes": { value: 30 },
+  "max-budget": { value: 2 },
 } as const;
 export type DefaultId = keyof typeof DEFAULTS;
-export const defaultNote = (id: DefaultId): string => `Default: ${DEFAULTS[id].shown}.`;
 
 /* -- Interruptions: three words over the eighteen kinds -------------------------------------------------------------------------------- */
 export type Preset = "rarely" | "balanced" | "often";
@@ -129,7 +128,7 @@ export const APP_ONLY = "Available in the Knack app.";
 
 /** The headline of Settings: how Knack is set right now, in one sentence. */
 export function settingsHeadline(i: { live: boolean | null; preset: Preset | null }): string {
-  const live = i.live === null ? "" : i.live ? "Knack uses live models" : "Knack runs on example data";
+  const live = i.live === null ? "" : i.live ? "Knack uses live models" : "Knack does not use live models";
   const how = i.preset === "rarely" ? "interrupts you rarely" : i.preset === "often" ? "interrupts you often" : i.preset === "balanced" ? "interrupts you at a balanced pace" : "";
   if (live && how) return `${live} and ${how}.`;
   if (live) return `${live}.`;

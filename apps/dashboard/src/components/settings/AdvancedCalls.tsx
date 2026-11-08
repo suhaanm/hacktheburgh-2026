@@ -1,6 +1,5 @@
 import { api } from "../../api";
 import { ErrorState, Loading } from "../common";
-import { SectionSource } from "../needsyou/Origin";
 import { Sent } from "../yourdata/Sent";
 import { useLoad } from "../../hooks";
 
@@ -16,7 +15,6 @@ export default function AdvancedCalls() {
   return (
     <div style={{ display: "grid", gap: "var(--space-2)" }} data-testid="advanced-calls">
       <p className="kc-label">Every call Knack makes</p>
-      <SectionSource why={ledger.why ?? summary.why} />
       <Sent entries={ledger.data} summary={summary.data} onChanged={() => { ledger.reload(); summary.reload(); }} />
     </div>
   );

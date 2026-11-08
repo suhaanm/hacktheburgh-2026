@@ -41,11 +41,11 @@ export const KIND_LABEL: Record<string, string> = {
   "creative.weekly_summary": "Weekly summary",
 };
 export const KIND_DOES: Record<string, string> = {
-  "programming.commit_analyst": "Reads the sample repo's recent commits and reports habits, such as large commits and missing tests.",
+  "programming.commit_analyst": "Reads a repository's recent commits and reports habits, such as large commits and missing tests.",
   "programming.test_gap": "Looks for code that changed without a test, in an isolated copy of the repo.",
   "programming.refactor_suggest": "Drafts refactor suggestions as patches. Nothing is applied or pushed without your approval.",
-  "data.profile": "Profiles a sample CSV in a sandbox with no network: sizes, gaps and the strongest links.",
-  "data.chart": "Builds a chart of a sample CSV in the same sandbox.",
+  "data.profile": "Profiles a CSV file in a sandbox with no network: sizes, gaps and the strongest links.",
+  "data.chart": "Builds a chart of a CSV file in the same sandbox.",
   "creative.weekly_summary": "Drafts a weekly write-up from digests. It cites digest ids only.",
 };
 export const kindLabel = (k: string | null | undefined): string => (typeof k === "string" && k ? KIND_LABEL[k] ?? k.replace(/[._]/g, " ") : "Background run");

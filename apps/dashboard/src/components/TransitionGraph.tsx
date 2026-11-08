@@ -75,9 +75,8 @@ function Panel({ who, data, w, label }: { who: Who; data: Transitions; w: number
   const edgeWords = (e: (typeof data.edges)[number], k: string) => {
     const amount = (f: number) => (perCase ? `${f.toFixed(1)} per case` : fmtPct(f));
     const name = `${nameOf(e.from)} to ${nameOf(e.to)}`;
-    const planted = e.planted ? " (planted)" : "";
-    if (k === "missing") return { name, meta: `${e.novice_freq < 0.05 ? `Missing; the expert makes it ${amount(e.expert_freq)}` : `Less often: ${amount(e.novice_freq)} against the expert's ${amount(e.expert_freq)}`}${planted}` };
-    if (k === "extra") return { name, meta: `A detour, ${amount(e.novice_freq)}${planted}` };
+    if (k === "missing") return { name, meta: `${e.novice_freq < 0.05 ? `Missing; the expert makes it ${amount(e.expert_freq)}` : `Less often: ${amount(e.novice_freq)} against the expert's ${amount(e.expert_freq)}`}` };
+    if (k === "extra") return { name, meta: `A detour, ${amount(e.novice_freq)}` };
     return { name, meta: amount(who === "expert" ? e.expert_freq : e.novice_freq) };
   };
 

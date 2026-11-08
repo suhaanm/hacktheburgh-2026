@@ -124,7 +124,7 @@ export function TaskBox({ role, onPlaced }: { role: string | null; onPlaced?: ()
           {check.ok && <button type="submit" className="btn btn--primary btn--sm taskbox__send" disabled={busy}>{busy ? "Sending" : "Send"}</button>}
         </div>
         {showExamples && (
-          <div className="taskbox__examples" role="group" aria-label="Examples">
+          <div className="taskbox__examples" role="group" aria-label="Suggestions">
             {examples.map((x) => <button key={x} type="button" className="taskbox__chip" onMouseDown={(e) => e.preventDefault()} onClick={() => { setText(x); input.current?.focus(); }}>{x}</button>)}
           </div>
         )}

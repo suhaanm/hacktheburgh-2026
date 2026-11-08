@@ -74,7 +74,7 @@ export function GapTable({ rows, meta }: { rows: GapRow[]; meta: Meta }) {
           </tr>))}</tbody>
       </table></div>
       {rows.length > SHOWN && <div><button type="button" className="btn btn--quiet btn--sm" aria-expanded={all} onClick={() => setAll((v) => !v)}>{all ? "Show fewer" : `Show all ${rows.length}`}</button></div>}
-      <ChartFoot variant="about" brief badge={false} meta={meta} extra={<span>{clear} of {rows.length} differences are clear: the 95% interval stays on one side of zero.</span>} />
+      <ChartFoot variant="about" brief meta={meta} extra={<span>{clear} of {rows.length} differences are clear: the 95% interval stays on one side of zero.</span>} />
     </div>
   );
 }
@@ -94,7 +94,7 @@ export function Distance({ d, meta }: { d: CalendarWeek; meta: Meta }) {
       <div className="chart chart--wide stack">
         <CalAlignment alignment={r.alignment} />
         <AlignLegend />
-        <ChartFoot variant="about" meta={meta} brief badge={false} />
+        <ChartFoot variant="about" meta={meta} brief />
       </div>
     </div>
   );

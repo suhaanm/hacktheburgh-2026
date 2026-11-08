@@ -19,7 +19,6 @@ export interface ConnectionChipsProps {
 export function ConnectionChips({ role, onChange, client }: ConnectionChipsProps) {
   const api = useRef<ConnectionsClient>(client ?? defaultClient());
   const [items, setItems] = useState<Connection[] | null>(null);
-  const [example, setExample] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +30,7 @@ export function ConnectionChips({ role, onChange, client }: ConnectionChipsProps
     let live = true;
     setItems(null);
     setOpen(null);
-    api.current.list(role).then((r) => { if (live) { setItems(r.items); setExample(r.example); } }, () => { if (live) { setItems([]); setError("The list could not be read. Nothing was changed."); } });
+    api.current.list(role).then((r) => { if (live) { setItems(r.items); } }, () => { if (live) { setItems([]); setError("The list could not be read. Nothing was changed."); } });
     return () => { live = false; };
   }, [role]);
 
@@ -66,7 +65,7 @@ export function ConnectionChips({ role, onChange, client }: ConnectionChipsProps
               <span className="cx-dot" data-tone={stateTone(c)} aria-hidden="true" />
               <span className="cx-chip__name">{c.app}</span>
               <span className="u-sr-only">, {stateWord(c)}</span>
-              {isOn(c) && <span className="pill pill--origin" data-origin={c.example ? "example" : "real"}>{stateWord(c)}</span>}
+              {isOn(c) && <span className="pill">{stateWord(c)}</span>}
               {c.caution && <span className="cx-chip__flag">{c.caution}</span>}
             </button>
           </li>
@@ -84,7 +83,6 @@ export function ConnectionChips({ role, onChange, client }: ConnectionChipsProps
           </div>
         </div>
       )}
-      {example && <p className="cx-note">Example connections: the engine is not running.</p>}
       {error && <p className="kc-error" role="alert">{error}</p>}
     </section>
   );

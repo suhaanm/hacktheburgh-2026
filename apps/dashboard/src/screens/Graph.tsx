@@ -1,14 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api } from "../api";
 import { useLoad, useWidth } from "../hooks";
-import { ChartFoot, EmptyState, ErrorState, Loading, OriginBadge, PageHead } from "../components/common";
+import { ChartFoot, EmptyState, ErrorState, Loading, PageHead } from "../components/common";
 import { GraphCanvas } from "../components/graph/GraphCanvas";
 import { GraphLegend, WORK_LEGEND } from "../components/graph/GraphLegend";
 import { NodePanel } from "../components/graph/NodePanel";
 import { cleanGraph, graphHeadline } from "../lib/graph";
-
-/** The badge says where the data came from, in the worker's words: an example is an example (D57: the word "synthetic" is not on any screen). */
-const originLabel = (origin: string): string => (origin === "real" ? "Real data" : origin === "mixed" ? "Some example data" : origin === "synthetic" ? "Example data" : "Not run");
 
 /** The details panel's width (340) plus the gap to the stage edge, in px. The stylesheet's narrow breakpoint puts the panel under the canvas instead. */
 const PANEL_ROOM = 352;
@@ -74,7 +71,6 @@ export default function Graph({ embedded = false }: { embedded?: boolean }) {
           eyebrow="Graph"
           title="How your work connects"
           lede={graphHeadline(graph) || undefined}
-          aside={<OriginBadge meta={g.meta} label={g.meta ? originLabel(g.meta.origin) : undefined} />}
         />
       )}
 
@@ -91,7 +87,7 @@ export default function Graph({ embedded = false }: { embedded?: boolean }) {
             )}
           </div>
           <GraphLegend entries={WORK_LEGEND} />
-          <ChartFoot variant="about" meta={g.meta} badge={false} extra={<span>click a node for why it exists; the layout is for reading only</span>} />
+          <ChartFoot variant="about" meta={g.meta} extra={<span>click a node for why it exists; the layout is for reading only</span>} />
         </div>
       )}
     </>,

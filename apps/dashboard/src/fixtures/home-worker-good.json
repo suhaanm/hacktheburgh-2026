@@ -1,9 +1,9 @@
 {
  "data": {
-  "badge": "made-up firm",
+  "badge": "firm",
   "cap": 3,
   "message": null,
-  "monday_note": "Understudy has 3 pointers for your week. On the cliff check, you now take about 15 seconds less than you did a month ago. On reconciling before the note, you finished 17 of your last 20 cases without help. On entering the household once, you finished 18 of your last 20 cases without help.",
+  "monday_note": "Knack has 3 pointers for your week. On the cliff check, you now take about 15 seconds less than you did a month ago. On reconciling before the note, you finished 17 of your last 20 cases without help. On entering the household once, you finished 18 of your last 20 cases without help.",
   "nothing_stands_out": false,
   "origin": "synthetic",
   "person": "p_f_bp05",
@@ -15,7 +15,7 @@
      "label": "See how it changed",
      "to": "growth"
     },
-    "badge": "made-up firm",
+    "badge": "firm",
     "detail": "",
     "details_available": true,
     "glyph": "trend_up",
@@ -39,7 +39,7 @@
      "label": "Open Growth",
      "to": "growth"
     },
-    "badge": "made-up firm",
+    "badge": "firm",
     "detail": "",
     "details_available": true,
     "glyph": "check",
@@ -64,7 +64,7 @@
      "label": "Open Repeats",
      "to": "repeats"
     },
-    "badge": "made-up firm",
+    "badge": "firm",
     "detail": "",
     "details_available": true,
     "glyph": "check",
@@ -96,7 +96,7 @@
  "meta": {
   "as_of": "2026-11-09T09:00:00Z",
   "audience": "worker",
-  "badge": "made-up firm",
+  "badge": "firm",
   "generated_at": "2026-11-09T09:00:00Z",
   "interval_level": null,
   "n": 3,

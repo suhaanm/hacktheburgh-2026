@@ -29,7 +29,7 @@ export function HoursMap({ data, meta }: { data: PresenceData; meta: PresenceMet
         <Heatmap data={data} cursor={cursor} onCursor={setCursor} day={day} onDay={setDay} />
         <p className="note" aria-live="polite" style={{ minHeight: "3em" }}>{cellReadout(data, cursor)}</p>
         <HeatLegend />
-        <ChartFoot variant="about" meta={meta} badge={false} />
+        <ChartFoot variant="about" meta={meta} />
       </div>
       <Details summary={`${dowName(day)}, with its interval`}><DayBand data={data} day={day} /></Details>
     </div>
@@ -72,7 +72,7 @@ export function ForecastSection({ data, meta }: { data: PresenceData; meta: Pres
             <b>{res.go ? "Go." : "Wait."}</b> A {d}-minute run has a {Math.round(res.survival * 100)}% chance of finishing before you are back. The threshold is {Math.round(thr * 100)}%.
           </p>
         </div>
-        <ChartFoot variant="about" meta={meta} badge={false} extra={<span>band: 95% interval</span>} />
+        <ChartFoot variant="about" meta={meta} extra={<span>band: 95% interval</span>} />
       </div>
     </section>
   );

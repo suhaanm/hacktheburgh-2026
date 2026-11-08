@@ -422,17 +422,17 @@ describe("offloaded work", () => {
 
 describe("ledger controls", () => {
   it("says exactly what delete removes, and what it leaves alone", () => {
-    const c = deleteCopy({ assist: 150, delegated: 4, automation: 13 }, false);
+    const c = deleteCopy({ assist: 150, delegated: 4, automation: 13 });
     expect(c.button).toBe("Delete 167 rows");
     expect(c.what).toContain("150 assist, 4 delegated, 13 overnight");
     expect(c.what).toContain("answers you gave to Cue's questions");
     expect(c.what).toContain("Skill state");
     expect(c.what).toContain("one line to the audit log with counts only");
     expect(c.kept).toContain("Nothing else is touched");
-    expect(deleteCopy({ assist: 1, delegated: 0, automation: 0 }, false).button).toBe("Delete 1 row");
+    expect(deleteCopy({ assist: 1, delegated: 0, automation: 0 }).button).toBe("Delete 1 row");
   });
-  it("says example data is only cleared on screen", () => {
-    expect(deleteCopy({ assist: 6, delegated: 1, automation: 0 }, true).kept).toContain("example data");
+  it("says only what is cleared and what stays, whatever the data", () => {
+    expect(deleteCopy({ assist: 6, delegated: 1, automation: 0 }).kept).not.toMatch(/example|sample|stand[- ]in/i);
   });
   it("reads the engine's deleted count either way", () => {
     expect(deletedCount({ deleted: 9 })).toBe(9);

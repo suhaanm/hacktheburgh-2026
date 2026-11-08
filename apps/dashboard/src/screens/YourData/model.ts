@@ -97,11 +97,11 @@ export function factLine(id: YdSection, f: { lines: number; capture: boolean | n
 export const CAPTURE_TEXT = "It records when you are active, never what you read: no page text, no URLs, no field values. The record stays on this laptop.";
 
 /** What forgetting the step counts clears, in the worker's words (the Growth curve is drawn from them), and what stays. */
-export function stepForgetText(c: { assist: number; delegated: number; automation: number }, example: boolean): { question: string; consequence: string } {
+export function stepForgetText(c: { assist: number; delegated: number; automation: number }): { question: string; consequence: string } {
   const total = c.assist + c.delegated + c.automation;
   return {
     question: `Forget ${total} ${total === 1 ? "row" : "rows"}?`,
-    consequence: `This deletes ${total} ${total === 1 ? "row" : "rows"} of step counts on this computer (${c.assist} counted, ${c.delegated} done for you, ${c.automation} overnight), the answers you gave to Knack's questions, and the one-line summary in your memory file's Skill state section. It adds one line to the audit log with counts only. Your Growth curve starts again from nothing. ${example ? "These rows are example data, so only this screen changes." : "Nothing else is touched."}`,
+    consequence: `This deletes ${total} ${total === 1 ? "row" : "rows"} of step counts on this computer (${c.assist} counted, ${c.delegated} done for you, ${c.automation} overnight), the answers you gave to Knack's questions, and the one-line summary in your memory file's Skill state section. It adds one line to the audit log with counts only. Your Growth curve starts again from nothing. Nothing else is touched.`,
   };
 }
 

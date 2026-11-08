@@ -36,7 +36,7 @@ function ConnectForm({ c, busy, onConnect, onCancel }: { c: Connection; busy: bo
     <form className="cx-form" onSubmit={(e) => { e.preventDefault(); submit(); }} aria-label={`Connect ${c.app}`}>
       {hasReal(c) && (
         <div className="segmented" role="group" aria-label="Which kind of connection">
-          <button type="button" aria-pressed={mode === "example"} onClick={() => { setMode("example"); setProblem(null); }}>Example</button>
+          <button type="button" aria-pressed={mode === "example"} onClick={() => { setMode("example"); setProblem(null); }}>Sandbox</button>
           <button type="button" aria-pressed={mode === "real"} onClick={() => { setMode("real"); setProblem(null); }}>Real</button>
         </div>
       )}
@@ -70,7 +70,6 @@ function ConnectForm({ c, busy, onConnect, onCancel }: { c: Connection; busy: bo
 export function ConnectionsPanel({ client }: ConnectionsPanelProps) {
   const api = useRef<ConnectionsClient>(client ?? defaultClient());
   const [items, setItems] = useState<Connection[] | null>(null);
-  const [example, setExample] = useState(false);
   const [opening, setOpening] = useState<string | null>(null);
   const [revoking, setRevoking] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -79,7 +78,7 @@ export function ConnectionsPanel({ client }: ConnectionsPanelProps) {
 
   useEffect(() => {
     let live = true;
-    api.current.list().then((r) => { if (live) { setItems(r.items); setExample(r.example); } }, () => { if (live) setItems([]); });
+    api.current.list().then((r) => { if (live) { setItems(r.items); } }, () => { if (live) setItems([]); });
     return () => { live = false; };
   }, []);
 
@@ -95,7 +94,6 @@ export function ConnectionsPanel({ client }: ConnectionsPanelProps) {
   const ordered = onFirst(items);
   return (
     <div className="cx-panel">
-      {example && <span className="pill pill--origin" data-origin="example" style={{ justifySelf: "start" }}>Example connections</span>}
       {byGroup(ordered).map(({ group, items: rows }) => (
         <Details key={group} className="cx-group" defaultOpen={rows.some(isOn)} summary={`${GROUP_LABEL[group]} (${rows.length})`}>
           <ul className="cx-list" aria-label={GROUP_LABEL[group]}>
@@ -107,7 +105,7 @@ export function ConnectionsPanel({ client }: ConnectionsPanelProps) {
                       <span className="cx-row__title">
                         {isOn(c) && <span className="cx-dot" data-tone={stateTone(c)} aria-hidden="true" />}
                         {c.app}
-                        {isOn(c) && <span className="pill pill--origin" data-origin={c.example ? "example" : "real"}>{stateWord(c)}</span>}
+                        {isOn(c) && <span className="pill">{stateWord(c)}</span>}
                       </span>
                       <span className="cx-row__meta">{metaLine(c)}{c.caution && <> <span className="cx-flag">{c.caution}</span></>}</span>
                     </div>

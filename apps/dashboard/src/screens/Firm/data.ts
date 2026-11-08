@@ -29,7 +29,7 @@ export function exampleDrill(id: string, insight: AdminInsight | null): unknown 
       id, headline: insight?.headline ?? "", method: null, series: [], tables: [],
       columns: e ? [{ key: "value", label: e.label || "Value", unit: e.unit || null }, ...(e.ci ? [{ key: "value_ci", label: "Interval", unit: e.unit || null }] : [])] : [],
       rows: e ? [{ label: e.label || "Value", n: insight?.n ?? null, values: { value: e.value, ...(e.ci ? { value_ci: e.ci } : {}) } }] : [],
-      notes: ["This example has no further breakdown for this insight. With the engine running, the breakdown appears here."],
+      notes: ["There is no further breakdown for this insight yet."],
     },
   };
 }

@@ -4,7 +4,6 @@ import { ErrorState, Loading } from "../../components/common";
 import { HitList } from "../../components/repeats/HitList";
 import { heldText } from "../../components/repeats/model";
 import type { HitRow, HitState } from "../../components/repeats/types";
-import { OriginBadge, OriginDetails } from "../../components/needsyou/Origin";
 import { BackgroundTasks } from "../../components/routines/BackgroundTasks";
 import { RunningRow } from "../../components/routines/RunningRow";
 import type { Decide } from "../../components/routines/types";
@@ -86,7 +85,6 @@ export default function Routines() {
   };
 
   const shown = running.slice(0, limit);
-  const sources = [rt, rep, ...tasks.sources];
   const headline = routinesHeadline({
     tasksRunning: tasks.grouped.active.filter((x) => x.state === "running").length, routinesRunning: running.length,
     couldMinutes: rep.data?.state === "ok" ? rep.data.rows.reduce((a, row) => a + (Number.isFinite(row.minutes_per_week?.point) ? Math.max(0, row.minutes_per_week.point) : 0), 0) : 0,
@@ -96,10 +94,8 @@ export default function Routines() {
     <div className="page page--read kc-page">
       <div className="kc-head">
         <h1 className="kc-title">Routines</h1>
-        <OriginBadge sources={sources} />
       </div>
       {headline && <p className="kc-headline" data-testid="headline">{headline}</p>}
-      <OriginDetails sources={sources} />
 
       <div className="rt-bar">
         <div className="kc-tabs" role="tablist" aria-label="Routines" onKeyDown={onTabKey} style={{ flex: "1 1 auto" }}>

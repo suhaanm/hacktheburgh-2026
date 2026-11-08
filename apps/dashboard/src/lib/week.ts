@@ -123,7 +123,7 @@ export function alignmentTotals(alignment: RibbonOp[]): AlignmentTotals {
 
 /** The people who have a week to show, learners first: personas, then novices, then experts. */
 export function peopleByGroup(people: CalPerson[]): { group: string; label: string; people: CalPerson[] }[] {
-  const order: [string, string][] = [["persona", "Example people"], ["novice", "Novices"], ["expert", "Experts"]];
+  const order: [string, string][] = [["persona", "People"], ["novice", "Novices"], ["expert", "Experts"]];
   const out = order.map(([g, label]) => ({ group: g, label, people: people.filter((p) => p.group === g) })).filter((x) => x.people.length);
   const known = new Set(order.map(([g]) => g));
   const rest = people.filter((p) => !known.has(p.group ?? ""));

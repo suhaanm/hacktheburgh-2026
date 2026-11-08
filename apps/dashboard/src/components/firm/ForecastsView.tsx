@@ -1,6 +1,6 @@
 import { useId, useMemo, useState } from "react";
 import { useLoad } from "../../hooks";
-import { EmptyState, ErrorState, Loading, SourceNote } from "../common";
+import { EmptyState, ErrorState, Loading } from "../common";
 import { Details, FactRows } from "../ui";
 import { loadFirm as loadFirmHits } from "../../screens/Repeats/data";
 import { loadFirm, loadOnboarding, loadRoles } from "../../screens/Firm/data";
@@ -98,7 +98,6 @@ export function ForecastsView() {
           <p className="note"><a href="#/evidence">For reviewers: Evidence</a></p>
         </div>
       </Details>
-      <SourceNote why={why} />
     </section>
   );
 }
