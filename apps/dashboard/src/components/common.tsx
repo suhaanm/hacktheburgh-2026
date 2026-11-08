@@ -119,7 +119,7 @@ export function ChartFoot({ meta, extra, brief = false, variant = "full", badge 
       <span>
         intervals: <b>{Math.round(meta.interval_level * 100)}%</b>
       </span>
-      <OriginBadge meta={meta} always />
+      {badge && <OriginBadge meta={meta} always />}
       {extra}
       {meta.note && !brief && <span className="chart__note">{meta.note}</span>}
     </div>
@@ -270,4 +270,9 @@ export function CheckChip({ check }: { check: "verified" | "uncertain" | "failed
 /** A run or child state as a pill: a dot for running, plain words for the rest. */
 export function StatePill({ state, tone }: { state: string; tone: "go" | "good" | "bad" | "muted" }) {
   return <span className="pill pill--state" data-tone={tone}><span className="pill__dot" aria-hidden="true" />{state}</span>;
+}
+
+/** A run or node state as a dot and a word, not a pill: a list of runs is rows, and one pill per screen is the origin badge. Shape-free tone, the word always travels with it. */
+export function StateText({ state, tone }: { state: string; tone: "go" | "good" | "bad" | "muted" }) {
+  return <span className="statetext" data-tone={tone}><span className="statetext__dot" aria-hidden="true" />{state}</span>;
 }

@@ -27,6 +27,7 @@ import { fileURLToPath } from "node:url";
 import { openAs, relayLive } from "./lib/knack-page.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
+const banned = JSON.parse(fs.readFileSync(join(here, "..", "..", "..", "docs", "knack-ux", "banned-phrases.json"), "utf8"));
 const budgets = JSON.parse(fs.readFileSync(join(here, "..", "qa", "knack", "budgets.json"), "utf8"));
 const args = process.argv.slice(2);
 const flag = (name) => args.find((a) => a === `--${name}` || a.startsWith(`--${name}=`));
@@ -47,6 +48,34 @@ export function budgetFor(route, metric, audience, state = {}) {
   if (metric === "wordsAbove" && state.empty && r.wordsAboveEmpty != null) return r.wordsAboveEmpty;
   return r[metric] ?? budgets.defaults[audience]?.[metric];
 }
+
+
+// ---- The rendered side of the copy lint (docs/knack-ux/banned-phrases.json; the source side is src/copy-lint.test.ts, with the same rules) ----------------
+const escapeRe = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+// A phrase that ends in a colon is a lead-in: it counts at the start of a text or sentence only ("the case note: open it" is ordinary words).
+const phraseRe = (ph) => (ph.endsWith(":") ? new RegExp(`(?:^|[.!?]\\s+)${escapeRe(ph)}`, "i") : new RegExp(`${/^\w/.test(ph) ? "\\b" : ""}${escapeRe(ph)}${/\w$/.test(ph) ? "\\b" : ""}`, "i"));
+const PHRASES = banned.phrases.map((ph) => [ph, phraseRe(ph)]);
+/** Internal identifiers that carry the old name (storage keys, events, environment names, file and directory names) are not copy. */
+const stripIds = (t) => t.replace(/\S*[-_./\\:~]understudy\S*|\S*understudy[-_./\\:~]\S*|\bUNDERSTUDY_\w*/gi, " ");
+export function lintText(text) {
+  const out = [];
+  for (const [ph, re] of PHRASES) { const m = re.exec(text); if (m) out.push(`phrase "${m[0].replace(/^[.!?]\s+/, "")}"`); }
+  for (const w of banned.visible_words) { const m = new RegExp(`\\b${escapeRe(w)}\\b`, "i").exec(text); if (m) out.push(`word "${m[0]}"`); }
+  const bare = stripIds(text);
+  const old = new RegExp(`\\b${escapeRe(banned.visible_old_name.word)}\\b`, "i").exec(bare);
+  if (old) out.push(`old name "${old[0]}"`);
+  if (/\bAlongside\b/.exec(bare)) out.push('name "Alongside"');
+  return out;
+}
+/** What a person reads (the text of the page) and what a screen reader reads (names and descriptions), as short chunks to lint. */
+const readableInPage = () => {
+  const out = [document.title];
+  for (const line of document.body.innerText.split("\n")) { const t = line.trim(); if (t) out.push(t); }
+  for (const el of document.querySelectorAll("[aria-label],[alt],[placeholder],[aria-description]")) {
+    for (const a of ["aria-label", "alt", "placeholder", "aria-description"]) { const v = el.getAttribute(a); if (v) out.push(v); }
+  }
+  return out;
+};
 
 if (flag("list")) {
   for (const [id, r] of Object.entries(budgets.routes)) console.log(id.padEnd(16), r.path.padEnd(18), r.audience.padEnd(8), `above ${budgetFor(id, "wordsAbove", r.audience)}  total ${budgetFor(id, "wordsTotal", r.audience)}  pills ${budgetFor(id, "pills", r.audience)}  controls ${budgetFor(id, "controls", r.audience)}`);
@@ -168,6 +197,7 @@ async function settle(page) {
 }
 
 const results = [];
+const lintDone = new Set();
 const fails = [];
 const notes = [];
 
@@ -234,6 +264,15 @@ try {
         if (m.gate && view === "admin") { fails.push(`${id} @${vp.join("x")}: the Admin gate is showing, so the view-as switch did not take`); continue; }
         const aud = spec.audience === "admin" ? "admin" : spec.audience;
         const { tag, problems } = judge(id, { ...spec, audience: aud }, vp, m, narrow);
+        // The rendered copy lint, once per screen and window (the text does not change with the width). Findings print their text; they fail the screen.
+        if (!lintDone.has(`${view}:${id}`)) {
+          lintDone.add(`${view}:${id}`);
+          const seen = new Set();
+          for (const chunk of await page.evaluate(readableInPage)) {
+            const hits = lintText(chunk);
+            if (hits.length && !seen.has(chunk)) { seen.add(chunk); problems.push(`copy lint, ${hits.join(" and ")}: ${chunk.slice(0, 90)}`); }
+          }
+        }
         // The sidebar rule: rows and hint words, once per view and window (not at 390, where it is the bottom bar).
         if (!narrow && spec.sidebar !== false && m.hasSide) {
           const sb = budgets.sidebar;

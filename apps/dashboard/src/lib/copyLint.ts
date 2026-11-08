@@ -13,8 +13,13 @@ export type Finding = { kind: "phrase" | "word" | "old name" | "name"; match: st
 
 const escape = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-/** A phrase as a whole-word, case-insensitive pattern. A boundary is only asked for where the phrase begins or ends with a word character ("note:" has none at the end). */
+/**
+ * A phrase as a whole-word, case-insensitive pattern. A boundary is only asked for where the phrase begins or ends with a word character.
+ * A phrase that ends in a colon ("note:") is a lead-in: it only counts at the start of the text or of a sentence, so "the case note: open the form"
+ * (a benefits case note, ordinary words) is not a finding while "Note: nothing was sent" is.
+ */
 export function phraseRegex(phrase: string): RegExp {
+  if (phrase.endsWith(":")) return new RegExp(`(?:^|[.!?]\\s+)${escape(phrase)}`, "i");
   const head = /^\w/.test(phrase) ? "\\b" : "";
   const tail = /\w$/.test(phrase) ? "\\b" : "";
   return new RegExp(`${head}${escape(phrase)}${tail}`, "i");
@@ -32,7 +37,7 @@ export function stripIdentifiers(text: string): string {
 /** Everything in `text` that must not be visible. `cfg` is docs/knack-ux/banned-phrases.json. */
 export function findBanned(text: string, cfg: BannedConfig): Finding[] {
   const out: Finding[] = [];
-  for (const p of cfg.phrases) { const m = phraseRegex(p).exec(text); if (m) out.push({ kind: "phrase", match: m[0] }); }
+  for (const p of cfg.phrases) { const m = phraseRegex(p).exec(text); if (m) out.push({ kind: "phrase", match: m[0].replace(/^[.!?]\s+/, "") }); }
   for (const w of cfg.visible_words) { const m = new RegExp(`\\b${escape(w)}\\b`, "i").exec(text); if (m) out.push({ kind: "word", match: m[0] }); }
   const bare = stripIdentifiers(text);
   const old = new RegExp(`\\b${escape(cfg.visible_old_name.word)}\\b`, "i").exec(bare);

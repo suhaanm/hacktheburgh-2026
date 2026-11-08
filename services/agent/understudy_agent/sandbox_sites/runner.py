@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 import uvicorn
 
 from .sites import SandboxState, make_apps
-from .specs import DEFAULT_PORTS, HOST, SITE_IDS
+from .specs import DEFAULT_PORTS, HOST, SITE_IDS, default_ports
 
 
 def free_port() -> int:
@@ -83,7 +83,7 @@ class SandboxCluster:
 
 
 def main() -> None:  # pragma: no cover - manual use
-    cluster = SandboxCluster().start()
+    cluster = SandboxCluster(ports=default_ports()).start()  # SANDBOX_PORT_A..C override the defaults (parallel and private runs)
     print("sandbox sites:", ", ".join(f"{s}={u}" for s, u in cluster.urls.items()), flush=True)
     try:
         while True:
