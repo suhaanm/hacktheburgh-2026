@@ -11,8 +11,6 @@ export const PENDING_D57: Record<string, string> = {
   "apps/dashboard/src/components/home/noticesData.ts": "Track B: the example-data notice still carries a parenthetical tag",
   "apps/dashboard/src/screens/Home/Home.tsx": "Track B: the example-week line still names the old kind of firm",
   // Track C (Needs you, Routines, Your data, Settings, Agents)
-  "apps/dashboard/src/components/needsyou/Origin.tsx": "Track C: the one badge still tags generated data; there is no badge for it now",
-  "apps/dashboard/src/screens/Routines/data.ts": "Track C: the firm note still uses the old words",
   // Track D (Growth, Genome, Firm, Roles, Onboarding, Today, Models, Presence, Graph, Week, Git, Forecasts, Evidence head)
   "apps/dashboard/src/components/firm/Badges.tsx": "Track D: the firm badge",
   "apps/dashboard/src/components/firm/ScorecardPanel.tsx": "Track D: two scorecard sentences",
