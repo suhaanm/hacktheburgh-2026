@@ -878,7 +878,13 @@ class TaskManager:
             return
         state = str(res.get("state", "failed"))
         err = getattr(runner, "last_error", None)
-        self._audit("agent", "task", t, state if state in FINISHED else "failed", "browser", **({"error": str(err).lower()[:30]} if err else {}))
+        why = str(res.get("why") or "")           # a closed code from the runner (login, blocked, no_action, ...); never the model's or a page's words
+        meta: dict[str, Any] = {}
+        if err:
+            meta["error"] = str(err).lower()[:30]
+        if why and state != "done":
+            meta["why"] = why[:30]
+        self._audit("agent", "task", t, state if state in FINISHED else "failed", "browser", **meta)
         if state == "done":
             self._finish(t, "done", result=str(res.get("result") or "Finished in the browser."))
         else:

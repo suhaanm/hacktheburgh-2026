@@ -7,7 +7,7 @@ import pytest
 
 from understudy_agent.audit import AuditLog
 from understudy_agent.models.mock_provider import MockProvider
-from understudy_agent.models.port import Action, Done
+from understudy_agent.models.port import Action, Done, Unsupported
 from understudy_agent.queue import ApprovalQueue
 from understudy_agent.security.denylist import Denylist
 from understudy_agent.tasks.browser_runner import BrowserTaskRunner, start_url
@@ -29,8 +29,16 @@ class Scripted(MockProvider):
         super().__init__("benefits_clean")
         self.script, self.summary, self.on_step = list(script), summary, on_step
         self.n = 0
+        self.asked = 0                      # every model call, including the ones that return a Done
+        self.profile = None
+        self.goals: list[str] = []
+
+    def begin_task(self, session=None, profile=None):
+        self.profile = profile
 
     def computer_step(self, goal, screenshot, history, **kw):
+        self.asked += 1
+        self.goals.append(goal)
         if self.on_step:
             self.on_step(self.n)
         if self.n >= len(self.script):
@@ -108,7 +116,7 @@ def test_stop_ends_the_run_between_steps(tmp_path):
     port = Scripted([Action("move", {"x": 10, "y": 10}), Action("move", {"x": 20, "y": 20}), Action("move", {"x": 30, "y": 30})],
                     on_step=lambda n: flag.__setitem__("stop", n >= 1))
     out = runner(port, routed_host(serve), tmp_path)(task(), progress=lambda s: None, should_stop=lambda: flag["stop"])
-    assert out == {"state": "stopped", "reason": "Stopped by you."}
+    assert out == {"state": "stopped", "reason": "Stopped by you.", "why": "you"}
     assert port.n <= 2
 
 
@@ -126,19 +134,179 @@ def test_a_page_that_cannot_open_is_a_plain_failure(tmp_path):
         await route.abort()
 
     out = runner(Scripted([]), routed_host(serve), tmp_path)(task(), progress=lambda s: None, should_stop=lambda: False)
-    assert out == {"state": "failed", "reason": "Knack could not open the page."}
+    assert out == {"state": "failed", "reason": "Knack could not open the page.", "why": "no_page"}
 
 
-def test_the_model_giving_up_is_not_reported_as_a_result(tmp_path):
-    async def serve(route):
-        await route.fulfill(status=200, content_type="text/html", body=LINK_PAGE)
+async def serve_link(route):
+    await route.fulfill(status=200, content_type="text/html", body=LINK_PAGE)
 
+
+@pytest.mark.parametrize("said,why,words", [
+    ("FAILED: login", "login", "The page needed a login"),
+    ("FAILED: captcha", "captcha", "only a person can pass"),
+    ("FAILED: blocked", "blocked", "The page blocked the browser"),
+    ("FAILED: payment", "payment", "never pays"),
+    ("FAILED: missing", "missing", "couldn't find"),
+    ("FAILED: the cat ate it", "other", "could not finish"),          # model prose is never shown, only a closed word it chose
+    ("FAILED", "other", "could not finish"),
+])
+def test_a_model_that_says_it_cannot_finish_tells_the_worker_why_in_plain_words(tmp_path, said, why, words):
     class GiveUp(Scripted):
         def computer_step(self, goal, screenshot, history, **kw):
+            self.asked += 1
+            return Done(summary=said, claimed_success=False)
+
+    out = runner(GiveUp([]), routed_host(serve_link), tmp_path)(task(), progress=lambda s: None, should_stop=lambda: False)
+    assert out["state"] == "failed" and out["why"] == why and words in out["reason"], out
+    assert "gave up" not in out["reason"] and "the cat" not in out["reason"]
+
+
+def test_a_model_that_answers_in_prose_is_asked_to_act_then_reports_it_did_nothing(tmp_path):
+    class Chatty(Scripted):
+        def computer_step(self, goal, screenshot, history, **kw):
+            self.asked += 1
+            self.goals.append(goal)
             return Done(summary="I could not find it", claimed_success=False)
 
-    out = runner(GiveUp([]), routed_host(serve), tmp_path)(task(), progress=lambda s: None, should_stop=lambda: False)
-    assert out == {"state": "failed", "reason": "The browser agent gave up."}
+    port = Chatty([])
+    out = runner(port, routed_host(serve_link), tmp_path)(task(), progress=lambda s: None, should_stop=lambda: False)
+    assert out["state"] == "failed" and out["why"] == "no_action" and "without doing anything" in out["reason"], out
+    assert port.asked == 3                                                 # the first answer plus two asks to carry on, then the end
+    assert "DONE:" in port.goals[1] and "final screen" not in port.goals[1]    # the ask says what to reply, not "a final screen is not showing"
+
+
+def test_a_proper_done_is_reported_at_once_and_never_sent_back_for_a_final_screen_a_free_task_does_not_have(tmp_path):
+    port = Scripted([])                                                    # the first call already answers DONE
+    out = runner(port, routed_host(serve_link), tmp_path)(task(), progress=lambda s: None, should_stop=lambda: False)
+    assert out == {"state": "done", "result": "Reported, not checked: Read the page about trains"}
+    assert port.asked == 1
+
+
+def test_the_run_starts_the_model_on_the_web_profile(tmp_path):
+    port = Scripted([])
+    runner(port, routed_host(serve_link), tmp_path)(task(), progress=lambda s: None, should_stop=lambda: False)
+    assert port.profile == "web"
+    assert "FAILED:" in port.goals[0] and "login" in port.goals[0]         # the goal tells the model the closed words to use
+
+
+def test_a_navigate_proposal_opens_the_address_through_the_pipeline(tmp_path):
+    seen, steps = [], []
+
+    async def serve(route):
+        seen.append(route.request.url)
+        await route.fulfill(status=200, content_type="text/html", body=LINK_PAGE)
+
+    port = Scripted([Action("goto", {"url": "http://shop.test/elsewhere"}), Action("back", {})], summary="Looked at both")
+    out = runner(port, routed_host(serve), tmp_path)(task(), progress=steps.append, should_stop=lambda: False)
+    assert out == {"state": "done", "result": "Reported, not checked: Looked at both"}
+    assert "http://shop.test/elsewhere" in seen and "Opening a page" in steps and "Going back" in steps
+    assert all("http" not in s for s in steps)
+    assert '"note":"goto"' in (tmp_path / "audit.jsonl").read_text().replace(" ", "")           # the gate allowed it, and said so
+
+
+def test_a_navigate_to_a_denylisted_address_is_refused_and_nothing_is_requested(tmp_path):
+    seen = []
+
+    async def serve(route):
+        seen.append(route.request.url)
+        await route.fulfill(status=200, content_type="text/html", body=LINK_PAGE)
+
+    port = Scripted([Action("goto", {"url": "http://blocked.test/secret"})])
+    out = runner(port, routed_host(serve, "**"), tmp_path, denylist=Denylist([{"kind": "domain", "value": "blocked.test"}]))(
+        task(), progress=lambda s: None, should_stop=lambda: False)
+    assert out["state"] == "failed" and "denylist" in out["reason"] and "Needs you" not in out["reason"], out
+    assert not any("blocked.test" in u for u in seen)
+
+
+def test_a_navigate_to_a_script_address_is_refused_by_the_typed_action_layer(tmp_path):
+    seen, steps = [], []
+
+    async def serve(route):
+        seen.append(route.request.url)
+        await route.fulfill(status=200, content_type="text/html", body=LINK_PAGE)
+
+    port = Scripted([Action("goto", {"url": "javascript:alert(1)"}), Action("goto", {"url": "file:///etc/passwd"})], summary="ok")
+    out = runner(port, routed_host(serve, "**"), tmp_path)(task(), progress=steps.append, should_stop=lambda: False)
+    assert out["state"] == "done" and port.n == 2                          # both were proposed, neither ran, the run went on
+    assert seen == ["http://shop.test/"] and "Opening a page" not in steps
+
+
+def test_an_action_nobody_maps_is_noted_and_asked_again_not_treated_as_giving_up(tmp_path):
+    steps = []
+    port = Scripted([Unsupported(summary="not mapped", claimed_success=False, name="teleport"),
+                     Unsupported(summary="not mapped", claimed_success=False, name="teleport"),
+                     Action("goto", {"url": "http://shop.test/more"})], summary="Found it")
+    out = runner(port, routed_host(serve_link), tmp_path)(task(), progress=steps.append, should_stop=lambda: False)
+    assert out == {"state": "done", "result": "Reported, not checked: Found it"}, out
+    assert port.asked == 4 and "teleport" in port.goals[1] and "not available" in port.goals[1]
+    assert "action_unsupported" in (tmp_path / "audit.jsonl").read_text()
+
+
+def test_a_model_that_keeps_asking_for_an_action_nobody_maps_ends_with_a_reason(tmp_path):
+    class Stubborn(Scripted):
+        def computer_step(self, goal, screenshot, history, **kw):
+            self.asked += 1
+            return Unsupported(summary="not mapped", claimed_success=False, name="teleport")
+
+    port = Stubborn([])
+    out = runner(port, routed_host(serve_link), tmp_path)(task(), progress=lambda s: None, should_stop=lambda: False)
+    assert out["state"] == "failed" and out["why"] == "unsupported" and "can't do" in out["reason"], out
+    assert port.asked == 4
+
+
+def test_the_real_gemini_provider_with_the_reply_that_broke_the_owners_task_now_finishes(tmp_path):
+    """The exact shape of the owner's failing run (8 Nov 2026): the first answer is a `navigate` call with an address, the next the closing
+    words. Driven through the real Gemini provider (scripted HTTP client) and the real runner on a real headless page."""
+    from understudy_agent.models.config import GeminiModelIds
+    from understudy_agent.models.gemini_provider import GeminiProvider
+    from understudy_agent.models.mock_provider import MockProvider as Mock
+
+    from ..models.helpers import FakeGeminiClient, reply
+
+    seen = []
+
+    async def serve(route):
+        seen.append(route.request.url)
+        await route.fulfill(status=200, content_type="text/html", body="<h1>Example Domain</h1>")
+
+    nav = reply("", calls=({"id": "c1", "name": "navigate", "arguments": {"url": "http://shop.test/page", "intent": "open it"}},))
+    gem = GeminiProvider(client=FakeGeminiClient(nav, reply("DONE: the main heading is Example Domain")),
+                         models=GeminiModelIds(fast="lite", accurate="flash"))
+    mock = Mock("benefits_clean")
+
+    class Port:                                    # the computer-use calls go to the real provider, the gate's own checks to the mock
+        name = "gemini"
+
+        def begin_task(self, session=None, profile=None):
+            gem.begin_task(session, profile=profile)
+
+        def computer_step(self, *a, **kw):
+            return gem.computer_step(*a, **kw)
+
+        def __getattr__(self, item):
+            return getattr(mock, item)
+
+    out = runner(Port(), routed_host(serve), tmp_path)(task(), progress=lambda s: None, should_stop=lambda: False)
+    assert out == {"state": "done", "result": "Reported, not checked: the main heading is Example Domain"}, out
+    assert "http://shop.test/page" in seen and len(gem.client.calls) == 2
+
+
+def test_through_the_manager_a_failed_browse_task_carries_the_reason_into_the_result_and_the_audit_row(make_manager, tmp_path):
+    from .test_manager import done
+
+    class Blocked(Scripted):
+        def computer_step(self, goal, screenshot, history, **kw):
+            self.asked += 1
+            return Done(summary="FAILED: blocked", claimed_success=False)
+
+    r = runner(Blocked([]), routed_host(serve_link), tmp_path)
+    m = make_manager(browser_runner=r)
+    created = m.create("go to http://shop.test/ and find the train times online", "typed")
+    m.consent(created["task_id"], "allow")
+    t = done(m, created["task_id"], 60)
+    assert t.state == "failed" and t.reason == "The page blocked the browser."
+    rows = [line for line in (tmp_path / "data" / "audit.jsonl").read_text().splitlines() if '"failed"' in line and '"task"' in line]
+    assert any('"why":"blocked"' in line.replace(" ", "") for line in rows), rows
 
 
 def test_through_the_manager_a_browse_task_waits_for_the_click_and_reports(make_manager, tmp_path):

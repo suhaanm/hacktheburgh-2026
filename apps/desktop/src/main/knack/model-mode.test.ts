@@ -52,6 +52,15 @@ describe('the boot check', () => {
     expect(await boundedBootCheck(never, 50, async () => undefined)).toBe(false)
     expect((await planModels({ switchOn: true, hasKey: true, bootCheck: never, limitMs: 10, wait: async () => undefined })).reason).toBe('boot_check_failed')
   })
+  it('tries a failed check once more, so one slow start does not switch the models off for the session', async () => {
+    let n = 0
+    const slowThenFine = vi.fn(async () => { n += 1; return n > 1 })
+    expect((await planModels({ switchOn: true, hasKey: true, bootCheck: slowThenFine, wait: async () => undefined })).mode).toBe('live')
+    expect(slowThenFine).toHaveBeenCalledTimes(2)
+    const always = vi.fn(async () => false)
+    expect((await planModels({ switchOn: true, hasKey: true, bootCheck: always, wait: async () => undefined })).reason).toBe('boot_check_failed')
+    expect(always).toHaveBeenCalledTimes(2)
+  })
 })
 
 describe('the status next to the dot', () => {

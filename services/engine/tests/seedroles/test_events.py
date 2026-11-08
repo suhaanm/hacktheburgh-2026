@@ -166,7 +166,9 @@ def test_every_event_section_has_content_under_each_role(client, role):
     assert sum(1 for r in templated if r["proposable"]) >= 1                                    # something is worth proposing...
     assert sum(1 for r in templated if not r["proposable"]) >= 1                                # ...and something is honestly held back (the skill gate)
     coach = client.get("/coach/state").json()
-    assert coach["task"]["name"] == {PR: "Programmer", DA: "Data analyst"}[role]
+    # the task is the lesson being taught, in the curriculum's own words, never the role label; "active" says whether a task is really open now
+    assert coach["task"]["name"] in {sk["label"] for sk in pack.skills} and coach["task"]["name"] != pack.name
+    assert isinstance(coach.get("active"), bool)
     assert not [s for s in _strings([p, g, rt, coach]) if BAD.search(s)]
 
 

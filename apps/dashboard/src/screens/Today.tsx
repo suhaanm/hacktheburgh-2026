@@ -4,11 +4,11 @@ import { useLoad } from "../hooks";
 import { ErrorState, Loading } from "../components/common";
 import { cogLabel } from "../lib/format";
 import { Details } from "../components/ui";
-import type { AnalyticMeta, CoachDecision, CoachOutcome, CoachState } from "../types";
+import { useAppState } from "../store";
+import { isCoaching, readCoachState, readDecision, stepLabel, type Chip, type DecisionView, type Level } from "../lib/coach";
+import type { AnalyticMeta, CoachDecision, CoachOutcome } from "../types";
 
-type Chip = CoachDecision["chip"];
-
-const LEVEL: Record<CoachState["level"], { help: number; name: string; note: string }> = {
+const LEVEL: Record<Level, { help: number; name: string; note: string }> = {
   L1: { help: 4, name: "full guidance", note: "I point at each step and say what it is." },
   L2: { help: 3, name: "hints", note: "I point at the step that matters and leave the rest to you." },
   L3: { help: 2, name: "nudges", note: "I speak up only when you seem stuck." },
@@ -17,7 +17,7 @@ const LEVEL: Record<CoachState["level"], { help: number; name: string; note: str
 
 /** When the study is on, the coach says nothing at all, not even a hint. */
 const SILENCED = ["study_mode", "study_post_test", "study_off"];
-export const isStudySilenced = (d: Pick<CoachDecision, "reason_codes"> | null): boolean => !!d && (d.reason_codes ?? []).some((c) => SILENCED.includes(c));
+export const isStudySilenced = (d: Pick<CoachDecision, "reason_codes"> | null): boolean => !!d && (Array.isArray(d.reason_codes) ? d.reason_codes : []).some((c) => SILENCED.includes(c));
 
 const POLL_MS = 3000;
 
@@ -26,7 +26,7 @@ const POLL_MS = 3000;
  * because each real poll advances the coach's dignity gate. Polling pauses while the tab is hidden, and stops when the engine is not live.
  */
 function useDecision(person: string | undefined) {
-  const [now, setNow] = useState<{ decision: CoachDecision; meta: AnalyticMeta | null; source: "live" | "demo" } | null>(null);
+  const [now, setNow] = useState<{ decision: unknown; meta: AnalyticMeta | null; source: "live" | "demo" } | null>(null);
   useEffect(() => {
     if (!person) return;
     let stop = false, busy = false;
@@ -55,39 +55,42 @@ const missedText = (m: unknown): string | null => {
 };
 
 export default function Today() {
-  const state = useLoad(() => api.coach(), []);
-  const live = useDecision(state.data?.person);
+  const app = useAppState();
+  const state = useLoad(() => api.coach(app.person ?? undefined), [app.person]);
+  const sv = readCoachState(state.data);
+  // A worker with no learner trajectory (a programmer, an analyst) has no person in the coach state: the identity the app already knows follows the live coach instead.
+  const live = useDecision(sv.person ?? app.person ?? undefined);
   const [preview, setPreview] = useState<Chip | null>(null);
   const [stopped, setStopped] = useState(false);
   const [revived, setRevived] = useState(false);
   const [answered, setAnswered] = useState<Record<string, CoachOutcome>>({});
   const [fbErr, setFbErr] = useState<string | null>(null);
   const lastId = useRef<string | null>(null);
+  // Every answer is read through lib/coach: a missing field, a null or a different type is a calm screen, never a thrown error.
+  const d: DecisionView = readDecision(live?.decision, sv);
 
   useEffect(() => {
     // A new decision starts fresh: the dot closes again and any earlier error clears.
-    const id = live?.decision.decision_id ?? null;
-    if (id !== lastId.current) { lastId.current = id; setRevived(false); setFbErr(null); }
-  }, [live?.decision.decision_id]);
+    if (d.decision_id !== lastId.current) { lastId.current = d.decision_id; setRevived(false); setFbErr(null); }
+  }, [d.decision_id]);
 
   if (state.status === "error" && !state.data) return <div className="page"><ErrorState error={state.error} retry={state.reload} what="today's task" /></div>;
   if (!state.data) return <div className="page page--read"><Loading label="Loading today's task" /></div>;
-  const s = state.data;
-  // Before the first decision arrives (or with no engine id), fall back to the coach state so the screen is never blank.
-  const d: CoachDecision = live?.decision ?? {
-    action: s.message ? "nudge" : "silent", message: s.message, why: s.why, target: null, missed: [], confidence: 0, level: s.level, chip: s.chip, decision_id: null,
-    task_id: s.task.id, step: s.task.step, trigger: null, reason_codes: [], gate: {}, p_stuck: null, p_source: null, candidate: null, mastery: s.mastery,
-  };
   const silenced = isStudySilenced(d);
+  const coaching = isCoaching(sv, live ? d : null);
   const baseChip: Chip = d.chip;
   const shown: Chip = revived && (preview ?? baseChip) === "dot" ? "small" : preview ?? baseChip;
-  const lv = LEVEL[d.level] ?? LEVEL.L4;
-  const step = d.step ?? s.task.step;
-  const mastery = Object.entries({ ...s.mastery, ...d.mastery }).sort((a, b) => a[1] - b[1]);
-  const hasMessage = d.message.trim().length > 0;
+  const lv = LEVEL[d.level];
+  const total = sv.task.total;
+  const step = sv.task.step;
+  const caseNo = (state.data as { case?: unknown }).case;
+  const label = coaching ? stepLabel(step, total) : "Next lesson";
+  const mastery = Object.entries({ ...sv.mastery, ...d.mastery }).sort((a, b) => a[1] - b[1]);
+  const hasMessage = coaching && d.message.trim().length > 0;
   const outcome = d.decision_id ? answered[d.decision_id] : undefined;
-  const missed = (d.missed ?? []).map(missedText).filter((x): x is string => !!x);
-  const cand = d.candidate && d.candidate.message?.trim() ? d.candidate : null;
+  const missed = d.missed.map(missedText).filter((x): x is string => !!x);
+  const cand = coaching ? d.candidate : null;
+  const lessonName = sv.task.name || "Your next task";
 
   const send = async (o: CoachOutcome) => {
     if (!d.decision_id) return;
@@ -100,11 +103,13 @@ export default function Today() {
     <div className="page page--read">
       <section className="today" aria-labelledby="task-h">
         <div className="today__task">
-          <div className="row row--between"><span className="t-label">Step {step} of {s.task.steps_total}{(s as { case?: number }).case ? ` · case ${(s as { case?: number }).case}` : ""}</span></div>
-          <h1 className="today__name" id="task-h">{s.task.name}</h1>
-          <div className="today__steps" role="img" aria-label={`Step ${step} of ${s.task.steps_total}`}>
-            {Array.from({ length: s.task.steps_total }, (_, i) => <i key={i} data-done={i + 1 < step} data-now={i + 1 === step} />)}
-          </div>
+          <div className="row row--between"><span className="t-label">{label}{coaching && typeof caseNo === "number" && caseNo > 0 ? ` · case ${caseNo}` : ""}</span></div>
+          <h1 className="today__name" id="task-h">{lessonName}</h1>
+          {coaching && total > 0 && (
+            <div className="today__steps" role="img" aria-label={label ?? undefined}>
+              {Array.from({ length: total }, (_, i) => <i key={i} data-done={step !== null && i + 1 < step} data-now={step !== null && i + 1 === step} />)}
+            </div>
+          )}
         </div>
 
         {silenced ? null : (
@@ -129,8 +134,13 @@ export default function Today() {
                     </div>
                   ) : outcome ? (
                     <p className="t-lede">{outcome === "followed" ? "Thanks. Noted that you did that." : "Dismissed. I will keep that in mind."}</p>
-                  ) : (
+                  ) : coaching ? (
                     <p className="t-lede">The coach is quiet right now.</p>
+                  ) : (
+                    <>
+                      <p className="t-lede">No task is open, so I am staying quiet.</p>
+                      <p className="note">When you start one, I will say what to look at here. The lesson above is the one I will coach you on first.</p>
+                    </>
                   )}
                   {hasMessage && !outcome && shown === "dot" && <p className="note">A dot is all that is left. Click it and the coach returns.</p>}
                   {hasMessage && !outcome && d.target && (d.target.label_hint || d.target.zone) && (
@@ -158,7 +168,7 @@ export default function Today() {
                     {hasMessage && d.why && (
                       <Details summary="Why this">{d.why}{missed.length > 0 && <> Steps skipped so far: {missed.join(", ")}.</>}</Details>
                     )}
-                    <button type="button" className="btn btn--secondary btn--sm" onClick={() => setStopped(true)}>Stop coaching</button>
+                    {coaching && <button type="button" className="btn btn--secondary btn--sm" onClick={() => setStopped(true)}>Stop coaching</button>}
                   </div>
                 </>
               )}
@@ -180,20 +190,22 @@ export default function Today() {
                 <ul className="plain-list">
                   {d.trigger && <li className="note">Trigger: {d.trigger.replace(/_/g, " ")}</li>}
                   {typeof d.p_stuck === "number" && <li className="note">Chance you are stuck: <b className="tabular">{Math.round(d.p_stuck * 100)}%</b>{d.p_source ? ` (${d.p_source})` : ""}</li>}
-                  {d.gate?.reason && <li className="note">Dignity gate: {String(d.gate.reason).replace(/_/g, " ")}{typeof d.gate.consecutive === "number" ? `, ${d.gate.consecutive} stuck signal${d.gate.consecutive === 1 ? "" : "s"} in a row` : ""}</li>}
+                  {d.gate.reason && <li className="note">Dignity gate: {d.gate.reason.replace(/_/g, " ")}{typeof d.gate.consecutive === "number" ? `, ${d.gate.consecutive} stuck signal${d.gate.consecutive === 1 ? "" : "s"} in a row` : ""}</li>}
                   {d.reason_codes.length > 0 && <li className="note">Reasons: {d.reason_codes.map((c) => c.replace(/_/g, " ")).join(", ")}</li>}
                   <li className="note">Rule-based: no model call decides this. The expert policy, the dignity gate and your level do.</li>
                 </ul>
               </div>
             </Details>
 
-            <Details summary="What you have mastered" wide>
-              <div className="mastery">
-                {mastery.map(([cog, m]) => (
-                  <div key={cog} className="mastery__row"><span>{cogLabel(cog)}</span><span className="mastery__track"><i style={{ width: `${m * 100}%` }} /></span><span className="tabular">{Math.round(m * 100)}</span></div>
-                ))}
-              </div>
-            </Details>
+            {mastery.length > 0 && (
+              <Details summary="What you have mastered" wide>
+                <div className="mastery">
+                  {mastery.map(([cog, m]) => (
+                    <div key={cog} className="mastery__row"><span>{cogLabel(cog)}</span><span className="mastery__track"><i style={{ width: `${m * 100}%` }} /></span><span className="tabular">{Math.round(m * 100)}</span></div>
+                  ))}
+                </div>
+              </Details>
+            )}
           </>
         )}
       </section>

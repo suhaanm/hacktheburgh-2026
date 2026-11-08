@@ -414,8 +414,20 @@ _CHIP = {1: "full", 2: "small", 3: "dot", 4: "gone"}
 _LEVEL_MASTERY = {1: 0.2, 2: 0.4, 3: 0.65, 4: 0.85}
 
 
+def _task_open(request: Request, person: str | None) -> bool | None:
+    """Whether the live coach has an open task window for this person (read-only: it never moves the dignity gate). None when that cannot be said."""
+    if not person:
+        return None
+    try:
+        from .routes_coach import brain
+
+        return bool(brain(request).snapshot(person).task_open)
+    except Exception:                       # noqa: BLE001 - the state is still worth sending without the flag
+        return None
+
+
 @router.get("/coach/state")
-def coach_state(person: str | None = Query(None), step: int | None = Query(None, ge=0), case: int | None = Query(None, ge=1)):
+def coach_state(request: Request, person: str | None = Query(None), step: int | None = Query(None, ge=0), case: int | None = Query(None, ge=1)):
     """Today screen. For a learner-trajectory person the level and chip come from the analytics track's SkillTracker at
     ``case`` (default: the last case); otherwise from the Skill state lines of the worker's memory file."""
     mem = _mem()
@@ -464,15 +476,24 @@ def coach_state(person: str | None = Query(None), step: int | None = Query(None,
             m = _LEVEL_MASTERY[levels.get(str(sk["id"]), {"level": 1})["level"]]
             for c in sk.get("cogs", []):
                 mastery[c] = round(max(mastery.get(c, 0.0), m), 2)
-        extra = {}
+        # `active`: whether a task is really open now, so the Home row and the Today screen say "coaching" only while one is. Left out when it cannot be said.
+        open_now = _task_open(request, pid)
+        extra = {} if open_now is None else {"active": open_now}
     prompts = (teaching or {}).get("prompts", {})
     key = f"L{min(lvl, 3)}" if lvl < 4 else None
     if detailed and lvl > 1 and lvl < 4:
         key = "L1"
     message = prompts.get(key, "") if key else ""
     why = (teaching or {}).get("expert_signal", "") if teaching else ""
-    return {"task": {"id": task_doc.get("id", "t_task"), "name": task_doc.get("name", pack.name), "step": cur, "steps_total": total},
+    return {"task": {"id": task_doc.get("id", "t_task"), "name": task_doc.get("name") or _lesson_name(teaching, pack), "step": cur, "steps_total": total},
             "level": f"L{lvl}", "chip": chip, "message": message, "why": why, "mastery": mastery, **extra}
+
+
+def _lesson_name(skill: dict[str, Any] | None, pack) -> str:
+    """The name of the task on the Today screen when the pack has no task of its own (the programmer and the data analyst): the lesson being taught, in the
+    curriculum's own words ("Read the failing trace before changing code"), never the role label."""
+    label = str((skill or {}).get("label") or "").strip()
+    return label or str(pack.name)
 
 
 def _task_yaml(role: str) -> dict[str, Any]:

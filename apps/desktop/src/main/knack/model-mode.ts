@@ -57,13 +57,21 @@ export async function boundedBootCheck(check: () => Promise<boolean>, limitMs: n
 }
 
 /**
- * The full plan: apply the switch and the key, run the check only when it can matter, and say what happened. `bootCheck` is called at most once
- * and only when live is wanted and a key is present.
+ * The full plan: apply the switch and the key, run the check only when it can matter, and say what happened. `bootCheck` runs only when live is wanted and a key is
+ * present, once when it passes. A failed check is tried once more after a short pause, because a busy Mac or a slow first connection must not switch the models
+ * off for the whole session (the mode is decided once, at start).
  */
-export async function planModels(i: Omit<ModelInputs, 'bootOk'> & { bootCheck: () => Promise<boolean>; limitMs?: number; wait?: (ms: number) => Promise<void> }): Promise<ModelDecision> {
+export async function planModels(i: Omit<ModelInputs, 'bootOk'> & { bootCheck: () => Promise<boolean>; limitMs?: number; attempts?: number; pauseMs?: number; wait?: (ms: number) => Promise<void> }): Promise<ModelDecision> {
   const base = { switchOn: i.switchOn, envOverride: i.envOverride, hasKey: i.hasKey }
   if (!wantsLive(base) || !i.hasKey) return decideModels({ ...base, bootOk: null })
-  return decideModels({ ...base, bootOk: await boundedBootCheck(i.bootCheck, i.limitMs ?? 6000, i.wait) })
+  const wait = i.wait ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)))
+  const attempts = Math.max(1, Math.min(3, Math.trunc(i.attempts ?? 2)))
+  let ok = false
+  for (let n = 0; n < attempts && !ok; n += 1) {
+    if (n > 0) await wait(i.pauseMs ?? 1000)
+    ok = await boundedBootCheck(i.bootCheck, i.limitMs ?? 8000, i.wait)
+  }
+  return decideModels({ ...base, bootOk: ok })
 }
 
 /** The status the person sees next to the dot: what is running, not what was asked for. `mock` is the agent service's own answer (null: unknown). */

@@ -298,6 +298,8 @@ export interface OnboardingResult {
 export interface CoachState {
   /** additive: the engine's id for the worker, used for GET /coach/next */
   person?: string;
+  /** additive: whether a task window is really open now. Absent from an engine that cannot say; the screens then go by the step alone. */
+  active?: boolean;
   task: { id: string; name: string; step: number; steps_total: number };
   level: "L1" | "L2" | "L3" | "L4";
   chip: "full" | "small" | "dot" | "gone";

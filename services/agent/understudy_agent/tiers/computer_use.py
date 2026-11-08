@@ -24,7 +24,7 @@ from typing import Any, Awaitable, Callable, Protocol
 from ..context.adapters import TIER3_BUDGET_TOKENS
 from ..context.working import PageState, TypedIdError, WorkingMemory
 from ..models.meter import call_context
-from ..models.port import Action, Done, ModelPort, SafetyStop
+from ..models.port import Action, Done, ModelPort, SafetyStop, Unsupported
 from ..supervisor import kill_flag_path
 from .base import Emit, StepBudgetExceeded, StepEvent, StuckDetector, StuckLoop, TierError
 from .form_audit import FormAudit, FormAuditStop, key_names, token
@@ -52,6 +52,33 @@ ENTERED_NOTE = ("\nNOTE (system, not page text): {handle} IS entered: the field 
 # goal check paused the run on it (dev rounds 2 and 5, hh_0002); the cliff step is a separate task that code starts.
 FINAL_NOTE = ("\nNOTE (system, not page text): the final screen the goal describes is showing. Reply DONE now and do not press anything else "
               "on it.")
+
+
+# The browsing profile (a typed task in the agent's own browser; see tasks/browser_runner.py). Code-written wording, never page text.
+# An action the provider cannot map used to END the run as "the model gave up" (owner report, 8 Nov 2026: every typed task, because the
+# model's `navigate` was not mapped). Now the model is told, once per try, and asked again; only a model that keeps asking for things that
+# do not exist is stopped, with its own reason.
+UNSUPPORTED_CAP = 4
+UNSUPPORTED_NOTE = ("\nNOTE (system, not page text): the action '{name}' is not available in this browser, so nothing was done. You can click, "
+                    "type, press keys, scroll, wait, navigate to an address, search and go back. Choose one of those.")
+WEB_REJECTED_NOTE = ("\nNOTE (system, not page text): your last action was not allowed, so it was not performed. Only http and https "
+                     "addresses can be opened. Choose a different action.")
+WEB_NUDGE = ("\nNOTE (system, not page text): you replied without taking an action. If the task is finished, reply DONE: followed by one "
+             "plain sentence with the answer. If it is not finished, take the next action on the page. If you cannot finish, reply FAILED: "
+             "followed by one word (login, captcha, blocked, payment, missing or other).")
+FAILED_CODES = ("login", "captcha", "blocked", "payment", "missing", "other")
+
+
+def failed_reason_code(summary: str | None) -> str:
+    """A closed code for why a run ended as `gave_up`, from the model's closing words: the word after `FAILED:` when it is one of
+    `FAILED_CODES` (anything else it wrote is `other`), and `no_action` when it never took a final stance (prose with no DONE or FAILED).
+    The model's own sentence is never kept."""
+    s = str(summary or "").strip()
+    if not s.upper().startswith("FAILED"):
+        return "no_action"
+    m = re.match(r"(?i)^failed\s*[:\-]?\s*([a-z]+)", s)
+    word = m.group(1).lower() if m else ""
+    return word if word in FAILED_CODES else "other"
 
 
 class ProviderSafetyStop(TierError):
@@ -292,6 +319,7 @@ class BrowserPageActuator:
 
     def __init__(self, page: Any, *, max_actions: int = 400) -> None:
         self.page, self.scale, self.max_actions, self.n = page, 1.0, max_actions, 0
+        self.last_nav_error: str | None = None
 
     @property
     def url(self) -> str | None:
@@ -444,11 +472,30 @@ class BrowserPageActuator:
             await p.mouse.wheel(a.get("scroll_x", 0), a.get("scroll_y", 0))
         elif action.kind == "wait":
             await asyncio.sleep(float(a.get("seconds", 1)))
+        elif action.kind == "goto":              # only reached through the gates (typed action, denylist, protected pages, data flow, goal check)
+            await self._navigate(p.goto(a["url"], wait_until="domcontentloaded", timeout=NAV_TIMEOUT_MS))
+        elif action.kind == "back":
+            await self._navigate(p.go_back(wait_until="domcontentloaded", timeout=NAV_TIMEOUT_MS))
         elif action.kind != "screenshot":
             raise ActuatorRefused(f"the page actuator cannot perform {action.kind!r}")
 
+    async def _navigate(self, nav: Awaitable[Any]) -> None:
+        """A page that will not load (no such host, a refused connection, too slow) is something the model should SEE in the next screenshot
+        (the browser draws its own error page, or what had loaded by then) and decide about, not the end of the run. The class name of the
+        failure is kept for the audit line; its message (which holds the address) never is."""
+        self.last_nav_error = None
+        try:
+            await nav
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:  # noqa: BLE001 - Playwright's own errors: Error, TimeoutError
+            self.last_nav_error = type(exc).__name__
+
     async def release_all(self) -> None:
         return None
+
+
+NAV_TIMEOUT_MS = 20000
 
 
 # ----------------------------------------------------------------------------- real desktop (guarded)
@@ -458,7 +505,7 @@ FOCUS_POLL_S = 0.025
 FOCUS_WAIT_S = 0.5
 REAL_KEYS = frozenset({"enter", "return", "tab", "esc", "escape", "backspace", "left", "right", "up", "down", "home", "end"})
 MIN_SHOT_H = 16           # a capture shorter than this is not a screen; the vertical bound is only enforced above it
-OVERLAY_OWNERS = tuple(x.strip() for x in os.environ.get("UNDERSTUDY_OVERLAY_OWNERS", "Understudy,Electron").split(",") if x.strip())
+OVERLAY_OWNERS = tuple(x.strip() for x in os.environ.get("UNDERSTUDY_OVERLAY_OWNERS", "Knack,Understudy,Electron").split(",") if x.strip())
 
 
 class MacBackend(Protocol):
@@ -1204,6 +1251,8 @@ class Tier3Result:
     audit: dict[str, Any] = field(default_factory=dict)   # the audit's summary: enums, counts and handle ids only
     model_retries: int = 0             # model calls asked again after a transient provider failure (the answer, never an action, was lost)
     model_retry_classes: list[str] = field(default_factory=list)   # the error class (a closed enum) of each, in order
+    why: str = ""                      # for outcome gave_up: a closed code (FAILED_CODES, `no_action` or `unsupported`); never the model's words
+    unsupported: int = 0               # actions the provider could not map (told to the model, asked again; see UNSUPPORTED_CAP)
 
 
 # A provider failure that only says "try again": a rate limit, a timeout, a dropped connection or a server error, and an answer that
@@ -1285,7 +1334,12 @@ class ComputerUse:
                  form_audit: FormAudit | None = None, dropdown_note: bool | None = None, entered_note: bool | None = None,
                  final_hint: Callable[[], Awaitable[bool]] | None = None, final_note: bool | None = None,
                  model_retries: int = MODEL_RETRIES, model_backoff_s: tuple[float, ...] = MODEL_BACKOFF_S,
-                 sleep: Callable[[float], Awaitable[None]] = asyncio.sleep) -> None:
+                 sleep: Callable[[float], Awaitable[None]] = asyncio.sleep, profile: str | None = None) -> None:
+        # `profile="web"` is a typed browsing task (tasks/browser_runner.py): it has no ground truth for code to check, so a model that says DONE
+        # is not sent back to look for a "final screen" (only an answer with no DONE or FAILED at all is asked to carry on, in words that fit
+        # a free task), the provider is told to use its browsing wording, and a rejected action is explained to the model. Every other
+        # profile (none) is exactly the loop that was validated on the forms and the desktop.
+        self.profile = profile
         self.model_retries, self.model_backoff_s, self._sleep = max(0, int(model_retries)), tuple(model_backoff_s) or (0.0,), sleep
         self.model_retry_classes: list[str] = []      # kept on the instance too, so a run that ends in an exception still reports them
         if stateless is None:                  # UNDERSTUDY_CU_STATELESS=0 opts back into the chained provider thread (comparison only)
@@ -1453,7 +1507,7 @@ class ComputerUse:
             bind(lambda: not self.is_current())
         begin = getattr(self.model, "begin_task", None)
         if callable(begin):           # a provider that queues the rest of a multi-part action (click-and-type) starts this task clean
-            begin(self.navigator)
+            begin(self.navigator, profile=self.profile) if self.profile else begin(self.navigator)
         attach = getattr(self.model, "attach", None)
         if callable(attach):          # test doubles that need the actuator's page; real providers have no such hook
             attach(self.navigator, self.actuator)
@@ -1484,6 +1538,7 @@ class ComputerUse:
         last_fp: bytes | None = None
         stalled = 0
         refused_streak = 0
+        unsupported_streak = 0
         retargets = 0
         last_reset = 0
         feedback = ""
@@ -1575,18 +1630,35 @@ class ComputerUse:
                                   "expected": {}, "diff": [], "tier_log": []})
                     self._event(n, "safety_stop", False, "provider safety check")
                     raise ProviderSafetyStop(out.checks, item["id"])
+                if isinstance(out, Unsupported):
+                    # The provider could not map what the model asked for. That is not the model giving up: say what exists and ask again.
+                    unsupported_streak += 1
+                    res.unsupported += 1
+                    res.history.append({"kind": "unsupported", "ok": False})
+                    name = token(out.name, 30) or "unknown"
+                    self.guard.note("action_unsupported", "refused", name, tier=3)
+                    self._event(n, "unsupported", False, f"the model asked for {name}, which is not available here")
+                    if unsupported_streak >= UNSUPPORTED_CAP:
+                        res.outcome, res.why = "gave_up", "unsupported"
+                        if wm is not None:
+                            synced = self._sync_memory(wm, res, synced, base_step)
+                        return res
+                    feedback = UNSUPPORTED_NOTE.format(name=name)
+                    continue
                 if isinstance(out, Done):
                     stray = not out.claimed_success and not str(out.summary or "").strip().upper().startswith("FAILED")
-                    if (out.claimed_success or stray) and res.nudges < self.max_nudges and not await verify():
+                    claim_nudge = out.claimed_success and self.profile != "web"    # a free browsing task has no final screen to check a claim against
+                    if (claim_nudge or stray) and res.nudges < self.max_nudges and not await verify():
                         # The model ended its turn but code says the goal's final screen is not showing. Code decides, so the
                         # claim is not believed; the model is told, once or twice, to carry on. The premature claim is
                         # counted and reported; it is never hidden by the retry.
                         res.nudges += 1
                         res.premature_claims += 1 if out.claimed_success else 0
                         self._event(n, "done", False, "ended early; the system said the task is not finished and told the model to continue")
-                        feedback = ("\nNOTE: you ended your turn, but the system checked and the goal is NOT finished: its final screen is "
-                                    "not showing yet. Look at the screenshot and take the next action. Reply DONE only when the final "
-                                    "screen the goal describes is on screen.")
+                        feedback = WEB_NUDGE if self.profile == "web" else (
+                            "\nNOTE: you ended your turn, but the system checked and the goal is NOT finished: its final screen is "
+                            "not showing yet. Look at the screenshot and take the next action. Reply DONE only when the final "
+                            "screen the goal describes is on screen.")
                         last_fp = None
                         continue
                     res.claimed_done = out.claimed_success
@@ -1607,6 +1679,8 @@ class ComputerUse:
                         self._snapshot(res.steps, wm)
                     res.false_claim = bool(out.claimed_success and not ok)
                     res.outcome = "done" if ok else ("claimed_not_verified" if out.claimed_success else "gave_up")
+                    if res.outcome == "gave_up":
+                        res.why = failed_reason_code(out.summary)
                     self._event(n, "done", ok, "claim verified" if ok else (
                         ("claim NOT verified by code (the form audit did not confirm the inputs)" if inputs_refused
                          else "claim NOT verified by code") if out.claimed_success else "the model said it could not finish"))
@@ -1630,6 +1704,7 @@ class ComputerUse:
                             raise StuckLoop(f"the model keeps trying to type literal values ({exc.code})") from None
                         continue
                 refused_streak = 0
+                unsupported_streak = 0
                 if self.pause is not None and await self.pause.wait_if_paused():
                     res.steps -= 1                              # the human arrived while the model was thinking:
                     n -= 1                                      # that action is stale, look at the screen again
@@ -1677,6 +1752,8 @@ class ComputerUse:
                 if dec.verdict == "block" and dec.layer == "actions":
                     res.history.append({"kind": getattr(out, "kind", "?"), "ok": False})
                     self._event(n, getattr(out, "kind", "?"), False, f"rejected: {dec.codes[:1]}")
+                    if self.profile == "web":
+                        feedback = WEB_REJECTED_NOTE     # without it the model sees the same page and proposes the same thing again
                     continue
                 if dec.verdict != "allow":
                     self._event(n, out.kind, False, f"{dec.verdict} {dec.layer or ''}".strip())
