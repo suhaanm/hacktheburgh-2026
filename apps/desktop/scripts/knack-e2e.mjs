@@ -49,12 +49,12 @@ run(path.join(repo, 'apps/dashboard/node_modules/.bin/vite'), ['build', '--outDi
 const data = path.join(work, 'data')
 fs.mkdirSync(data, { recursive: true })
 fs.writeFileSync(path.join(data, '.token'), 'e2e-token-0123456789abcdef')
-const fake = (health) =>
+const fake = (health, runs = []) =>
   new Promise((resolve) => {
     const server = http.createServer((req, res) => {
       res.setHeader('content-type', 'application/json')
       if (req.url === '/health') return res.end(JSON.stringify(health))
-      if (req.url?.startsWith('/agents/runs')) return res.end('[]')
+      if (req.url?.startsWith('/agents/runs')) return res.end(JSON.stringify(runs))
       res.statusCode = 404
       res.end('{"error":{"code":"not_found","message":"stand-in"}}')
     })
@@ -63,7 +63,14 @@ const fake = (health) =>
 const real = process.argv.includes('--real-services')
 // In the real mode the "stand-ins" are only the two free port numbers the app's own services will take.
 const engine = real ? { server: { close() {} }, port: await freePort() } : await fake({ ok: true, mock: true })
-const agent = real ? { server: { close() {} }, port: await freePort() } : await fake({ ok: true, mock: true, supervisor: { state: 'idle', generation: 1 } })
+// The agent stand-in lists two records a dead process left behind, as the real service does (it lists the runs it has on disk, with their last state): a run "planning" with one
+// child and none done ("0 of 1"), and one "running". Three days old: no real run lasts more than 15 minutes. The pill must never start for them.
+const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60_000).toISOString().replace(/\.\d+Z$/, 'Z')
+const ghosts = [
+  { run_id: 'r_ghost001', kind: 'data.profile', mode: 'foreground', state: 'planning', started: threeDaysAgo, person: null, children: [{ id: 'c1', role: 'worker', state: 'created' }] },
+  { run_id: 'r_ghost002', kind: 'data.profile', mode: 'foreground', state: 'running', started: threeDaysAgo, person: null, children: [] },
+]
+const agent = real ? { server: { close() {} }, port: await freePort() } : await fake({ ok: true, mock: true, supervisor: { state: 'idle', generation: 1 } }, ghosts)
 const debugPort = await freePort()
 const extPort = await freePort()
 
@@ -139,7 +146,7 @@ if (await up()) {
     code = okStart ? 0 : 1
   } else {
     await sleep(2500) // the shell attaches once the services answer
-    const smoke = spawnSync('node', [path.join(here, 'shell-smoke.mjs'), '--port', String(debugPort), '--hidden'], { encoding: 'utf8' })
+    const smoke = spawnSync('node', [path.join(here, 'shell-smoke.mjs'), '--port', String(debugPort), '--hidden', '--ghosts'], { encoding: 'utf8' })
     process.stdout.write(smoke.stdout)
     process.stderr.write(smoke.stderr)
     code = smoke.status ?? 1

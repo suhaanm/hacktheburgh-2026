@@ -1,0 +1,402 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://understudy.local/schema/connection.schema.json",
+  "title": "Connection block of a plugin manifest (kind mcp, tool or a source preset)",
+  "description": "What the worker is told and what our code enforces for one curated connection preset. The list of presets is CURATED ONLY: a manifest ships in packages/connections/presets/ after a person has read its sources; there is no way to add an arbitrary server from the app. Nothing here is trusted from the server itself: tools.classes is OUR table, and an unlisted tool is classified by verb rules and, if those do not say read, treated as a write that needs a click. A shipped preset must have real.verified true; a server that could not be verified is listed in docs/CONNECTIONS.md as unverified and has no manifest.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "group",
+    "app",
+    "reads",
+    "short",
+    "standin",
+    "tools"
+  ],
+  "properties": {
+    "group": {
+      "enum": [
+        "dev",
+        "data",
+        "benefits"
+      ],
+      "description": "The preset set it belongs to: Dev, Data or Benefits."
+    },
+    "app": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 40,
+      "description": "The app's name as the worker knows it."
+    },
+    "reads": {
+      "type": "string",
+      "minLength": 4,
+      "maxLength": 90,
+      "description": "What it can read, in plain words (the consent line)."
+    },
+    "caution": {
+      "type": "string",
+      "maxLength": 40,
+      "description": "A short honest flag shown on the chip itself, for example 'Vendor says unmaintained'."
+    },
+    "standin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label"
+      ],
+      "description": "The local stand-in used in mock mode, in tests and in the demo: invented data, no account, nothing leaves the machine. Badged Example everywhere.",
+      "properties": {
+        "label": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "script": {
+          "type": "string",
+          "pattern": "^packages/connections/standins/[a-z_]+\\.py$",
+          "description": "A stand-in server of ours, run as a subprocess with the interpreter that runs the agent."
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "maxItems": 8,
+          "description": "May use {sandbox} (the stand-in's private folder) and {synthetic} (data/synthetic)."
+        },
+        "source": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{1,40}$",
+          "description": "Instead of a server: an existing read-only source plugin (calendar layer) that already carries invented sample data."
+        }
+      }
+    },
+    "real": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "verified",
+        "publisher",
+        "publisher_kind",
+        "license",
+        "sources",
+        "verified_on",
+        "transport"
+      ],
+      "properties": {
+        "verified": {
+          "const": true,
+          "description": "Package or release exists at this exact version, the publisher matches the repository owner, the LICENSE file was read, and the install method was read in an official source. For transport plugin: it is our own code in this repository."
+        },
+        "publisher": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "publisher_kind": {
+          "enum": [
+            "vendor",
+            "mcp_project",
+            "community"
+          ]
+        },
+        "license": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "SPDX expression read from the LICENSE file."
+        },
+        "license_note": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "registry": {
+          "enum": [
+            "npm",
+            "pypi",
+            "oci",
+            "release",
+            "plugin"
+          ]
+        },
+        "package": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+(\\.[0-9]+){1,3}$",
+          "description": "Exact pinned version. Never latest, never a range."
+        },
+        "transport": {
+          "enum": [
+            "stdio",
+            "streamable-http",
+            "plugin"
+          ]
+        },
+        "command": {
+          "enum": [
+            "npx",
+            "uvx",
+            "docker"
+          ],
+          "description": "The only launchers we accept. A shell is never one of them."
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "maxItems": 24,
+          "description": "Literal arguments with the pinned version in one of them. May use {param} placeholders for worker-chosen values."
+        },
+        "url": {
+          "type": "string",
+          "pattern": "^https://[a-z0-9.\\-]+(/[A-Za-z0-9_./\\-]*)?$",
+          "description": "streamable-http only."
+        },
+        "credentials": {
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "env",
+              "label"
+            ],
+            "properties": {
+              "env": {
+                "type": "string",
+                "pattern": "^[A-Z][A-Z0-9_]{2,60}$"
+              },
+              "label": {
+                "type": "string",
+                "maxLength": 40
+              },
+              "header": {
+                "type": "string",
+                "maxLength": 40,
+                "description": "streamable-http: the header the token goes in; the value is built by code."
+              }
+            }
+          },
+          "description": "Names of the environment variables that carry the worker's token. Values are entered by the worker only and kept in the Keychain."
+        },
+        "params": {
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "label",
+              "kind"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{1,30}$"
+              },
+              "label": {
+                "type": "string",
+                "maxLength": 40
+              },
+              "kind": {
+                "enum": [
+                  "path",
+                  "text",
+                  "url"
+                ]
+              },
+              "env": {
+                "type": "string",
+                "pattern": "^[A-Z][A-Z0-9_]{2,60}$"
+              }
+            }
+          },
+          "description": "Non-secret values the worker chooses (a folder, a site address). They fill {name} in args and may also be passed as an environment variable."
+        },
+        "env_fixed": {
+          "type": "object",
+          "maxProperties": 8,
+          "additionalProperties": {
+            "type": "string",
+            "maxLength": 240
+          },
+          "propertyNames": {
+            "pattern": "^[A-Z][A-Z0-9_]{2,60}$"
+          },
+          "description": "Fixed environment variables of the launch, for example a documented read-only switch."
+        },
+        "hosts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^([a-z0-9.\\-]+|\\{[a-z][a-z0-9_]{1,30}\\})$"
+          },
+          "maxItems": 6,
+          "description": "Where the server's own process connects (read from its documentation). {param} means the host of a worker-entered address. Empty means the server is local only."
+        },
+        "read_only": {
+          "type": "string",
+          "maxLength": 160,
+          "description": "The documented read-only control, if any, and what we do about it."
+        },
+        "sources": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 8,
+          "items": {
+            "type": "string",
+            "pattern": "^https://"
+          },
+          "description": "URLs a person read to verify it: the registry or package page, the repository, the LICENSE file."
+        },
+        "verified_on": {
+          "type": "string",
+          "pattern": "^2026-[01][0-9]-[0-3][0-9]$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "transport": {
+                "const": "stdio"
+              }
+            },
+            "required": [
+              "transport"
+            ]
+          },
+          "then": {
+            "required": [
+              "registry",
+              "package",
+              "version",
+              "command",
+              "args"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "transport": {
+                "const": "streamable-http"
+              }
+            },
+            "required": [
+              "transport"
+            ]
+          },
+          "then": {
+            "required": [
+              "url",
+              "hosts"
+            ]
+          }
+        }
+      ]
+    },
+    "tools": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "classes"
+      ],
+      "properties": {
+        "classes": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "read": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_.\\-]{1,80}$"
+              },
+              "uniqueItems": true
+            },
+            "write": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_.\\-]{1,80}$"
+              },
+              "uniqueItems": true
+            },
+            "send": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_.\\-]{1,80}$"
+              },
+              "uniqueItems": true
+            },
+            "destructive": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_.\\-]{1,80}$"
+              },
+              "uniqueItems": true
+            },
+            "execute": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_.\\-]{1,80}$"
+              },
+              "uniqueItems": true
+            }
+          },
+          "description": "OUR classification of each known tool. read: only reads. write: creates or changes something. send: sends a message or notification to people. destructive: deletes or cannot be undone. execute: runs code or does something with the worker's accounts or machine. Everything that is not read needs a person's click."
+        },
+        "classifiers": {
+          "type": "object",
+          "additionalProperties": {
+            "enum": [
+              "sql"
+            ]
+          },
+          "description": "Tools whose class depends on their arguments: sql means our code reads the statement and only a single read-only statement is a read."
+        },
+        "unlisted": {
+          "enum": [
+            "verbs",
+            "refuse"
+          ],
+          "default": "verbs",
+          "description": "What happens to a tool that is not in classes. verbs: our verb rules decide, and anything they do not call a read needs a click. refuse: the call is never made (use it where the server has a much larger tool set than the consent covers)."
+        },
+        "enabled": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 40,
+          "description": "Where the server supports it, the read tools we ask it to register (for example SLACK_MCP_ENABLED_TOOLS). Informational: our table still decides."
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 200
+      },
+      "maxItems": 6
+    },
+    "short": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 40,
+      "pattern": "^(\\S+\\s+){0,5}\\S+$",
+      "description": "What it reads in at most six words, for a row of the Connections list."
+    }
+  }
+}

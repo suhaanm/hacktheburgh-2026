@@ -23,6 +23,7 @@ function fakeWindow(over: { visible?: boolean; minimised?: boolean; focused?: bo
     isFullScreen: () => w.fullScreen,
     isDestroyed: () => w.destroyed,
     getBounds: () => w.bounds,
+    setBounds: (r) => (calls.push(`setBounds ${r.x},${r.y},${r.width},${r.height}`), (w.bounds = r)),
     getContentBounds: () => w.bounds,
     destroy: () => (calls.push('destroy'), (w.destroyed = true)),
     loadURL: (u) => void calls.push(`load ${u}`),
@@ -100,6 +101,54 @@ describe('the Dock icon and Activate', () => {
     full.w.fullScreen = true
     full.main.minimise()
     expect(full.calls).toEqual([])
+  })
+})
+
+describe('a display that goes away, comes or changes', () => {
+  const two = (): { id: number; workArea: { x: number; y: number; width: number; height: number } }[] => [{ id: 1, workArea: { x: 0, y: 25, width: 1440, height: 875 } }, { id: 2, workArea: { x: 1440, y: 0, width: 1920, height: 1080 } }]
+  const rigOn = (bounds: { x: number; y: number; width: number; height: number }, over: Parameters<typeof fakeWindow>[0] = {}, displays = displays_) => {
+    const f = fakeWindow({ bounds, ...over })
+    const store = createWindowStateStore({ file: null, setTimer: () => 1, clearTimer: () => undefined })
+    return { ...f, main: createMainWindowController(f.port, { store, displays, hidden: false }) }
+  }
+  const displays_ = displays
+  it('leaves a window that is mostly on a display where it is', () => {
+    const r = rigOn({ x: 100, y: 100, width: 1152, height: 735 })
+    expect(r.main.ensureOnScreen()).toBe(false)
+    expect(r.calls).toEqual([])
+  })
+  it('after the second display is unplugged, a window that sat on it comes back onto the one that is left, whole and the same size', () => {
+    const r = rigOn({ x: 1700, y: 120, width: 1152, height: 735 }, {}, displays) // the display it was on is gone: only the first remains
+    expect(r.main.ensureOnScreen()).toBe(true)
+    const b = r.w.bounds
+    expect(b.width).toBe(1152)
+    expect(b.x).toBeGreaterThanOrEqual(0)
+    expect(b.x + b.width).toBeLessThanOrEqual(1440)
+    expect(b.y).toBeGreaterThanOrEqual(25)
+  })
+  it('a window half on each of two displays stays (60 percent is on one of them)', () => {
+    const r = rigOn({ x: 1100, y: 100, width: 1152, height: 735 }, {}, two)
+    expect(r.main.ensureOnScreen()).toBe(false)
+  })
+  it('a window larger than the display that is left is brought to that display and made to fit', () => {
+    const r = rigOn({ x: 1500, y: 0, width: 1700, height: 1000 }, {}, displays)
+    expect(r.main.ensureOnScreen()).toBe(true)
+    expect(r.w.bounds.width).toBeLessThanOrEqual(1440)
+    expect(r.w.bounds.height).toBeLessThanOrEqual(875)
+  })
+  it('does not touch a window that is minimised, hidden or full screen', () => {
+    for (const over of [{ minimised: true }, { visible: false }]) {
+      const r = rigOn({ x: 5000, y: 5000, width: 1152, height: 735 }, over)
+      expect(r.main.ensureOnScreen()).toBe(false)
+      expect(r.calls).toEqual([])
+    }
+    const f = rigOn({ x: 5000, y: 5000, width: 1152, height: 735 })
+    f.w.fullScreen = true
+    expect(f.main.ensureOnScreen()).toBe(false)
+  })
+  it('does nothing when no display is listed (a moment during a change)', () => {
+    const r = rigOn({ x: 5000, y: 5000, width: 1152, height: 735 }, {}, () => [])
+    expect(r.main.ensureOnScreen()).toBe(false)
   })
 })
 

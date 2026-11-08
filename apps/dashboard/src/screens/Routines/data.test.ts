@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../../api";
 import { exampleHitlist } from "../../fixtures/repeats";
@@ -89,6 +91,22 @@ describe("reading the hit list", () => {
     const live = await loadFirm(30);
     expect(calls[0].url).toMatch(/\/hitlist\/firm\?window=30$/);
     expect(live.source).toBe("live");
+  });
+
+  it("the firm read is the admin's and says so in its role header; the worker's own read never does", async () => {
+    stub(() => json(200, { meta: { origin: "synthetic", n: 60, n_unit: "people", split: null, interval_level: 0.95 }, data: exampleHitlist(7) }));
+    await loadFirm(7);
+    expect((calls[0].init?.headers as Record<string, string>)["x-understudy-role"]).toBe("admin");
+    stub(() => json(200, { meta: { origin: "synthetic", n: 5, n_unit: "episodes", split: null, interval_level: 0.95, generated_at: "x" }, data: exampleHitlist(7) }));
+    await loadRepeats(7);
+    expect(calls.map((c) => c.url).some((u) => /hitlist\/firm/.test(u))).toBe(false);
+    expect(JSON.stringify(calls[0].init?.headers ?? {})).not.toMatch(/role/i);
+  });
+
+  it("no worker screen asks for the firm: only the admin's Automation screen imports the firm read", () => {
+    const here = resolve(__dirname, "..");
+    const users = ["Routines/Routines.tsx", "Routines/Peek.tsx", "NeedsYou/NeedsYou.tsx", "Home/Home.tsx", "YourData/YourData.tsx"].map((f) => readFileSync(resolve(here, f), "utf8"));
+    for (const src of users) expect(src).not.toMatch(/loadFirm|hitlist\/firm/);
   });
 });
 

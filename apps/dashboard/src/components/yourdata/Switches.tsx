@@ -1,11 +1,13 @@
 import type { ReactNode } from "react";
+import { Details } from "../ui";
 import { CAPTURE_TEXT } from "../../screens/YourData/model";
 import { choiceFor, type AwarenessChoice, type AwarenessState } from "../../screens/YourData/awareness";
 import type { DesktopSettings } from "../../screens/Settings/bridge";
 
-export const MIC_TEXT = "Listening for its name sends audio to a cloud model. It is off until you turn it on.";
 export const FILES_TEXT = "Knack may search an index of the folders you chose. Folders are added in the Knack app.";
 export const APP_ONLY = "Available in the Knack app.";
+export const APP_ONLY_ALL = "Screen glances and folders are in the Knack app.";
+export const APP_ONLY_GLANCE = "Screen glances are in the Knack app.";
 
 function Switch({ label, checked, disabled, onChange }: { label: string; checked: boolean; disabled?: boolean; onChange: (on: boolean) => void }) {
   return (
@@ -44,27 +46,32 @@ export function Switches({ capture, onCapture, busy, glance, onGlance, desktop, 
   return (
     <div className="yd-body" data-testid="switches">
       <Item id="capture" title="Learn from when I am active" text={<>{CAPTURE_TEXT} {capture ? "It is on." : "It is off."}</>} control={<Switch label="Learn from when I am active" checked={capture} disabled={busy} onChange={onCapture} />} />
-
-      {glance === null ? (
-        <Item id="glance" title="Look at my screen" text={APP_ONLY} control={null} />
-      ) : !glance.available ? (
-        <Item id="glance" title="Look at my screen" text="This is switched off in this build, so nothing is looked at." control={null} />
-      ) : (
-        <>
-          <Item id="glance" title="Look at my screen when I seem stuck" text={glance.consentText} control={<Switch label="Look at my screen when I seem stuck" checked={glance.trigger && glance.agreed} onChange={(on) => onGlance(choiceFor(glance, { trigger: on }))} />} />
-          {glance.trigger && glance.agreed && (
-            <>
-              <Item id="glance-periodic" title={`Also look about every ${glance.intervalSec} seconds`} text="Off unless you turn it on. Each look is listed in What it looked at or sent." control={<Switch label="Also look about every 30 seconds" checked={glance.periodic} onChange={(on) => onGlance(choiceFor(glance, { periodic: on }))} />} />
-              <Item id="glance-strict" title="Skip messaging and mail apps" text="On by default. Nothing is sent while one of them is in front." control={<Switch label="Skip messaging and mail apps" checked={glance.strict} onChange={(on) => onGlance(choiceFor(glance, { strict: on }))} />} />
-            </>
-          )}
-          {glance.lastSkip && <p className="kc-sub">Last look skipped: {glance.lastSkip}</p>}
-        </>
-      )}
-
-      <Item id="mic" title="Listen for its name" text={desktop ? MIC_TEXT : APP_ONLY} control={desktop ? <Switch label="Listen for its name" checked={!!desktop.wakeEnabled} onChange={(on) => onDesktop({ wakeEnabled: on })} /> : null} />
-      <Item id="files" title="Search my folders" text={desktop ? `${FILES_TEXT} ${folders} ${folders === 1 ? "folder" : "folders"} chosen.` : APP_ONLY} control={desktop ? <Switch label="Search my folders" checked={!!desktop.filesEnabled} onChange={(on) => onDesktop({ filesEnabled: on })} /> : null} />
       {error && <p className="kc-error" role="alert">{error}</p>}
+      <Details summary="More">
+        {glance === null && !desktop ? (
+          <p className="kc-sub" data-testid="app-only">{APP_ONLY_ALL}</p>
+        ) : (
+          <div style={{ display: "grid", gap: "var(--space-1)" }}>
+            {glance === null ? (
+              <p className="kc-sub">{APP_ONLY_GLANCE}</p>
+            ) : !glance.available ? (
+              <Item id="glance" title="Look at my screen" text="This is switched off in this build, so nothing is looked at." control={null} />
+            ) : (
+              <>
+                <Item id="glance" title="Look at my screen when I seem stuck" text={glance.consentText} control={<Switch label="Look at my screen when I seem stuck" checked={glance.trigger && glance.agreed} onChange={(on) => onGlance(choiceFor(glance, { trigger: on }))} />} />
+                {glance.trigger && glance.agreed && (
+                  <>
+                    <Item id="glance-periodic" title={`Also look about every ${glance.intervalSec} seconds`} text="Off unless you turn it on. Each look is listed in What it looked at or sent." control={<Switch label="Also look about every 30 seconds" checked={glance.periodic} onChange={(on) => onGlance(choiceFor(glance, { periodic: on }))} />} />
+                    <Item id="glance-strict" title="Skip messaging and mail apps" text="On by default. Nothing is sent while one of them is in front." control={<Switch label="Skip messaging and mail apps" checked={glance.strict} onChange={(on) => onGlance(choiceFor(glance, { strict: on }))} />} />
+                  </>
+                )}
+                {glance.lastSkip && <p className="kc-sub">Last look skipped: {glance.lastSkip}</p>}
+              </>
+            )}
+            {desktop && <Item id="files" title="Search my folders" text={`${FILES_TEXT} ${folders} ${folders === 1 ? "folder" : "folders"} chosen.`} control={<Switch label="Search my folders" checked={!!desktop.filesEnabled} onChange={(on) => onDesktop({ filesEnabled: on })} />} />}
+          </div>
+        )}
+      </Details>
     </div>
   );
 }

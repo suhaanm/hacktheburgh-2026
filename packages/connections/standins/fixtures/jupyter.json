@@ -1,0 +1,14 @@
+{
+  "server": "example-jupyter",
+  "tools": [
+    {"name": "list_notebooks", "description": "Notebooks in the example lab.", "response": [{"path": "claims_review.ipynb", "kernel": "python3"}, {"path": "monthly_totals.ipynb", "kernel": "python3"}]},
+    {"name": "read_notebook", "description": "Cells of a notebook.", "response": [
+      {"index": 0, "type": "markdown", "source": "# Claims review (example)"},
+      {"index": 1, "type": "code", "source": "df = load_claims()\ndf.groupby('kind').age_days.median()"},
+      {"index": 2, "type": "code", "source": "df[df.age_days > 14].shape"}]},
+    {"name": "read_cell", "description": "One cell.", "response": {"index": 1, "type": "code", "source": "df = load_claims()\ndf.groupby('kind').age_days.median()", "output": "housing_cost 6.0\nnew_claim 4.0"}},
+    {"name": "list_kernels", "description": "Running kernels.", "response": [{"id": "k1", "name": "python3", "state": "idle"}]},
+    {"name": "insert_cell", "description": "Add a cell.", "write": true},
+    {"name": "execute_cell", "description": "Run a cell.", "write": true}
+  ]
+}

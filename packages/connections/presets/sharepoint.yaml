@@ -1,0 +1,52 @@
+# Preset: SharePoint (Benefits set), through the community Softeria Microsoft 365 MCP server. Verified 7 Nov 2026. Starts OFF.
+# Only the SharePoint tools listed below can be called at all (unlisted: refuse): the same server also has mail, calendar and Teams tools, and those are outside this consent.
+# Microsoft's own Work IQ server is hosted and proprietary-licensed, and the legacy Agent 365 servers are marked not for new projects, so both are listed as unverified in docs/CONNECTIONS.md.
+id: sharepoint
+version: 0.1.0
+kind: mcp
+description: Read SharePoint sites, lists and document libraries you can already open, through the community Microsoft 365 MCP server.
+permissions: [read]
+egress: app_only
+default_enabled: false
+connection:
+  group: benefits
+  app: SharePoint
+  reads: Sites, lists and document libraries you can already open.
+  short: Sites, lists, libraries
+  caution: Community server
+  standin:
+    label: Example SharePoint
+    script: packages/connections/standins/fixture_server.py
+    args: ["--fixture", "sharepoint"]
+  real:
+    verified: true
+    publisher: Softeria (community)
+    publisher_kind: community
+    license: MIT
+    registry: npm
+    package: "@softeria/ms-365-mcp-server"
+    version: "0.171.0"
+    transport: stdio
+    command: npx
+    args: ["-y", "@softeria/ms-365-mcp-server@0.171.0", "--org-mode", "--read-only"]
+    credentials:
+      - { env: MS365_MCP_OAUTH_TOKEN, label: Microsoft Graph access token }
+    hosts: [graph.microsoft.com, login.microsoftonline.com]
+    read_only: "--read-only. Our table lists only SharePoint tools; every other tool of this server is refused."
+    sources:
+      - https://registry.modelcontextprotocol.io/v0/servers/io.github.Softeria%2Fms-365-mcp-server/versions/latest
+      - https://registry.npmjs.org/@softeria/ms-365-mcp-server/0.171.0
+      - https://github.com/Softeria/ms-365-mcp-server
+      - https://raw.githubusercontent.com/Softeria/ms-365-mcp-server/main/LICENSE
+    verified_on: "2026-11-07"
+  tools:
+    unlisted: refuse
+    classes:
+      read: [search-sharepoint-sites, get-sharepoint-site, get-sharepoint-site-by-path, list-sharepoint-site-drives, get-sharepoint-site-drive-by-id, list-sharepoint-site-items, get-sharepoint-site-item, list-sharepoint-site-lists, get-sharepoint-site-list, list-sharepoint-site-list-items, get-sharepoint-site-list-item, list-sharepoint-list-columns, get-sharepoint-list-column, list-drives, get-drive-item]
+      write: [create-sharepoint-list-item, update-sharepoint-list-item, create-sharepoint-list, create-sharepoint-list-column, update-sharepoint-list-column, upload-file-content, create-onedrive-folder, move-rename-onedrive-item, copy-drive-item]
+      send: [share-drive-item]
+      destructive: [delete-sharepoint-list-item, delete-sharepoint-list-column, delete-onedrive-file]
+  limitations:
+    - Community server with very frequent releases; the pin is a version we confirmed is at least two weeks old.
+    - A Graph access token lasts about an hour, and a work tenant may need an admin to allow the app.
+    - Outlook and Teams are not here; they use the calendar layer's own read-only sources.

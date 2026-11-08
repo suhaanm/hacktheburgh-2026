@@ -251,6 +251,18 @@ export function nodeAria(n: WorkNode, partner?: string): string {
   return `${NODE_LABEL[n.type]}: ${n.label}. Strength ${pct} percent.${isLapsed(n) ? " Fading." : ""}${partner ? ` Always runs with ${partner}.` : ""}`;
 }
 
+/**
+ * The one sentence under the graph's title, from the data alone: how many things, and how many are fading. Empty for an empty graph (the empty state says it).
+ * The screen and any section that embeds the graph print this same sentence, so the two never disagree.
+ */
+export function graphHeadline(graph: { nodes: WorkNode[] }): string {
+  const count = new Set(graph.nodes.map((n) => n.id)).size;
+  if (count === 0) return "";
+  const seen = new Set<string>();
+  const faded = graph.nodes.filter((n) => (seen.has(n.id) ? false : (seen.add(n.id), isLapsed(n)))).length;
+  return `${count} ${count === 1 ? "thing" : "things"} Knack knows about your work${faded ? `, ${faded} fading now` : ""}.`;
+}
+
 /** The first sentence of a text, at most `maxWords` words (cut with an ellipsis when it runs on). For the one-line reason in the panel. */
 export function firstSentence(text: string, maxWords = 24): string {
   const t = text.replace(/\s+/g, " ").trim();

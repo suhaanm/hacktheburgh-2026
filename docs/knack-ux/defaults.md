@@ -2,6 +2,60 @@
 
 Every default the product ships with, one section per feature, each with the reason and how to change it. A default is as automated as the safety rules allow: nothing here is a consent a person has not clicked.
 
+Settings, Your data, Needs you and Routines come first (Track C), then Hey Knack (the voice track). Hey Knack's row in Settings prints `Default: on.` and shows what `wake.state()` answers; its own rules are in the last section.
+
+Owner request of 8 Nov 2026 (00:15 GMT): enable everything that was off "for the demo", and set every default as automated as possible **inside the safety layers**. This page lists each default Track C's screens show (Settings, Your data, Needs you, Routines), what it was, what it is now, why, and the safety note. A test (`SettingsView.test.ts`, "defaults.md lists every default") keeps this page and the rows in step: each Settings row prints `Default: ...` from `DEFAULTS` in `apps/dashboard/src/screens/Settings/model.ts`.
+
+**Never a default, whatever the request:** auto-granting a consent card (voice, screen frames, capture, folders), auto-approving an action, unattended runs, irreversible actions in an unattended run, any real click before the supervised R1 spike (D30, D52, D56). Those stay off until the worker, or the owner for R1, says otherwise. The code decides these gates, not a setting.
+
+Where a default lives in another track's file, the exact one-line change is given for the lead. Track C does not edit those files.
+
+## Settings
+
+| Setting | Old default | New default | Why | Safety note |
+|---|---|---|---|---|
+| Use live models | On when a key was found (`useLiveModels: true`); the line did not say so | **On when a key is set**; the row says "On, because a key is set" and prints "Default: on when a key is set." With no key it is off, disabled, and says why | A live model is what makes Watch first, the briefing and Coaching worth having. No key means nothing can be live | Every call goes through the egress guard and the ledger (Your data > What it looked at or sent). Frames still need the worker's consent card and never leave in an unattended run. The switch is disabled while a job runs. No code change needed: already `useLiveModels: z.boolean().default(true)` |
+| Interruptions | Balanced (every kind Normal, 10 interrupting notices a day) | **Rarely** (every kind that can change at Quiet, 4 a day): Knack handles what it can and tells you once at a pause | The setting that does the most on its own is the one that interrupts least. Things that need you are counted, held and shown at the next pause instead of popping up | **Stops and blocking approvals are never hidden**: the safety class ignores every mode and the row prints "Stops and blocking approvals always show." A held item that needs you still appears in Needs you and on the badge. The worker can set any group or any single kind louder (More) |
+| Coaching | Off (`cueEnabled: false`) | **On** | The coach is the product's second layer. A hint costs nothing and fades as the worker improves | Hints are cards the worker can ignore; the screen is never read for them without the glance consent card; "Quiet for an hour" and the menu bar pause still work |
+| Help level | Automatic | **Automatic** (unchanged, not locked) | The level rises and falls with how the worker is doing. A lock is only for someone who wants one | The level is chosen by code from the shadow record, never by a model |
+| Show the help level for two seconds | On (engine `level_glance` true) | **On** (unchanged) | It is how a worker learns the level changed | Only when nothing else is on screen and the worker is still |
+| Hey Knack | Off in the desktop settings (`wakeEnabled: false`), although D52 says always on | **On**, with the note "Stays on this Mac. Nothing is stored." | Owner decision D52: listening is on by default | On-device recognition only; it fails closed to off with one plain line if on-device recognition is missing; no transcript and no audio are stored; macOS still asks for Microphone and Speech Recognition; voice alone never approves anything. The row shows `wake.state()` as the shell reports it, including why it is quiet |
+| Move aside while Knack works | On | **On** (unchanged) | The window gets out of the way while an agent works; the pill shows what it is doing | The window comes back when something needs the worker, and the pill and the Dock icon always bring it back |
+| Open at login | Off (`launchAtLogin: false`) | **On** | Routines only run while Knack is open, so a worker who wants routines wants it open | Applies to the packaged macOS app only. Opening Knack starts no run. Every routine still waits for the worker's approval and irreversible steps still need their own opt-in |
+| Use my skills | On, nothing turned off (the tasks service's own default) | **On** (unchanged); the row appears once the tasks service answers, with each skill's name and description behind More and its own switch | The skill files already on this Mac are the worker's own; using them costs nothing and makes a task better | Names and descriptions only: a skill's contents are never shown or sent from this screen. A skill can be turned off one by one. A skill never grants a permission: the consent card and the per-run permit decide that |
+| Longest a task runs | 30 minutes (the tasks service's own default; shown once the service says it) | **30 minutes** (unchanged), choices 5 to 120 | A task that has not finished in half an hour is usually stuck; the worker can raise it for one that needs longer | A hard cap the service enforces: a task is stopped by code at that time, whatever the model says |
+| Appearance | Auto | **Auto** (unchanged) | Follows the system | None |
+| View as | Worker | **Worker** (unchanged) | The worker's own view is the default; Admin is a preview | Admin sees numbers only (Your data > What your admin can see) |
+
+## Your data
+
+| Setting | Old default | New default | Why | Safety note |
+|---|---|---|---|---|
+| Learn from when I am active (capture) | Off until the worker turns it on at first run | **Unchanged** | It is a line in the worker's own memory file and is a consent in all but name. The consent text stays printed beside the switch | Times only: no page text, no URLs, no field values |
+| Look at my screen when I seem stuck | Off until the consent card is agreed | **Unchanged** | A consent card is never auto-granted (D30) | Frames are held in memory for one call, never stored, only through the egress guard, never from a denylisted app or while secure input is on |
+| Also look every 30 seconds | Off | **Unchanged** | Visible only after the first switch is agreed | Each look is listed |
+| Skip messaging and mail apps | On | **On** (unchanged) | Safe by default | Nothing is sent while one of them is in front |
+| Search my folders | Off, no folders | **Unchanged** | Folders are added only through a native dialog in the main process | Search runs on the worker's own index |
+
+## Needs you and Routines
+
+| State | Old default | New default | Why | Safety note |
+|---|---|---|---|---|
+| A routine proposal | Waits for the worker, buttons Watch first, Not now, Details | **Unchanged**; Watch first is the first visible action and the one the J3 check measures | The cheapest step that teaches the routine something | Watch first practises on the next cases. Nothing runs, is saved or is sent |
+| Autonomy of a new routine | Watch first (shadow) | **Unchanged** | Promotion is earned from the shadow record by code | The model proposes, code decides |
+| Run while I'm away | Off per routine | **Unchanged**: one click for a routine with no irreversible step, a typed confirmation for one that has | An unattended run is a per-routine opt-in | Unattended runs never write to a real account, never use frames |
+| An approval | Waits for a real click on the card | **Unchanged** | No keystroke and no voice approves | A real click only. After it, the lead's `finalize` call submits the sandbox note and the row says plainly if it did not finish |
+| A paused run | Waits | **Unchanged** | A pause is a safety stop | Shown and counted whatever the Interruptions setting is |
+
+## What the lead needs to change (one line each)
+
+1. `services/engine/understudy_engine/attention/state.py` line 29: `budget_per_day: int = 10` to `4`, and line 84: `return self.modes.get(type_id, "normal")` to `"quiet"` (the safety row on line 83 still returns the fixed row, so stops and blocking approvals are unchanged). Engine tests that assert the Balanced default (`tests/attention/test_service.py`, `test_routes.py`) change with it. Until then the row shows whatever the engine answers and prints "Default: Rarely."
+2. `apps/desktop/src/shared/settings.ts` line 49: `cueEnabled: z.boolean().default(false)` to `.default(true)` (the env gate `UNDERSTUDY_X_CUE=1` still has to be set).
+3. `apps/desktop/src/shared/settings.ts` line 41: `wakeEnabled: z.boolean().default(false)` to `.default(true)`, or have the shell report `switchOn: true` when the worker has never chosen (D52).
+4. `apps/desktop/src/shared/settings.ts` line 62: `launchAtLogin: z.boolean().default(false)` to `.default(true)`.
+
+Nothing here makes a model decide anything, and nothing here changes a gate: the eight security layers, the consent cards, the per-run permit and the supervised R1 spike are as they were.
+
 ## Hey Knack
 
 | Setting | Default | Why | Change it |
@@ -21,3 +75,33 @@ Every default the product ships with, one section per feature, each with the rea
 | Words Knack speaks otherwise | fixed lines only | one voice, no surprises | |
 | When live voice cannot start (example data, no key, the service not answering, the microphone not allowed) | Knack still hears the words and shows a card in plain words, with a button to Settings where it helps | never silence | |
 | Where it keeps things | `wake.json` in the app's data folder: the switch, the chime, your two answers. Nothing else | | delete the file |
+
+## Desktop
+
+The app around the dashboard: the window, the Dock icon, the menu bar item, the corner column, the background pills, the Ask bar, the services it starts. Everything here is as automatic as the safety rules allow. Nothing in it answers a consent card, approves anything, or turns on anything unattended or irreversible: those stay a real click, per card or per routine.
+
+| Setting or state | Default | Why | Change it |
+|---|---|---|---|
+| Open at login | **On** (owner, 8 Nov). Only a packaged macOS build registers the login item; a login launch shows no window, only the Dock icon and the menu bar item | Knack is there when work starts | Settings; the menu bar item is not needed |
+| Show in the Dock | **On** | a normal macOS app: click the icon to bring the window back | Settings |
+| Show in the menu bar | **On** | the eight-row menu: status, Open, Ask, Pause, Stop everything, Settings, Quit | Settings |
+| Move aside while Knack works | **On** | the window minimises 0.4 s after a run that uses your real screen starts, and does not come back unless something needs you or you click the pill or the Dock icon | Settings (Move aside while Knack works) |
+| Keep the Mac awake while Knack works | **On** | a run that is minimised behind your other windows still needs the machine to stay up. A power-save blocker is held only while a run works (the app alone, plus the display while the run uses your real screen), released the moment it ends, when you switch this off, and when the app quits. Nothing is held between runs | Settings; `keepAwakeWhileWorking` |
+| Cue (the coach cards) | **On**, balanced, spoken cues off | on by the owner's request; it never draws over a corner card, a password field or a denylisted app, and it asks nothing | Settings, Cue; "Quiet Cue for an hour" |
+| Help level | **Automatic** | the level follows how you are doing; lock it if you want | Settings (Help level) |
+| Live models | **On when a key exists**: real models when a Gemini key is in the environment or the repository's `.env` and the models boot check passes, else example data with the one line "Running with example data" | the app decides at start, with no question | Settings, Use live models (restarts the app, about 20 s); costs real money per run, so only this switch changes it |
+| Finding the services | **Automatic**: the app looks for the engine and the agent on their ports; if both answer it attaches and never stops them; otherwise it starts what is missing as its own children and stops only those on quit | no setup, and a stack someone else started is left alone | `KNACK_REPO`, `KNACK_LIVE`, `KNACK_SITES=0` |
+| A service that stops by itself | started again, 2 s then 4 s then 8 s later, three times in ten minutes; after that one plain sentence and Try again | a crash should not need you | Try again |
+| A port that something else holds | said at once in plain words before anything starts ("Another program is using a port Knack needs") | the alternative is a service that fails inside | quit the program, or set `ENGINE_PORT` and `AGENT_PORT` |
+| The corner pill | shown while a run works (five words at most, "n of m" only when there are two or more steps, Stop), a quiet check for 2.5 s when it ends, held on an error until you open Knack; never over a password field, a denylisted app or a shared screen | one status in one place | not a setting |
+| A run that left something to approve | one card above the pill (Review, Later); Review opens Needs you and nothing is approved by it | a real click on the approval itself is the only approval | not a setting |
+| A pill that outlives its work | cleared 3 s after the agent service says nothing is acting; a run record older than 15 minutes is a ghost (a dead process left it) and is never shown | the pill must never say working about nothing | not a setting |
+| Background agent pills (top right) | **On**: one small pill per task or run working in the background, a moving icon only while it runs, a still dot while it waits for an OK, a quiet check that fades after 5 s, a red dot for a failure that stays until clicked, at most four and then "+n"; a click opens Routines at the task | the owner's request; the bottom-right column stays for Knack's own attention | not a setting |
+| Permission prompts | a corner card (bottom-right, above the pill column), the answer is a real click; plus one native notification | nothing else uses a notification | `confirmStyle` (card or inside the panel; no screen for it in the app yet) |
+| Notifications | only the one native notification for a permission prompt. No banner for cards, runs or results | the spec: a banner cannot be non-focusable or carry Stop | not a setting |
+| The Ask bar | **On**: Option-Space tapped opens it (hold still talks), the menu bar row opens it, Escape or a click elsewhere closes it. A line goes into a voice conversation that is already open; otherwise it says one plain sentence and stays, because typed chat has no model behind it in this build | one small place to type | `talkHotkey` |
+| The old side panel and its eight-step set-up | **Never shown in the app**: its flag is pinned done, nothing raises the panel; the one onboarding is the first run in the Knack window, and Set up again is in the app menu | one onboarding | not a setting |
+| First launch with no key | example data, one line, nothing asked | nothing blocks the first look | add a key to `.env` |
+| Quit | with nothing running, quits at once; with a run, one sheet ("Knack is working. Stop it and quit?" Stop and quit, Keep working) | never a surprise stop | not a setting |
+| Window size and place | 80 percent by 84 percent of the work area (960 to 1440 by 600 to 1000), remembered per display; a window left off every display after one is unplugged is brought back | a window you cannot find is a bug | drag it |
+| Hey Knack, the two consent cards, Click for you | see the Hey Knack section: never answered for you | the safety rules | |
