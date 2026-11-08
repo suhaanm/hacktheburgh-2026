@@ -7,6 +7,7 @@ import { useLoad } from "../../hooks";
 import { Glyph } from "../../components/Lockup";
 import { getBridge, permissionsAvailable, permStates, type PermKind, type PermState } from "../../components/shell/bridge";
 import { reportWake } from "../../lib/wakeContext";
+import { CheckVoice } from "../../components/settings/CheckVoice";
 import { awarenessBridge } from "../YourData/awareness";
 import { liveModelsBridge, wakeBridge, type LiveModelsState, type WakeStatus } from "../Settings/bridge";
 import type { OnboardingQuestions } from "../../types";
@@ -281,6 +282,8 @@ function CheckStep({ answers, heading, onBack, onFinish, writing, slow, wakeApi 
       {hey && (
         <p className="firstrun__hey" data-testid="hey-knack"><b>{hey.title}</b><span className="perm__state">{hey.line}</span>{fix && hasPerms && <button type="button" className="btn btn--secondary btn--sm" onClick={() => openSettings(fix)}>Open System Settings</button>}</p>
       )}
+
+      {desktop && wakeApi && <CheckVoice compact />}
 
       {restart && <p className="firstrun__note" role="status" data-testid="needs-restart">macOS needs Knack to restart before screen recording works. Quit and open it again when you are done here.</p>}
 

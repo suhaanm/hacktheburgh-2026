@@ -58,6 +58,7 @@ import { APP_NAME } from '../shared/brand'
 import { createAgentPills } from './knack/agent-pills'
 import { createAskBar } from './knack/ask-bar'
 import { micFixAction } from './knack/permission-bridge'
+import { createVoiceCheckPort } from './knack/voice-check-port'
 import { createTryRingPort } from './knack/try-ring'
 import { registerAppScheme } from './knack/app-protocol-electron'
 import { glyphSvg } from './knack/brand-glyph'
@@ -155,7 +156,7 @@ void app.whenReady().then(async () => {
   // The awareness module is created below (it needs the coach poller); the legacy gate, the consent card and the tray read it through this box.
   const awarenessBox: { a: Awareness | null } = { a: null }
   // Hey Knack (the on-device listener) is created after Live and the attention layer; the tray and Live's `do_it_for_me` read it through this box.
-  const wakeBox: { ctl: WakeController | null; settings: { get(): { voiceAnswer: string; screenAnswer: string } } | null; running: (() => { n: number; t: number } | null) | null } = { ctl: null, settings: null, running: null }
+  const wakeBox: { ctl: WakeController | null; settings: { get(): { voiceAnswer: string; screenAnswer: string }; patch(p: unknown, o: { trusted: boolean }): unknown } | null; running: (() => { n: number; t: number } | null) | null } = { ctl: null, settings: null, running: null }
   // The last coach decision's step id and capture zone (ids only), for the voice conversation's context packet.
   const coachBox: { last: { step: string | null; zone: string | null; t: number } | null } = { last: null }
 
@@ -329,6 +330,15 @@ void app.whenReady().then(async () => {
     // The first run's bridge: what it shows and asks of macOS, and the sample ring (the overlay covers the primary display).
     permissions,
     speech: { helper: () => wakeBox.ctl?.status().helper ?? null, request: () => wakeBox.ctl?.arm() },
+    // Check voice: every stage a conversation needs, read only. The macOS asks on its stages are the worker's click, through the permissions door above.
+    voice: createVoiceCheckPort({
+      env: process.env,
+      live: () => liveBox.reg,
+      wake: () => (wakeBox.ctl && wakeBox.settings ? { status: () => wakeBox.ctl!.status(), settings: wakeBox.settings as never, helperPresent: () => wake?.helperPath() != null, setListen: (on) => wakeBox.ctl?.setListen(on) } : null),
+      permissions,
+      killed: isKilled,
+      paused: () => (settings.get().pausedUntil ?? 0) > Date.now(),
+    }),
     ring: createTryRingPort(services.overlay, () => screen.getPrimaryDisplay().bounds),
   })
   const attentionWiring = wireAttention({

@@ -13,7 +13,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, powerMonitor, powerSaveBlock
 import { APP_NAME, APP_ORIGIN } from '../../shared/brand'
 import type { HudActivity } from '../../shared/hud'
 import type { Settings } from '../../shared/settings'
-import { KNACK_IPC } from '../../shared/knack'
+import { KNACK_IPC, type KnackVoiceCheck } from '../../shared/knack'
 import type { HudModel } from '../hud-model'
 import { readServiceToken } from '../kill-file'
 import { applyModeEnv, applyStackEnv } from './stack-config'
@@ -103,6 +103,8 @@ export interface KnackLateDeps {
   }
   /** Hey Knack's listener, for the speech recognition row: its status says whether speech was allowed; `request` switches the listener on, which makes macOS ask. */
   speech?: { helper(): HelperStatus | null; request(): void }
+  /** Check voice: every stage a conversation needs, read only (src/main/knack/voice-check.ts), and the forgetting of an earlier Never or Not now so the consent card shows again. */
+  voice?: { check(): Promise<KnackVoiceCheck>; askAgain(): boolean }
   /** The on-screen ring and the ghost cursor (the overlay), and the bounds of the display the overlay covers. */
   ring?: { show(box: [number, number, number, number], opts?: { ghost?: boolean }): void; clear(): void; displayBounds(): { x: number; y: number; width: number; height: number } }
 }
@@ -262,10 +264,25 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
   })
   ipcMain.handle(KNACK_IPC.permOpen, (event, raw: unknown) => {
     if (!fromOurPage(event)) throw new Error('shell IPC from an unknown sender')
+    // Check voice also opens the macOS Sound pane (muted, or a volume at zero); the one extra name, nothing else is accepted.
+    if (raw === 'sound') {
+      void shell.openExternal('x-apple.systempreferences:com.apple.Sound-Settings.extension').catch(() => undefined)
+      return true
+    }
     const kind = permKindOf(raw)
     if (!kind || !late?.permissions) return false
     late.permissions.openSettings(paneOf(kind))
     return true
+  })
+  // Check voice: a status report (it never asks macOS, never opens the microphone, plays nothing). Only this window's own page may read it.
+  ipcMain.handle(KNACK_IPC.voiceCheck, async (event) => {
+    if (!fromOurPage(event)) throw new Error('shell IPC from an unknown sender')
+    if (!late?.voice) throw new Error('not ready')
+    return late.voice.check()
+  })
+  ipcMain.handle(KNACK_IPC.voiceAskAgain, (event) => {
+    if (!fromOurPage(event)) throw new Error('shell IPC from an unknown sender')
+    return late?.voice?.askAgain() === true
   })
   ipcMain.handle(KNACK_IPC.reveal, (event, raw: unknown) => {
     if (!fromOurPage(event)) throw new Error('shell IPC from an unknown sender')
@@ -784,6 +801,8 @@ dispatch,
       ipcMain.removeHandler(KNACK_IPC.permRequest)
       ipcMain.removeHandler(KNACK_IPC.permOpen)
       ipcMain.removeHandler(KNACK_IPC.tryRing)
+      ipcMain.removeHandler(KNACK_IPC.voiceCheck)
+      ipcMain.removeHandler(KNACK_IPC.voiceAskAgain)
       ipcMain.removeHandler(KNACK_IPC.reveal)
       tryRing.stop()
       ipcMain.removeAllListeners(KNACK_IPC.retry)

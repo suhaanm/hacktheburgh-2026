@@ -2,6 +2,8 @@ import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ComponentTyp
 import { ApiError, api, forgetBackoff } from "../../api";
 import { SettingsView } from "../../components/settings/SettingsView";
 import { TodayStrip } from "../../components/settings/TodayStrip";
+import { CheckVoice } from "../../components/settings/CheckVoice";
+import { voiceBridge } from "./bridge";
 import { setViewRole, useViewRole } from "../../components/home/viewAs";
 import { runActive } from "../../lib/agents";
 import { withMode, type Mode } from "../../lib/attention";
@@ -140,6 +142,7 @@ export default function Settings({ section }: { section?: string }) {
 
   return (
     <SettingsView section={section} live={liveView} onLive={(on) => void onLive(on)}
+      voice={voiceBridge() ? <CheckVoice /> : null}
       attention={attention} attentionError={attentionError} onPreset={onPreset} onMode={onMode} onGroup={onGroup} onResetLearned={onResetLearned} onLevelGlance={onLevelGlance} wake={wakeApi ? wake : null} onWake={onWake}
       today={today.data && attention ? <TodayStrip digest={today.data} budgetPerDay={attention.budget_per_day} /> : null}
       desktop={bridge ? desktop : null} onDesktop={onDesktop}

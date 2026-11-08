@@ -12,6 +12,7 @@ import {
   type KnackSettingsApi,
   type KnackShellApi,
   type KnackTryRingResult,
+  type KnackVoiceCheck,
   type KnackWakeContext,
   type KnackWakeStatus,
   type ShellUiState,
@@ -42,6 +43,10 @@ const api: KnackShellApi = {
     state: () => ipcRenderer.invoke(KNACK_IPC.permState) as Promise<KnackPermissionsState>,
     request: (kind) => ipcRenderer.invoke(KNACK_IPC.permRequest, kind) as Promise<KnackPermRequestResult>,
     openSettings: (kind) => ipcRenderer.invoke(KNACK_IPC.permOpen, kind) as Promise<boolean>,
+  },
+  voice: {
+    check: () => ipcRenderer.invoke(KNACK_IPC.voiceCheck) as Promise<KnackVoiceCheck>,
+    askAgain: () => ipcRenderer.invoke(KNACK_IPC.voiceAskAgain) as Promise<boolean>,
   },
   tryRing: (spot) => ipcRenderer.invoke(KNACK_IPC.tryRing, spot) as Promise<KnackTryRingResult>,
   reveal: (path) => ipcRenderer.invoke(KNACK_IPC.reveal, path) as Promise<boolean>,
