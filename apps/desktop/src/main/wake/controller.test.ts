@@ -786,6 +786,16 @@ describe('the yes card at the end of first run and from Check voice', () => {
     expect(await r.ctl.askConsent({ explicit: true })).toBe('granted')
     expect(r.liveSettings.get()).toMatchObject({ liveConsentVersion: LIVE_CONSENT_VERSION, liveFrames: true })
   })
+  it('a yes card already on screen is not shown a second time by the talk key or Hey Knack', async () => {
+    const r = rig()
+    r.ctl.start()
+    r.answers.push(mouse('not_now'))
+    const first = r.ctl.askConsent({ explicit: true })
+    r.ctl.explainRefusal('no_consent')
+    await r.ctl.onHeard()
+    expect(await first).toBe('declined')
+    expect(r.cardsSeen.map((c) => c.title)).toEqual(['Talk with Knack?'])
+  })
   it('two requests at once show one card', async () => {
     const r = rig()
     r.ctl.start()
