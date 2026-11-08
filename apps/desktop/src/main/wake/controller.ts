@@ -337,7 +337,7 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
 
   // ---- the words were heard
   async function onHeard(): Promise<void> {
-    if (!started || waking || dormancy(input()) !== null || machine.k !== 'listening') return
+    if (!started || waking || consentAsking || dormancy(input()) !== null || machine.k !== 'listening') return // a yes card is already on screen: one card at a time
     waking = true
     lastRefusal = null
     dispatch({ t: 'wake' })
@@ -718,6 +718,7 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
       lastExplained.set(reason, t)
       // The talk key before the worker has agreed to talk: the same two cards as the first wake, then a line saying it is on.
       if (reason === 'not_enabled' || reason === 'no_consent') {
+        if (consentAsking) return // the yes card is already showing
         void consent().then((ok) => ok && explain(readyCard()), () => undefined)
         return
       }
