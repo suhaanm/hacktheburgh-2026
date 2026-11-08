@@ -78,7 +78,7 @@ Code checks a fresh page for each calculator's result fields and the case-note i
 
 **18. How reliable is computer use?**
 
-Not reliable yet. After fact handles, 3 of 3 development households completed (in-sample). On new held-out households 1 of 4 completed: in 2 runs calculator B got wrong inputs that only an independent recomputation caught, and 1 run paused because the goal-check call could not complete; injected pages paused 20 of 20 at step 0, but those carry text only. Seven households in all, so no rate should be quoted. The Gemini configuration has development results only (docs/FLAGS.md; evals/agentic/ITERATIONS.md).
+Not reliable yet. After fact handles, 3 of 3 development households completed (in-sample). On new held-out households 1 of 4 completed: in 2 runs calculator B got wrong inputs that only an independent recomputation caught, and 1 run paused because the goal-check call could not complete; injected pages paused 20 of 20 at step 0, but those carry text only. Seven households in all, so no rate should be quoted. The Gemini configuration has development results only: 8 of 8 development households end to end with the case note by tier 2, four of them new, in-sample and not a held-out rate (docs/DECISIONS.md D62; docs/FLAGS.md).
 
 ## Choices
 
