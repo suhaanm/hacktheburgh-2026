@@ -117,24 +117,20 @@
       "audience": "details"
     },
     "firm-people": {
-      "path": "/firm/people",
+      "path": "/people",
       "audience": "admin",
       "controls": 10
     },
     "firm-automation": {
-      "path": "/firm/automation",
+      "path": "/automation",
       "audience": "admin"
     },
     "firm-risk": {
-      "path": "/firm/risk",
-      "audience": "admin"
-    },
-    "firm-forecasts": {
-      "path": "/firm/forecasts",
+      "path": "/risk",
       "audience": "admin"
     },
     "firm-brief": {
-      "path": "/firm/brief",
+      "path": "/brief",
       "audience": "admin"
     },
     "first-run": {
