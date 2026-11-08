@@ -254,16 +254,21 @@ class TaskManager:
         task = Task(task_id=new_task_id(), text=text, source=source, route="unclear", title=make_title(text), attended=attended)
         with self._lock:
             self._tasks[task.task_id] = task
+        announced = False
         try:
             if by_rules is None and not offline and any(v > 0 for v in scores.values()):
                 task.latest = "Working out what to do"                     # the one case that can take a moment: a model proposal
                 self._emit("task_progress", task)
+                announced = True
             decision = choose_route(text, port_factory=self._port if not offline else None, offline=offline)
             task.route = decision.route
             if decision.route == "answer" and self.running_count() >= self.max_running:
                 raise TaskError(429, "too_many_tasks", f"At most {self.max_running} tasks can run at a time. Stop one or wait.")
             summary = self._begin(task)
-        except TaskError:
+        except TaskError as e:
+            if announced:                                                  # a watcher saw it planning: tell it that it is over
+                task.state, task.reason, task.finished, task.latest = "failed", one_line(e.message, 160, redact=False), now_iso(), None
+                self._emit("task_finished", task)
             with self._lock:
                 self._tasks.pop(task.task_id, None)
             raise
@@ -432,10 +437,10 @@ class TaskManager:
                 raise TaskError(409, "not_waiting", "This task is not waiting for an answer.")
             if option_id not in {o["id"] for o in t.question["options"]}:
                 raise TaskError(422, "bad_body", "That is not one of the choices.")
+            if option_id == "answer" and self.running_count() >= self.max_running:      # refused BEFORE anything changes: the card stays
+                raise TaskError(429, "too_many_tasks", f"At most {self.max_running} tasks can run at a time. Stop one or wait.")
             t.question, t.route = None, option_id
         self._audit("human", "task", t, "answered", option_id)
-        if option_id == "answer" and self.running_count() >= self.max_running:
-            raise TaskError(429, "too_many_tasks", f"At most {self.max_running} tasks can run at a time. Stop one or wait.")
         self._begin(t)
         return t
 
