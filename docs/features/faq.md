@@ -6,7 +6,7 @@ Short, truthful answers, each with its source. Nothing here is stronger than the
 
 **1. What leaves my laptop?**
 
-Calls from our services to a model go through one choke point and each leaves a row you can read (typed payload for text; size, hash, model and latency for images; never the picture). In mock mode none left. Not covered: model calls you asked for are recorded as metadata only, an allowed frame is raw pixels, the ledger cannot see other software, and older desktop paths that could send screenshots and file text are off by default but not independently re-reviewed (docs/PITCH_FEATURES.md, privacy page; evals/report.md limitations).
+Calls from our services to a model go through one choke point and each leaves a row you can read (typed payload for text; size, hash, model and latency for images; never the picture). In mock mode none left. Not covered: one reviewed exception, the hand-run live tier-3 evaluation, which calls the model through a raw port outside the ledger, runs only by hand on generated sandbox pages and is imported by nothing else; model calls you asked for are recorded as metadata only, an allowed frame is raw pixels, the ledger cannot see other software, and older desktop paths that could send screenshots and file text are off by default but not independently re-reviewed (docs/PITCH_FEATURES.md, privacy page; evals/report.md limitations).
 
 **2. Is the microphone always listening, and what does it keep?**
 

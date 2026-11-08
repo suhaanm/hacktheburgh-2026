@@ -36,7 +36,7 @@ Open Your data and the record of what was sent: a row per call with model, size 
 
 ## Honest limit
 
-Zero leaks says nothing about a flow that was not run, and the planted strings are exact strings only. An allowed frame is raw pixels: the guard does not redact them, and the provider's own policy is not measured here. Model calls the worker asked for are recorded as metadata only. The ledger cannot see other software on the laptop. The older Alongside desktop paths are off by default but have not been re-reviewed independently.
+Zero leaks says nothing about a flow that was not run, and the planted strings are exact strings only. An allowed frame is raw pixels: the guard does not redact them, and the provider's own policy is not measured here. Model calls the worker asked for are recorded as metadata only. The ledger cannot see other software on the laptop. The older Alongside desktop paths are off by default but have not been re-reviewed independently. One more reviewed exception: the hand-run live tier-3 evaluation (`services/agent/understudy_agent/live_t3.py`) calls the model through a raw port, `get_model_port(ledgered=False)`, which is outside the egress ledger; it runs only by hand, on generated sandbox pages, keeps its own spend ledger, and nothing else imports it (a test asserts this: `evals/review/privacy/test_p1b_voice_and_default_ledger.py`); the product's own paths all go through the ledger.
 
 ## Hackathon target
 
