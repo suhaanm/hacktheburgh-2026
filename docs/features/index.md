@@ -1,6 +1,6 @@
 # Knack feature index
 
-As of Sun 08 Nov 2026, 01:50 UTC, checked against main at 7e9562e.
+As of Sun 08 Nov 2026, 01:53 UTC, checked against main at 0880bad.
 
 35 pages and 68 entries (features, plus four write-ups of results that did not hold up), for the pitch (Hack the Burgh XIII), the launch video, the demo and the submission video. The master document is `docs/PITCH_FEATURES.md`; the 20 video claims are in `video-beats.md`; the 25 hardest judge questions are in `faq.md`.
 
@@ -94,7 +94,7 @@ As of Sun 08 Nov 2026, 01:50 UTC, checked against main at 7e9562e.
 |---|---|---|---|
 | Home: one sentence, one action | [home-insights](home-insights.md) | **built** (merged to main; measured on a prototype; owner has not used it) | G-Research |
 | Top insights engine: a few pointers, chosen by code | [home-insights](home-insights.md) | **built** | G-Research, HRT |
-| Admin views: Firm, Roles, Onboarding | [firm-admin](firm-admin.md) | **built** (UI merged to main; the firm is synthetic; filling it with made-up people for several users on the live engine (owner request 4.4) is in progress: Track R found the cause, the live engine reads this device's own history, which holds no people, so that part is landing until the seed command has run on the live data) | G-Research, HRT |
+| Admin views: Firm, Roles, Onboarding | [firm-admin](firm-admin.md) | **built** (UI merged to main; the firm is synthetic; owner request 4.4 (made-up people for several users): Track R found the cause of the blank live Admin view, the engine read this device's own ledger (one person), so every comparison was withheld under the minimum group of 5; on main since 01:51 UTC (merge e52c6b1) the engine can write 32 made-up people in 3 teams with twelve weeks of history to the data folder (python -m understudy_engine.demo seed-firm, also part of demo seed), with the rules unchanged; per the lead the item stays landing until that seed has run on the live data) | G-Research, HRT |
 | Monday note, firm brief and prediction scorecard | [firm-admin](firm-admin.md) | **built** | HRT |
 
 ## Growth and independence
