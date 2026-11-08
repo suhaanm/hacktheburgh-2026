@@ -7,7 +7,7 @@ import pytest
 from understudy_engine.store import data_dir
 
 pytestmark = pytest.mark.skipif(not (data_dir() / "synthetic" / "nine-to-five" / "events.jsonl").exists(),
-                                reason="synthetic personas not generated")
+                                reason="generated personas not generated")
 
 
 @pytest.fixture(scope="module")

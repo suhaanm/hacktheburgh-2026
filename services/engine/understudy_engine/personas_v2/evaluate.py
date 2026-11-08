@@ -34,7 +34,7 @@ from .roles import ROLES
 from .version import generator_sha256
 from .workweeks import generate_workweeks
 
-BADGE = "synthetic, realism-calibrated"
+BADGE = "generated, realism-calibrated"
 SEED0 = 20261107
 ROLE_ORDER = ("benefits-processor", "data-analyst", "programmer")
 FAMS = tuple(FAMILY_ORDER)
@@ -331,7 +331,7 @@ def hazard_matrix(role: str, ww: dict[tuple[str, int], WW], v1, cfg: Config, log
             st = cell_stats(rows, None if X == Y else diag, HZ_KEYS, hz_metrics, cfg.B, 1000 + 7 * ALL.index(Y),
                             {"h1": (MARGIN["h1"], True), "detection": (0.1, True), "fa_per_h": (0.25, False)}, rep_of.get(Y))
             st["n_bins"] = int(sum(r["n_bins"] for r in rows.values()))
-            st["origin"] = f"synthetic ({X} fit, {Y} test)"
+            st["origin"] = f"generated ({X} fit, {Y} test)"
             h1 = st["metrics"]["h1"]
             st["no_skill"] = bool(h1["ci"][0] is None or h1["ci"][0] <= 0)
             st["fa_over_budget"] = bool(st["metrics"]["fa_per_h"]["ci"][0] is not None and st["metrics"]["fa_per_h"]["ci"][0] > EH.BUDGET)
@@ -424,7 +424,7 @@ def genome_matrix(coh: dict[tuple[str, int], Coh], v1, cfg: Config, log) -> dict
             rows = _collapse(cells[(X, Y)])
             st = cell_stats(rows, None if X == Y else diag, GN_KEYS, gn_metrics, cfg.B, 2000 + 7 * ALL.index(Y),
                             {"precision": (MARGIN["g1"], True), "recall": (MARGIN["g1"], True)}, rep_of.get(Y))
-            st["origin"] = f"synthetic ({X} references and thresholds, {Y} test)"
+            st["origin"] = f"generated ({X} references and thresholds, {Y} test)"
             out["cells"][f"{X}->{Y}"] = st
     return out
 
@@ -502,7 +502,7 @@ def routines_matrix(role: str, ww: dict[tuple[str, int], WW], v1, cfg: Config, l
                 rows = _collapse(cells[(X, Y)])
                 st = cell_stats(rows, None if X == Y else diag, RT_KEYS, rt_metrics, cfg.B, 3000 + 7 * ALL.index(Y),
                                 {"r1_precision": (MARGIN["r"], True), "r2_recall": (MARGIN["r"], True)}, rep_of.get(Y))
-                st["origin"] = f"synthetic ({X} fit, {Y} test)"
+                st["origin"] = f"generated ({X} fit, {Y} test)"
                 out["cells"][f"{fit_mode}:{X}->{Y}"] = st
     return out
 
@@ -578,7 +578,7 @@ def _meta(cfg: Config, n_people: int) -> dict[str, Any]:
             "split": ("fit on a replicate of family X, test on an independent replicate of family Y, every ordered pair; diagonal = independent draw of the same family; "
                       "person-cluster bootstrap"),
             "interval_level": 0.95,
-            "note": ("Synthetic, realism-calibrated. Marginals sit inside cited ranges where a constant was found; this does not show the data match real users, "
+            "note": ("Generated, realism-calibrated. Marginals sit inside cited ranges where a constant was found; this does not show the data match real users, "
                      "and the generators are written by the same team." + (" FAST MODE: small n, one role, v1 omitted." if cfg.fast else ""))}
 
 

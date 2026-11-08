@@ -87,7 +87,7 @@ def cmd_transfer(args) -> int:
 
     frozen = freeze.read_frozen()
     if frozen is None:
-        _log("refused: results/frozen.json is missing; run `freeze` first (no model may be chosen after seeing simulated-participant numbers)")
+        _log("refused: results/frozen.json is missing; run `freeze` first (no model may be chosen after seeing language-model participant numbers)")
         return 3
     prim = frozen.get("primary_a")
     spec_id = None if not prim else (frozen["a7_base"] if prim == "A7" else prim)

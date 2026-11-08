@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from typing import Any
 
-SIM = "simulated participants (language model), not people"
+SIM = "language-model participants, not people"
 
 
 def _pct(x: Any, nd: int = 0) -> str:
@@ -58,7 +58,7 @@ def _signed(x: Any, nd: int = 3) -> str:
 
 def realism_finding(sections: dict[str, Any]) -> dict[str, Any]:
     base = {"id": "realism-generator-dependence", "title": "The stuck model's advantage depends on the generator", "origin": "synthetic",
-            "badge": "synthetic (generators we wrote)", "sections": ["realism", "hazard"], "severity": "high"}
+            "badge": "generators we wrote", "sections": ["realism", "hazard"], "severity": "high"}
     rz = _ok(sections, "realism")
     hz = ((rz or {}).get("blocks") or {}).get("hazard") or {}
     role = "benefits-processor"
@@ -76,10 +76,10 @@ def realism_finding(sections: dict[str, Any]) -> dict[str, Any]:
     headline = ""
     if all(isinstance(x.get("log_loss"), (int, float)) for x in (m, tsp)):
         headline = (f" The v1 headline (log loss {m['log_loss']:.3f} against {tsp['log_loss']:.3f} for time since progress, leave one person out, on the four v1 personas) "
-                    "therefore largely reflects the generator's emission table; it stays labelled synthetic.")
+                    "therefore largely reflects the generator's emission table; it stays labelled as a generator result.")
     no_skill = ", ".join(b["no_skill_cells"]) or "none"
     text = (
-        f"Hazard, {role}, synthetic generators we wrote ({b.get('n_people_v2_cell')} synthetic people per v2 cell; the v1 generator has {b.get('n_people_v1_cell')} personas): the v1 stuck model beats time-since-progress by {own['est']:.3f} nats per bin "
+        f"Hazard, {role}, generators we wrote ({b.get('n_people_v2_cell')} generated people per v2 cell; the v1 generator has {b.get('n_people_v1_cell')} personas): the v1 stuck model beats time-since-progress by {own['est']:.3f} nats per bin "
         f"on its own generator, and the advantage falls to {min(dvals):.3f} to {max(dvals):.3f} on three harder generator families. A v1-trained model is "
         f"{abs(max(wors)):.2f} to {abs(min(wors)):.2f} nats worse than the baseline on their data (H1 {max(wors):+.2f} to {min(wors):+.2f}). False alarms: the interval is entirely above the 1.0 per hour budget in "
         f"{fa['v2_off_diagonal']['over']} of {fa['v2_off_diagonal']['n']} v2-to-v2 off-diagonal cells, {fa['v2_diagonal']['over']} of {fa['v2_diagonal']['n']} v2 diagonals, "
@@ -112,7 +112,7 @@ def _people(group: dict[str, Any] | None) -> str:
 
 def genome_finding(sections: dict[str, Any]) -> dict[str, Any]:
     base = {"id": "realism-genome-generator-dependence", "title": "Deficit detection does not hold up on harder generators", "origin": "synthetic",
-            "badge": "synthetic (generators we wrote)", "sections": ["realism"], "severity": "high"}
+            "badge": "generators we wrote", "sections": ["realism"], "severity": "high"}
     rz = _ok(sections, "realism")
     role = "benefits-processor"
     b = (((rz or {}).get("blocks") or {}).get("genome") or {}).get(role)
@@ -122,7 +122,7 @@ def genome_finding(sections: dict[str, Any]) -> dict[str, Any]:
     v1, diag, fit_v1, to_v1 = b["v1_own"], b["v2_diagonals"], b["v1_trained_on_v2"], b["v2_trained_on_v1"]
     fa1 = (v1.get("false_attr_s") or {}).get("est")
     text = (
-        f"Genome (deficit detection), {role}, synthetic generators we wrote ({b.get('n_people_v1_cell')} personas on the v1 generator, {_people(diag)} synthetic people per v2 cell): "
+        f"Genome (deficit detection), {role}, generators we wrote ({b.get('n_people_v1_cell')} personas on the v1 generator, {_people(diag)} generated people per v2 cell): "
         f"precision {_rng([v1['precision']['est']])} and recall {_rng([v1['recall']['est']])} on the v1 generator fall to {_rng(_ests(diag, 'precision'))} precision and "
         f"{_rng(_ests(diag, 'recall'))} recall on three harder generator families (thresholds fitted and tested on the same family). Thresholds fitted on v1 keep recall "
         f"({_rng(_ests(fit_v1, 'recall'))}) but lose precision ({_rng(_ests(fit_v1, 'precision'))}); thresholds fitted on a v2 family give v1 high precision "
@@ -139,7 +139,7 @@ def genome_finding(sections: dict[str, Any]) -> dict[str, Any]:
 
 def routines_finding(sections: dict[str, Any]) -> dict[str, Any]:
     base = {"id": "realism-routines-generator-dependence", "title": "The repeat finder's precision depends on the generator; the gate carries the proposals", "origin": "synthetic",
-            "badge": "synthetic (generators we wrote)", "sections": ["realism"], "severity": "high"}
+            "badge": "generators we wrote", "sections": ["realism"], "severity": "high"}
     rz = _ok(sections, "realism")
     role = "benefits-processor"
     rb = ((rz or {}).get("blocks") or {}).get("routines") or {}
@@ -161,7 +161,7 @@ def routines_finding(sections: dict[str, Any]) -> dict[str, Any]:
     fixed = b.get("shipped_identical_across_fit_family")
     v1p = (v1.get("r1_precision") or {}).get("est")
     text = (
-        f"Routines (repeat finder, then the proposal gate), {role}, synthetic generators we wrote ({_people({'v1': v1})} personas on the v1 generator, {_people(v2)} synthetic people per v2 cell; shipped thresholds"
+        f"Routines (repeat finder, then the proposal gate), {role}, generators we wrote ({_people({'v1': v1})} personas on the v1 generator, {_people(v2)} generated people per v2 cell; shipped thresholds"
         f"{', which do not depend on the fit family' if fixed else ''}): raw cluster precision is {_rng([v1p])} on the v1 generator (the published figure) and "
         f"{_rng(_ests(v2, 'r1_precision'))} on the three v2 families, with recall {_rng(_ests(v2, 'r2_recall'))} ({_rng([(v1.get('r2_recall') or {}).get('est')])} on v1). "
         f"Proposal precision after the gate is {_rng(_ests(v2, 'r3_proposal_precision'))} ({_rng([(v1.get('r3_proposal_precision') or {}).get('est')])} on v1). "
@@ -177,11 +177,11 @@ def routines_finding(sections: dict[str, Any]) -> dict[str, Any]:
 
 
 def study_sim_finding(sections: dict[str, Any]) -> dict[str, Any]:
-    base = {"id": "study-sim-floor-null", "title": "The simulated study cannot show an effect: the outcome sits at the floor", "origin": "synthetic", "badge": SIM,
+    base = {"id": "study-sim-floor-null", "title": "The language-model study cannot show an effect: the outcome sits at the floor", "origin": "synthetic", "badge": SIM,
             "sections": ["study_sim", "study_power"], "severity": "high"}
     ss = _ok(sections, "study_sim")
     if not ss or not ss.get("headline"):
-        return {**base, "status": "pending", "text": f"{SIM}: the simulated study has no analysed result yet, so this finding has no numbers.",
+        return {**base, "status": "pending", "text": f"{SIM}: the language-model study has no analysed result yet, so this finding has no numbers.",
                 "reason": (sections.get("study_sim") or {}).get("reason") or "no analysed run"}
     h, fl, nd = ss["headline"], ss.get("floor") or {}, ss.get("nudges") or {}
     co, aa = fl.get("coached") or {}, fl.get("aa") or {}
@@ -212,7 +212,7 @@ def study_sim_finding(sections: dict[str, Any]) -> dict[str, Any]:
 
 
 def m5_finding(sections: dict[str, Any]) -> dict[str, Any]:
-    base = {"id": "mlv2-m5-transfer-failure", "title": "ML v2 does not transfer to the simulated participants", "origin": "synthetic", "badge": SIM, "sections": ["mlv2"], "severity": "high"}
+    base = {"id": "mlv2-m5-transfer-failure", "title": "ML v2 does not transfer to the language-model participants", "origin": "synthetic", "badge": SIM, "sections": ["mlv2"], "severity": "high"}
     ml = _ok(sections, "mlv2")
     tr = (ml or {}).get("transfer_simulated_participants")
     if not (isinstance(tr, dict) and isinstance(tr.get("models"), dict)):
@@ -235,7 +235,7 @@ def _iv(c: Any, nd: int = 2) -> str:
 
 def mlv2_e4_q1_finding(sections: dict[str, Any]) -> dict[str, Any]:
     base = {"id": "mlv2-e4-q1-rejected", "title": "ML v2 expert-envelope and counterfactual candidates (E4, Q1) are rejected", "origin": "synthetic",
-            "badge": "synthetic (generators we wrote)", "sections": ["mlv2"], "severity": "high"}
+            "badge": "generators we wrote", "sections": ["mlv2"], "severity": "high"}
     ml = _ok(sections, "mlv2")
     rows = {r.get("id"): r for r in (ml or {}).get("verdicts") or [] if isinstance(r, dict) and r.get("family") in ("E", "Q")}
     if not (rows.get("E4") and rows.get("Q1")):
@@ -244,7 +244,7 @@ def mlv2_e4_q1_finding(sections: dict[str, Any]) -> dict[str, Any]:
     gen = (((ml.get("heldout") or {}).get("genome") or {}).get("result") or {})
     e4, q1, e1 = rows["E4"], rows["Q1"], rows.get("E1")
     others = ", ".join(f"{k} {r['verdict']} ({_sg(r.get('delta'))} [{_iv(r.get('interval'))}] s)" for k, r in sorted(rows.items()) if k in ("E1", "E2", "E3") and r.get("delta") is not None)
-    text = (f"ML v2 genome families on the held-out apprentice cohort ({gen.get('n_cohorts')} cohorts, {gen.get('n_novices')} novices; synthetic): the pre-registered primary candidates E4 "
+    text = (f"ML v2 genome families on the held-out apprentice cohort ({gen.get('n_cohorts')} cohorts, {gen.get('n_novices')} novices; all generated): the pre-registered primary candidates E4 "
             f"(expert envelope) and Q1 (counterfactual price) are both {e4['verdict']} and so rejected. The primary metric is the mean absolute error, in seconds, of the recovered price of a "
             f"deficit, paired against v1's attribution, so a positive difference is worse: E4 {_sg(e4['delta'])} [{_iv(e4['interval'])}] s, Q1 {_sg(q1['delta'])} [{_iv(q1['interval'])}] s. "
             f"Other E variants: {others}. v1's attribution stays the default for these families. Reported as is: the candidates were frozen before the held-out run.")
@@ -256,7 +256,7 @@ def mlv2_e4_q1_finding(sections: dict[str, Any]) -> dict[str, Any]:
 
 def mlv2_mismatch_finding(sections: dict[str, Any]) -> dict[str, Any]:
     base = {"id": "mlv2-tsp-beats-v1-under-mismatch", "title": "Under generator mismatch the time-since-progress baseline beats v1", "origin": "synthetic",
-            "badge": "synthetic (generators we wrote)", "sections": ["mlv2"], "severity": "high"}
+            "badge": "generators we wrote", "sections": ["mlv2"], "severity": "high"}
     ml = _ok(sections, "mlv2")
     roles = ((((ml or {}).get("heldout") or {}).get("mismatch") or {}).get("result") or {}).get("roles") or {}
     got = {r: (v.get("pooled_off_diagonal") or {}) for r, v in roles.items()}
@@ -272,7 +272,7 @@ def mlv2_mismatch_finding(sections: dict[str, Any]) -> dict[str, Any]:
     if v2 and isinstance(deep.get(v2), dict):
         vs = (f" The accepted v2 ({v2}) improves on v1 by {_sg(deep[v2]['delta_log_loss'], 3)} [{_iv(deep[v2].get('interval'), 3)}] for benefits-processor under the same test, "
               "a smaller improvement than the baseline's, so on this test a rule that only counts time since progress does better than the accepted v2 when the generator changes.")
-    text = (f"ML v2 under generator mismatch (fit on one synthetic generator family, test on another; pooled off-diagonal cells; synthetic): the plain time-since-progress baseline beats v1 on log "
+    text = (f"ML v2 under generator mismatch (fit on one generator family, test on another; pooled off-diagonal cells; all generated): the plain time-since-progress baseline beats v1 on log "
             f"loss, paired against v1 (negative is better; adjusted intervals as recorded): {per}.{vs} The held-out result is reported as is; it is about our generators, not about workers.")
     return {**base, "status": "ok", "text": text,
             "numbers": {"time_since_progress_vs_v1_by_role": {r: {"delta_log_loss": p["TSP"]["delta_log_loss"], "interval": p["TSP"].get("interval")} for r, p in got.items()},

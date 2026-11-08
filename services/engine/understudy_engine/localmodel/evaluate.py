@@ -421,7 +421,7 @@ def _save_cache(raw: dict[str, Any]) -> None:
 
 # ----------------------------------------------------------------------------------------------------- the entry point
 LIMITATIONS = [
-    {"id": "loc_synthetic", "severity": "high", "text": "Every digest number is measured on synthetic commits and calendar entries with planted labels, "
+    {"id": "loc_synthetic", "severity": "high", "text": "Every digest number is measured on generated commits and calendar entries with planted labels, "
      "written by the same author as the rules and the prompts. No real repository, calendar or person was used; accuracy on real data is unknown "
      "and probably lower."},
     {"id": "loc_small_n", "severity": "high", "text": "About 100 items per task in the held-out test split (and 50 in the dev split the prompts were tuned on): the Wilson "

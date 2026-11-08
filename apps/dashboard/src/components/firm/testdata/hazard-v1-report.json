@@ -99,9 +99,9 @@
     "Labels and events are defined from `progress` events in the data; the model predicts 'no progress in the next 60 s', not 'the person is confused'.",
     "Intervals resample episodes, not people; with few people the person-level spread (per_person) is the honest uncertainty.",
     "Alarm threshold is chosen on training people only under the false-alarm budget; it can overshoot on the held-out person (see false_alarms_within_budget). The budget is a design choice, not a measured tolerance of real workers.",
-    "Synthetic origin: results show the pipeline recovers planted structure, not that real people behave this way."
+    "Generated people: results show the pipeline recovers planted structure, not that real people behave this way."
    ],
-   "data_source": "engine-data synthetic personas (4 people, 21 days)",
+   "data_source": "engine-data generated personas (4 people, 21 days)",
    "detection_rate": 0.3288590604026846,
    "detection_rate_ci": [
     0.2749961792895662,
@@ -118,12 +118,12 @@
     {
      "id": "ana-synthetic-origin",
      "severity": "high",
-     "text": "Hazard, skills, policy, routing and agent-claim results come from synthetic personas, scripted apprentices or simulators we wrote. They show that the methods recover structure we planted, not that real workers behave this way."
+     "text": "Hazard, skills, policy, routing and agent-claim results come from generated personas, scripted apprentices or simulators we wrote. They show that the methods recover structure we planted, not that real workers behave this way."
     },
     {
      "id": "ana-hazard-people",
      "severity": "high",
-     "text": "The stuck hazard is evaluated on four synthetic personas, so 'held-out person' means one of four. Intervals resample episodes, not people; the per-person spread is the honest uncertainty."
+     "text": "The stuck hazard is evaluated on four generated personas, so 'held-out person' means one of four. Intervals resample episodes, not people; the per-person spread is the honest uncertainty."
     },
     {
      "id": "ana-hazard-alerts",
@@ -184,7 +184,7 @@
     "id": "ana-hazard-people",
     "severity": "high",
     "source": "engine-analytics:hazard; engine-analytics:policy_gate",
-    "text": "The stuck hazard is evaluated on four synthetic personas, so 'held-out person' means one of four. Intervals resample episodes, not people; the per-person spread is the honest uncertainty."
+    "text": "The stuck hazard is evaluated on four generated personas, so 'held-out person' means one of four. Intervals resample episodes, not people; the per-person spread is the honest uncertainty."
    },
    {
     "id": "ana-hazard-alerts",

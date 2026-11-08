@@ -127,7 +127,7 @@ def test_the_worker_response_is_a_few_pointers_with_no_statistics(client, snapsh
     assert r.status_code == 200
     d = r.json()["data"]
     assert set(d) == WORKER_DATA_KEYS and d["person"] == pid and len(d["pointers"]) <= 3 and d["cap"] == 3
-    assert d["status"] in V.STATUSES_WORKER and d["badge"] == "synthetic firm"
+    assert d["status"] in V.STATUSES_WORKER and d["badge"] == "made-up firm"
     assert r.json()["meta"]["interval_level"] is None and r.json()["meta"]["audience"] == "worker"
     for p in d["pointers"]:
         assert set(p) == WORKER_KEYS
@@ -190,7 +190,7 @@ def test_overview_has_the_agreed_shape_and_at_most_seven_ranked_insights(client)
     r = client.get("/insights/admin/overview", headers=admin_headers())
     d = r.json()["data"]
     assert set(d) >= {"firm", "top", "coverage", "risk", "role_comparison", "statement", "nothing_stands_out", "suppressed", "week", "badge"}
-    assert d["firm"] == {"users": 60, "roles": 3, "label": "synthetic firm"} and 1 <= len(d["top"]) <= 7 and d["statement"] == V.STATEMENT
+    assert d["firm"] == {"users": 60, "roles": 3, "label": "made-up firm"} and 1 <= len(d["top"]) <= 7 and d["statement"] == V.STATEMENT
     assert set(d["risk"]) == {"approval_backlog_age_h", "injection_pauses_30d", "kill_events_30d", "open_approvals"} and d["risk"]["injection_pauses_30d"] == 2
     assert set(d["coverage"]) >= {"users", "enough_data", "min_occurrences"}
     for i, c in enumerate(d["top"], start=1):
@@ -441,7 +441,7 @@ def test_the_engines_own_profile_gets_a_fixed_example_week_in_mock_mode(client, 
     want = expected_stand_in(snapshot)
     assert d["stand_in"] is True and d["person"] == identity and d["stand_in_label"] == want.label
     assert len(d["pointers"]) >= 2 and d["status"] in V.STATUSES_WORKER
-    assert m["origin"] == "synthetic" and m["badge"] == "synthetic firm" and m["note"] == "An example week from the synthetic firm stands in for this profile."
+    assert m["origin"] == "synthetic" and m["badge"] == "made-up firm" and m["note"] == "An example week from the made-up firm stands in for this profile."
     assert "demo" not in json.dumps(r.json()).lower()
     check = pytest.importorskip("jsonschema")
     assert check is not None
@@ -479,7 +479,7 @@ def test_outside_mock_mode_the_404_stays_and_so_does_it_for_anyone_the_engine_do
 def test_a_person_in_the_firm_and_the_admin_views_never_use_a_stand_in(client, snapshot, identity):
     pid = a_person(snapshot)
     d = client.get("/insights/worker", params={"person": pid}).json()
-    assert "stand_in" not in d["data"] and d["meta"]["note"] != "An example week from the synthetic firm stands in for this profile."
+    assert "stand_in" not in d["data"] and d["meta"]["note"] != "An example week from the made-up firm stands in for this profile."
     ov = client.get("/insights/admin/overview", headers=admin_headers())
     assert ov.status_code == 200 and "stand_in" not in json.dumps(ov.json())
     # an admin request for the engine's profile is not served either: the routes take no person
@@ -496,7 +496,7 @@ def test_why_sharing_and_feedback_follow_the_stand_in_and_touch_only_its_own_sta
     assert w.status_code == 200 and w.json()["data"]["stand_in"] is True and w.json()["data"]["state"] == "selected" and "demo" not in json.dumps(w.json()).lower()
     sh = client.get("/insights/sharing", params={"person": identity}).json()
     assert sh["data"]["stand_in"] is True and sh["data"]["person"] == identity and sh["data"]["preview"]["label"] == want.label
-    assert sh["meta"]["note"] == "An example week from the synthetic firm stands in for this profile."
+    assert sh["meta"]["note"] == "An example week from the made-up firm stands in for this profile."
     f = client.post("/insights/feedback", json={"insight": ptr["id"], "event": "not_useful"}, params={"person": identity})
     assert f.status_code == 200 and f.json() == {"insight": ptr["id"], "event": "not_useful", "recorded": True, "stand_in": True}
     after = client.get("/insights/worker", params={"person": identity}).json()["data"]

@@ -98,7 +98,7 @@ def test_rows_use_one_common_test_set_and_are_deterministic():
 
 
 pytestmark_data = pytest.mark.skipif(not (data_dir() / "synthetic" / "learners" / "truth.json").exists(),
-                                     reason="synthetic datasets not generated")
+                                     reason="generated datasets not generated")
 
 
 @pytestmark_data

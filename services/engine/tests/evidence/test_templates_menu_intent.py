@@ -69,7 +69,7 @@ def test_templates_say_associated_never_because_and_state_the_badge_and_n(pk0):
         assert bad not in text.lower()
     lim = [s["id"] for sec in out["sections"] if sec["kind"] == "limits" for s in sec["sentences"]]
     assert {"synthetic_data", "association_only", "not_expert_claim", "explainer_readability", "single_case"} <= set(lim)
-    assert out["footer"] == "Based on n = 24 people; synthetic data."
+    assert out["footer"] == "Based on n = 24 people; generated data."
     assert out["badge"] == {"origin": "synthetic", "n": 24, "n_unit": "people", "split": "descriptive_nearest_expert"}
 
 

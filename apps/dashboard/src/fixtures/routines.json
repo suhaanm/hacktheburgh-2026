@@ -3,9 +3,9 @@
   "origin": "synthetic",
   "n": 34,
   "n_unit": "episodes",
-  "split": "synthetic benefits-processor persona, 21 days",
+  "split": "generated benefits-processor persona, 21 days",
   "interval_level": 0.95,
-  "note": "Detected from synthetic traces with planted routines.",
+  "note": "Detected from generated traces with planted routines.",
   "generated_at": "2026-11-07T14:40:00Z"
  },
  "data": [

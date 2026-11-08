@@ -18,8 +18,8 @@ Calibration = Literal["calibrated", "overconfident", "underconfident", "untested
 NUnit = Literal["people", "cases", "episodes", "households", "personas"]
 Split = Literal["descriptive_nearest_expert", "leave_one_person_out", "none"]
 ORIGIN_PHRASE = {
-    "synthetic": "synthetic data",
-    "simulated_participants": "simulated participants",
+    "synthetic": "generated data",
+    "simulated_participants": "language-model participants",
     "live": "live data",
 }
 N_UNIT_PHRASE = {"people": "people", "cases": "cases", "episodes": "episodes", "households": "households", "personas": "personas"}
@@ -214,8 +214,8 @@ LimitId = Literal[
     "stale_data",
 ]
 LIMITATIONS: dict[str, str] = {
-    "synthetic_data": "These figures come from synthetic data with planted patterns, so they show that the method recovers known structure, not that real people behave this way.",
-    "simulated_participants": "These figures come from simulated participants, not real people.",
+    "synthetic_data": "These figures come from generated data with planted patterns, so they show that the method recovers known structure, not that real people behave this way.",
+    "simulated_participants": "These figures come from language-model participants, not real people.",
     "small_n": "The sample is small, so the intervals are wide.",
     "single_case": "A single case has no interval of its own; the intervals shown are for the cohort average.",
     "association_only": "Everything here is an association in recorded traces, not proof of cause.",
@@ -227,19 +227,19 @@ LIMITATIONS: dict[str, str] = {
     "counterfactual_model": "Counterfactual seconds are a model's estimate of what would change, not a measured result.",
     "consequence_rules": "Error rates come from a simplified internal rule set for the calculators, not from the law.",
     "saved_time_by_skips": "Skipped steps show as saved time in the alignment; the consequences row says what skipping can cost.",
-    "synthetic_people_only": "Every person in this analysis is synthetic; no real worker is in the data.",
-    "generator_planted_structure": "The synthetic data was generated with planted patterns, so the method can only show that it recovers what was planted.",
-    "n_four_personas": "The stuck model was checked on only four synthetic personas, so its scores carry wide uncertainty.",
+    "synthetic_people_only": "Every person in this analysis is generated; no real worker is in the data.",
+    "generator_planted_structure": "The data was generated with planted patterns, so the method can only show that it recovers what was planted.",
+    "n_four_personas": "The stuck model was checked on only four generated personas, so its scores carry wide uncertainty.",
     "shared_steps_mispriced": "Time on steps that both you and the expert do can be priced unevenly between habits, so treat the split between habits as approximate.",
     "additive_counterfactual": "A counterfactual adds up the effect of one habit on its own and assumes everything else stays the same.",
     "interactions_not_modelled": "The analysis does not model how habits interact with each other.",
-    "calibrated_on_synthetic": "The probabilities were calibrated on synthetic data, so they may be off on real work.",
+    "calibrated_on_synthetic": "The probabilities were calibrated on generated data, so they may be off on real work.",
     "alarm_budget_is_design_choice": "The number of false alarms allowed per hour is a design choice, not a measured limit of what workers will tolerate.",
     "llm_participants_not_people": "The participants in this check were language-model agents, not people.",
     "timing_reconstructed": "Some timings were reconstructed from the recorded events rather than measured directly.",
     "heldout_same_generator": "The held-out check used fresh draws from the same generator, so it cannot show that the model avoided learning the generator.",
     "generator_mismatch_tested": "The model was also tested on data from a differently built generator, and those results are labelled separately.",
-    "small_n_simulated_participants": "Only a few simulated participants finished, so the intervals are wide.",
+    "small_n_simulated_participants": "Only a few language-model participants finished, so the intervals are wide.",
     "interval_too_narrow": "The interval for this estimate was too narrow in testing and should be read as optimistic.",
     "stale_data": "Some of the readings above are older than they should be, so they may not describe the present.",
 }

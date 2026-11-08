@@ -244,7 +244,7 @@ def evaluate_pooling(root=None, *, n_boot: int = 300, seed: int = 0, ks: Sequenc
         "origin": "synthetic", "n": primary["n_people"], "n_unit": "personas",
         "split": "leave-one-person-out; scored on episodes after the first max(k)", "interval_level": 0.95,
         "meta": analytic_meta("synthetic", primary["n_people"], "personas", "leave-one-person-out",
-                              note="Cold start for a new worker: error after 0, 1, 3 and 10 of their own episodes. Four synthetic personas."),
+                              note="Cold start for a new worker: error after 0, 1, 3 and 10 of their own episodes. Four generated personas."),
         "headline": {"quantity": primary["quantity"], "k0_partial": best_at_0["partial_pooling"], "k0_no_pooling": best_at_0["no_pooling"]},
         "limitations": limitations_for("pooling"),
         "caveats": [

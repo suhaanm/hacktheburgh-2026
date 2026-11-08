@@ -230,7 +230,7 @@ def caveat_text(f: dict[str, Any] | None = None) -> str:
     f = f or CAVEAT_FIGURES
     lo, hi = f["bias_points"]
     r_lo, r_hi = f["false_rise_rate"]
-    return (f"Experimental. On simulated learners it overstated by {lo:.0f} to {hi:.0f} points when nobody improved, and rose 10 points or more "
+    return (f"Experimental. On generated learners it overstated by {lo:.0f} to {hi:.0f} points when nobody improved, and rose 10 points or more "
             f"in {round(100 * r_lo):d} to {round(100 * r_hi):d}% of learners whose skill never changed. Read the trend and the independence interval instead.")
 
 
@@ -316,7 +316,7 @@ def compute(occ_rows: Sequence[dict[str, Any]], now: float, *, n_boot: int = 200
     return {
         "n": n, "ready": ready, "independence": ind, "baseline": bl, "trend": tr, "gap_closure": gc, "retention": rt,
         "mastery": {"value": _rnd(m), "by_skill": {s: _rnd(v) for s, v in sorted(ms.items())}, "variant": MASTERY_VARIANT,
-                    "note": "From the tracing replay. On simulated learners who did not improve it overstated mastery by 0.3 to 0.5, so it is not used in any headline."},
+                    "note": "From the tracing replay. On generated learners who did not improve it overstated mastery by 0.3 to 0.5, so it is not used in any headline."},
         "composite": comp, "composite_ci": ci,
         "occurrences": {"total": n, "unaided": counts.get("clean", 0), "assisted": counts.get("assisted", 0), "errors": counts.get("error", 0),
                         "abandoned": counts.get("abandoned", 0)},
@@ -436,5 +436,5 @@ def summary_line(rows: Sequence[dict[str, Any]]) -> str:
     w = occ[-WINDOW:]
     needed = sum(1 for r in w if is_assisted(r))
     skills = len({r.get("skill") for r in occ if r.get("skill")})
-    tag = " (synthetic data)" if any(r.get("origin") == "synthetic" for r in occ) else ""
+    tag = " (generated data)" if any(r.get("origin") == "synthetic" for r in occ) else ""
     return f"Cue assist ledger{tag}: help was needed on {needed} of the last {len(w)} steps across {skills} skills."

@@ -45,19 +45,19 @@ HABIT_OF_DEFICIT = {
 
 # The fixed limitation table (id -> a plain default sentence; the consumer may use its own wording for the same id).
 LIMITATIONS: dict[str, str] = {
-    "synthetic_people_only": "These results come from synthetic people we generated, not from real workers.",
+    "synthetic_people_only": "These results come from people we generated, not from real workers.",
     "generator_planted_structure": "The structure these methods find was planted by our own data generator, so this shows recovery of what we planted.",
-    "n_four_personas": "The stuck-prediction result rests on four synthetic personas.",
+    "n_four_personas": "The stuck-prediction result rests on four generated personas.",
     "shared_steps_mispriced": "When two habits share steps, the seconds can be shifted between them.",
     "additive_counterfactual_assumes_rest_unchanged": "The seconds-if-fixed estimate assumes the rest of the path would stay the same.",
     "interactions_not_modelled": "Interactions between habits are not modelled, so the parts need not add up exactly.",
-    "calibrated_on_synthetic": "The probabilities were calibrated on synthetic data.",
+    "calibrated_on_synthetic": "The probabilities were calibrated on generated data.",
     "alarm_budget_is_design_choice": "The false-alarm budget is a design choice, not a measured tolerance of real workers.",
-    "llm_participants_not_people": "These traces come from simulated participants (language model), not people.",
+    "llm_participants_not_people": "These traces come from language-model participants, not people.",
     "timing_reconstructed": "Timing in these traces was reconstructed from action counts, not measured.",
     "held_out_replicates_same_generator": "The held-out check used fresh draws of the same generator, so it cannot show the model avoided learning the generator.",
     "generator_mismatch_tested": "The model was also tested on data from a differently built generator; results for that test are labelled separately.",
-    "small_n_simulated_participants": "Only a few simulated participants finished, so the intervals are wide.",
+    "small_n_simulated_participants": "Only a few language-model participants finished, so the intervals are wide.",
     "interval_too_narrow": "The interval for this estimate was too narrow in testing and should be read as optimistic.",
 }
 LIMITATION_IDS = tuple(LIMITATIONS)

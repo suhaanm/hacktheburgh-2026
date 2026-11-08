@@ -137,7 +137,7 @@ def live_raw(with_fix=True, dropped_meta=None):
                 "tokens_in": 497099, "tokens_out": 69296, "usd_at_assumed_rates": 4.56, "note": "nine v2 rows dropped after the budget stop (they made no live calls)."}},
             "summary": by["v1_no_page_state"], "summary_by_variant": by,
             "runs": [{"run_id": f"r{i}", "live_calls": 2, "cache_hits": 10} for i in range(90)],
-            "tier3_simulated": {"runs": [{"outcome": "claimed_not_verified"}] * 3, "pointer_actions": 0, "landed_on_interactive": 0, "note": "simulated actuator"},
+            "tier3_simulated": {"runs": [{"outcome": "claimed_not_verified"}] * 3, "pointer_actions": 0, "landed_on_interactive": 0, "note": "stand-in actuator"},
             "limitations": ["Identical prompts are cached, so repeated page situations are one live sample each.", "Cost figures are estimates at placeholder rates."],
             "glitch_before_after": {"before_v1_no_page_state": {"n": 20}, "after_v2_page_state": {"n": 10}}}
 

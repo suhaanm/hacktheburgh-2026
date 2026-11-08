@@ -914,7 +914,7 @@ def _context_curve(root: Path, fast: bool) -> dict[str, Any]:
 
 # ---------------------------------------------------------------------------------------------- the entry point
 LIMITATIONS = [
-    {"id": "rt_synthetic", "severity": "high", "text": "Every fixture is synthetic with planted facts; recovery rates say the runtime and its checks work on "
+    {"id": "rt_synthetic", "severity": "high", "text": "Every fixture is generated with planted facts; recovery rates say the runtime and its checks work on "
      "those fixtures, not that they work on a real repository or table. Nothing here was run on a person's real data."},
     {"id": "rt_menu_mode", "severity": "high", "text": "In the privacy-preserving default (menu mode) the model only sequences vetted steps by id; the "
      "analysis is done by scripts we wrote. The live smoke shows a model can plan and drive a menu, not that it can analyse data. "
@@ -925,7 +925,7 @@ LIMITATIONS = [
     {"id": "rt_sandbox_macos", "severity": "medium", "text": "run_python uses macOS sandbox-exec (deprecated by Apple but present) and fails closed without it. "
      "Memory is bounded by a resident-size watchdog polled every 250 ms, not a kernel limit (macOS refuses RLIMIT_AS)."},
     {"id": "rt_injection_rules", "severity": "medium", "text": "Injection detection is a rule set. The planted strings are of the styles the rules cover, so the detection rate here is an upper bound."},
-    {"id": "rt_nightly_replay", "severity": "low", "text": "The nightly replay uses a fake screen and a simulated presence service; it checks the decision flow, not the real lock screen or forecast."},
+    {"id": "rt_nightly_replay", "severity": "low", "text": "The nightly replay uses a fake screen and a stand-in presence service; it checks the decision flow, not the real lock screen or forecast."},
     {"id": "rt_timing_loaded", "severity": "low", "text": "Latencies were measured on a development laptop shared with other processes; treat them as indicative."},
     {"id": "rt_lh_injected_bugs", "severity": "high", "text": "The long-horizon bugs are single-token mutations of correct code (an operator, a boundary, a constant), "
      "repaired by fault localisation plus mutation search over three classes, the standard way to test repair tools. Success shows the loop, the "
@@ -973,7 +973,7 @@ def evaluate_runtime(fast: bool = False, *, live: bool | None = None, out: Path 
     n_runs = (sum(v["n"] for v in sections["planted_facts"]["by_kind"].values()) + sections["lies_caught"]["false_claims"]
               + sections["privacy"]["flows"] + sections["determinism"]["runs_repeated"]["n"] * 2)
     meta = {"origin": "synthetic", "n": n_runs, "n_unit": "runs", "split": None, "interval_level": 0.95,
-            "note": "Synthetic fixtures with planted facts, mock model, offline; one live smoke with the real model when a key is present.",
+            "note": "Generated fixtures with planted facts, mock model, offline; one live smoke with the real model when a key is present.",
             "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"), "mock": True,
             "fast": fast, "live_smoke": sections["live_smoke"].get("ran", False), "seconds": round(time.monotonic() - t_start, 1),
             "caps": {"max_children": policy.MAX_CHILDREN, "max_steps": policy.MAX_STEPS, "max_seconds": policy.MAX_SECONDS}}

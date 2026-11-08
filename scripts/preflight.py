@@ -611,7 +611,7 @@ def check_offline(ctx: Ctx) -> list[Result]:
         res.append(R("Offline", "offline_golden", RED, "Cached golden run", "data/golden/benefits_golden.json missing or not JSON", "record the golden run while online (the cached fallback needs it)"))
     synth = ctx.repo / "data" / "synthetic"
     n = len(list(synth.glob("*/events.jsonl"))) if synth.is_dir() else 0
-    res.append(R("Offline", "offline_synthetic", GREEN if n >= 4 else RED, "Synthetic data (genome, presence, evidence)", f"{n} persona or apprentice files" if n else "missing", "" if n >= 4 else "uv run --package understudy-engine understudy synth --all"))
+    res.append(R("Offline", "offline_synthetic", GREEN if n >= 4 else RED, "Generated data (genome, presence, evidence)", f"{n} persona or apprentice files" if n else "missing", "" if n >= 4 else "uv run --package understudy-engine understudy synth --all"))
     st, body, _ = ctx.get(ctx.engine, "/health") if port_open(ctx.engine_port) else (None, None, None)
     if isinstance(body, dict):
         mock = bool(body.get("mock"))

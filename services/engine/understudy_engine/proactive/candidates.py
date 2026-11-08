@@ -366,7 +366,7 @@ def calendar_candidates(ctx: Ctx, rd: Reading) -> list[Candidate]:
         if ref:
             bits.append("The expert reference is on the card.")
         if rd.meta.get("stand_in"):
-            bits.append("This is a stand-in synthetic calendar, because the demo person has none.")
+            bits.append("This is a stand-in example calendar, because the demo person has none.")
         can_draft = bool(s.get("can_draft")) and bool(cat["draft"])
         risk = "outward" if can_draft else "normal"
         fire = (FireSpec("draft", {"queue_kind": "outward_step", "action": "calendar_draft", "template": tid}) if can_draft

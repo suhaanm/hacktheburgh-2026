@@ -83,7 +83,7 @@ def week_report(store: CalendarStore, person: str, week: str | None = None, *, n
 
 def week_meta(report: dict[str, Any], origin: str = "synthetic") -> dict[str, Any]:
     src = report["expert"]["source"]
-    note = ("Synthetic calendar with planted structure; the expert reference is " + (f"{report['expert']['n_experts']} synthetic experts generated from the role template. "
+    note = ("Generated calendar with planted structure; the expert reference is " + (f"{report['expert']['n_experts']} experts generated from the role template. "
             if src == "cohort" else "the role template only. ") +
             "Intervals cover the uncertainty in the expert reference only. Nothing here is validated on real people.")
     return {"origin": origin, "n": report["features"]["days_worked"], "n_unit": "days", "split": None, "interval_level": 0.95, "note": note,
@@ -110,5 +110,5 @@ def suggestions_report(store: CalendarStore, person: str, week: str | None = Non
 def suggestions_meta(rep: dict[str, Any], origin: str = "synthetic") -> dict[str, Any]:
     return {"origin": origin, "n": rep["n_weeks"], "n_unit": "days", "split": None, "interval_level": 0.95,
             "note": ("Chosen by code from fixed thresholds against the expert reference; text is templated" + (" and may be reworded from bucketed aggregates only" if rep["reworded"] else "")
-                     + ". Synthetic calendar; every suggestion is opt-in and low risk."),
+                     + ". Generated calendar; every suggestion is opt-in and low risk."),
             "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds")}

@@ -19,7 +19,7 @@ from .stats import wilson
 
 ORIGIN_TEXT = "language model driving a sandbox we wrote, in a headless browser; not a real desktop and not people"
 HELDOUT_CONDITIONS = ("injected", "clean")
-SIM = "simulated participants (language model), not people"
+SIM = "language-model participants, not people"
 
 
 def _json(path: Path) -> dict[str, Any] | None:

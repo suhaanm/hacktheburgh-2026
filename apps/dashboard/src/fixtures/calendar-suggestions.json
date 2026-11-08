@@ -5,7 +5,7 @@
   "n_unit": "days",
   "split": null,
   "interval_level": 0.95,
-  "note": "Chosen by code from fixed thresholds against the expert reference; text is templated. Synthetic calendar; every suggestion is opt-in and low risk.",
+  "note": "Chosen by code from fixed thresholds against the expert reference; text is templated. Generated calendar; every suggestion is opt-in and low risk.",
   "generated_at": "2026-11-07T17:24:45+00:00"
  },
  "data": [

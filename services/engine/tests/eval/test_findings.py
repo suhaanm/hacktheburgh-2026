@@ -131,7 +131,7 @@ def test_realism_finding_states_the_numbers_and_the_headline_sentence(tmp_path):
     assert "0.43 to 0.53 nats worse than the baseline" in t
     assert "3 of 6 v2-to-v2 off-diagonal cells, 1 of 3 v2 diagonals, 3 of 3 v1-to-v2 cells and 0 of 3 v2-to-v1 cells" in t
     assert "latent_skill->markov" in t and "v1->markov" in t
-    assert "log loss 0.436 against 0.509" in t and "largely reflects the generator's emission table; it stays labelled synthetic" in t
+    assert "log loss 0.436 against 0.509" in t and "largely reflects the generator's emission table; it stays labelled as a generator result" in t
 
 
 def realism_section(tmp_path, thin=True):
@@ -150,7 +150,7 @@ def test_genome_finding_states_the_ranges_read_from_the_block(tmp_path):
     assert "precision 92% and recall 95% on the v1 generator fall to 48 to 71% precision and 49 to 68% recall on three harder generator families" in t
     assert "Thresholds fitted on v1 keep recall (87 to 95%) but lose precision (33 to 56%)" in t
     assert "high precision (79 to 100%) but recall of only 10 to 42%" in t
-    assert "46 to 59 s on the v2 families against 1.1 s on v1" in t and "16 personas on the v1 generator, 87 to 92 synthetic people per v2 cell" in t
+    assert "46 to 59 s on the v2 families against 1.1 s on v1" in t and "16 personas on the v1 generator, 87 to 92 generated people per v2 cell" in t
     assert f["numbers"]["v2_diagonals"]["markov"]["recall"]["est"] == 0.62
 
 
@@ -159,7 +159,7 @@ def test_routines_finding_states_the_raw_precision_the_gate_and_the_thin_roles(t
     t = f["text"]
     assert f["status"] == "ok"
     assert "raw cluster precision is 22% on the v1 generator (the published figure) and 44 to 97% on the three v2 families, with recall 45 to 92% (100% on v1)" in t
-    assert "Proposal precision after the gate is 74 to 100% (100% on v1)" in t and "4 personas on the v1 generator, 120 synthetic people per v2 cell" in t
+    assert "Proposal precision after the gate is 74 to 100% (100% on v1)" in t and "4 personas on the v1 generator, 120 generated people per v2 cell" in t
     assert "raw precision ranges from 4 to 60%" in t and "which do not depend on the fit family" in t
     assert "data-analyst, programmer" in t and "raw precision 44 to 97%" in t and "so the figures differ by role as well as by family" in t
     assert set(f["numbers"]["thin_roles"]) == {"data-analyst", "programmer"}
@@ -309,7 +309,7 @@ def test_findings_are_in_the_report_the_markdown_the_facts_and_on_their_sections
     assert rep["sections"]["mlv2"]["finding"]["id"] == "mlv2-m5-transfer-failure" and schema_errors(rep) == []
     md = render(rep)
     assert md.index("## Evidence map") < md.index("## Findings") < md.index("## ML v2" if "## ML v2" in md else "## Models v2")
-    assert "### ML v2 does not transfer to the simulated participants" in md and "**PENDING**" in md and "origin: **synthetic**" in md
+    assert "### ML v2 does not transfer to the language-model participants" in md and "**PENDING**" in md and "measured on: **generators we wrote**" in md
     from understudy_engine.eval.facts import build_facts
 
     facts = build_facts(rep, tests=False)
@@ -384,7 +384,7 @@ def test_cue_attention_insights_never_run_held_out_and_attach_recorded_results(e
     calls = {}
     fake_module(monkeypatch, "understudy_engine.cue.evaluate", "evaluate_cue", lambda fast=False, *, held_out=False, root=None: (calls.update(cue=held_out), {"meta": META, "limitations": [], "held_out": {"status": "not_run"}})[1])
     fake_module(monkeypatch, "understudy_engine.attention.evaluate", "evaluate_attention", lambda fast=False, *, held_out=False, **kw: (calls.update(att=held_out), {"meta": {"badge": "b", "n_workers": 8, "split": "dev", "seeds": [0]}})[1])
-    fake_module(monkeypatch, "understudy_engine.insights.evaluate", "evaluate_insights", lambda fast=False, heldout=False, **kw: (calls.update(ins=heldout), {"meta": {"badge": "synthetic firm", "seed_list": [0, 1], "people_per_firm": 60}, "limitations": ["Sentence limit."]})[1])
+    fake_module(monkeypatch, "understudy_engine.insights.evaluate", "evaluate_insights", lambda fast=False, heldout=False, **kw: (calls.update(ins=heldout), {"meta": {"badge": "made-up firm", "seed_list": [0, 1], "people_per_firm": 60}, "limitations": ["Sentence limit."]})[1])
     (evals / "cue").mkdir()
     (evals / "cue" / "held_out.json").write_text(json.dumps({"cue": {"m": 1}, "score_validation": {"v": 2}, "params": {}, "meta": {}, "code_hashes": {"x": "y"}}))
     (evals / "attention").mkdir()
@@ -395,8 +395,8 @@ def test_cue_attention_insights_never_run_held_out_and_attach_recorded_results(e
     assert calls == {"cue": False, "att": False, "ins": False}
     s = rep["sections"]
     assert s["cue"]["held_out"]["cue"] == {"m": 1} and "code_hashes" not in s["cue"]["held_out"] and "never run by the harness" in s["cue"]["held_out"]["source"]
-    assert s["attention"]["held_out"]["verdict"] == "ok" and s["attention"]["meta"]["n"] == 8 and s["attention"]["meta"]["n_unit"] == "simulated workers"
-    assert s["insights"]["held_out"]["m1"] == 0.0 and s["insights"]["meta"]["n"] == 120 and "synthetic people" in s["insights"]["meta"]["n_unit"]
+    assert s["attention"]["held_out"]["verdict"] == "ok" and s["attention"]["meta"]["n"] == 8 and s["attention"]["meta"]["n_unit"] == "generated workers"
+    assert s["insights"]["held_out"]["m1"] == 0.0 and s["insights"]["meta"]["n"] == 120 and "generated people" in s["insights"]["meta"]["n_unit"]
     assert any(e["source"].startswith("insights:insights") for e in s["limitations"])          # a plain-sentence limit became a register entry
     assert schema_errors(rep) == []
 

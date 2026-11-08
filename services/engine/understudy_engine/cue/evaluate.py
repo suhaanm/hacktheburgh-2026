@@ -193,7 +193,7 @@ def code_hashes() -> dict[str, str]:
 READINGS = [
     "Candidates: the pack's order rules do most of the work (the same n-gram without them is clearly worse); family A is 8 people with two orderings, so its interval is wide; family B is written from the pack's rules, so it cannot make them lose.",
     "Score: the independence interval and the trend are the headline. The composite overstates for learners who do not improve and rises falsely in about a third of them, so it is shown as experimental only. 'Steady' means cannot tell yet.",
-    "Cue: these numbers say how the policy behaves in a simulated world whose assumptions are in PLAN.md and cue/simulate.py. They do not say Cue works on people.",
+    "Cue: these numbers say how the policy behaves in a generated world whose assumptions are in PLAN.md and cue/simulate.py. They do not say Cue works on people.",
 ]
 LIMITATIONS = [
     {"id": "cue-sim-world", "severity": "high", "text": "Every Cue result comes from a simulator written by the same team that wrote the policy: stalls, pauses, reaction times and interruption costs are assumptions. It shows the policy keeps its caps and trades help against nuisance as designed; it is not evidence about people."},
@@ -256,7 +256,7 @@ def evaluate_cue(fast: bool = False, *, held_out: bool = False, root: Path | str
     out["limitations"] = LIMITATIONS
     out["code_hashes"] = code_hashes()
     out["meta"] = analytic_meta("synthetic", nw, "personas", f"dev population seed {DEV['pop_seed']}; held-out seed {HELD['pop_seed']} (separate command)",
-                                note="Simulated workers and learners; nothing here is evidence about people. Design targets are design choices.")
+                                note="Generated workers and learners; nothing here is evidence about people. Design targets are design choices.")
     out["design"] = {"assumptions": {k: (v if not isinstance(v, dict) else {str(a): b for a, b in v.items()}) for k, v in ASSUME.items()}, "dt_s": DT,
                      "voice_ok": False, "seconds": round(time.time() - t0, 1), "fast": fast}
     return out
@@ -274,7 +274,7 @@ def held_out_run(*, seed0: int = ES.HELD_SEED0) -> dict[str, Any]:
             "cue": {"split": f"held-out population seed {HELD['pop_seed']} (40 workers), replicate seeds {list(HELD['reps'])}", "metrics": hm, "acceptance": decide_acceptance(hm)},
             "score_validation": {"split": f"held-out learner seeds {seed0}..{seed0 + 59} per kind", "variants": ES.validate_score(seed0=seed0, n_rep=60, n_boot_trend=200),
                                  "gaming": ES.gaming_sweep(seed0=seed0, n_rep=40)},
-            "meta": analytic_meta("synthetic", 40, "personas", "held-out", note="Simulated; run once after evals/cue/PLAN.md was committed."), "seconds": round(time.time() - t0, 1)}
+            "meta": analytic_meta("synthetic", 40, "personas", "held-out", note="Generated; run once after evals/cue/PLAN.md was committed."), "seconds": round(time.time() - t0, 1)}
 
 
 def main(argv: list[str] | None = None) -> int:

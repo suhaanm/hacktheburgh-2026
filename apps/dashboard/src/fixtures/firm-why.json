@@ -15,7 +15,7 @@
   "limits": [
    "These figures are for coaching and onboarding, not for evaluating individuals.",
    "Comparisons are within the same tasks and need at least 5 people per group.",
-   "The data is synthetic until a real deployment says otherwise.",
+   "The data is generated until a real deployment says otherwise.",
    "Insights are chosen by fixed rules, and worded from a fixed list of sentences."
   ],
   "parts": {
@@ -42,7 +42,7 @@
  "meta": {
   "as_of": "2026-11-09T09:00:00Z",
   "audience": "admin",
-  "badge": "synthetic firm",
+  "badge": "made-up firm",
   "generated_at": "2026-11-09T09:00:00Z",
   "interval_level": null,
   "n": 0,
