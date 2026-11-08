@@ -4,7 +4,7 @@
 No number in the brief is typed by hand. A placeholder is ``{{src:path/to/value|fmt}}``:
 
   src   one of  r (evals/report.json, from its ``sections``)  rt (evals/report.json, top level)  hl (evals/hrt/results/heldout_ledger.json)
-        hd (evals/hrt/results/heldout_decisions.json)  mh (evals/mlv2/results/heldout_hazard.json)  mm (evals/mlv2/results/heldout_mismatch.json)
+        hd (evals/hrt/results/heldout_decisions.json)  hr (evals/hrt/results/heldout_recal.json)  mh (evals/mlv2/results/heldout_hazard.json)  mm (evals/mlv2/results/heldout_mismatch.json)
         cue (evals/cue/held_out.json)
   path  keys and list indexes separated by "/"; ``id=P1`` picks the list item whose ``id`` is P1; ``1:3`` is not supported (name the index)
   assert  ``<!-- assert src:path < src:path -->`` (or > , or a number on either side) is checked at render time: a sentence in the template that says "beats" or
@@ -32,6 +32,7 @@ SOURCES = {
     "rt": (ROOT / "evals" / "report.json", None),
     "hl": (ROOT / "evals" / "hrt" / "results" / "heldout_ledger.json", None),
     "hd": (ROOT / "evals" / "hrt" / "results" / "heldout_decisions.json", None),
+    "hr": (ROOT / "evals" / "hrt" / "results" / "heldout_recal.json", None),
     "mh": (ROOT / "evals" / "mlv2" / "results" / "heldout_hazard.json", None),
     "mm": (ROOT / "evals" / "mlv2" / "results" / "heldout_mismatch.json", None),
     "cue": (ROOT / "evals" / "cue" / "held_out.json", None),

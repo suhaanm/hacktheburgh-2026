@@ -73,6 +73,6 @@ def test_the_number_of_generated_values_is_large_and_the_prose_has_no_loose_deci
     stripped = re.sub(r"<!--.*?-->", "", stripped, flags=re.S)
     stripped = re.sub(r"`[^`]*`", "", stripped)
     stripped = re.sub(r"## 6\. Gap analysis.*?## 7\. Reproduce", "", stripped, flags=re.S)       # impact and hours there are our estimates, labelled as such
-    allowed = {"0.05", "0.02", "0.01", "0.95", "0.0", "1.0", "0.3", "0.2", "0.1", "0.5", "0.8", "0.4", "0.7", "0.6", "0.9", "98.75"}
+    allowed = {"0.05", "0.02", "0.01", "0.95", "0.0", "1.0", "0.3", "0.2", "0.1", "0.5", "0.8", "0.4", "0.7", "0.6", "0.9", "98.75", "0.005"}               # the non-inferiority margin of R2 is a constant of the plan
     loose = [m.group(0) for m in re.finditer(r"(?<![\w.])\d+\.\d+(?![\w.])", stripped) if m.group(0) not in allowed]
     assert not loose, f"hand-typed decimals in the brief's template: {sorted(set(loose))}"

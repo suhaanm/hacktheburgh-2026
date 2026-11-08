@@ -554,6 +554,10 @@ def _hrt_ledger(s: dict[str, Any]) -> str:
                + table(["World", "Flags [exact 95%]", "Always model", "Always fallback", "Guarded", "Oracle", "Guarded minus always-model [95%]", "Share on fallback"],
                        [[g["world"], f"{g['flags']} of {g['of']} {ci(g['flag_rate_ci'], 2)}", f(g["always_model"], 3), f(g["always_fallback"], 3), f(g["guarded"], 3), f(g["oracle"], 3),
                          f"{f(g['guarded_minus_always_model'], 3, True)} {ci(g['guarded_minus_always_model_ci'], 3)}", f(g["share_on_fallback"], 2)] for g in s["guard"]]))
+    rc = s.get("recalibration")
+    if rc:
+        out.append("Recalibrating the frozen model online from resolved outcomes (follow-up plan, registered after the first held-out result, new seeds):\n\n" + rc.get("statement", "") + "\n\n"
+                   + table(["Claim", "Result", "Evidence"], [[f"{c['id']}: {c['claim']}", c["result"], c["evidence"].replace("|", "/")] for c in rc["claims"]]))
     return "\n\n".join(x for x in out if x)
 
 

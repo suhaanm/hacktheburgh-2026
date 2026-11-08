@@ -77,6 +77,21 @@ def _strings(o, skip=("origin",)):
             yield from _strings(v, skip)
 
 
+def test_the_recalibration_follow_up_rides_in_the_ledger_section_and_follows_the_same_rules():
+    import re
+
+    p = RESULTS / "dev_recal.json"
+    if not p.exists():
+        pytest.skip("dev_recal.json has not been written")
+    rec = json.loads(p.read_text(encoding="utf-8"))
+    s = ev.shape_ledger(_dev("ledger"), rec)
+    assert _valid("hrt_ledger", s) == [] and s["recalibration"]["claims"] and s["recalibration"]["worlds"]
+    assert [c["id"] for c in s["recalibration"]["claims"]] == ["R1", "R2", "R3", "R4", "R5", "R6", "R7"]
+    assert all(c["result"] in ("passed", "not passed") for c in s["recalibration"]["claims"])
+    assert not any(re.search(r"\b(synthetic|simulat\w*)\b", t, re.I) for t in _strings(s))
+    assert ev.shape_ledger(_dev("ledger"))["recalibration"] is None            # without the follow-up the section is the ledger section as before
+
+
 def test_no_text_the_app_can_show_says_synthetic_or_simulated_and_none_is_a_banned_phrase():
     """Owner decision D57: the app says 'generators we wrote', 'generated worlds'. The data's origin enum keeps its value; every other string is in plain words
     and passes the banned-phrase list of docs/knack-ux/banned-phrases.json."""
