@@ -105,7 +105,7 @@ def tag(r: httpx.Response) -> str | None:
 def test_which_routes_are_heavy():
     assert is_heavy("GET", "/coach/state") and is_heavy("GET", "/graph/work") and is_heavy("GET", "/insights/admin/firm")
     assert is_heavy("GET", "/hitlist/firm") and is_heavy("GET", "/calendar/week") and is_heavy("GET", "/genome/t_x")
-    for cheap in ("/health", "/kill", "/identity", "/queue", "/attention/next", "/attention/settings", "/memory"):
+    for cheap in ("/health", "/kill", "/identity", "/queue", "/attention/next", "/attention/settings", "/memory", "/profile", "/connections", "/packs", "/memory/proposals"):
         assert not is_heavy("GET", cheap), cheap
     assert not is_heavy("POST", "/briefing/x/fire") and not is_heavy("GET", "/briefingx")
     assert "/coach/state" in HEAVY_PREFIXES
@@ -320,10 +320,11 @@ async def test_the_real_app_has_the_layer_and_keeps_health_out_of_it(monkeypatch
     from understudy_engine.api.app import create_app
 
     monkeypatch.setenv("UNDERSTUDY_HEAVY_TTL", "10")
+    monkeypatch.setenv("UNDERSTUDY_X_CALENDAR", "1")              # the calendar router is an extension: on for this app, so /calendar/people exists
     app = create_app(tmp_path, warm=False)
     assert any(m.cls is HeavyGetMiddleware for m in app.user_middleware)
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app, client=("127.0.0.1", 1)), base_url="http://127.0.0.1:7700") as c:
         h = await c.get("/health")
         assert h.status_code == 200 and tag(h) is None
-        p1, p2 = await c.get("/packs"), await c.get("/packs")
+        p1, p2 = await c.get("/calendar/people"), await c.get("/calendar/people")
         assert p1.status_code == 200 and (tag(p1), tag(p2)) == ("miss", "hit") and p1.content == p2.content
