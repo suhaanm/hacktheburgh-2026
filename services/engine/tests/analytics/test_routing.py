@@ -189,7 +189,7 @@ def test_sandbox_routing_headline_contract_bound_and_honest_notes():
     assert a["bound_held"] and a["held_out"]["coverage"] > 0.8
     assert a["expert_minutes_per_case"] < a["expert_minutes_review_all"] / 2
     assert a["resplits"]["bonferroni"]["violation_rate"] == 0.0
-    assert a["secondary"]["meta"]["n_unit"] == "households" and "pure synthetic generator" in a["secondary"]["source"]
+    assert a["secondary"]["meta"]["n_unit"] == "households" and "pure generator" in a["secondary"]["source"]
     assert {x["stand_in"] for x in a["stand_ins"]} == {"majority_else_mean", "mean_of_three", "median_of_three"}
     assert a["case_set"]["errors_by_archetype"]["savings_cliff_16k"]["errors"] > 0
     json.dumps(a, default=str)

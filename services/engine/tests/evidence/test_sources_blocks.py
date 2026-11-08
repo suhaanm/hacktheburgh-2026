@@ -150,7 +150,7 @@ def test_v1_inputs_alone_are_still_recorded_as_v1(parts):
 
 def test_when_the_builder_raises_value_error_the_genome_path_still_answers(parts):
     def boom(p, c):
-        raise ValueError("person 'p_x' is not in the synthetic cohort")
+        raise ValueError("person 'p_x' is not in the generated cohort")
 
     b = build_packet("p_nov03", None, Sources(inputs=boom, genome=lambda p, c: parts), now=NOW)
     assert b.packet.blocks["genome"].status == "ok" and b.packet.blocks["genome"].source == "v1"

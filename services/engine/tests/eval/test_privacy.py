@@ -77,7 +77,7 @@ def test_privacy_markdown_states_leaks_the_bound_and_the_limit_of_the_claim(priv
     md = render(privacy_report)
     sec = md[md.index("## Privacy layer"):md.index("## Limitations register")]
     assert "planted canary tokens reached the model port" in sec and "upper bound on the leak rate" in sec and "never counted as passed" in sec
-    assert "nothing here validates behaviour on real data" in sec and "origin: **synthetic**" in sec
+    assert "nothing here validates behaviour on real data" in sec and "measured on: **generators we wrote**" in sec
 
 
 def _sec(**kw):

@@ -27,7 +27,7 @@ def minimal() -> dict:
             "ope": {"meta": META, "true_value": 0.02, "estimators": [{"name": "dr", "value": 0.01, "ci": [-0.03, 0.05]}]},
             "redteam": {"status": "pending", "reason": "agent-safety not landed", "meta": META},
             "study": {"status": "not_run", "reason": "no results", "n": 4, "rows": [], "meta": META},
-            "limitations": [{"id": "L1", "text": "All synthetic.", "severity": "high", "source": "engine-eval"}],
+            "limitations": [{"id": "L1", "text": "All generated.", "severity": "high", "source": "engine-eval"}],
         },
     }
 

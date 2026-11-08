@@ -76,7 +76,7 @@ def test_evaluate_realism_fast_has_the_section_shape():
 
     sec = evaluate_realism(fast=True)
     assert sec["results"]["elapsed_s"] < 180        # the 60 s budget is for an idle machine; the section reports its own time
-    assert sec["name"] == "realism" and sec["badge"] == "synthetic, realism-calibrated" and sec["meta"]["origin"] == "synthetic"
+    assert sec["name"] == "realism" and sec["badge"] == "generated, realism-calibrated" and sec["meta"]["origin"] == "synthetic"
     assert sec["meta"]["interval_level"] == 0.95 and "n" in sec["meta"] and sec["limitations"]
     assert set(sec["results"]) >= {"hazard", "genome", "routines", "marginals", "elapsed_s"}
     cells = sec["results"]["hazard"]["benefits-processor"]["cells"]
