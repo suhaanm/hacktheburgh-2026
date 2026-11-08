@@ -35,6 +35,11 @@ describe("one quantity per sentence", () => {
     expect(sentencesOf("It took 3.4 hours. Fine.")).toEqual(["It took 3.4 hours.", "Fine."]);
     expect(offenders("Fine. 2 repeats, about 1 hour a week.")).toEqual(["2 repeats, about 1 hour a week."]);
   });
+  it("reads a number with thousands separators or a decimal point as one number", () => {
+    expect(quantitiesIn("1,203 things need you")).toBe(1);
+    expect(quantitiesIn("About 12,346 hours a week could run for you.")).toBe(1);
+    expect(quantitiesIn("About 3.4 hours a week could run for you.")).toBe(1);
+  });
   it("reads a number word as a quantity", () => {
     expect(quantitiesIn("Two things from your week")).toBe(1);
     expect(quantitiesIn("Nothing stands out this week.")).toBe(0);

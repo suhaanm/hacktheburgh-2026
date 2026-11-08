@@ -1,11 +1,13 @@
 import { Component, Suspense, useEffect, useState, type ReactNode } from "react";
-import { api, refreshQueueBadge } from "./api";
+import { api } from "./api";
 import { DEFAULT_SCREEN, navigate, screenOf, useRoute } from "./router";
 import { resetSources, setState, useAppState } from "./store";
 import { Loading } from "./components/common";
 import { ToastHost } from "./components/Toasts";
 import { AuthContextProvider, createAuth } from "./auth";
 import { extensionsFrom } from "./lib/ext";
+import { adoptEngineName } from "./lib/profile";
+import { refreshNeedsBadge } from "./screens/NeedsYou/count";
 import { ScreenFrame } from "./components/home/ScreenFrame";
 import { Overlays } from "./components/home/Overlays";
 import { BARE_SCREENS, labelOf } from "./components/home/navModel";
@@ -14,7 +16,7 @@ import { useViewRole } from "./components/home/viewAs";
 import { CompactBars, Sidebar } from "./components/shell/Sidebar";
 import { EngineBanner } from "./components/shell/StatusLine";
 import { StopProvider, StoppedBanner } from "./components/shell/StopControl";
-import { FIRST_RUN_KEY, shouldStartFirstRun } from "./screens/FirstRun/model";
+import { FIRST_RUN_KEY, SEEN_KEY, shouldStartFirstRun } from "./screens/FirstRun/model";
 import { screens } from "./screenRegistry";
 import "./components/home/home.css";
 import "./styles/shell.css";
@@ -52,6 +54,9 @@ export function App() {
 }
 
 const firstRunDone = (): boolean => { try { return window.localStorage.getItem(FIRST_RUN_KEY) !== null; } catch { return true; } };
+const firstRunSeen = (): boolean => { try { return window.sessionStorage.getItem(SEEN_KEY) !== null; } catch { return false; } };
+/** The Knack app sets html[data-knack-shell] on every page load; a browser tab does not. */
+const inKnackApp = (): boolean => typeof document !== "undefined" && document.documentElement.dataset.knackShell !== undefined;
 
 function Shell() {
   const route = useRoute();
@@ -64,11 +69,16 @@ function Shell() {
   useEffect(() => {
     // One look at both services and the identity, then every optional screen knows whether to ask for its own data or show an example.
     const health = () => Promise.all([api.health(), api.agentHealth(), api.identity()])
-      .then(([r, agent, who]) => setState({ mock: r.data?.mock ?? null, engineUp: r.source === "live", ext: extensionsFrom(r.data, r.source, agent), agentUp: agent !== null, person: who?.person ?? null, role: who?.role ?? null, extReady: true }))
+      .then(([r, agent, who]) => {
+        setState({ mock: r.data?.mock ?? null, engineUp: r.source === "live", ext: extensionsFrom(r.data, r.source, agent), agentUp: agent !== null, person: who?.person ?? null, role: who?.role ?? null, extReady: true });
+        // A name the engine sends wins over the device's own copy. An engine that sends none may simply not know names, so the device's copy stays here;
+        // the Account menu asks GET /profile, which does know, and then follows the engine whichever way it answers.
+        if (typeof who?.name === "string") adoptEngineName(who.name);
+      })
       .catch(() => setState({ engineUp: false, ext: extensionsFrom(null, "demo"), extReady: true }));
     void health();
-    void refreshQueueBadge();
-    const on = () => { setNonce((n) => n + 1); void refreshQueueBadge(); void health(); };
+    void refreshNeedsBadge();
+    const on = () => { setNonce((n) => n + 1); void refreshNeedsBadge(); void health(); };
     window.addEventListener("understudy:retry", on);
     return () => window.removeEventListener("understudy:retry", on);
   }, []);
@@ -92,7 +102,7 @@ function Shell() {
   }, [settings, route.path, route.query]);
   // First run: only when the engine answered, it does not know the worker, nothing was chosen before, and the address names Home or nothing.
   useEffect(() => {
-    if (shouldStartFirstRun({ engineUp: s.engineUp, extReady: s.extReady, role: s.role, person: s.person, done: firstRunDone(), path: route.path, hash: window.location.hash, query: route.query.toString() })) navigate("/first-run");
+    if (shouldStartFirstRun({ engineUp: s.engineUp, extReady: s.extReady, role: s.role, person: s.person, done: firstRunDone(), path: route.path, hash: window.location.hash, query: route.query.toString(), inApp: inKnackApp(), seen: firstRunSeen() })) navigate("/first-run");
   }, [s.engineUp, s.extReady, s.role, s.person, route.path]);
 
   const Screen = current === "unknown" ? screens[DEFAULT_SCREEN] : screens[current];

@@ -213,6 +213,6 @@ def drill_payload(view: AdminView, c: InsightCandidate, all_cands: dict[str, Ins
     else:
         cols = [{"key": "value", "label": "Value"}]
         rows = [_row(k.replace("_", " "), {"value": c.value}, n=c.n)]
-    notes += [f"Data: {c.badge}. {V.STATEMENT}"]
+    notes += [V.STATEMENT]
     return {"id": c.id, "headline": headline, "kind": k, "columns": cols, "rows": rows, "series": series, "tables": tables, "notes": notes,
             "method": f"{view.p.n_boot} person-level bootstrap draws where an interval is a bootstrap; 3-week windows; seeds come from ids."}

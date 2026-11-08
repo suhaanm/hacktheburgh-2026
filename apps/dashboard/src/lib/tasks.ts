@@ -89,21 +89,74 @@ export const FADE_MS = 60_000;
 
 export interface Grouped { active: Task[]; recent: Task[]; today: Task[] }
 
+/* -- Ghosts and old records ------------------------------------------------------------------------------------------------------------------- */
+// The agent service lists persisted run records with their LAST state. A process that died left some "planning" or "running" for ever. A list that shows
+// those reads as work that is going on when nothing is (owner, 8 Nov: "why are there so many background tasks running?"). So:
+//   - a task that is not finished and started longer ago than anything can last is a GHOST: it is dropped, never drawn, never counted as running, never
+//     asked about (no detail read, no stream). Nothing is deleted: the record stays where it is, and the admin's Background runs still lists it.
+//   - a finished task created more than a day ago is old history, and is not listed either.
+//   - what the built-in sample says about runs and tasks is never a task at all (see useTasks).
+// All of it is a pure function of the clock, so a test fixes `now`.
+
+export const DAY_MS = 24 * 3_600_000;
+/** The agent service caps a run at 15 minutes: a run still "going" after that is not. */
+export const RUN_GHOST_MS = 15 * 60_000;
+/** A task from the tasks service may run as long as its cap, at most 120 minutes: still "going" after that (and a margin) is not. */
+export const TASK_GHOST_MS = 125 * 60_000;
+/** A card that waits for the worker does not run, but a day is as long as a worker will be asked. */
+export const WAITING_GHOST_MS = DAY_MS;
+
+/** True for a task that is not finished and cannot still be going (or whose start nobody can vouch for). A time ahead of the clock is a skewed clock, not a ghost. */
+export function isGhost(t: Pick<Task, "state" | "started" | "isTask">, now: number): boolean {
+  if (isFinished(t.state)) return false;
+  const started = validTime(t.started);
+  if (started === null) return true;
+  const limit = t.state === "waiting" ? WAITING_GHOST_MS : t.isTask ? TASK_GHOST_MS : RUN_GHOST_MS;
+  return now - started > limit;
+}
+
+/** True for a finished task that was created more than a day ago, or whose creation time nobody can vouch for. */
+export function isOld(t: Pick<Task, "state" | "started">, now: number): boolean {
+  if (!isFinished(t.state)) return false;
+  const started = validTime(t.started);
+  return started === null || now - started > DAY_MS;
+}
+
+/** The tasks that may be drawn: no ghost and no old record. */
+export const dropStale = (tasks: Task[], now: number): Task[] => tasks.filter((t) => !isGhost(t, now) && !isOld(t, now));
+
+/** The same test on a raw run and a raw task row (Needs you reads those, not Tasks). */
+export const isGhostRun = (run: AgentRun, now: number): boolean => isGhost(taskOf(run), now);
+export const isGhostRow = (row: TaskRow, now: number): boolean => isGhost(taskFromRow(row), now);
+
+/**
+ * The tasks a screen may draw from what the services answered. `rows` are the tasks service's rows and `runs` the agent service's run list, each ONLY when
+ * that service really answered (pass null for a built-in sample, a loading or a failed read: an example is never a task). Rows win over runs. Ghosts and
+ * old records are dropped. The result is newest first.
+ */
+export function pickTasks(i: { rows: unknown; runs: unknown; results?: Record<string, unknown>; steps?: Record<string, string[]>; answers?: Record<string, string | null> }, now: number): Task[] {
+  const all = Array.isArray(i.rows) ? tasksOfRows(i.rows, i.steps, i.answers) : Array.isArray(i.runs) ? tasksOf(i.runs, i.results) : [];
+  return dropStale(all, now);
+}
+
+/** True when a run in this list is really going (running or waiting, and not a ghost): what decides how often a screen asks again. */
+export const anyActiveRun = (runs: unknown, now: number = Date.now()): boolean => arr<AgentRun>(runs).some((r) => { const t = taskOf(r); return (t.state === "running" || t.state === "waiting") && !isGhost(t, now); });
+/** The same for rows from the tasks service. */
+export const anyActiveRow = (rows: unknown, now: number = Date.now()): boolean => arr<TaskRow>(rows).some((r) => { const t = taskFromRow(r); return (t.state === "running" || t.state === "waiting") && !isGhost(t, now); });
+
 /**
  * Running first, then ones that wait for the worker; a task that finished in the last minute stays beside them (so the worker sees it finish); the rest
- * of today's finished tasks are "Done today", collapsed. `finishedAt` is when this page saw a task finish (0 or absent: it was already finished when the
- * page loaded). A task that started on an earlier day is not listed here at all: it is in the admin's Background runs.
+ * of the tasks created in the last 24 hours that have finished are "Done today", collapsed. `finishedAt` is when this page saw a task finish (0 or absent:
+ * it was already finished when the page loaded). Ghosts and old records are not in any of the three lists.
  */
-export function groupTasks(tasks: Task[], finishedAt: ReadonlyMap<string, number>, now: number): Grouped {
+export function groupTasks(all: Task[], finishedAt: ReadonlyMap<string, number>, now: number): Grouped {
+  const tasks = dropStale(all, now);
   const active = [...tasks.filter((t) => t.state === "running"), ...tasks.filter((t) => t.state === "waiting")];
   const recent: Task[] = [], today: Task[] = [];
-  const day = new Date(now).toDateString();
   for (const t of tasks) {
     if (!isFinished(t.state)) continue;
     const at = finishedAt.get(t.id) ?? validTime(t.finished) ?? 0;
-    if (at > 0 && now - at < FADE_MS) { recent.push(t); continue; }
-    const started = validTime(t.started);
-    if (started === null || new Date(started).toDateString() === day) today.push(t);
+    if (at > 0 && now - at < FADE_MS) recent.push(t); else today.push(t);
   }
   return { active, recent, today };
 }

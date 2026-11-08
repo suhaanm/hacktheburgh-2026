@@ -54625,7 +54625,7 @@
         {
           "edge_case": "origin_badges_on_every_insight",
           "scenario": "any selected pointer",
-          "expected": "badge and origin set; the text names the source and says made-up firm data",
+          "expected": "badge and origin set on the data; the text names its source and carries no origin tag",
           "pass": true,
           "test": "test_worker::test_origin_and_badge_are_on_every_candidate"
         },
@@ -54843,7 +54843,7 @@
           },
           {
             "edge_case": "origin_badges_on_every_insight",
-            "expected": "badge and origin set; the text names the source and says made-up firm data",
+            "expected": "badge and origin set on the data; the text names its source and carries no origin tag",
             "pass": true,
             "scenario": "any selected pointer",
             "test": "test_worker::test_origin_and_badge_are_on_every_candidate"

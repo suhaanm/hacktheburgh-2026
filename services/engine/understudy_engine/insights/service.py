@@ -263,7 +263,7 @@ class InsightsService:
         by_reason: dict[str, int] = {}
         for x in sel.suppressed:
             by_reason[x.reason] = by_reason.get(x.reason, 0) + 1
-        return {"firm": {"users": len(view.sums), "roles": len(view.roles()), "label": snap.badge}, "top": [self._card(s, view) for s in sel.selected],
+        return {"firm": {"users": len(view.sums), "roles": len(view.roles()), "label": "Firm"}, "top": [self._card(s, view) for s in sel.selected],
                 "nothing_stands_out": not sel.selected, "coverage": cov,
                 "risk": {"approval_backlog_age_h": None if not ages else {"median": round(med, 1), "max": round(ages[-1], 1)},
                          "injection_pauses_30d": sum(1 for e in snap.risk_events if e.get("kind") == "injection_pause" and e.get("age_days", 1e9) <= 30),
@@ -374,7 +374,7 @@ class InsightsService:
             "notice": "Your admin sees a summary of numbers about your work, shown below exactly as they see it. It is for coaching and onboarding, not for evaluating individuals. "
                       "You can delete your assist ledger at any time; the summary then shows no data.",
             "visible_since": iso_date(first) if first else None, "visible_to": "People with the Admin role in your firm.", "preview": s.to_row(),
-            "legal_note": "A real deployment needs a lawful basis and a clear notice to workers before any of this is shared. This build only demonstrates it on a made-up firm.",
+            "legal_note": "A real deployment needs a lawful basis and a clear notice to workers before any of this is shared.",
             "statement": V.STATEMENT, "badge": snap.badge,
         }
 

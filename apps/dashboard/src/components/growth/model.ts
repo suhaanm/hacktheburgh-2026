@@ -351,7 +351,7 @@ export function cardsOf(w: WireGrowth): ComponentCard[] {
 /* -- The composite, always with its parts ------------------------------------------------------ */
 export interface CompositePart { id: string; label: string; weight: number; value: number | null; shown: string }
 export interface CompositeView {
-  /** Always true: the composite overstated improvement on simulated learners whose skill did not change. */
+  /** Always true: the composite overstated improvement on generated learners whose skill did not change. */
   experimental: true;
   caveat: string;
   value: number;
@@ -448,10 +448,10 @@ export function claimOf(rows: SkillRowView[]): string {
 
 /* -- Origin wording ---------------------------------------------------------------------------- */
 export function originSentence(detail: OriginDetail | undefined, origin: "real" | "synthetic" | "mixed" | undefined): string {
-  if (detail === "simulated_participants") return "Simulated participants (language model), not people.";
-  if (detail === "synthetic_learner") return "Synthetic learners with planted learning curves, not people.";
+  if (detail === "simulated_participants") return "Language-model participants, not people.";
+  if (detail === "synthetic_learner") return "Generated learners with planted learning curves, not people.";
   if (detail === "live_worker") return "Your own work on this computer. One person is not a study.";
-  if (origin === "synthetic") return "Synthetic data, not people.";
+  if (origin === "synthetic") return "Generated data, not people.";
   if (origin === "real") return "Real work. One person is not a study.";
   return "";
 }
@@ -496,7 +496,7 @@ export const totalRows = (c: LedgerCounts) => c.assist + c.delegated + c.automat
 /** What deleting does, in the words the worker sees. The engine states the same list (CUE-ENGINE, 7 Nov). */
 export function deleteCopy(c: LedgerCounts, example: boolean): { what: string; kept: string; button: string } {
   const total = totalRows(c);
-  const what = `This deletes ${plural(total, "row")} from the ledger on this computer (${c.assist} assist, ${c.delegated} delegated, ${c.automation} overnight), the answers you gave to Cue's questions, and the one-line summary in your memory file's Skill state section. It adds one line to the audit log with counts only. Your curve is worked out from the ledger, so it starts again from nothing.`;
+  const what = `This deletes ${plural(total, "row")} from your record on this computer (${c.assist} assist, ${c.delegated} delegated, ${c.automation} overnight), the answers you gave to Cue's questions, and the one-line summary in your memory file's Skill state section. It adds one line to the audit log with counts only. Your curve is worked out from the ledger, so it starts again from nothing.`;
   const kept = example
     ? "These rows are example data, so clearing them only changes this screen."
     : "Nothing else is touched: your memory file's other lines, routines, queue and settings stay as they are.";
@@ -600,7 +600,6 @@ export function buildView(w: WireGrowth, levelPct = 95): GrowthView {
 
 /* -- What this does not show ------------------------------------------------------------------- */
 export function limitations(v: Pick<GrowthView, "needed" | "window" | "levelPct" | "weights"> & { caveat?: string | null }, origin: "real" | "synthetic" | "mixed" | undefined): string[] {
-  const w = v.weights;
   const out = [
     `Fewer than ${v.needed} steps is too few to draw a curve, so until then you see counts only. Even after that, a window of ${v.window} gives a wide ${v.levelPct}% interval.`,
     "An step counts only when the step really came up in your work. A step that did not come up is not counted.",
@@ -609,11 +608,9 @@ export function limitations(v: Pick<GrowthView, "needed" | "window" | "levelPct"
     "This does not show that the cues caused the change. You may have been learning on your own, or the work may have got easier. There is no comparison group here.",
     `Keeping a skill is only measured when a step comes back ${RETENTION_DAYS} or more days after you were taught it. Until then it is blank, not zero.`,
     "Work you hand to the agent, and automations that ran overnight, are never counted. Handing work off cannot raise this score.",
-    `The composite is experimental. Its weights (${Math.round(w.independence_lb * 100)}, ${Math.round(w.mastery * 100)}, ${Math.round(w.gap_closure * 100)} and ${Math.round(w.retention * 100)} percent) are stated assumptions, not fitted to data, and on simulated learners it could rise when their skill had not changed. Read the trend and the independence interval first.`,
     "A trend whose interval includes zero is not evidence of no change. At this many steps a real improvement is often missed, so the page says it cannot tell yet.",
   ];
-  if (v.caveat) out.push(v.caveat);
-  if (origin !== "real") out.push("These numbers come from invented learners or simulated participants with planted learning curves. They test that the method recovers what was planted. The live study, with 4 teammates, has not been run.");
+  if (origin !== "real") out.push("This is an example, not your work. The method has not been tested on real people yet.");
   else out.push("This is one person's own work. One person is not a study.");
   return out;
 }

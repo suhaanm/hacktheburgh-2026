@@ -23,7 +23,7 @@ import routinesFx from "./fixtures/routines.json";
 import briefingFx from "./fixtures/briefing.json";
 import { learnedLines } from "./lib/attention";
 import { clip, count, uniqueBy, validTime, whenText } from "./lib/safeText";
-import { tasksOf } from "./lib/tasks";
+import { DAY_MS, RUN_GHOST_MS, TASK_GHOST_MS, WAITING_GHOST_MS, anyActiveRun, groupTasks, isGhostRow, isGhostRun, pickTasks, tasksOf } from "./lib/tasks";
 import Agents from "./screens/Agents";
 import { MAX_ROWS, PAGE_ROWS, awayLine, buildItems, needsCount, needsHeadline, plainWords, saveHint, saveLine, seenLine, visibleItems } from "./screens/NeedsYou/model";
 import { routinesHeadline, runningRoutines, touchesSentence, turnedDown } from "./screens/Routines/model";
@@ -224,8 +224,8 @@ describe("edge cases: Routines and background tasks", () => {
     expect(touchesSentence({ touches: ["A", "B", "C"], proposal: { touches: [] } } as unknown as Routine)).toBe("Touches A, B and C.");
   });
   T("RT-07", "the headline names the most urgent fact and never a negative or NaN number of minutes", () => {
-    expect(routinesHeadline({ tasksRunning: 1, routinesRunning: 2, couldMinutes: 0 })).toBe("1 task is working in the background, and 2 routines run for you.");
-    expect(routinesHeadline({ tasksRunning: 0, routinesRunning: 1, couldMinutes: 0 })).toBe("1 routine runs for you.");
+    expect(routinesHeadline({ tasksRunning: 1, routinesRunning: 2, couldMinutes: 0 })).toBe("1 task is working in the background.");
+    expect(routinesHeadline({ tasksRunning: 0, routinesRunning: 1, couldMinutes: 0 })).toBe("You have 1 routine set up.");
     expect(routinesHeadline({ tasksRunning: 0, routinesRunning: 0, couldMinutes: 180 })).toBe("About 3 hours a week could be handed over.");
     expect(routinesHeadline({ tasksRunning: 0, routinesRunning: 0, couldMinutes: Number.NaN })).toBe("");
     expect(routinesHeadline({ tasksRunning: 0, routinesRunning: 0, couldMinutes: -50 })).toBe("");
@@ -234,6 +234,37 @@ describe("edge cases: Routines and background tasks", () => {
     const runs = Array.from({ length: 500 }, (_, i) => ({ run_id: `r${i}`, kind: "data.profile", mode: "foreground", state: "done", started: "2026-11-08T08:00:00Z", parent: { id: "p", role: "planner", state: "done", budget: {}, spent: {} }, children: [] }));
     expect(tasksOf(runs)).toHaveLength(500);
     expect(tasksOf([{}, { run_id: "x" }])[0].state).toBe("done");
+  });
+});
+
+describe("edge cases: ghosts and old records (a clock is fixed in every test)", () => {
+  const ago = (ms: number) => new Date(NOW - ms).toISOString();
+  const run = (state: string, started: string): AgentRun => ({ run_id: `r_${state}_${started.length}`, kind: "data.profile", mode: "foreground", state, started, parent: { id: "p", role: "planner", state, budget: {}, spent: {} }, children: [] }) as AgentRun;
+  T("GH-01", "a run record still going after the 15 minutes the service allows is a ghost: not listed, not counted as running, no Needs you item", () => {
+    expect(isGhostRun(run("running", ago(RUN_GHOST_MS + 60_000)), NOW)).toBe(true);
+    expect(isGhostRun(run("running", ago(RUN_GHOST_MS - 60_000)), NOW)).toBe(false);
+    expect(anyActiveRun([run("planning", ago(3 * DAY_MS))], NOW)).toBe(false);
+    expect(buildItems({ runs: [run("paused", ago(3 * DAY_MS))], now: NOW })).toEqual([]);
+  });
+  T("GH-02", "a task row from the tasks service may run as long as its longest cap plus a margin, and a ghost beyond that is dropped", () => {
+    expect(isGhostRow({ task_id: "t", title: "x", state: "running", started: ago(TASK_GHOST_MS - 60_000) }, NOW)).toBe(false);
+    expect(isGhostRow({ task_id: "t", title: "x", state: "running", started: ago(TASK_GHOST_MS + 60_000) }, NOW)).toBe(true);
+  });
+  T("GH-03", "a card that waits for the worker is a ghost only after a day", () => {
+    expect(isGhostRow({ task_id: "t", title: "x", state: "waiting_consent", started: ago(WAITING_GHOST_MS - 60_000), needs_consent: { scope_text: "x" } }, NOW)).toBe(false);
+    expect(buildItems({ tasks: [{ task_id: "t", title: "x", state: "waiting_consent", started: ago(WAITING_GHOST_MS + 60_000), needs_consent: { scope_text: "x" } }], now: NOW })).toEqual([]);
+  });
+  T("GH-04", "a finished task created more than 24 hours ago, or with no usable creation time, is not listed; one created 23 hours ago is", () => {
+    const t = (started: string) => ({ id: started, title: "x", state: "done" as const, note: "", steps: [], started, finished: null, isTask: true, open: null, answer: null });
+    const g = groupTasks([t(ago(DAY_MS + 60_000)), t("garbage"), t(ago(23 * 3_600_000))], new Map(), NOW);
+    expect(g.today).toHaveLength(1);
+  });
+  T("GH-05", "the built-in sample is never a task, even when its runs look like work: with nothing answered there are no tasks", () => {
+    expect(pickTasks({ rows: null, runs: null }, NOW)).toEqual([]);
+    expect(pickTasks({ rows: null, runs: [run("running", "2026-11-07T16:53:00Z")] }, NOW)).toEqual([]);
+  });
+  T("GH-06", "a start time ahead of the clock is a skewed clock: the task is shown, not hidden", () => {
+    expect(pickTasks({ rows: [{ task_id: "t", title: "Soon", state: "running", started: new Date(NOW + 3_600_000).toISOString() }], runs: null }, NOW)).toHaveLength(1);
   });
 });
 

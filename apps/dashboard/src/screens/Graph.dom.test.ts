@@ -38,12 +38,12 @@ async function mount(props: { embedded?: boolean } = {}) {
 }
 
 describe("the Graph screen", () => {
-  it("on its own: a page with the title, the headline and the origin badge, then the canvas and the key", async () => {
+  it("on its own: a page with the title and the headline, then the canvas and the key (generated people draw no origin badge)", async () => {
     await mount();
     expect(host.querySelector(".page")).not.toBeNull();
     expect(host.querySelector("h1")!.textContent).toBe("How your work connects");
     expect(host.querySelector(".screenhead__limit")!.textContent).toBe(graphHeadline(wg));
-    expect(host.querySelector(".pill--origin, [class*='badge']")).not.toBeNull();
+    expect(host.querySelector(".pill--origin")).toBeNull(); // generated people carry no badge (owner decision D57); only a fixture fallback prints one
     expect(host.querySelector("svg.gcanvas")).not.toBeNull();
     expect(host.querySelector(".gkey")).not.toBeNull();
   });
@@ -57,7 +57,7 @@ describe("the Graph screen", () => {
     // The origin stays in the foot's "About this data" rows.
     const foot = host.querySelector(".chart__foot")!;
     expect(foot.textContent).toContain("About this data");
-    expect(foot.textContent).toMatch(/origin/);
+    expect(foot.textContent).toMatch(/where from/);
   });
   it("embedded, an empty graph shows the empty state without a page wrapper", async () => {
     api.workGraph.mockResolvedValue({ data: { nodes: [], links: [] }, meta, source: "demo", why: null });

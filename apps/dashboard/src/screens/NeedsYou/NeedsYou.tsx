@@ -12,7 +12,7 @@ import { ProposalRow } from "../../components/needsyou/ProposalRow";
 import { RowList } from "../../components/needsyou/RowList";
 import type { Decide } from "../../components/routines/types";
 import { useLoad } from "../../hooks";
-import { runActive } from "../../lib/agents";
+import { anyActiveRow, anyActiveRun } from "../../lib/tasks";
 import { useLive, useRegisteredStreams } from "../../lib/live";
 import { useAppState, setState } from "../../store";
 import "../../components/kc.css";
@@ -50,7 +50,7 @@ export default function NeedsYou() {
 
   const reload = () => { q.reload(); rt.reload(); br.reload(); ag.reload(); tk.reload(); rep.reload(); };
   // An approval that arrives, or a run that pauses or finishes, shows up by itself: every 2 s while a run is active, every 15 s otherwise, on focus.
-  useLive(reload, !!ag.data?.some((r) => { try { return runActive(r); } catch { return false; } }) || !!tk.data?.some((x) => x?.state === "running" || x?.state === "planning"), useRegisteredStreams(), tk.source === "live" ? [`${AGENT_URL}/tasks/events`] : []);
+  useLive(reload, (ag.source === "live" && anyActiveRun(ag.data)) || (tk.source === "live" && anyActiveRow(tk.data)), useRegisteredStreams(), tk.source === "live" ? [`${AGENT_URL}/tasks/events`] : []);
 
   if (q.status === "error" && !q.data) return <div className="page page--read kc-page"><ErrorState error={q.error} retry={q.reload} what="what needs you" /></div>;
   if (!q.data) return <div className="page page--read kc-page"><Loading label="Loading what needs you" /></div>;

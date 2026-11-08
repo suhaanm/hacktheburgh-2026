@@ -29,7 +29,7 @@
     "polarity": "positive",
     "polarity_label": "Going well",
     "source": "Your assist ledger",
-    "text": "On the cliff check, you now take about 15 seconds less than you did a month ago. Source: Your assist ledger, made-up firm data.",
+    "text": "On the cliff check, you now take about 15 seconds less than you did a month ago. Source: Your assist ledger.",
     "title": "A habit that got faster"
    },
    {
@@ -54,7 +54,7 @@
     "polarity": "positive",
     "polarity_label": "Going well",
     "source": "Your assist ledger",
-    "text": "On reconciling before the note, you finished 17 of your last 20 cases without help. Source: Your assist ledger, made-up firm data.",
+    "text": "On reconciling before the note, you finished 17 of your last 20 cases without help. Source: Your assist ledger.",
     "title": "Needing less help"
    },
    {
@@ -79,7 +79,7 @@
     "polarity": "positive",
     "polarity_label": "Going well",
     "source": "Your assist ledger",
-    "text": "On entering the household once, you finished 18 of your last 20 cases without help. Source: Your assist ledger, made-up firm data.",
+    "text": "On entering the household once, you finished 18 of your last 20 cases without help. Source: Your assist ledger.",
     "title": "Needing less help"
    }
   ],

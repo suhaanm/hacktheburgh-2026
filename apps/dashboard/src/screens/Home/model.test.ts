@@ -51,7 +51,7 @@ describe("the one action", () => {
       expect(wordCount(a!.label), a!.label).toBeLessThanOrEqual(ACTION_MAX_WORDS);
       expect(a!.label).toMatch(/^See /);
     }
-    expect(heroAction({ kind: "time_loss_habit", action: { id: "open_growth", label: "Open Growth", to: "growth" } } as never)).toEqual({ label: "See where the time goes", href: "#/genome" });
+    expect(heroAction({ kind: "time_loss_habit", action: { id: "open_growth", label: "Open Growth", to: "growth" } } as never)).toEqual({ label: "See where the time goes", href: "#/growth?section=steps" });
     expect(heroAction({ kind: "habit_improved", action: { id: "open_growth", label: "See how it changed", to: "growth" } } as never)).toEqual({ label: "See how it changed", href: "#/growth" });
   });
   it("is absent when the engine has no action", () => {
@@ -117,7 +117,9 @@ describe("dates, badge and the example line", () => {
   });
   it("draws one origin badge in sentence case", () => {
     expect(originBadge({ example: true, origin: "synthetic", badge: "synthetic firm" })).toBe("Example data");
-    expect(originBadge({ example: false, origin: "synthetic", badge: "synthetic firm" })).toBe("Synthetic firm");
+    expect(originBadge({ example: false, origin: "synthetic", badge: "made-up firm" })).toBeNull();
+    expect(originBadge({ example: false, origin: "mixed", badge: null })).toBeNull();
+    expect(originBadge({ example: false, origin: "real", badge: null })).toBeNull();
     expect(originBadge({ example: false, origin: "real", badge: null })).toBeNull();
     expect(originBadge({ example: false, origin: null, badge: null })).toBeNull();
   });

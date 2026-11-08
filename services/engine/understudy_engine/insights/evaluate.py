@@ -678,7 +678,7 @@ def edge_cases(fast: bool = True) -> list[dict[str, Any]]:
     o, s = worker_pass(person(rows_spaced(14, step=1.2, lost=40.0, rng_seed=7)), now, None, params)
     from . import texts as T
 
-    case("origin_badges_on_every_insight", "any selected pointer", "badge and origin set; the text names the source and says made-up firm data", all(x.cand.badge and x.cand.origin and "made-up firm data" in T.render(x.cand, role=ROLE)["text"] for x in s.selected) and bool(s.selected), "test_worker::test_origin_and_badge_are_on_every_candidate")
+    case("origin_badges_on_every_insight", "any selected pointer", "badge and origin set on the data; the text names its source and carries no origin tag", all(x.cand.badge and x.cand.origin and "Source:" in T.render(x.cand, role=ROLE)["text"] and "made-up" not in T.render(x.cand, role=ROLE)["text"] for x in s.selected) and bool(s.selected), "test_worker::test_origin_and_badge_are_on_every_candidate")
     # 17 accessibility
     case("accessibility_not_colour_alone", "every polarity", "a word, a glyph name and an a11y label carry the meaning", len(set(V.POLARITY_LABEL.values())) == 4 and all(T.a11y_label(p, "x.").startswith(V.POLARITY_LABEL[p] + ":") for p in V.POLARITIES) and all(sp.glyph in V.GLYPHS for sp in V.KINDS.values()), "test_texts::test_a11y_label_carries_the_polarity_in_words")
     # 18 no ranking
