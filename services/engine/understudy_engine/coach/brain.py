@@ -441,7 +441,7 @@ class CoachBrain:
 
         step = policy.steps.get(step_id) if step_id else None
         cur_step = policy.steps.get(current_id) if current_id else None
-        cogs_for_level = list(step.cogs) if step else (list(cur_step.cogs) if cur_step else [c for s in policy.steps.values() if s.critical for c in s.cogs])
+        cogs_for_level = list(step.cogs) if step else (list(cur_step.cogs) if cur_step else [c for s in policy.steps.values() if s.critical and s.required for c in s.cogs])   # an optional critical gate is not part of the overall level (RD)
         cs = st.tracker.coach_state(cogs_for_level, now)
         level = int(cs["level"][1:])
         dec.level, dec.chip, dec.mastery = cs["level"], cs["chip"], {k: round(v, 3) for k, v in cs["mastery"].items()}
@@ -566,7 +566,7 @@ class CoachBrain:
         return self._site_for(prog, step.id, bundle.policy)
 
     def _overall(self, st: _Person, bundle: _Bundle, now: float) -> tuple[int, str, dict]:
-        cogs = sorted({c for s in bundle.policy.steps.values() if s.critical for c in s.cogs})
+        cogs = sorted({c for s in bundle.policy.steps.values() if s.critical and s.required for c in s.cogs})   # required only: an optional gate (RD) is spoken for, not averaged
         cs = st.tracker.coach_state(cogs, now)
         return int(cs["level"][1:]), cs["chip"], {k: round(v, 3) for k, v in cs["mastery"].items()}
 

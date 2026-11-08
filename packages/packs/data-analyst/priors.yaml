@@ -8,4 +8,8 @@ presence:
   hours: { start: "08:30", end: "17:00", days: [mon, tue, wed, thu, fri] }
   active_in_hours: 0.60
   active_out_of_hours: 0.05
-cog_dwell_s: { PROFILE_DATA: 40, WRITE_QUERY: 120, RUN_QUERY: 15, INSPECT_RESULT: 45, PLOT: 60 }
+# Seconds a person typically spends in each cog: the first five are the pack's original priors. The last eleven (RD, 7 Nov 2026) are the
+# expert medians of the new expert checks, rounded, written from the job and NOT measured: no synthetic or real trace contains these cogs yet.
+cog_dwell_s: { PROFILE_DATA: 40, WRITE_QUERY: 120, RUN_QUERY: 15, INSPECT_RESULT: 45, PLOT: 60,
+  TRACE_SOURCE: 60, JOIN_TABLES: 90, SET_GRAIN: 45, CHECK_MAGNITUDE: 40, QUANTIFY_UNCERTAINTY: 75, WRITE_FINDING: 180, PEER_CHECK: 60,
+  MAKE_REPRODUCIBLE: 90, PARAMETERISE_REPORT: 120, SCHEDULE_REFRESH: 90, DOCUMENT_METRIC: 240 }

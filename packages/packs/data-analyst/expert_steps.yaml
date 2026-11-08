@@ -1,15 +1,27 @@
 # Expert policy for the data-analyst pack. Semantics: pack.schema.json#/$defs/expert_steps.
-# Coverage stays "stub": one task family (refresh a metric), no oracle in the pack. The role sandbox
-# (services/agent/understudy_agent/sandbox_roles/analyst, REQ-7 STU) adds the checks that the three study skills need:
+# The first seven checks (profile_inputs .. report_answer) are the study task "refresh a metric". They are frozen: the role sandbox
+# (services/agent/understudy_agent/sandbox_roles/analyst, REQ-7 STU) and the role studies depend on their ids, cogs and order.
 #   profile-before-querying     profile_inputs        (profile the data before trusting any total)
 #   reconcile-to-control        reconcile_to_control  (compare the table's total with the control figure)
 #   segment-before-concluding   segment_breakdown     (cut by the right dimension before comparing groups or averaging)
 # The coach (study mode, skill_on) speaks only for the steps of one skill. `run_and_inspect` is the Apply button of the sandbox's filter and sort bar (RUN_QUERY; there is no SQL
 # console, so it no longer waits for WRITE_QUERY and INSPECT_RESULT); `sanity_check` has no control in the sandbox (no check box), so its tasks drop it with study mode `steps_off`.
 # Typing the answer starts `report_answer` (the whole answer panel is the decision_btn zone), which is where a skipped reconcile or cut shows.
+#
+# The role-depth track (RD, 7 Nov 2026) appended eleven checks for the rest of the job, one per new cog, each tagged with a task `family`.
+# Three rules keep them from touching anything frozen:
+#   1. every new check's cog list STARTS with a new cog, and no sandbox page emits a new cog, so a new check is never started, partly
+#      matched or violated in a study case, and the sandbox tasks do not need to list them in `steps_off`;
+#   2. every new check is `required: false` (a task that publishes nothing has no peer check), so the end-of-task skill tracing, which
+#      scores required checks only, does not mark a skill "error" for work the task never had;
+#   3. `critical: true` on an optional check is a CRITICAL GATE: it is allowed only when another check lists it in `after`. The coach
+#      already insists on a critical prerequisite the moment a later check is started without it (CoachBrain: pick_missed on a
+#      violation), so "check the scale before you write the finding" is spoken for only when the worker has started writing.
+# Families: refresh-a-metric (the frozen seven), analyse-and-check, report-a-finding, automate-a-refresh, define-a-metric. The policy is
+# one document with one `task`; `family` is the reader's index into it (docs/roles/data-analyst.md), not something the engine switches on.
 version: 1
 task: refresh-a-metric
-coverage: stub
+coverage: full
 
 checks:
   - id: profile_inputs
@@ -72,3 +84,147 @@ checks:
     required: true
     after: [reconcile_to_control, segment_breakdown]
     expert_median_s: 20
+
+  # ---- role-depth checks (RD). Optional, each starts with a new cog, grouped by task family.
+  # analyse-and-check
+  - id: trace_source
+    label: Trace the field to its source before you use it
+    cogs: [TRACE_SOURCE]
+    required: false
+    critical: true
+    after: []
+    family: analyse-and-check
+    skill: trace-the-source
+    expert_median_s: 60
+    coach:
+      question: "Where does this column come from, and what does its source say it means?"
+      hint: "Open the lineage or the source definition and read what the field is."
+      target: { zone: lineage_view, label_hint: "Lineage", role_hint: region }
+  - id: join_safely
+    label: Join the tables without multiplying the rows
+    cogs: [JOIN_TABLES]
+    required: false
+    after: [profile_inputs, trace_source]
+    family: analyse-and-check
+    skill: join-without-multiplying
+    expert_median_s: 90
+    coach:
+      question: "Is the key unique on both sides, and how many rows should the join return?"
+      hint: "Count the rows on each side before the join and after it."
+      target: { zone: join_panel, label_hint: "Relationships", role_hint: region }
+  - id: set_grain
+    label: Set the grain of the answer before you aggregate
+    cogs: [SET_GRAIN]
+    required: false
+    critical: true
+    after: [trace_source]
+    family: analyse-and-check
+    skill: aggregate-at-the-right-grain
+    expert_median_s: 45
+    coach:
+      question: "What is one row here, and is that the unit the question counts?"
+      hint: "Pick the grain the question asks for before you group."
+      target: { zone: grain_picker, label_hint: "Group by", role_hint: combobox }
+  - id: check_magnitude
+    label: Check the scale and the units of the result
+    cogs: [CHECK_MAGNITUDE]
+    required: false
+    critical: true
+    after: [set_grain]
+    family: analyse-and-check
+    skill: sanity-check-magnitudes
+    expert_median_s: 40
+    coach:
+      question: "Is this the right order of magnitude, and are the units the ones you think?"
+      hint: "Compare the result with a figure you already know, in the same units."
+      target: { zone: magnitude_panel, label_hint: "Column stats", role_hint: region }
+  - id: quantify_uncertainty
+    label: Say how sure the number is
+    cogs: [QUANTIFY_UNCERTAINTY]
+    required: false
+    critical: true
+    after: [check_magnitude]
+    family: analyse-and-check
+    skill: state-the-uncertainty
+    expert_median_s: 75
+    coach:
+      question: "How much could this number move with another sample, and does the difference you report survive that?"
+      hint: "Add an interval or a range next to the figure."
+      target: { zone: uncertainty_panel, label_hint: "Confidence interval", role_hint: region }
+  # report-a-finding
+  - id: write_finding
+    label: Write the finding with its one caveat
+    cogs: [WRITE_FINDING]
+    required: false
+    critical: true
+    after: [check_magnitude, quantify_uncertainty]
+    family: report-a-finding
+    skill: write-the-finding-with-its-caveat
+    expert_median_s: 180
+    coach:
+      question: "What is the finding in one sentence, and what is the one thing that could make it wrong?"
+      hint: "State the finding, then the caveat, in the same paragraph."
+      target: { zone: finding_editor, label_hint: "Document", role_hint: textbox }
+  - id: peer_check
+    label: Get a second pair of eyes on it before it goes out
+    cogs: [PEER_CHECK]
+    required: false
+    after: [write_finding]
+    family: report-a-finding
+    skill: get-a-second-pair-of-eyes
+    expert_median_s: 60
+    coach:
+      question: "Who else can check this number before it reaches people who rely on it?"
+      hint: "Ask a colleague to check the figure and the caveat."
+      target: { zone: review_request, label_hint: "Share", role_hint: button }
+  # automate-a-refresh
+  - id: make_reproducible
+    label: Check it runs clean from scratch
+    cogs: [MAKE_REPRODUCIBLE]
+    required: false
+    critical: true
+    after: [run_and_inspect]
+    family: automate-a-refresh
+    skill: make-it-reproducible
+    expert_median_s: 90
+    coach:
+      question: "If you restarted from nothing and ran it top to bottom, would you get the same number?"
+      hint: "Restart and run everything in order."
+      target: { zone: repro_panel, label_hint: "Restart and run all", role_hint: button }
+  - id: parameterise_report
+    label: Turn the values that change into inputs
+    cogs: [PARAMETERISE_REPORT]
+    required: false
+    after: [make_reproducible]
+    family: automate-a-refresh
+    skill: parameterise-before-copying
+    expert_median_s: 120
+    coach:
+      question: "Which values change every time you rerun this, and could they be inputs?"
+      hint: "Move the week or the filter into a parameter."
+      target: { zone: params_panel, label_hint: "Parameters", role_hint: region }
+  - id: schedule_refresh
+    label: Schedule the refresh with a failure alert
+    cogs: [SCHEDULE_REFRESH]
+    required: false
+    after: [parameterise_report]
+    family: automate-a-refresh
+    skill: schedule-a-refresh-you-trust
+    expert_median_s: 90
+    coach:
+      question: "Would you trust this to run while you are away, and what tells you if it fails?"
+      hint: "Set the schedule and the alert in the same step."
+      target: { zone: schedule_panel, label_hint: "Schedule", role_hint: button }
+  # define-a-metric
+  - id: document_metric
+    label: Write down the metric definition
+    cogs: [DOCUMENT_METRIC]
+    required: false
+    after: [reconcile_to_control]
+    family: define-a-metric
+    skill: document-the-metric
+    expert_median_s: 240
+    coach:
+      question: "Could a new colleague compute this metric from what is written down?"
+      hint: "Write the definition, the source, the owner and the known caveats."
+      target: { zone: metric_docs, label_hint: "Description", role_hint: region }
