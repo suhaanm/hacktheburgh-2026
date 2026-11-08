@@ -53,6 +53,8 @@ export interface RegisterWakeOptions {
   /** The buttons on the cards: Knack's Settings, and the macOS microphone pane. */
   openSettings?: () => void
   openMicrophoneSettings?: () => void
+  /** The bounds of the topmost other window in the bottom-right corner (the Knack corner column), so the wake cards stack above it. */
+  cornerAbove?: () => { x: number; y: number; width: number; height: number } | null
   /** The context hub: the shell may report the top Home insight and the running routine (ids and counts) through `wake:context`. */
   context?: ContextHub | null
   env?: Record<string, string | undefined>
@@ -76,7 +78,7 @@ export function registerWake(o: RegisterWakeOptions): WakeRegistration {
   const env = o.env ?? process.env
   const log = o.log ?? (() => undefined)
   const settings = new WakeSettingsStore(o.userDataDir)
-  const cards = createCardWindow({ log })
+  const cards = createCardWindow({ log, above: o.cornerAbove })
   const lock = o.lock ?? createVoiceLock()
 
   // ---- what the guards read (all cheap, all cached, none of it content)

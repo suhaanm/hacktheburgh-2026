@@ -14,6 +14,7 @@ export const KNACK_IPC = {
   permRequest: 'knack:perm:request', // invoke(kind): ask macOS where it lets an app ask; answers KnackPermRequestResult
   permOpen: 'knack:perm:open', // invoke(kind): open the System Settings pane; answers boolean
   tryRing: 'knack:try-ring', // invoke(spot?): show the on-screen ring for four seconds; answers KnackTryRingResult
+  reveal: 'knack:reveal', // invoke(path): show a path the agent service recorded for a task in Finder; answers boolean
 } as const
 
 // ---- permissions for the first run: four kinds, closed states, nothing else (no path, no app name, no sentence from the system)
@@ -115,6 +116,11 @@ export interface KnackShellApi {
     /** Opens the System Settings pane for the kind. */
     openSettings(kind: KnackPermKind): Promise<boolean>
   }
+  /**
+   * Shows a task's result in Finder (the task row's open.path: a folder or a file). Only a path that appears in a row the agent service sent is accepted, never another string;
+   * it is shown, never opened or run. Resolves whether it was shown.
+   */
+  reveal(path: string): Promise<boolean>
   /** Draws the on-screen ring and the ghost cursor around `spot` (or a fixed spot) in the Knack window for four seconds. It never clicks and needs no permission. */
   tryRing(spot?: KnackRingSpot): Promise<KnackTryRingResult>
 }

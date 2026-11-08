@@ -9,6 +9,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { app, BrowserWindow, nativeTheme, screen } from 'electron'
 import { registerAppScheme } from './app-protocol-electron'
+import { createAgentPills } from './agent-pills'
 import { createAskBar } from './ask-bar'
 import { askUnavailableLine } from './ask-ipc'
 import { createKnackShell, type KnackShell } from './knack-shell'
@@ -53,13 +54,14 @@ interface Seen {
   body: string
 }
 const seen: Seen[] = []
-function fakeService(name: string, health: () => unknown): Promise<{ server: http.Server; port: number }> {
+function fakeService(name: string, health: () => unknown, route?: (req: http.IncomingMessage, res: http.ServerResponse) => boolean): Promise<{ server: http.Server; port: number }> {
   return new Promise((resolve) => {
     const server = http.createServer((req, res) => {
       const chunks: Buffer[] = []
       req.on('data', (c: Buffer) => chunks.push(c))
       req.on('end', () => {
         seen.push({ name, method: req.method ?? '', url: req.url ?? '', headers: req.headers, body: Buffer.concat(chunks).toString('utf8') })
+        if (route?.(req, res)) return
         const send = (v: unknown): void => {
           res.setHeader('content-type', 'application/json')
           res.end(JSON.stringify(v))
@@ -88,7 +90,19 @@ async function run(): Promise<void> {
   app.setPath('userData', userData)
 
   const engine = await fakeService('engine', () => ({ ok: true, mock: false }))
-  const agent = await fakeService('agent', () => ({ ok: true, mock: false, supervisor: { state: 'idle', generation: 1 }, data_dir_id: 'check' }))
+  // The agent stand-in also serves the task events (an open event stream the check writes to), as the real service does.
+  const taskStreams = new Set<http.ServerResponse>()
+  const sendTask = (event: string, data: unknown): void => {
+    for (const r of taskStreams) r.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
+  }
+  const agent = await fakeService('agent', () => ({ ok: true, mock: false, supervisor: { state: 'idle', generation: 1 }, data_dir_id: 'check' }), (req, res) => {
+    if (req.url !== '/tasks/events') return false
+    res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' })
+    res.write(`event: snapshot\ndata: ${JSON.stringify({ tasks: [] })}\n\n`)
+    taskStreams.add(res)
+    res.on('close', () => taskStreams.delete(res))
+    return true
+  })
   const env: Record<string, string | undefined> = { GEMINI_API_KEY: 'present', UNDERSTUDY_DATA_DIR: dataDir, ENGINE_PORT: String(engine.port), AGENT_PORT: String(agent.port), DASHBOARD_PORT: '9' }
 
   await app.whenReady()
@@ -101,11 +115,13 @@ async function run(): Promise<void> {
   let suppressed: string | null = null
   const asked: string[] = []
   const ringed: string[] = []
+  const revealed: string[] = []
   // A power save blocker that records what is held (the real one would keep this Mac awake while the check runs).
   const held = new Map<number, string>()
   const blocker = { start: (t: string): number => (held.set(held.size + 1000, t), held.size + 999), stop: (id: number): void => void held.delete(id), isStarted: (id: number): boolean => held.has(id) }
   const shell: KnackShell = createKnackShell({
     blocker: blocker as never,
+    reveal: (p) => void revealed.push(p),
     settings,
     userDataDir: userData,
     config,
@@ -403,6 +419,70 @@ async function run(): Promise<void> {
   strangerAsk.destroy()
   check("only the bar's own page can send a line: another window is refused and nothing is submitted", foreign === 'refused' && !submitted.includes('from a stranger'), { foreign, submitted })
   ask.dispose()
+
+  // ---- 5d. the background agent pills (top right): one pill per task the service says is going on, from its event stream; a quiet check that fades; a failure that stays
+  const opened: { id: string; phase: string }[] = []
+  const pills = createAgentPills({ source: shell.agentRuns, onOpen: (i) => void opened.push({ id: i.id, phase: i.phase }), onStop: (id) => void shell.stopWork(id), hidden: true, disabled: false, capturable: false })
+  const row = (id: string, state: string, over: Record<string, unknown> = {}) => ({ task_id: id, title: 'Fill in the quarterly benefits form', route: 'browser', state, source: 'typed', attended: false, latest: null, steps_done: 0, result: null, reason: null, started: new Date().toISOString(), finished: null, open: null, needs_consent: null, question: null, ...over })
+  await waitFor(() => (taskStreams.size > 0 ? true : null), 8000) // the shell has opened the stream
+  sendTask('task_started', row('tk_aaaa1111', 'running', { latest: 'Opening the leave page for the claim' }))
+  sendTask('task_started', row('tk_bbbb2222', 'waiting_consent', { route: 'desktop', title: 'Send the weekly summary' }))
+  sendTask('task_started', row('tk_cccc3333', 'planning', { route: 'answer', title: 'Work out the overlap' }))
+  const pillsWin = await waitFor(() => (pills.window()?.webContents.isLoading() === false && pills.view().items.length === 3 ? pills.window() : null), 10000)
+  await settle(700)
+  type PillDom = { count: number; texts: string[]; phases: string[]; animated: string[]; rings: number; dots: number; stops: number; moreText: string | null }
+  const readPills = async (): Promise<PillDom | null> =>
+    pillsWin
+      ? ((await pillsWin.webContents.executeJavaScript(`(() => { const ps = [...document.querySelectorAll('.pill:not(.more)')]; const more = document.querySelector('.pill.more'); return { count: ps.length, texts: ps.map((p) => p.querySelector('.text')?.textContent), phases: ps.map((p) => p.dataset.phase), animated: ps.map((p) => p.querySelector('.icon')?.dataset.animated), rings: document.querySelectorAll('.ring').length, dots: document.querySelectorAll('.icon .dot').length, stops: document.querySelectorAll('.stop').length, moreText: more ? more.textContent : null } })()`)) as PillDom)
+      : null
+  const p1 = await readPills()
+  check('a task the service says is running, one that waits for an OK and one that is planning each get a pill, with four words at most and the step line before the title', p1?.count === 3 && p1.texts[0] === 'Opening the leave page…' && p1.texts[1] === 'Send the weekly summary' && p1.phases.join() === 'working,waiting,working', p1)
+  check('only the running task moves its icon; the waiting one is still with a dot; each can be stopped', p1?.animated.join() === 'true,false,false' && p1.dots === 1 && p1.stops === 3, p1)
+  const pb = pills.window()?.getBounds()
+  check('the pills sit at the top right: 16 px in from the right edge, 16 px below the top of the work area (under the menu bar)', pb !== undefined && Math.abs(pb.x + pb.width - 3 - (wa.x + wa.width - 16)) <= 1 && Math.abs(pb.y + 3 - (wa.y + 16)) <= 1 && pb.y >= wa.y, { pb, wa })
+  const pillShot = async (name: string): Promise<void> => {
+    for (const theme of ['light', 'dark'] as const) {
+      nativeTheme.themeSource = theme
+      await sleep(350)
+      const png = await pills.png()
+      if (png) fs.writeFileSync(path.join(out, `pills-${name}-${theme}.png`), png)
+    }
+    nativeTheme.themeSource = 'system'
+  }
+  await pillShot('working')
+  await pillsWin?.webContents.executeJavaScript(`document.querySelectorAll('.pill .open')[1].click()`)
+  await pillsWin?.webContents.executeJavaScript(`document.querySelectorAll('.pill .open')[0].click()`)
+  await pillsWin?.webContents.executeJavaScript(`document.querySelectorAll('.pill .stop')[0].click()`)
+  await settle(500)
+  const stopSeen = seen.find((x) => x.name === 'agent' && x.method === 'POST' && x.url === '/tasks/tk_aaaa1111/stop')
+  check('a click opens Knack on that work (Needs you for the one waiting, Routines for the other), and the stop button reaches the service as the worker', opened.map((o) => `${o.id}:${o.phase}`).join() === 'tk_bbbb2222:waiting,tk_aaaa1111:working' && stopSeen?.headers['x-understudy-actor'] === 'worker' && stopSeen.body === '{}', { opened, stopSeen: stopSeen?.headers })
+  sendTask('task_finished', row('tk_cccc3333', 'done', { result: 'The overlap is 12 days', finished: new Date().toISOString(), open: { kind: 'folder', path: '/tmp/knack-check-result' } }))
+  sendTask('task_finished', row('tk_bbbb2222', 'failed', { reason: 'Mail did not answer', finished: new Date().toISOString() }))
+  await settle(900)
+  const p2 = await readPills()
+  check('a finished task shows a quiet check with its one result line, and a failure shows a red dot with its reason', p2?.phases.join() === 'working,failed,done' && p2.texts[2] === 'The overlap is 12 days' && p2.texts[1] === 'Mail did not answer', p2)
+  const reveal = (await wc.executeJavaScript(`Promise.all([window.knackShell.reveal('/tmp/knack-check-result'), window.knackShell.reveal('/etc/passwd'), window.knackShell.reveal('/tmp/knack-check-result/../../etc'), window.knackShell.reveal(7)])`)) as boolean[]
+  check('the page can reveal only a path the service recorded for a task: the recorded one is shown, any other string is refused', reveal.join() === 'true,false,false,false' && revealed.join() === '/tmp/knack-check-result', { reveal, revealed })
+  await pillShot('ended')
+  await sleep(5600)
+  const p3 = await readPills()
+  check('the check fades by itself after five seconds and leaves nothing behind, while the failure stays until it is clicked', p3?.phases.join() === 'working,failed' && p3.count === 2, p3)
+  sendTask('task_finished', row('tk_aaaa1111', 'stopped', { finished: new Date().toISOString() }))
+  await settle(600)
+  await pillsWin?.webContents.executeJavaScript(`document.querySelectorAll('.pill[data-phase="failed"] .open')[0].click()`)
+  await sleep(900)
+  const p4 = await readPills()
+  check('clicking the failure opens Knack on it and takes the red dot away; a stopped task shows a dash and goes by itself', (p4?.count ?? 9) <= 1 && opened.at(-1)?.phase === 'failed', { p4, opened })
+  await sleep(3600)
+  check('and when the service has nothing going on, no pill is left (the pill list is exactly the work that is not finished)', (await readPills())?.count === 0 && pills.view().items.length === 0, pills.view())
+  // A new task on the same stream shows up again at once.
+  const outageCheck = await (async () => {
+    sendTask('task_started', row('tk_dddd4444', 'running', { title: 'Check the bank holidays' }))
+    await waitFor(() => (pills.view().items.length === 1 ? true : null), 5000)
+    return pills.view().items.map((i) => `${i.phase}:${i.text}`)
+  })()
+  check('a new task shows up again at once on the same stream', outageCheck.join() === 'working:Check the bank holidays', outageCheck)
+  pills.dispose()
 
   // ---- 6. close, activate, the setting
   shell.dispatch({ type: 'window_close' })

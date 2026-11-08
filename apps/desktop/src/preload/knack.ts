@@ -43,6 +43,7 @@ const api: KnackShellApi = {
     openSettings: (kind) => ipcRenderer.invoke(KNACK_IPC.permOpen, kind) as Promise<boolean>,
   },
   tryRing: (spot) => ipcRenderer.invoke(KNACK_IPC.tryRing, spot) as Promise<KnackTryRingResult>,
+  reveal: (path) => ipcRenderer.invoke(KNACK_IPC.reveal, path) as Promise<boolean>,
 }
 contextBridge.exposeInMainWorld('knackShell', api)
 

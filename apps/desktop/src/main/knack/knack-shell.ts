@@ -9,7 +9,7 @@
 // The decisions are in the pure modules (model-mode, stack, activity, shell-machine, quit-guard, window-state, app-menu); this file connects them to Electron and has no
 // rules of its own.
 import path from 'node:path'
-import { app, BrowserWindow, dialog, ipcMain, Menu, powerSaveBlocker } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, powerSaveBlocker, shell } from 'electron'
 import { APP_NAME, APP_ORIGIN } from '../../shared/brand'
 import type { HudActivity } from '../../shared/hud'
 import type { Settings } from '../../shared/settings'
@@ -17,7 +17,7 @@ import { KNACK_IPC } from '../../shared/knack'
 import type { HudModel } from '../hud-model'
 import { readServiceToken } from '../kill-file'
 import { applyModeEnv, applyStackEnv } from './stack-config'
-import { createActivityTracker, type ActivityTracker } from './activity'
+import { createActivityTracker, isQuiet, pillOutlivedWork, type ActivityTracker } from './activity'
 import { registerAppProtocol } from './app-protocol-electron'
 import type { Upstream } from './app-protocol'
 import { buildAppMenuTemplate, buildDockMenuTemplate } from './app-menu'
@@ -33,6 +33,9 @@ import type { Stack, StackConfig, StackState } from './stack'
 import { createRealStack } from './stack-real'
 import { createWindowStateStore } from './window-state'
 import { createKeepAwake, type BlockerPort } from './keep-awake'
+import { runsOf, taskSamplesOf } from './run-samples'
+import { createAgentRunsSource, openPathsOfTasks, pillRunsOf, pillRunsOfTasks, type AgentPillRun, type AgentRunsSource, type PillItem } from './agent-pills-model'
+import { connectTaskEvents, stopTask, type TasksClient } from './tasks-client'
 import { permKindOf, paneOf, permissionsView } from './permission-bridge'
 import { createTryRing } from './try-ring'
 import type { PermissionPane, PermissionStatus } from '../../shared/permissions'
@@ -72,6 +75,10 @@ export interface KnackEarlyDeps {
   showSheet?: (o: { message: string; detail?: string; buttons: readonly [string, string] }) => Promise<'stop_and_quit' | 'keep_working'>
   /** The power save blocker held only while a run works (default: Electron's powerSaveBlocker). Injectable for the check. */
   blocker?: BlockerPort
+  /** Do not connect to the service's task events (tests that must not open a stream). */
+  noTaskEvents?: boolean
+  /** Shows a path in Finder (default: shell.showItemInFolder). Injectable for the check. */
+  reveal?: (path: string) => void
 }
 
 export interface KnackLateDeps {
@@ -123,6 +130,12 @@ export interface KnackShell {
   openSettings(): void
   /** Set up again…: open Knack on its first run (the dashboard route SETUP_HASH). */
   openSetup(): void
+  /** The background agent pills' one source of work (`onAgentRuns(cb)`): the service's task events and run list, merged. Anything else that knows background work can `push`. */
+  agentRuns: AgentRunsSource
+  /** A click on a background pill: open Knack on that work (Needs you while it waits for an OK, Routines otherwise). */
+  openWork(item: Pick<PillItem, 'id' | 'phase'>): void
+  /** The stop button on a task's pill. */
+  stopWork(id: string): Promise<boolean>
   /** Feeds the machine directly (the dev hook, the hidden check). Returns the machine's state after the event. */
   dispatch(event: ShellEvent): ShellState
   quitGuard(): QuitGuard
@@ -142,19 +155,11 @@ export interface KnackInfo {
 
 const asObj = (v: unknown): Record<string, unknown> | null => (typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as Record<string, unknown>) : null)
 
-/** GET /agents/runs, as a list or { data: [...] }, to the ids, states and (when listed) children done and in all. */
-export function runsOf(raw: unknown): NonNullable<PillSignals['runs']>[number][] {
-  const list = Array.isArray(raw) ? raw : (asObj(raw) && Array.isArray(asObj(raw)!.data) ? (asObj(raw)!.data as unknown[]) : [])
-  const out: NonNullable<PillSignals['runs']>[number][] = []
-  for (const r of list) {
-    const o = asObj(r)
-    const id = typeof o?.run_id === 'string' ? o.run_id : typeof o?.id === 'string' ? o.id : null
-    if (!o || !id || typeof o.state !== 'string') continue
-    const kids = Array.isArray(o.children) ? o.children.map(asObj).filter((c): c is Record<string, unknown> => c !== null) : []
-    const done = kids.filter((c) => typeof c.state === 'string' && ['done', 'partial'].includes(c.state)).length
-    out.push({ id, state: o.state, ...(kids.length > 0 ? { progress: { done, total: kids.length } } : {}) })
-  }
-  return out
+/** Where a click on a background pill goes: work that waits for an OK opens Needs you at it; anything else opens Routines at that task or run. The ids are the service's own shapes. */
+export function workHash(item: Pick<PillItem, 'id' | 'phase'>): string {
+  const id = encodeURIComponent(item.id)
+  if (item.phase === 'waiting') return `#/needs-you?item=${id}`
+  return `#/routines?${item.id.startsWith('tk_') ? 'task' : 'run'}=${id}`
 }
 
 /** Set up again: the dashboard's own set-up screen (docs/KNACK_UX.md section 8: Settings, "Set up again"), in the Knack window. */
@@ -259,6 +264,12 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
     late.permissions.openSettings(paneOf(kind))
     return true
   })
+  ipcMain.handle(KNACK_IPC.reveal, (event, raw: unknown) => {
+    if (!fromOurPage(event)) throw new Error('shell IPC from an unknown sender')
+    if (typeof raw !== 'string' || !revealable.has(raw)) return false // never an arbitrary string
+    deps.reveal ? deps.reveal(raw) : shell.showItemInFolder(raw) // shown in Finder, never opened or run
+    return true
+  })
   // The sample ring: the worker sees what the on-screen guide looks like, with no permission and no click. Four seconds, then it goes.
   const tryRing = createTryRing({
     ring: () => late?.ring,
@@ -275,8 +286,42 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
 
   const dashboardBase = (s: StackState): string => (s.phase === 'ready' && s.dashboard === 'dev-server' && config.devUrl ? config.devUrl : APP_ORIGIN)
   const pushUi = (): void => main.pushUiState(ui())
+
+  // ---- the background agent pills' data: the service's task events (contract v1) and its run list, merged, through the one door `agentRuns.onAgentRuns`
+  const agentRuns = createAgentRunsSource()
+  let taskRuns: AgentPillRun[] = []
+  let listedRuns: AgentPillRun[] = []
+  const publishPills = (): void => agentRuns.push([...taskRuns, ...listedRuns])
+  const agentBase = `http://127.0.0.1:${config.ports.agent}`
+  let tasksClient: TasksClient | null = null
+  // The only paths the page may ask to see in Finder: the ones the agent service recorded on a task row (open.path).
+  let revealable = new Set<string>()
+  const ensureTasks = (): void => {
+    if (tasksClient || deps.noTaskEvents) return
+    tasksClient = connectTaskEvents({
+      base: agentBase,
+      log: (...a) => log(...a),
+      onTasks: (rows) => {
+        taskRuns = pillRunsOfTasks(rows)
+        taskSamples = taskSamplesOf(rows)
+        revealable = new Set(openPathsOfTasks(rows))
+        publishPills()
+        ingest() // the corner pill follows tasks too: a task that ended clears it at once
+      },
+      // The service cannot be reached: a pill that says working about work nobody can see would be a lie, so each says it lost contact.
+      onLost: () => {
+        taskRuns = taskRuns.filter((r) => r.state === 'working' || r.state === 'waiting').map((r) => ({ ...r, state: 'failed' as const, endText: 'Lost contact', stoppable: false }))
+        publishPills()
+        taskRuns = []
+        taskSamples = []
+        ingest()
+      },
+    })
+  }
+
   const offStack = stack.subscribe((s) => {
     if (s.phase === 'ready') {
+      ensureTasks()
       // This app's own environment follows the stack it ended up with: the kill file and the token live in that data directory.
       const dir = stack.dataDir()
       if (dir) applyStackEnv(env, config.ports, dir)
@@ -526,14 +571,36 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
   let reachable = false
   let supervisor: string | null = null
   let runs: PillSignals['runs'] = []
+  let taskSamples: PillSignals['runs'] = [] // the task events' rows, as runs (see taskSamplesOf)
   let localActing = false
   let lastNeeds = -1
+  // For the watchdog that clears a pill that outlived its work (see attach).
+  let fromService = false
+  let quietSince: number | null = null
 
-  const signals = (): PillSignals => ({ reachable, supervisor, runs, killed: late?.kill.isKilled() === true || supervisor === 'killed', pending, local: localActing })
+  const signals = (): PillSignals => ({ reachable, supervisor, runs: [...runs, ...taskSamples], killed: late?.kill.isKilled() === true || supervisor === 'killed', pending, local: localActing })
 
   const attach = (l: KnackLateDeps): void => {
     late = l
-    tracker = createActivityTracker({ emit: (e) => void dispatch(e) })
+    tracker = createActivityTracker({
+      emit: (e) => {
+        // Whether a run that is working now came from the agent service (the dev hook's runs are the hook's own and are not cleared by the watchdog below).
+        if (e.type === 'run_started') fromService = true
+        else if (e.type === 'run_done' || e.type === 'run_failed' || e.type === 'kill') fromService = false
+        void dispatch(e)
+      },
+    })
+    // The pill must never outlive the work: a run from the service that the machine still calls working while the service says nothing is acting (a missed end, a record a dead
+    // process left behind) is cleared three seconds after the service went quiet, whatever it last heard.
+    intervals.push(
+      setInterval(() => {
+        if (pillOutlivedWork({ fromService, machineWorking: machine.activity === 'working', quietSince, now: Date.now() })) {
+          log('knack', 'the pill said working but the agent service says nothing is acting: clearing it')
+          fromService = false
+          dispatch({ type: 'run_done', needsNothing: true })
+        }
+      }, 1000),
+    )
     l.hud.setCorner({
       review: (id) => void dispatch({ type: 'review_clicked', item: id }),
       later: () => void dispatch({ type: 'card_dismissed' }),
@@ -587,9 +654,10 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
   let offLate: (() => void) | null = null
 
   const ingest = (): void => {
+    quietSince = isQuiet(signals(), Date.now()) ? (quietSince ?? Date.now()) : null
     const k = tracker?.state().kind
     // The queue count is read fresh while a run works or has just ended, so "something new to approve" is measured against the count at the start.
-    if (late && reachable && (supervisor === 'running' || runs.some((r) => r.state === 'running') || localActing || k === 'working' || k === 'needs-you')) {
+    if (late && reachable && (supervisor === 'running' || signals().runs.some((r) => r.state === 'running') || localActing || k === 'working' || k === 'needs-you')) {
       void late
         .pendingQueue()
         .catch(() => null)
@@ -612,6 +680,8 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
       const sup = asObj(health?.supervisor)
       supervisor = typeof sup?.state === 'string' ? sup.state : null
       runs = runsOf(sample.runs)
+      listedRuns = pillRunsOf(runs, Date.now())
+      publishPills()
       ingest()
     },
     feedLocalActing(acting) {
@@ -620,6 +690,12 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
       reachable = reachable || acting // an agent of this app acting needs no service to be heard
       ingest()
     },
+    agentRuns,
+    openWork: (item) => {
+      dispatch({ type: 'menu_open_knack' })
+      if (dashboardLoaded) main.loadDashboard(`${dashboardBase(stack.state())}/${workHash(item)}`)
+    },
+    stopWork: (id) => stopTask(agentBase, id),
     openMain: () => void dispatch({ type: 'menu_open_knack' }),
     openSettings,
     openSetup,
@@ -646,6 +722,7 @@ dispatch,
       for (const i of intervals) clearInterval(i)
       clearDoneTimers()
       keepAwake.dispose()
+      tasksClient?.stop()
       if (minimiseTimer) clearTimeout(minimiseTimer)
       app.off('activate', onActivate)
       app.off('second-instance', onActivate)
@@ -662,6 +739,7 @@ dispatch,
       ipcMain.removeHandler(KNACK_IPC.permRequest)
       ipcMain.removeHandler(KNACK_IPC.permOpen)
       ipcMain.removeHandler(KNACK_IPC.tryRing)
+      ipcMain.removeHandler(KNACK_IPC.reveal)
       tryRing.stop()
       ipcMain.removeAllListeners(KNACK_IPC.retry)
       await stack.stop()
