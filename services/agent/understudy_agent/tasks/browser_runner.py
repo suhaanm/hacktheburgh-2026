@@ -36,7 +36,7 @@ MAX_STEPS = 60
 _URL = re.compile(r"https?://[^\s<>\"')]+", re.I)
 _VERB = {"click": "Clicking", "double_click": "Clicking", "type": "Typing", "type_fact": "Typing", "key": "Pressing a key",
          "scroll": "Scrolling", "move": "Moving the pointer", "drag": "Dragging", "wait": "Waiting", "screenshot": "Looking at the page",
-         "goto": "Opening a page", "back": "Going back"}
+         "goto": "Opening a page", "back": "Going back", "forward": "Going forward"}
 GOAL = ("{text}\n\nYou are working in a browser window for a person. Do what they asked, then say DONE: followed by one plain sentence "
         "about what you found or did. Never buy, pay, send, post, submit or delete anything: if a step would do that, stop and say so. "
         "If you cannot finish, say FAILED: followed by one word: login (the page needs an account), captcha (a check only a person can "
@@ -68,6 +68,7 @@ REASONS: dict[str, str] = {
 }
 STOPPED_REASONS: dict[str, str] = {
     "needs_you": "Knack stopped before something it can't undo. It is waiting in Needs you.",
+    "unreadable": "Knack couldn't tell what that control does, so it stopped. It is waiting in Needs you.",
     "model_check": "The model asked for a safety check, so Knack stopped. It is waiting in Needs you.",
     "injection": "A page tried to give Knack orders, so Knack stopped.",
     "you": "Stopped by you.",
@@ -170,6 +171,10 @@ class BrowserTaskRunner:
                     if layer == "kill":
                         return _stopped("you")
                     return _failed("denied" if layer == "denylist" else "protected" if layer == "settings" else "tier")
+                # The gate's own sentence for a control that trusted code could not read (a page built from custom elements, a canvas, a
+                # frame): fixed wording in security/gates.py, so matching it cannot be steered by a page.
+                if any("could not be read by trusted code" in r for r in (getattr(dec, "reasons", None) or [])):
+                    return _stopped("unreadable")
                 return _stopped("needs_you")
             except ProviderSafetyStop:
                 return _stopped("model_check")

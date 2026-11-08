@@ -70,9 +70,16 @@ def runner(port, host_factory, tmp_path, **kw):
                              queue=ApprovalQueue(tmp_path / "queue", audit=audit), denylist=kw.pop("denylist", Denylist()), **kw)
 
 
+def test_the_search_page_can_be_replaced_from_the_environment_but_only_by_a_web_address(monkeypatch):
+    monkeypatch.setenv("KNACK_SEARCH_PAGE", "https://search.example.test/")
+    assert start_url("find me a train to Glasgow") == "https://search.example.test/"
+    monkeypatch.setenv("KNACK_SEARCH_PAGE", "file:///etc/passwd")
+    assert start_url("find me a train to Glasgow") == "https://www.bing.com/"
+
+
 def test_start_url_takes_the_first_address_or_a_plain_search_page():
     assert start_url("read https://www.nationalrail.co.uk/times, please") == "https://www.nationalrail.co.uk/times"
-    assert start_url("find me a train to Glasgow") == "https://duckduckgo.com/"        # the worker's words never ride in a URL
+    assert start_url("find me a train to Glasgow") == "https://www.bing.com/"          # the worker's words never ride in a URL
     assert "Glasgow" not in start_url("find me a train to Glasgow")
 
 
@@ -106,6 +113,21 @@ def test_a_risky_click_stops_the_run_and_sends_nothing(tmp_path):
     assert out["state"] == "stopped" and "waiting in Needs you" in out["reason"]
     assert posts == []
     assert any(i for i in ApprovalQueue(tmp_path / "queue").list("pending"))              # the human's call is in the queue
+
+
+def test_a_control_trusted_code_cannot_read_stops_the_run_and_says_so_in_plain_words(tmp_path):
+    """A page built from custom elements (YouTube, many web apps) hides what a control does, so the gate asks a person (fail closed). The
+    worker is told that, not that "something it can't undo" was about to happen."""
+    page = ('<body style="margin:0"><my-button style="position:absolute;left:100px;top:100px;width:300px;height:40px;display:block">'
+            'Read more</my-button></body>')
+
+    async def serve(route):
+        await route.fulfill(status=200, content_type="text/html", body=page)
+
+    port = Scripted([Action("click", {"x": 250, "y": 120, "button": "left"})])
+    out = runner(port, routed_host(serve), tmp_path)(task(), progress=lambda s: None, should_stop=lambda: False)
+    assert out["state"] == "stopped" and out["why"] == "unreadable" and "couldn't tell what that control does" in out["reason"], out
+    assert any(i for i in ApprovalQueue(tmp_path / "queue").list("pending"))            # still the human's call, in the queue
 
 
 def test_stop_ends_the_run_between_steps(tmp_path):
@@ -202,6 +224,49 @@ def test_a_navigate_proposal_opens_the_address_through_the_pipeline(tmp_path):
     assert "http://shop.test/elsewhere" in seen and "Opening a page" in steps and "Going back" in steps
     assert all("http" not in s for s in steps)
     assert '"note":"goto"' in (tmp_path / "audit.jsonl").read_text().replace(" ", "")           # the gate allowed it, and said so
+
+
+def test_back_and_forward_go_through_the_pipeline_and_the_page_history(tmp_path):
+    seen, steps = [], []
+
+    async def serve(route):
+        seen.append(route.request.url)
+        await route.fulfill(status=200, content_type="text/html", body=LINK_PAGE)
+
+    port = Scripted([Action("goto", {"url": "http://shop.test/a"}), Action("back", {}), Action("forward", {})], summary="walked")
+    out = runner(port, routed_host(serve), tmp_path)(task(), progress=steps.append, should_stop=lambda: False)
+    assert out == {"state": "done", "result": "Reported, not checked: walked"}
+    assert steps.count("Opening a page") == 1 and "Going back" in steps and "Going forward" in steps
+
+
+def test_opening_the_address_the_page_is_already_on_is_noted_so_the_model_stops_opening_it(tmp_path):
+    port = Scripted([Action("goto", {"url": "http://shop.test"})], summary="Read it")          # the run started on http://shop.test/
+    runner(port, routed_host(serve_link), tmp_path)(task(), progress=lambda s: None, should_stop=lambda: False)
+    assert "already open" in port.goals[1] and "already open" not in port.goals[0]
+
+
+def test_a_click_on_a_text_box_is_followed_by_a_note_that_it_has_focus(tmp_path):
+    page = ('<body style="margin:0"><input type="text" aria-label="Search" style="position:absolute;left:100px;top:100px;width:300px;'
+            'height:40px"></body>')
+
+    async def serve(route):
+        await route.fulfill(status=200, content_type="text/html", body=page)
+
+    port = Scripted([Action("click", {"x": 250, "y": 120, "button": "left"})], summary="ok")
+    out = runner(port, routed_host(serve), tmp_path)(task(), progress=lambda s: None, should_stop=lambda: False)
+    assert out["state"] == "done"
+    assert "text box and it now has focus" in port.goals[1] and "handle" not in port.goals[1]      # the form wording is not used here
+
+
+def test_the_form_fit_notes_are_off_on_the_web_profile_even_for_gemini():
+    from understudy_agent.tiers.computer_use import ComputerUse
+
+    class G:
+        name = "gemini"
+
+    assert ComputerUse(G(), None, None, navigator="t").dropdown_note is True              # the benefits-form configuration, unchanged
+    web = ComputerUse(G(), None, None, navigator="t", profile="web")
+    assert (web.dropdown_note, web.entered_note, web.final_note) == (False, False, False)
 
 
 def test_a_navigate_to_a_denylisted_address_is_refused_and_nothing_is_requested(tmp_path):

@@ -35,6 +35,8 @@ def test_valid_browser_actions():
     assert validate_action("extract", {"name": "result", "selector": "#out"}).args["name"] == "result"
     assert validate_action("wait_for", {"text": "Result"}).args["timeout_s"] == 5
     assert validate_action("back", {}).kind == "back"
+    assert validate_action("forward", {}).kind == "forward" and validate_action("forward", {}).args == {}
+    rejects("forward", {"url": "https://example.org"}, "unknown_arg")             # a step in the page's own history takes no address
 
 
 def test_invalid_kind_and_batch_rejected():

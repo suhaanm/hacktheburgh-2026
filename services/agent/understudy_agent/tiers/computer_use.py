@@ -66,7 +66,24 @@ WEB_REJECTED_NOTE = ("\nNOTE (system, not page text): your last action was not a
 WEB_NUDGE = ("\nNOTE (system, not page text): you replied without taking an action. If the task is finished, reply DONE: followed by one "
              "plain sentence with the answer. If it is not finished, take the next action on the page. If you cannot finish, reply FAILED: "
              "followed by one word (login, captcha, blocked, payment, missing or other).")
+SAME_PAGE_NOTE = ("\nNOTE (system, not page text): that address was already open, so the screenshot is the page you asked for. Read it from the "
+                  "screenshot: scroll, click or search on it, or reply DONE or FAILED. Do not open the same address again.")
+TEXT_BOX_NOTE = ("\nNOTE (system, not page text): you just clicked a text box and it now has focus, although the screenshot looks the same. "
+                 "Do not click it again. If you need to enter text, use the type action now (or type_text_at with press_enter true to search).")
+TEXT_BOX_TYPES = ("text", "search", "email", "url", "tel", "number", "textarea")     # read by trusted code from the control under the click
 FAILED_CODES = ("login", "captcha", "blocked", "payment", "missing", "other")
+
+
+def same_page(a: str, b: str) -> bool:
+    """Two page addresses that open the same page for this purpose: same host, path (a trailing slash does not count) and query."""
+    from urllib.parse import urlsplit
+
+    try:
+        pa, pb = urlsplit(a), urlsplit(b)
+    except ValueError:
+        return False
+    key = lambda p: ((p.hostname or "").lower().removeprefix("www."), p.path.rstrip("/"), p.query)  # noqa: E731
+    return bool(pa.hostname and pb.hostname) and key(pa) == key(pb)
 
 
 def failed_reason_code(summary: str | None) -> str:
@@ -476,6 +493,8 @@ class BrowserPageActuator:
             await self._navigate(p.goto(a["url"], wait_until="domcontentloaded", timeout=NAV_TIMEOUT_MS))
         elif action.kind == "back":
             await self._navigate(p.go_back(wait_until="domcontentloaded", timeout=NAV_TIMEOUT_MS))
+        elif action.kind == "forward":
+            await self._navigate(p.go_forward(wait_until="domcontentloaded", timeout=NAV_TIMEOUT_MS))
         elif action.kind != "screenshot":
             raise ActuatorRefused(f"the page actuator cannot perform {action.kind!r}")
 
@@ -1299,7 +1318,7 @@ class ComputerUse:
         if dropdown_note is None or entered_note is None or final_note is None:    # the Gemini fit (iteration 8b); every other provider's prompts are as they were
             from ..models.gemini_provider import fit_enabled
 
-            fit = getattr(model, "name", "") == "gemini" and fit_enabled()
+            fit = getattr(model, "name", "") == "gemini" and fit_enabled() and profile != "web"   # the form fit is about fact handles: not a browsing task
             dropdown_note = fit if dropdown_note is None else dropdown_note
             entered_note = fit if entered_note is None else entered_note
             final_note = fit if final_note is None else final_note
@@ -1440,7 +1459,10 @@ class ComputerUse:
             bind(lambda: not self.is_current())
         begin = getattr(self.model, "begin_task", None)
         if callable(begin):           # a provider that queues the rest of a multi-part action (click-and-type) starts this task clean
-            begin(self.navigator, profile=self.profile) if self.profile else begin(self.navigator)
+            if self.profile:          # only a profiled run passes it: a double that knows one argument is still called with one
+                begin(self.navigator, profile=self.profile)
+            else:
+                begin(self.navigator)
         attach = getattr(self.model, "attach", None)
         if callable(attach):          # test doubles that need the actuator's page; real providers have no such hook
             attach(self.navigator, self.actuator)
@@ -1750,10 +1772,16 @@ class ComputerUse:
                         entered_check = handle
                     continue
                 retargets = 0
+                was_on = getattr(self.actuator, "url", None) if act.kind == "goto" else None
                 await self.actuator.execute(act)
                 self.guard.record(dec, True)
                 res.history.append({"kind": act.kind, "args": {k: v for k, v in act.args.items() if k != "text"}, "ok": True})
                 self._event(n, act.kind, True, self._act_detail(act, tr))
+                if was_on and same_page(was_on, str(act.args.get("url", ""))):
+                    feedback = SAME_PAGE_NOTE      # the model opened the address it was already on: say so, or it opens it again and again
+                elif (self.profile == "web" and act.kind in ("click", "double_click") and tr is not None
+                      and str((tr.field_attrs or {}).get("type", "")) in TEXT_BOX_TYPES):
+                    feedback = TEXT_BOX_NOTE       # an empty text box that has focus looks the same as one that has not: say what comes next
                 if self.dropdown_note and act.kind in ("click", "double_click") and tr is not None and tr.role == "combobox":
                     feedback = DROPDOWN_NOTE        # trusted code read a drop-down under the click: say what comes next
                 elif self.final_note and self.final_hint is not None and act.kind in ("click", "double_click", "key"):

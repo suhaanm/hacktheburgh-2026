@@ -10,12 +10,12 @@ from typing import Any
 
 
 def search_page() -> str:
-    """The page a typed task starts on when the worker named no address, and where the model's `search` action goes. DuckDuckGo's home page
-    loads in the agent's own browser with no consent wall (checked live, 8 Nov 2026: Google's home page opens a "Before you continue" wall
-    in front of the search box). `KNACK_SEARCH_PAGE` (an http or https address) replaces it. It carries no query: the worker's words never
-    ride in an address."""
+    """The page a typed task starts on when the worker named no address, and where the model's `search` action goes. Checked live from the
+    agent's own browser, 8 Nov 2026: Bing's home page and results load for an automated browser; DuckDuckGo answers a search with its
+    "418" error page, Google puts a consent wall in front of the search box, and Brave, Startpage, Mojeek and Ecosia show a bot check or an
+    error. `KNACK_SEARCH_PAGE` (an http or https address) replaces it. It carries no query: the worker's words never ride in an address."""
     v = os.environ.get("KNACK_SEARCH_PAGE", "").strip()
-    return v if v.startswith(("https://", "http://")) else "https://duckduckgo.com/"
+    return v if v.startswith(("https://", "http://")) else "https://www.bing.com/"
 
 
 def _viewport_from_env() -> dict[str, int]:

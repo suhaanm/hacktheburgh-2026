@@ -42,7 +42,7 @@ class StaleObservation(RuntimeError):
 # ------------------------------------------------------------------ the typed action set
 
 DESKTOP_KINDS = ("click", "double_click", "move", "drag", "scroll", "type", "key", "wait", "screenshot")
-BROWSER_KINDS = ("goto", "click_element", "fill", "select_option", "press", "scroll_page", "wait_for", "extract", "back")
+BROWSER_KINDS = ("goto", "click_element", "fill", "select_option", "press", "scroll_page", "wait_for", "extract", "back", "forward")
 ALL_KINDS = DESKTOP_KINDS + BROWSER_KINDS
 
 MAX_TYPE_CHARS = 500
@@ -296,7 +296,7 @@ def validate_action(kind: str, args: dict[str, Any] | None = None, *,
         if not isinstance(args["name"], str) or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,63}", args["name"]):
             raise ActionRejected("bad_name", "name must be a plain identifier")
         out = {"name": args["name"], "selector": _clean_text(args["selector"], "selector", MAX_SELECTOR_CHARS)}
-    else:  # back
+    else:  # back, forward: one step in the page's own history, no arguments
         _need(args, [])
         out = {}
     return ValidatedAction(kind, out, action_signature(kind, out))

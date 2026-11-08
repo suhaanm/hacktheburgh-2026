@@ -247,8 +247,9 @@ def web(*replies, **ids):
     ("navigate", {"url": "www.youtube.com/results"}, "goto", {"url": "https://www.youtube.com/results"}),      # no scheme: https
     ("navigate", {"url": "javascript:alert(1)"}, "goto", {"url": "javascript:alert(1)"}),                       # never repaired: layer 3 refuses it
     ("navigate", {"url": "file:///etc/passwd"}, "goto", {"url": "file:///etc/passwd"}),
-    ("search", {}, "goto", {"url": "https://duckduckgo.com/"}),
+    ("search", {}, "goto", {"url": "https://www.bing.com/"}),
     ("go_back", {}, "back", {}),
+    ("go_forward", {}, "forward", {}),
     ("open_web_browser", {}, "screenshot", {}),                       # the browser is already open: look at it
 ])
 def test_the_web_profile_maps_the_navigation_actions(name, args, kind, expect):
@@ -260,9 +261,9 @@ def test_the_web_profile_maps_the_navigation_actions(name, args, kind, expect):
 def test_an_action_nobody_maps_is_unsupported_which_is_still_a_failed_done_to_old_callers():
     from understudy_agent.models.port import Unsupported
 
-    p, _ = web(call("go_forward"), call("Tele Port!!", x=1))
+    p, _ = web(call("teleport"), call("Tele Port!!", x=1))
     r = p.computer_step("g", PNG, [], session="task")
-    assert isinstance(r, Unsupported) and isinstance(r, Done) and not r.claimed_success and r.name == "go_forward"
+    assert isinstance(r, Unsupported) and isinstance(r, Done) and not r.claimed_success and r.name == "teleport"
     r = p.computer_step("g", PNG, [], session="task")
     assert isinstance(r, Unsupported) and r.name == "tele_port"           # a closed token, never the model's own text
 
@@ -280,6 +281,17 @@ def test_begin_task_without_a_profile_puts_a_session_back_on_the_form_profile():
     p, _ = web(call("navigate", url="https://example.org"))
     p.begin_task("task")
     assert isinstance(p.computer_step("g", PNG, [], session="task"), Unsupported)
+
+
+def test_a_plain_type_that_asks_for_enter_gets_its_enter_as_the_next_step_on_the_web_profile_only():
+    """Seen live (8 Nov 2026): the model searches with `type` + press_enter true, and the Enter was dropped, so it never searched."""
+    p, c = web(call("type", text="capital of Scotland", press_enter=True))
+    out = [p.computer_step("g", PNG, [], session="task") for _ in range(2)]
+    assert kinds(out) == [("type", {"text": "capital of Scotland"}), ("key", {"keys": ["enter"]})] and len(c.calls) == 1
+    p, _ = web(call("type", text="x"))
+    assert p.computer_step("g", PNG, [], session="task").kind == "type" and not p._pending.get("task")      # no ask, no Enter
+    p, _ = prov(call("type", text="x", press_enter=True))
+    assert p.computer_step("g", PNG, [], session="task").kind == "type" and not p._pending.get("task")      # form profile: as before
 
 
 def test_the_web_prompt_has_no_benefits_form_wording_and_lets_a_search_box_take_its_enter(monkeypatch):

@@ -15,7 +15,7 @@ from typing import Any, Literal, Protocol
 
 ActionKind = Literal[
     "click", "double_click", "type", "key", "scroll", "move", "drag", "wait", "screenshot",
-    "goto", "back",     # the browsing profile only (security/actions.py BROWSER_KINDS): a page address, and one step back in history
+    "goto", "back", "forward",   # the browsing profile only (security/actions.py BROWSER_KINDS): a page address, and a step back or forward in history
 ]
 
 
