@@ -66,6 +66,8 @@
 .perm[data-state="off"] .perm__state { color: var(--fg); }
 .firstrun__hey { display: grid; gap: 2px; margin: 0; font-size: var(--text-sm); }
 .firstrun__hey b { font-weight: 600; }
+/* The System Settings button under the Hey Knack line is a small button at the start of its row, not a bar across the whole column. */
+.firstrun__hey .btn { justify-self: start; margin-top: var(--space-2); }
 .firstrun__try { display: grid; gap: var(--space-2); }
 
 /* A window under 800 px high gives the top of the column less room, so the three cards and the Skip stay in view. */
