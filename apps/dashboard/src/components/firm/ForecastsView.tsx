@@ -7,7 +7,6 @@ import { loadFirm, loadOnboarding, loadRoles } from "../../screens/Firm/data";
 import { CONFIDENCE_ROWS, ConfidenceWord, FreshNote, NumbersTable, SeeNumbers } from "./InsightFirst";
 import { IntervalPlot } from "./IntervalPlot";
 import { MixBar } from "./MixBar";
-import { ScorecardView, useScorecard } from "./ScorecardPanel";
 import { buildForecastInsights, type ForecastChart, type ForecastInsight } from "./forecastInsights";
 import { pct } from "./model";
 
@@ -57,7 +56,6 @@ export function ForecastsView() {
   const roles = useLoad(loadRoles, []);
   const firm = useLoad(loadFirm, []);
   const hits = useLoad(() => loadFirmHits(7), []);
-  const card = useScorecard();
   const now = useMemo(() => new Date(), []);
   const [picked, setPicked] = useState<string | null | undefined>(undefined);
   const all = [onb, roles, firm, hits];
@@ -95,11 +93,9 @@ export function ForecastsView() {
       )}
       <Details summary="How reliable are these forecasts?" wide>
         <div className="stack">
-          <p className="note">Not validated on real people. The check below scores the stuck-moment forecast that decides when Knack speaks.</p>
+          <p className="note">These forecasts come from the firm's own figures: how fast people reach the target, the gap between juniors and experts, and the repeated-work list. Each says how many people it rests on. Not validated on real people yet.</p>
           <Details summary="What the confidence words mean"><FactRows rows={CONFIDENCE_ROWS} /></Details>
-          <Details summary="The reliability check" wide>
-            <ScorecardView load={card.load} read={card.read} audience="admin" />
-          </Details>
+          <p className="note"><a href="#/evidence">For reviewers: Evidence</a></p>
         </div>
       </Details>
       <SourceNote why={why} />

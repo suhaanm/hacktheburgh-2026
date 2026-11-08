@@ -227,8 +227,8 @@
 
 /* -- Forecasts: up to three cards, text beside its chart ------------------------------------------------------ */
 .fc-panel { gap: var(--space-5); }
-.fc-list { display: grid; border-top: var(--hair) solid var(--line); }
-.fc { display: grid; gap: var(--space-2); padding: var(--space-4) 0; border-bottom: var(--hair) solid var(--line); min-width: 0; max-width: 720px; }
+.fc-list { display: grid; border-top: var(--hair) solid var(--line); max-width: 720px; }
+.fc { display: grid; gap: var(--space-2); padding: var(--space-4) 0; border-bottom: var(--hair) solid var(--line); min-width: 0; }
 .fc__head { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
 .fc__n { font: var(--text-xs)/1.2 var(--font-mono); color: var(--muted); overflow-wrap: anywhere; }
 .fc__toggle { margin-left: auto; display: inline-grid; place-items: center; width: 32px; height: 32px; padding: 0; background: none; border: 0; border-radius: var(--radius-2); color: var(--muted); cursor: pointer; }
