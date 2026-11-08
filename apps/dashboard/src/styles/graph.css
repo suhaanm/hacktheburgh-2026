@@ -16,7 +16,7 @@
 .gkind[data-tone="muted"] { border: 1.5px dashed var(--control-line); color: var(--muted); }
 
 /* The stage and the canvas */
-.gcanvas__stage { position: relative; border: var(--hair) solid var(--line); border-radius: var(--radius-3); background: var(--panel); overflow: hidden; min-height: 420px; }
+.gcanvas__stage { position: relative; border: var(--hair) solid var(--line); border-radius: var(--radius-3); background: var(--panel); overflow: hidden; min-height: 280px; }
 .gcanvas__stage > svg { display: block; max-width: 100%; height: auto; }
 .gcanvas { box-sizing: border-box; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .gcanvas:focus-visible { outline: var(--ring-w) solid var(--focus); outline-offset: -3px; border-radius: var(--radius-3); }

@@ -2,7 +2,7 @@
 // A name shows in a card on hover, keyboard focus, or a click (which keeps it until Escape or another click). The whole canvas is one tab stop;
 // the arrow keys move between nodes, Enter opens one, Escape closes. Every node keeps its accessible name in an aria-label.
 // The look is the design system's "work graph" (colour is the kind, size is minutes or mastery, opacity is strength, a dashed ring is lapsed).
-import { useEffect, useMemo, useRef, useState, type Ref } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type Ref } from "react";
 import { prefersReducedMotion } from "../../hooks";
 import { NODE_LABEL, capsule, cleanGraph, isLapsed, layoutGraph, linkBuckets, linkPath, nextNode, nodeAria, nodeOpacity, stepNode, tipFor, type Placed } from "../../lib/graph";
 import { GLYPH_MIN_R, NODE_ICON, glyphSize } from "../../lib/nodeIcons";
@@ -48,6 +48,27 @@ function Dot({ type, r, opacity }: { type: WorkNodeType; r: number; opacity: num
   if (type === "skill") return <polygon className="gnode__disc" points={Array.from({ length: 6 }, (_, i) => { const a = (Math.PI / 3) * i + Math.PI / 6; return `${(Math.cos(a) * r * 1.12).toFixed(1)},${(Math.sin(a) * r * 1.12).toFixed(1)}`; }).join(" ")} style={style} />;
   return <circle className="gnode__disc" r={r} style={style} />;
 }
+
+/** One node: a disc of its kind with its glyph, a dashed ring when lapsed. Memoised: it redraws only when its own look or place changes. */
+const NodeView = memo(function NodeView({ n, p, op, glyph, selected, partner, index, count, onPick, onEnter, onLeave }: {
+  n: WorkNode; p: Placed; op: number; glyph: boolean; selected: boolean; partner: string | undefined; index: number; count: number;
+  onPick: (id: string) => void; onEnter: (id: string, pointerType: string) => void; onLeave: (id: string) => void;
+}) {
+  const lapsed = isLapsed(n);
+  return (
+    <g id={`gn-${n.id}`} className="gnode" data-kind={n.type} data-sel={selected} data-lapsed={lapsed || undefined}
+      role="option" aria-label={nodeAria(n, partner)} aria-selected={selected} aria-posinset={index + 1} aria-setsize={count}
+      transform={`translate(${p.x.toFixed(1)},${p.y.toFixed(1)})`}
+      onClick={() => onPick(n.id)}
+      onPointerEnter={(e) => onEnter(n.id, e.pointerType)}
+      onPointerLeave={() => onLeave(n.id)}>
+      {p.r < 12 && <circle className="gnode__hit" r={12} />}
+      {glyph ? <circle className="gnode__disc" r={p.r} style={{ opacity: op }} /> : <Dot type={n.type} r={p.r} opacity={op} />}
+      {glyph && <g className="gnode__ink"><GlyphG prims={NODE_ICON[n.type]} size={glyphSize(p.r)} /></g>}
+      {lapsed && <circle className="gnode__lapsed" r={p.r + 1.5} />}
+    </g>
+  );
+});
 
 /** Is the keyboard focus visible (not the mouse's)? A browser without :focus-visible says yes. */
 function focusVisible(el: Element): boolean {
@@ -112,6 +133,11 @@ export function GraphCanvas({ graph: raw, width, height, selected, onSelect, svg
   const hulls = combine ? graph.links.filter((l) => l.kind === "combined") : [];
   const incident = emphasis ? graph.links.filter((l) => l.a === emphasis || l.b === emphasis) : [];
 
+  // Stable callbacks, so a hover or a key press re-renders the two nodes that changed and not the thousand that did not.
+  const pick = useCallback((id: string) => { setActive(id); setDismissed(false); onSelect(id); }, [onSelect]);
+  const enter = useCallback((id: string, pointerType: string) => { if (pointerType === "touch") return; setHover(id); setDismissed(false); }, []);
+  const leave = useCallback((id: string) => setHover((h) => (h === id ? null : h)), []);
+
   const onKeyDown = (e: React.KeyboardEvent<SVGSVGElement>) => {
     const from = active ?? order[0] ?? null;
     const go = (id: string | null) => { if (id) { setActive(id); setKbd(true); setDismissed(false); } e.preventDefault(); };
@@ -159,23 +185,7 @@ export function GraphCanvas({ graph: raw, width, height, selected, onSelect, svg
         {graph.nodes.map((n, i) => {
           const p = at.get(n.id);
           if (!p) return null;
-          const r = p.r;
-          const op = shown ? nodeOpacity(n.strength) : 0;
-          const lapsed = isLapsed(n);
-          const glyph = !dots && r >= GLYPH_MIN_R;
-          return (
-            <g key={n.id} id={`gn-${n.id}`} className="gnode" data-kind={n.type} data-sel={selected === n.id} data-active={(kbd && active === n.id) || undefined} data-lapsed={lapsed || undefined}
-              role="option" aria-label={nodeAria(n, partner.get(n.id))} aria-selected={selected === n.id} aria-posinset={i + 1} aria-setsize={count}
-              transform={`translate(${p.x.toFixed(1)},${p.y.toFixed(1)})`}
-              onClick={() => { setActive(n.id); setDismissed(false); onSelect(n.id); }}
-              onPointerEnter={(e) => { if (e.pointerType === "touch") return; setHover(n.id); setDismissed(false); }}
-              onPointerLeave={() => setHover((h) => (h === n.id ? null : h))}>
-              {r < 12 && <circle className="gnode__hit" r={12} />}
-              {glyph ? <circle className="gnode__disc" r={r} style={{ opacity: op }} /> : <Dot type={n.type} r={r} opacity={op} />}
-              {glyph && <g className="gnode__ink"><GlyphG prims={NODE_ICON[n.type]} size={glyphSize(r)} /></g>}
-              {lapsed && <circle className="gnode__lapsed" r={r + 1.5} />}
-            </g>
-          );
+          return <NodeView key={n.id} n={n} p={p} op={shown ? nodeOpacity(n.strength) : 0} glyph={!dots && p.r >= GLYPH_MIN_R} selected={selected === n.id} partner={partner.get(n.id)} index={i} count={count} onPick={pick} onEnter={enter} onLeave={leave} />;
         })}
         {emphasis && at.get(emphasis) && (
           <g className="gring-layer" transform={`translate(${at.get(emphasis)!.x.toFixed(1)},${at.get(emphasis)!.y.toFixed(1)})`} aria-hidden="true">

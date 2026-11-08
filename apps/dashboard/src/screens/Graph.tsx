@@ -30,6 +30,7 @@ function useMedia(query: string): boolean {
 
 /** The canvas is as tall as the screen reads well; a crowded graph gets a little more room. */
 function canvasHeight(width: number, count: number): number {
+  if (count <= 3) return 300;
   const base = width && width < 560 ? 520 : Math.max(420, Math.min(640, Math.round(width * 0.55)));
   return base + Math.min(280, Math.round(Math.sqrt(Math.max(0, count - 40)) * 8));
 }
@@ -66,12 +67,12 @@ export default function Graph() {
       <PageHead
         eyebrow="Graph"
         title="How your work connects"
-        lede={`${count} ${count === 1 ? "thing" : "things"} Knack knows about your work${faded ? `, ${faded} fading now` : ""}.`}
+        lede={count === 0 ? undefined : `${count} ${count === 1 ? "thing" : "things"} Knack knows about your work${faded ? `, ${faded} fading now` : ""}.`}
         aside={<OriginBadge meta={g.meta} label={g.meta ? originLabel(g.meta.origin) : undefined} />}
       />
 
       {count === 0 ? (
-        <EmptyState title="Nothing here yet" body="The graph fills in as Knack sees your routines, skills and the notes you keep. Finish set-up first, then come back." action={<a className="btn btn--secondary" href="#/setup">Go to set-up</a>} />
+        <EmptyState title="Nothing here yet" body="Knack adds things here as it sees your work." action={<a className="btn btn--secondary" href="#/setup">Go to set-up</a>} />
       ) : (
         <div className="stack">
           <div className="gcanvas__stage" ref={box} style={{ height }}>
