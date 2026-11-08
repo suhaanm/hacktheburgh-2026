@@ -1,12 +1,12 @@
 # Understudy evaluation report
 
-Generated 2026-11-07T21:40:27Z · mock mode: yes · git 1ce70be · fast run: no
+Generated 2026-11-08T01:42:17Z · mock mode: yes · git cf47203 · fast run: no
 
 Written by `python -m understudy_engine.eval` from the owning tracks' code; no number here is typed in by hand. Results from generators we wrote say so. A section without numbers says why instead of showing a made-up value.
 
 ## Evidence map
 
-35 sections: 33 with numbers, 0 pending, 2 not run, 0 failed. Measured on: "generators we wrote" means people and data we generated and planted, "real people" means people, "real and generated" means both. A section without numbers says why instead of showing a made-up value.
+37 sections: 35 with numbers, 0 pending, 2 not run, 0 failed. Measured on: "generators we wrote" means people and data we generated and planted, "real people" means people, "real and generated" means both. A section without numbers says why instead of showing a made-up value.
 
 | Section | Measured on | n | Status | Label |
 |---|---|---|---|---|
@@ -45,6 +45,8 @@ Written by `python -m understudy_engine.eval` from the owning tracks' code; no n
 | Live study (n = 4) | not run | 4 people | not run: the live study has not been run: no data in evals/study/results/ |  |
 | Language-model participants, not people | generators we wrote | 24 silicon participants | ok | language-model participants, not people |
 | Study power: what the design could detect | generators we wrote | 10000 replications | ok |  |
+| Prospective predictions: predict first, score later | generators we wrote | 774300 scored predictions | ok | generated worlds, held-out seeds, single frozen run; the ledger has recorded no live forecasts yet |
+| Decisions scoreboard: shipped rule against naive and oracle | generators we wrote | 118 generated worlds | ok | generated worlds, held-out seeds, single frozen run |
 
 ## Findings
 
@@ -1167,9 +1169,83 @@ Caveats:
 - The plan's t interval is not exact for discrete bounded scores, and it has zero width when all differences are identical; coverage and the false-positive rate are reported from simulation, with Monte Carlo intervals.
 - Real participants are four teammates who know the project; demand effects and facilitator bias are not in this model.
 
+## Prospective predictions: predict first, score later
+
+*measured on: **generators we wrote** · n = 774300 scored predictions · split: models frozen at deployment on a training pool; every prediction written to a hash-chained ledger before its outcome and scored forward in time, on new seeds · intervals: 95%*
+
+Cluster bootstrap resampling people (error risk: blocks of 100 cases), B = 2000, paired across predictors. Pre-registered in evals/hrt/PLAN.md; run once on held-out seeds.
+
+Of 10 registered claims, 8 passed and 2 did not (all are listed, none changed after the run). In the world it was fitted for, the deployed model's prospective log loss was -0.080 [-0.086, -0.075] against the online base rate. In 3 of 3 shifted worlds it was worse than the best naive predictor (markov, latent skill, process trace).
+
+| Claim (registered before the run) | Result | Evidence |
+|---|---|---|
+| P1: In the v1 world the deployed stuck hazard beats both the online base rate and frozen time-since-progress on log loss | passed | against frozen tsp -0.0793 [-0.0852, -0.0738]; against online base -0.0803 [-0.0856, -0.0753] |
+| P2: In the v1 world the model is calibrated: the slope interval contains 1 and the intercept interval contains 0 | not passed | slope 0.999 [0.963, 1.035], intercept +0.075 [0.002, 0.162] |
+| P3: In the shifted worlds the deployed model is worse than the better naive baseline in at least 2 of 3 families | passed | latent_skill: worse (+0.331 [0.289, 0.377] against frozen tsp); markov: worse (+0.324 [0.277, 0.374] against online base); process_trace: worse (+0.513 [0.434, 0.602] against online base) |
+| P4a: The guard raises no flag in at least 7 of 8 v1 deployments | passed | flagged 0 of 8 [0.0, 0.369] |
+| P4b: The guard flags at least 6 of 8 where the model is worse and at most 1 of 8 where it is clearly better | passed | latent_skill: model worse, flagged 8 of 8; markov: model worse, flagged 8 of 8; process_trace: model worse, flagged 8 of 8 |
+| P4c: Premium: in the v1 world the guarded system is within 0.01 nats of always trusting the model | passed | guarded minus always-model +0.0000 nats [0.0, 0.0] |
+| P4d: Payout: where the model is worse than the fallback by more than 0.05 nats the guard saves more than 0.02 nats against always-model | passed | latent_skill: model worse by 0.325, guard saves 0.262 [-0.338, -0.194]; markov: model worse by 0.323, guard saves 0.309 [-0.434, -0.196]; process_trace: model worse by 0.451, guard saves 0.438 [-0.594, -0.292] |
+| P5: Time to progress, v1 world: the head's truncated CRPS beats the Kaplan-Meier constant | passed | truncated CRPS 3.95 s against 4.76 s for the Kaplan-Meier constant; difference -0.816 s [-0.853, -0.779] |
+| P6a: Error risk, no drift: the model beats the online base rate and its calibration slope interval contains 1 | not passed | model minus online base -0.1110 [-0.1166, -0.1057], slope 0.959 [0.932, 0.989] |
+| P6b: Error risk: the guard flags a rule change when the post-change model is worse than the fallback, and stays quiet when it is not or when nothing changed | passed | after the change the model minus online base is -0.1725 [-0.1807, -0.1637] (still better); flagged 0 of 8 with drift, 0 of 8 without |
+
+| World | Deployments | People or blocks | Predictions | Model log loss | Best naive | Model minus best naive [95%] | Calibration slope [95%] | Guard flags |
+|---|---|---|---|---|---|---|---|---|
+| v1 world (fresh seeds, no shift) | 8 | 32 | 61631 | 0.445 | frozen tsp | -0.079 [-0.085, -0.074] (a better) | 1.00 [0.96, 1.03] | 0 of 8 |
+| shifted: markov | 8 | 160 | 212730 | 0.939 | online base | +0.325 [0.277, 0.374] (a worse) | -0.20 [-0.23, -0.17] | 8 of 8 |
+| shifted: latent skill | 8 | 160 | 228833 | 0.949 | frozen tsp | +0.331 [0.289, 0.377] (a worse) | -0.25 [-0.30, -0.21] | 8 of 8 |
+| shifted: process trace | 8 | 160 | 207106 | 1.168 | online base | +0.513 [0.434, 0.602] (a worse) | -0.21 [-0.25, -0.17] | 8 of 8 |
+| error risk, no drift | 8 | 320 | 32000 | 0.272 | online base | -0.111 [-0.117, -0.106] (a better) | 0.96 [0.93, 0.99] | 0 of 8 |
+| error risk, rule change at case 1,500 | 8 | 320 | 32000 | 0.380 | online base | -0.150 [-0.157, -0.142] (a better) | 1.02 [0.99, 1.04] | 0 of 8 |
+
+The guard (mean log loss per bin or case; oracle = the better of always-model and always-fallback in hindsight):
+
+| World | Flags [exact 95%] | Always model | Always fallback | Guarded | Oracle | Guarded minus always-model [95%] | Share on fallback |
+|---|---|---|---|---|---|---|---|
+| v1 world (fresh seeds, no shift) | 0 of 8 [0.00, 0.37] | 0.445 | 0.525 | 0.445 | 0.445 | +0.000 [0.000, 0.000] | 0.00 |
+| shifted: markov | 8 of 8 [0.63, 1.00] | 0.940 | 0.617 | 0.631 | 0.617 | -0.309 [-0.434, -0.196] | 0.94 |
+| shifted: latent skill | 8 of 8 [0.63, 1.00] | 0.942 | 0.617 | 0.679 | 0.617 | -0.262 [-0.338, -0.194] | 0.86 |
+| shifted: process trace | 8 of 8 [0.63, 1.00] | 1.099 | 0.648 | 0.661 | 0.648 | -0.438 [-0.594, -0.292] | 0.96 |
+| error risk, no drift | 0 of 8 [0.00, 0.37] | 0.272 | 0.383 | 0.272 | 0.272 | +0.000 [0.000, 0.000] | 0.00 |
+| error risk, rule change at case 1,500 | 0 of 8 [0.00, 0.37] | 0.380 | 0.530 | 0.380 | 0.380 | +0.000 [0.000, 0.000] | 0.00 |
+
+Recalibrating the frozen model online from resolved outcomes (follow-up plan, registered after the first held-out result, new seeds):
+
+Recalibrating the frozen model online from resolved outcomes: 5 of 7 registered claims passed; the ones that did not are listed. Registered after the first held-out result, on new seeds.
+
+| Claim | Result | Evidence |
+|---|---|---|
+| R1: Error risk, rule change: after the change the recalibrated forecast beats the frozen model on log loss | passed | after the change, recal minus the frozen model -0.0316 [-0.0346, -0.0284] over 20,000 cases |
+| R2: No harm without a change: in the v1 world and the error-risk world with no change, recal is not worse than the frozen model by more than 0.005 nats | passed | route no drift +0.0003 [-0.0002, 0.0007]; v1 +0.0000 [-0.0018, 0.0017] |
+| R3: Shifted hazard worlds: recal beats the frozen model in each of the three families | passed | latent skill -0.5284 [-0.5895, -0.4683]; markov -0.4865 [-0.5346, -0.436]; process trace -0.5420 [-0.6048, -0.4813] |
+| R4: Calibration is restored: in the drift world after the change the interval of recal's calibration intercept contains 0 | not passed | intercept +0.613 [0.544, 0.69], slope 1.025 [0.992, 1.062]; the frozen model's intercept was +0.95 |
+| R5: Error risk, rule change: after the change recal_w beats the frozen model and beats recal on log loss | passed | after the change, recal_w minus the frozen model -0.0368 [-0.0407, -0.0327]; minus recal -0.0052 [-0.0062, -0.004] |
+| R6: Error risk, rule change: after the change the interval of recal_w's calibration intercept contains 0 | not passed | intercept +0.451 [0.377, 0.535], slope 1.008 [0.976, 1.048] |
+| R7: No harm for recal_w: in the v1 world and the error-risk world with no change it is not worse than the frozen model by more than 0.01 nats | passed | route no drift +0.0004 [-0.0001, 0.0008]; v1 -0.0009 [-0.0023, 0.0003] |
+
+## Decisions scoreboard: shipped rule against naive and oracle
+
+*measured on: **generators we wrote** · n = 118 generated worlds · split: fresh replicate worlds on new seeds; shipped, naive and oracle policies scored on the same world; paired bootstrap over worlds · intervals: 95%*
+
+Primary family of 4 at the Bonferroni-adjusted level; every other cell is exploratory. Pre-registered in evals/hrt/PLAN.md; run once on held-out seeds.
+
+Four registered contrasts, each the shipped rule against a naive policy in fresh generated worlds, judged at the Bonferroni-adjusted level (98.75%): 4 of 4 are wins (D1, D2, D3, D4). Costs that the data cannot supply are swept, not assumed.
+
+| Decision | Unit | Shipped rule | Naive policy | Naive | Oracle | Primary contrast [95%] | Adjusted [98.75%] | Verdict | Share of the gap closed [95%] |
+|---|---|---|---|---|---|---|---|---|---|
+| when to build an automation (ski rental with predictions) | manual-run equivalents per routine (lower is better) | 9.646 | break even | 11.580 | 6.520 | -1.934 [-2.020, -1.846] | [-2.040, -1.817] | win | 38% [36.7%, 39.7%] |
+| which cases an expert reviews under a review budget (review routing) | escaped errors per 100 cases at the same expert cost (lower is better) | 2.660 | random | 9.032 | 0.000 | -6.372 [-6.558, -6.191] | [-6.611, -6.135] | win | 71% [68.9%, 72.3%] |
+| when to start a background run (the presence window rule) | value per held-out day: completed runs minus (L/G) x collisions (higher is better) | 15.333 | run whenever idle 5min | -51.458 | 24.526 | +66.792 [55.739, 78.162] | [53.229, 80.443] | win | 88% [85.7%, 89.6%] |
+| speak, annotate, take over or stay silent (the intervention policy) | generator reward per decision, exact in expectation (higher is better) | 0.253 | rule baseline | 0.018 | 0.284 | +0.235 [0.231, 0.238] | [0.230, 0.239] | win | 88% [87.0%, 89.8%] |
+
+Recorded, not re-run (the Cue track's held-out file): net seconds saved per hour of work 18.3 [10.6, 26.2] against 0 for staying silent; Cue met one of its two pre-registered targets.
+
+The help-level ladder is not scored: it is deterministic code with no outcome to score until the live study.
+
 ## Limitations register
 
-206 entries, most serious first. Kept in the product on purpose.
+218 entries, most serious first. Kept in the product on purpose.
 
 | Id | Severity | What it means | Source |
 |---|---|---|---|
@@ -1220,6 +1296,8 @@ Caveats:
 | sim-authored-by-us | high | Language-model participants, not people: The coach prompts, the sandbox sites, the households, the scoring rule and the personas were all written by us. | study-sim:study_sim |
 | sim-power | high | Language-model participants, not people: With 16 coached-arm participants the analysis has about 6% false positives and 12%, 29% and 76% power for a small, medium and large true effect (engine-analytics Monte Carlo, interval excludes zero); sign-flip p below 0.05 has less. A null or small result does not show that the coach has no effect; a result counts as clear only if the interval excludes zero. | study-sim:study_sim |
 | ana-study-n4 | high | With four teammates the exact two-sided sign-flip p cannot go below 0.125, and the interval excludes zero only when the four differences nearly agree and are large. The expected outcome is an interval that includes zero. | engine-analytics:study_power |
+| hrt-ledger-ours | high | Every world is generated by us. The shifted worlds differ in structure from the world the models were fitted on, but they are still ours; a held-out replicate catches overfitting to one noise draw, never 'the model learned our generators'. | hrt:hrt_ledger |
+| hrt-decisions-ours | high | Every decision is scored in a world we generated, with a cost we chose. The ordering of policies is a statement about these mechanisms, not about real routines, real reviewers, real workdays or real people. | hrt:hrt_decisions |
 | eval-agent-live-glitch-false-claims | high | With a one-off error page the real model passed 0 of 20 and said it was finished in 20 of 20 runs (20 false claims): it declared success on an error page. The code check caught every one, which is why code, not the model, decides success. | engine-eval:agent_runs |
 | eval-agent-live-fix-in-sample | high | The glitch result was followed by a fix (a page-state label from the quarantined reader fed to the planner, retries, and the cliff check moved after the verifier; made AFTER the glitch result was seen), then re-run on the same condition: 10 of 10 succeeded with 0 false claims, against 0 of 20 before. This is in-sample: the fix was designed after seeing that failure, and only 10 runs were made because a budget stop hit (9 later rows were dropped). It does not show the fix generalises. | engine-eval:agent_runs |
 | eval-agent-live-tier3 | high | Tier 3 (computer use) is not demonstrated on the benefits task: 3 runs against a stand-in actuator on real screenshots made 0 pointer actions and landed on an interactive element 0 times. Nothing is clicked in that setting, so a claim of done there is a false claim by construction. | engine-eval:agent_runs |
@@ -1340,6 +1418,14 @@ Caveats:
 | sim-machine-load | medium | Language-model participants, not people: The build machine was heavily loaded by other agents' tests while the participants ran (1-minute load average above 100 on 12 CPUs, sampled and reported), so wall-clock times, the coach's 3 s polls, the extension's event flush and the prompt delays are slower and noisier than on an idle machine. Action counts are not affected; timings are. | study-sim:study_sim |
 | sim-one-model | medium | Language-model participants, not people: One model (id read from the environment and recorded in the CSV) and one family of personas written by us. Results say nothing about other models. | study-sim:study_sim |
 | sim-scoring | medium | Language-model participants, not people: Scores come from the sandbox state exactly as analyze.py scores them (cliff 0, 1 or 2 of 2; reconcile 0 or 1), so ties and ceilings are likely and the t interval is not exact for such discrete scores. | study-sim:study_sim |
+| hrt-ledger-same-types | medium | The v1 world draws new people of the same four persona types the models were fitted on. A new type of worker, or a new kind of task, is what the shifted worlds stand in for. | hrt:hrt_ledger |
+| hrt-ledger-guard-guarantee | medium | The guard's bound on false flags assumes each episode's loss difference has conditional mean at most zero given the past. Episodes of one person are not independent, so the bound is a design target that the no-drift deployments check, not a proof. | hrt:hrt_ledger |
+| hrt-ledger-eight | medium | Eight deployments per world give wide intervals for guard counts and for the strategy comparison; counts are shown with exact intervals. | hrt:hrt_ledger |
+| hrt-ledger-one-direction | medium | The guard compares the model with a naive predictor. A model that drifts but stays better than that predictor is not flagged (the error-risk world after the rule change); the loss of calibration shows in the reliability table and the intercept, and nothing recalibrates the model in this version. | hrt:hrt_ledger |
+| hrt-ledger-no-live | medium | The ledger is built and tested, but the running product has recorded no live predictions yet, so no real prospective result exists. These are replays of generated time. | hrt:hrt_ledger |
+| hrt-decisions-costs | medium | The review minutes per case, the cost of an escaped error, the build cost b, the ratio of a collision's cost to a finished run's value (L/G) and the intervention reward are assumptions; each row prints a sweep or says which cost it hangs on. | hrt:hrt_decisions |
+| hrt-decisions-routing-signals | medium | In the routing generator the worker's check, the agent's stated confidence and the worker's trace are drawn from the realised error. Part of the model's edge over random review is signal our generator hands it. | hrt:hrt_decisions |
+| hrt-decisions-build-now | medium | At the pack's own build costs (4 to 9 manual runs) building at once is cheaper than the shipped build-timing rule in these generated worlds; the rule beats break-even, the classical reference, which is the registered primary contrast. | hrt:hrt_decisions |
 | eval-deficit-weak | medium | Deficit detection is weaker for: repeated_read_result (precision 70%, recall 100%); copy_error (precision 100%, recall 71%). Overall precision 92%, recall 95% over 160 case-deficit pairs. | engine-eval:deficit_recovery |
 | eval-deficit-bias | medium | The recovered price differs from the planted price, with an interval that excludes zero, for: repeated_read_result (+13.5 s, interval 5.1 to 23.3). The alignment names a block of extra steps by its content, so a deficit that shares steps with another is mis-priced. | engine-eval:deficit_recovery |
 | eval-hazard-alarm-budget | medium | On held-out people the false-alarm rate is 1.21 an hour, over the 1.0 an hour budget chosen on the training people. | engine-eval:hazard |
@@ -1377,5 +1463,7 @@ Caveats:
 | live_small_n | low | The live block, when it is run, is a small-n pass rate for one local model on generated packets; it says nothing about other models. | evidence:evidence |
 | realism-calibration | low | Deficit prevalence and stuck-episode rates were calibrated once to structural plausibility targets (S1 to S6) before any analytic was run; the families still differ a lot in prevalence. | personas-v2:realism |
 | att_b1_b2_strawmen | low | B1 and B2 are deliberately simple baselines (everything at once, one digest a day). They show the two failure modes the layer is designed to avoid; they are not what any real notifier does. | attention:attention |
+| hrt-ledger-oracle | low | The oracle strategy picks the better of two predictors in hindsight; it bounds what is possible and is not implementable. | hrt:hrt_ledger |
+| hrt-decisions-family | low | Four primary contrasts were registered; every other cell is exploratory and is never used to say a rule works. The adjusted level is Bonferroni, which is conservative. | hrt:hrt_decisions |
 | eval-null-offset | low | The shuffled-label null averages +46.2 s (interval -36.4 to 116.9), about 20% of the real gap of 229.6 s. Matching each case to its nearest reference is not symmetric, so the null is not exactly zero; the real gap sits above the null interval, which is the comparison that counts. | engine-eval:null_placebo |
 | eval-agent-runs-discrepancies | low | 7 of 20 households are planted discrepancies between the sandbox calculators (quirks we wrote). A pass on them means the discrepancy was flagged, not that an entitlement was worked out, and the oracle is a simplified rule set, not the law. | engine-eval:agent_runs |
