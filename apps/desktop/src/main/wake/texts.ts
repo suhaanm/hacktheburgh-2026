@@ -42,6 +42,35 @@ export const CARDS: Readonly<Record<'voice' | 'screen' | 'click', CardText>> = {
   },
 }
 
+// What Knack says, on a card, when the words were heard but a conversation cannot open: never silence. Plain reasons, one action at most. `settings` opens
+// Knack's Settings; `microphone` opens the macOS microphone pane. No card uses developer wording (a test pins this).
+export const HEARD_TITLE = 'Hey Knack heard you.'
+export type InfoAction = 'settings' | 'microphone'
+export interface InfoCard {
+  title: string
+  body: string
+  buttons: ReadonlyArray<{ id: string; label: string }>
+  /** What the first button does (the second is always Close). Null: only Close. */
+  action: InfoAction | null
+}
+const CLOSE = { id: 'close', label: 'Close' } as const
+const NEEDS_LIVE: InfoCard = { title: HEARD_TITLE, body: 'Live voice needs live models. Turn them on in Settings.', buttons: [{ id: 'settings', label: 'Open Settings' }, CLOSE], action: 'settings' }
+export const INFO_CARDS: Readonly<Record<string, InfoCard>> = {
+  mock_mode: NEEDS_LIVE,
+  no_key: NEEDS_LIVE,
+  no_model: NEEDS_LIVE,
+  model_unusable: NEEDS_LIVE,
+  flag_off: NEEDS_LIVE,
+  breaker_open: { title: HEARD_TITLE, body: 'The voice service is not answering. Try again soon.', buttons: [CLOSE], action: null },
+  day_cap: { title: HEARD_TITLE, body: 'Today\u2019s talking limit is reached. You can raise it in Settings.', buttons: [{ id: 'settings', label: 'Open Settings' }, CLOSE], action: 'settings' },
+  mic_permission: { title: HEARD_TITLE, body: 'Live voice needs the microphone. Turn it on in System Settings.', buttons: [{ id: 'microphone', label: 'System Settings' }, CLOSE], action: 'microphone' },
+  paused: { title: HEARD_TITLE, body: 'Knack is paused. Resume it from the menu bar.', buttons: [CLOSE], action: null },
+  killed: { title: HEARD_TITLE, body: 'Everything is stopped. Resume from the menu bar.', buttons: [CLOSE], action: null },
+  agent_acting: { title: HEARD_TITLE, body: 'Knack is working. Try again when it finishes.', buttons: [CLOSE], action: null },
+}
+/** The card for a refusal code, or null when the conversation is simply already open ('busy') or the code is unknown. */
+export const infoCardFor = (reason: string | null): InfoCard | null => (reason && reason !== 'busy' ? (INFO_CARDS[reason] ?? null) : null)
+
 /** Why a wake could not start a conversation (fixed lines for the status row; the Live manager's closed refusal codes). */
 export const REFUSAL_LINE: Readonly<Record<string, string>> = {
   flag_off: 'Voice is off in this build.',
@@ -52,10 +81,10 @@ export const REFUSAL_LINE: Readonly<Record<string, string>> = {
   agent_acting: 'Knack is working. Try again when it finishes.',
   day_cap: 'Today’s talking limit is reached.',
   breaker_open: 'The voice service is not answering. Try again soon.',
-  no_model: 'No voice model is set up.',
-  model_unusable: 'The voice model cannot be used.',
-  no_key: 'No voice key is set up.',
-  mock_mode: 'Voice needs live models.',
+  no_model: 'Live voice needs live models.',
+  model_unusable: 'Live voice needs live models.',
+  no_key: 'Live voice needs live models.',
+  mock_mode: 'Live voice needs live models.',
   mic_permission: 'Knack needs the microphone. Turn it on in System Settings.',
   busy: 'Knack is already talking.',
 }

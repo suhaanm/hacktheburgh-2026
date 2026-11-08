@@ -30,8 +30,9 @@ export function ApprovalHero({ item: it, onDone }: { item: QueueItem; onDone: ()
         if (!gate.allowed) { setErr(gate.message); return; }
         proof = gate.auth;
       }
-      await api.setQueue(it.id, a, proof);
-      toast({ tone: "success", text: a === "approve" ? `${L.yes}: done.` : `${L.no}: done.`, detail: it.title });
+      const res = await api.setQueue(it.id, a, proof);
+      if (a === "approve" && res.finalize === "failed") toast({ tone: "error", text: "Approved, but the submit did not finish. Nothing was sent.", detail: it.title });
+      else toast({ tone: "success", text: a === "approve" ? `${L.yes}: done.` : `${L.no}: done.`, detail: it.title });
       onDone();
     } catch (e) { setErr(e instanceof ApiError ? e.message : "That did not go through. Try again."); }
     finally { setBusy(null); }

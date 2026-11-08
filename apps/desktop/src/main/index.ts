@@ -427,6 +427,8 @@ void app.whenReady().then(async () => {
         agentActing: () => understudy.hudModel.state().agentActing,
         killed: isKilled,
         owns: (id) => windows.owns(id) || knack?.mainWindow.owns(id) === true,
+        openSettings: () => knack?.openSettings(),
+        openMicrophoneSettings: () => permissions.openSettings('microphone'),
         context: contextHub,
         log: ctx.log,
       })
