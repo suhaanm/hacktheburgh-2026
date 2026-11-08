@@ -1,8 +1,8 @@
 # Knack: the features, for the pitch and the launch video
 
-Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sun 08 Nov 2026, 00:18 UTC, checked against main at 7e74ab2. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
+Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sun 08 Nov 2026, 00:22 UTC, checked against main at 7e74ab2. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
 
-This is the master document. It lists 61 entries (57 features and 4 write-ups of results that did not hold up) on 33 pages, grouped by capability. One page per feature (with a 30-second spoken script and slide bullets) is in `docs/features/`; the index with status is `docs/features/index.md`; the 20 video claims are in `docs/features/video-beats.md`; the 25 hardest judge questions are in `docs/features/faq.md`.
+This is the master document. It lists 62 entries (58 features and 4 write-ups of results that did not hold up) on 33 pages, grouped by capability. One page per feature (with a 30-second spoken script and slide bullets) is in `docs/features/`; the index with status is `docs/features/index.md`; the 20 video claims are in `docs/features/video-beats.md`; the 25 hardest judge questions are in `docs/features/faq.md`.
 
 **How to read an entry.** Name and status; what it does; how it works (ending in one 'What is different' sentence, which compares with the approaches in our own reference notes and is not a claim of priority over the whole field); where to see it; the demo moment; the evidence with its label; the honest limit; the hackathon target. **Status words:** `verified` (the lead saw it work end to end), `built` (built and tested by its track, on main, not yet seen end to end by the lead), `landing` (not on main yet), `not run`. **Evidence labels:** `synthetic` (data we generated), `simulated` (language-model participants, not people), `real model, small n` (a language model on our sandbox sites), `offline tests`, `owner-present`, `not run`. Nothing in this document is evidence about real workers. **Badge wording on screen:** an engine answer computed from synthetic people reads 'Synthetic data' (or 'Synthetic firm' in the Admin view); 'Example data' appears only when a fixture was drawn (docs/FIRST_LAUNCH.md, state at 23:50 GMT).
 
@@ -21,7 +21,7 @@ This is the master document. It lists 61 entries (57 features and 4 write-ups of
 11. **A calm product: window, attention, context**: One attention layer: a router, a digest, quiet states; Context engineering: typed, bounded, fresh; One app, one window, one corner pill; First run in three clicks; Command palette and keyboard; Design system with budgets as tests; The Knack mark and brand.
 12. **Privacy and safety**: Egress guard, ledger and canary tests; Your data: see and delete; Memory file the worker owns.
 13. **Evidence and honesty**: Evidence page, make eval and the limitations register; Plain-English explainer with a number check; Generator-mismatch test (the realism matrix); ML v2, held-out: mostly negative; The simulated study sat at the floor; Other results that went the wrong way.
-14. **Roles**: Role packs: benefits processor deep, analyst and programmer thin; Deeper programmer and data-analyst roles.
+14. **Roles**: Role packs: benefits processor deep, analyst and programmer thin; Programmer pack at standard depth; Data analyst pack at standard depth.
 
 Then: what exists elsewhere, numbers you may quote, things we do not claim, what is landing, sources read.
 
@@ -2391,49 +2391,86 @@ At first run, choose each of the three cards; show how the four lines on the 'wh
 
 #### Honest limit
 
-The thin packs are starting points and have not been validated on real work. Genome recovery was not evaluated for them because the named-deficit labels belong to the benefits pack. Even the deep pack has no real benefits-processor data behind it.
+The thin packs are starting points and have not been validated on real work. Genome recovery was not evaluated for them because the named-deficit labels belong to the benefits pack. Even the deep pack has no real benefits-processor data behind it. The two thin packs are being raised to standard depth (next two entries, landing).
 
 #### Hackathon target
 
 - **G-Research (make the invisible visible)**: the same lens on three different jobs
 - **Wordsmith (most complicated end-to-end browser-use workflow)**: one workflow deep, two shallow
 
-### Deeper programmer and data-analyst roles
+### Programmer pack at standard depth
 
-**Status:** landing (ROLE-DEPTH (Track F), additive only; built overnight, not on main yet; docs/roles/*.md have not landed) · **Page:** `docs/features/role-packs.md` · **Targets:** G-Research, Wordsmith
+**Status:** landing (ROLE-DEPTH (Track F); docs/roles/programmer.md is on branch worktree-agent-aef8c35334df68596, not on main; additive only (D55, D56 item 6)) · **Page:** `docs/features/role-packs.md` · **Targets:** G-Research, Wordsmith
 
 #### What it does
 
-The two thin roles are being given more depth: more steps and habits, without changing any existing id, expert path or generator parameter. They get a new depth value, 'standard' (full content, not validated with people), and the dashboard keeps the label 'Starter pack' for packs that are not deep.
+The programmer role gets full content for the whole job: 22 step types (10 from the first release, 12 added), 18 coached skills with hints at three levels, 4 critical gates and 13 routine templates. It is written from the job and not validated with people.
 
 #### How it works
 
-Per owner decision D55 the work is additive only, and per the lead's decision D56 every new step is optional and uses new step types, so the frozen sandbox tasks and the role studies are untouched. No synthetic traces exist for the new step types, so screens that depend on them say 'not enough data'. The role studies use private sandbox worlds for the programmer (editor, tests, console) and the analyst (table, filter, pivot, chart with planted data issues).
+Each skill has a hint at L1 (a question), L2 (a few words) and L3 (a nudge); L4 is silence. Four gates are spoken for only when the next step has started without them: reproduce before you bisect, write the commit message before you open the pull request, read CI before you answer the review, watch the release before you roll back. Capture is event type plus a zone name only (for example ci_checks or rollback_control), never page text, URLs or values. Thirteen routine templates are opt-in, one at a time, each stating what its own worst action does and its share of judgement steps; three are held back by rule and never proposed (review queue triage, rollback after an alert, replying to review comments); nothing merges, deploys, rolls back, force-pushes or deletes without the worker's own click. Onboarding asks five more questions (team size, review frequency, on-call, release cadence, how often to prompt), which set the prompt budget and add risk patterns, and it suggests connection presets by id, only as suggestions.
 
-**What is different.** Additive only: new optional steps on new step types, so nothing already measured changes.
+**What is different.** Additive only: new optional steps on new step types, so nothing already measured changes; four gates are spoken for only when the next step has started without them, and irreversible actions always wait for the worker's click.
 
 #### Where to see it
 
-Not on main yet; see docs/roles/ when it lands.
+Not on main yet. First run (the Programmer role card), Routines (the repeat list), Git habits and the coach in the sandbox; the pack's own page is docs/roles/programmer.md.
 
 #### Demo moment
 
-Not yet available. Do not show until it lands.
+The edge you did not try (sandbox task 'Wrong number of pages'): the fix passes the visible tests and misses a hidden edge; the coach rings the console and asks what happens at empty, one item, exactly full, one past the end. Or 'Re-run the failed build for me': a planted routine appears in the repeat list, reads the log, re-runs the job and stops before any merge or deploy; the worker clicks Automate.
 
 #### Evidence and its label
 
 | What | Label | Source |
 |---|---|---|
-| Nothing to quote yet; the role studies themselves were not run (1 of 3 programmer feasibility pilots was usable; no analyst pilot) | not run | `evals/report.md (Study across roles)` |
+| Only three skills have been run, in a sandbox with simulated participants; the twelve new step types, their hints, the new templates and follow-up mappings have no synthetic traces and no study, so screens show 'not enough data' for them, never a number | simulated participants (language model), not people; the rest not run | `docs/roles/programmer.md (branch worktree-agent-aef8c35334df68596)` |
 
 #### Honest limit
 
-Not verified. Update this entry from docs/roles/*.md after it lands.
+Written from the job, not validated with people. The selectors for real tools (GitHub and GitLab pull requests, CI dashboards, logs, release consoles) are best-effort and not tested against live sites. Dwell priors are expert medians written into the pack, not measured. Minutes, cost and risk on a routine are illustrations (a flat 15 pounds an hour is a placeholder). Judgement shares come from an authored list. The pack suggests connection presets by id, including linear, which is not among the 13 preset files on the CONNECTIONS branch (it has jira).
 
 #### Hackathon target
 
-- **G-Research (make the invisible visible)**: more than one job
-- **Wordsmith (most complicated end-to-end browser-use workflow)**: more than one workflow
+- **G-Research (make the invisible visible)**: the same lens on a second job
+- **Wordsmith (most complicated end-to-end browser-use workflow)**: a second workflow with irreversible steps behind the worker's click
+
+### Data analyst pack at standard depth
+
+**Status:** landing (ROLE-DEPTH (Track F); docs/roles/data-analyst.md is on branch worktree-agent-aef8c35334df68596, not on main; additive only (D55, D56 item 6)) · **Page:** `docs/features/role-packs.md` · **Targets:** G-Research, Wordsmith
+
+#### What it does
+
+The data analyst role gets full content for the whole job: 21 step types (10 from the first release, 11 added), 16 coached skills with hints at three levels, 6 critical gates and 13 routine templates. It is written from the job and not validated with people.
+
+#### How it works
+
+Hints state the assumption and the check ('Is the key unique on both sides, and how many rows should the join return?'). Six gates are spoken for only when the next step has started without them, for example trace the source before you join, set the grain before you check the scale, check the scale before you state the uncertainty, and run it clean before you parameterise or schedule it. Capture is event type plus a zone name only (lineage_view, join_panel, schedule_panel), never query text, URLs or values; row-level, personal and credential-like fields produce no event at all. Thirteen routine templates are opt-in, one at a time; three are held back by rule (magnitude and units check, sending a peer check, schedule a refresh with an alert, because turning a recurring job on is always the worker's decision); nothing drops, overwrites, publishes, schedules or sends without the worker's own click. Onboarding asks five more questions (where the data comes from, team size, whether anyone checks the numbers, refresh frequency, prompt frequency) and suggests connection presets by id.
+
+**What is different.** Additive only, with hints that state the assumption and the check; a standing rule keeps scheduling a recurring job always the worker's decision.
+
+#### Where to see it
+
+Not on main yet. First run (the Data analyst role card), Routines (the repeat list) and the coach in the sandbox; the pack's own page is docs/roles/data-analyst.md.
+
+#### Demo moment
+
+The total that does not match (sandbox task 'Net sales against the ledger'): the table averages every order, cancelled ones too, while the ledger counts completed ones; the coach asks whether the total matches the figure the finance system holds. Or 'Refresh the weekly metrics for me': a planted routine runs the saved query, pastes the rows, refreshes the chart and stops before any publish.
+
+#### Evidence and its label
+
+| What | Label | Source |
+|---|---|---|
+| Only three skills have been run, in a sandbox with simulated participants; the eleven new step types, their hints, the new templates and follow-up mappings have no synthetic traces and no study, so screens show 'not enough data' for them | simulated participants (language model), not people; the rest not run | `docs/roles/data-analyst.md (branch worktree-agent-aef8c35334df68596)` |
+
+#### Honest limit
+
+Written from the job, not validated with people. Selectors for real warehouse consoles, notebooks, spreadsheets and BI tools are best-effort and not tested against live sites. Dwell priors, routine minutes and costs and judgement shares are authored, not measured. The pack suggests connection presets by id, including sheets and linear, which are not among the 13 preset files on the CONNECTIONS branch (it has google_workspace and jira). No stuck-model variant qualified for this role.
+
+#### Hackathon target
+
+- **G-Research (make the invisible visible)**: the same lens on a third job
+- **Wordsmith (most complicated end-to-end browser-use workflow)**: a third workflow, with a standing rule that scheduling is always the worker's decision
 
 ## What exists elsewhere, and how Knack differs
 
@@ -2512,6 +2549,7 @@ Found while writing. Each row names both files; the third column says which one 
 | Reviewer reproducers | docs/FIRST_LAUNCH.md (23:50): 185 on the agent branch, not yet merged; docs/MVP_STATUS.md and evals/agentic/ITERATIONS_8.md (branch): 183 of 183 | README.md and docs/FIX_LEDGER.md: 172 of 172 | 183 of 183, the last figure on a merged tree |
 | Simulated-study power at n = 16 | evals/report.md (Study power): false positives 4.9%; power 10.2%, 27.3%, 74.8% for small, medium, large | evals/study_sim/REPORT.md and the register entry sim-power: about 6% false positives and 12%, 29%, 76% | the Study power table |
 | Always-listening microphone | docs/DECISIONS.md D52 and docs/knack-ux/09-wake-voice.md (branch): 'hey knack' listening is on by default, on-device | docs/FLAGS.md and docs/FEATURE_CATALOGUE.md: hold to talk only, no always-listening microphone | D52 (later); the other two are stale |
+| Connection preset ids | packages/connections/presets/ on the CONNECTIONS branch: 13 files, including jira and google_workspace | docs/roles/programmer.md and docs/roles/data-analyst.md suggest the ids linear and sheets; docs/DECISIONS.md D55 names Linear | the preset files; no preset named linear or sheets was seen |
 | Reader memo and meter manifest | docs/KNACK_DEMO.md section 6 (on its branch): both are built now; the documents lag the code | docs/CONTEXT_ENGINEERING.md: the reader memo is not built | docs/KNACK_DEMO.md (later); not verified in code by the author |
 | Whether a routine run minimises the window | docs/KNACK_DEMO.md (M7, gap G3): a run in the agent's browser shows the pill and does not move the window | docs/knack-ux/03-routines.md and docs/FIRST_LAUNCH.md (step 6): Run now minimises the window | docs/KNACK_DEMO.md, the later and tested reading |
 | Gemini numbers in the report | evals/modelbench/REPORT.md (18:10 UTC) and evals/report.json (modelbench section): the bake-off figures exist | docs/drafts/DEMO_SCRIPT.md and docs/KNACK_DEMO.md section 8: 'any Gemini speed or accuracy number (not in the report)' | quoted here with the label 'synthetic sandbox screenshots'; the shot-list rule is more cautious and the lead may keep it |
@@ -2528,7 +2566,7 @@ Found while writing. Each row names both files; the third column says which one 
 | Item | Document | State at the time of writing |
 |---|---|---|
 | Connections: curated MCP plugins and role presets (CONNECTIONS, Track E) | `docs/CONNECTIONS.md` | built overnight per docs/FIRST_LAUNCH.md; the engine side is committed on branch worktree-agent-a2c1788e3e4c0c876 (00:03 UTC); not on main; the panel slots exist |
-| Deeper programmer and data-analyst roles (ROLE-DEPTH, Track F) | `docs/roles/*.md` | built overnight per docs/FIRST_LAUNCH.md; not on main |
+| Deeper programmer and data-analyst roles (ROLE-DEPTH, Track F) | `docs/roles/programmer.md, docs/roles/data-analyst.md` | written, on branch worktree-agent-aef8c35334df68596; not on main |
 | Demo shot list and spoken lines (DEMO-DIRECTOR) | `docs/KNACK_DEMO.md` | not on main |
 | Demo shot list, spoken lines, the context audit and the headless checks (DEMO-DIRECTOR) | `docs/KNACK_DEMO.md, docs/knack-demo/context-audit.md` | written, on branch worktree-agent-ab26657c3d23ea392; not on main yet |
 | Computer use on Gemini, development results (AGENTIC-3) | `evals/agentic/ITERATIONS_8.md` | on branch worktree-agent-acf889b730112335b; merges after its full suite is green (docs/FIRST_LAUNCH.md) |

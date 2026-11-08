@@ -4,7 +4,7 @@
 
 **Capability:** Roles · **Status:** built · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
-This page covers Role packs: benefits processor deep, analyst and programmer thin, Deeper programmer and data-analyst roles.
+This page covers Role packs: benefits processor deep, analyst and programmer thin, Programmer pack at standard depth, Data analyst pack at standard depth.
 
 ## Role packs: benefits processor deep, analyst and programmer thin
 
@@ -38,61 +38,98 @@ At first run, choose each of the three cards; show how the four lines on the 'wh
 
 ### Honest limit
 
-The thin packs are starting points and have not been validated on real work. Genome recovery was not evaluated for them because the named-deficit labels belong to the benefits pack. Even the deep pack has no real benefits-processor data behind it.
+The thin packs are starting points and have not been validated on real work. Genome recovery was not evaluated for them because the named-deficit labels belong to the benefits pack. Even the deep pack has no real benefits-processor data behind it. The two thin packs are being raised to standard depth (next two entries, landing).
 
 ### Hackathon target
 
 - **G-Research (make the invisible visible)**: the same lens on three different jobs
 - **Wordsmith (most complicated end-to-end browser-use workflow)**: one workflow deep, two shallow
 
-## Deeper programmer and data-analyst roles
+## Programmer pack at standard depth
 
-**Status:** landing (ROLE-DEPTH (Track F), additive only; built overnight, not on main yet; docs/roles/*.md have not landed) · **Page:** `docs/features/role-packs.md` · **Targets:** G-Research, Wordsmith
+**Status:** landing (ROLE-DEPTH (Track F); docs/roles/programmer.md is on branch worktree-agent-aef8c35334df68596, not on main; additive only (D55, D56 item 6)) · **Page:** `docs/features/role-packs.md` · **Targets:** G-Research, Wordsmith
 
 ### What it does
 
-The two thin roles are being given more depth: more steps and habits, without changing any existing id, expert path or generator parameter. They get a new depth value, 'standard' (full content, not validated with people), and the dashboard keeps the label 'Starter pack' for packs that are not deep.
+The programmer role gets full content for the whole job: 22 step types (10 from the first release, 12 added), 18 coached skills with hints at three levels, 4 critical gates and 13 routine templates. It is written from the job and not validated with people.
 
 ### How it works
 
-Per owner decision D55 the work is additive only, and per the lead's decision D56 every new step is optional and uses new step types, so the frozen sandbox tasks and the role studies are untouched. No synthetic traces exist for the new step types, so screens that depend on them say 'not enough data'. The role studies use private sandbox worlds for the programmer (editor, tests, console) and the analyst (table, filter, pivot, chart with planted data issues).
+Each skill has a hint at L1 (a question), L2 (a few words) and L3 (a nudge); L4 is silence. Four gates are spoken for only when the next step has started without them: reproduce before you bisect, write the commit message before you open the pull request, read CI before you answer the review, watch the release before you roll back. Capture is event type plus a zone name only (for example ci_checks or rollback_control), never page text, URLs or values. Thirteen routine templates are opt-in, one at a time, each stating what its own worst action does and its share of judgement steps; three are held back by rule and never proposed (review queue triage, rollback after an alert, replying to review comments); nothing merges, deploys, rolls back, force-pushes or deletes without the worker's own click. Onboarding asks five more questions (team size, review frequency, on-call, release cadence, how often to prompt), which set the prompt budget and add risk patterns, and it suggests connection presets by id, only as suggestions.
 
-**What is different.** Additive only: new optional steps on new step types, so nothing already measured changes.
+**What is different.** Additive only: new optional steps on new step types, so nothing already measured changes; four gates are spoken for only when the next step has started without them, and irreversible actions always wait for the worker's click.
 
 ### Where to see it
 
-Not on main yet; see docs/roles/ when it lands.
+Not on main yet. First run (the Programmer role card), Routines (the repeat list), Git habits and the coach in the sandbox; the pack's own page is docs/roles/programmer.md.
 
 ### Demo moment
 
-Not yet available. Do not show until it lands.
+The edge you did not try (sandbox task 'Wrong number of pages'): the fix passes the visible tests and misses a hidden edge; the coach rings the console and asks what happens at empty, one item, exactly full, one past the end. Or 'Re-run the failed build for me': a planted routine appears in the repeat list, reads the log, re-runs the job and stops before any merge or deploy; the worker clicks Automate.
 
 ### Evidence and its label
 
 | What | Label | Source |
 |---|---|---|
-| Nothing to quote yet; the role studies themselves were not run (1 of 3 programmer feasibility pilots was usable; no analyst pilot) | not run | `evals/report.md (Study across roles)` |
+| Only three skills have been run, in a sandbox with simulated participants; the twelve new step types, their hints, the new templates and follow-up mappings have no synthetic traces and no study, so screens show 'not enough data' for them, never a number | simulated participants (language model), not people; the rest not run | `docs/roles/programmer.md (branch worktree-agent-aef8c35334df68596)` |
 
 ### Honest limit
 
-Not verified. Update this entry from docs/roles/*.md after it lands.
+Written from the job, not validated with people. The selectors for real tools (GitHub and GitLab pull requests, CI dashboards, logs, release consoles) are best-effort and not tested against live sites. Dwell priors are expert medians written into the pack, not measured. Minutes, cost and risk on a routine are illustrations (a flat 15 pounds an hour is a placeholder). Judgement shares come from an authored list. The pack suggests connection presets by id, including linear, which is not among the 13 preset files on the CONNECTIONS branch (it has jira).
 
 ### Hackathon target
 
-- **G-Research (make the invisible visible)**: more than one job
-- **Wordsmith (most complicated end-to-end browser-use workflow)**: more than one workflow
+- **G-Research (make the invisible visible)**: the same lens on a second job
+- **Wordsmith (most complicated end-to-end browser-use workflow)**: a second workflow with irreversible steps behind the worker's click
+
+## Data analyst pack at standard depth
+
+**Status:** landing (ROLE-DEPTH (Track F); docs/roles/data-analyst.md is on branch worktree-agent-aef8c35334df68596, not on main; additive only (D55, D56 item 6)) · **Page:** `docs/features/role-packs.md` · **Targets:** G-Research, Wordsmith
+
+### What it does
+
+The data analyst role gets full content for the whole job: 21 step types (10 from the first release, 11 added), 16 coached skills with hints at three levels, 6 critical gates and 13 routine templates. It is written from the job and not validated with people.
+
+### How it works
+
+Hints state the assumption and the check ('Is the key unique on both sides, and how many rows should the join return?'). Six gates are spoken for only when the next step has started without them, for example trace the source before you join, set the grain before you check the scale, check the scale before you state the uncertainty, and run it clean before you parameterise or schedule it. Capture is event type plus a zone name only (lineage_view, join_panel, schedule_panel), never query text, URLs or values; row-level, personal and credential-like fields produce no event at all. Thirteen routine templates are opt-in, one at a time; three are held back by rule (magnitude and units check, sending a peer check, schedule a refresh with an alert, because turning a recurring job on is always the worker's decision); nothing drops, overwrites, publishes, schedules or sends without the worker's own click. Onboarding asks five more questions (where the data comes from, team size, whether anyone checks the numbers, refresh frequency, prompt frequency) and suggests connection presets by id.
+
+**What is different.** Additive only, with hints that state the assumption and the check; a standing rule keeps scheduling a recurring job always the worker's decision.
+
+### Where to see it
+
+Not on main yet. First run (the Data analyst role card), Routines (the repeat list) and the coach in the sandbox; the pack's own page is docs/roles/data-analyst.md.
+
+### Demo moment
+
+The total that does not match (sandbox task 'Net sales against the ledger'): the table averages every order, cancelled ones too, while the ledger counts completed ones; the coach asks whether the total matches the figure the finance system holds. Or 'Refresh the weekly metrics for me': a planted routine runs the saved query, pastes the rows, refreshes the chart and stops before any publish.
+
+### Evidence and its label
+
+| What | Label | Source |
+|---|---|---|
+| Only three skills have been run, in a sandbox with simulated participants; the eleven new step types, their hints, the new templates and follow-up mappings have no synthetic traces and no study, so screens show 'not enough data' for them | simulated participants (language model), not people; the rest not run | `docs/roles/data-analyst.md (branch worktree-agent-aef8c35334df68596)` |
+
+### Honest limit
+
+Written from the job, not validated with people. Selectors for real warehouse consoles, notebooks, spreadsheets and BI tools are best-effort and not tested against live sites. Dwell priors, routine minutes and costs and judgement shares are authored, not measured. The pack suggests connection presets by id, including sheets and linear, which are not among the 13 preset files on the CONNECTIONS branch (it has google_workspace and jira). No stuck-model variant qualified for this role.
+
+### Hackathon target
+
+- **G-Research (make the invisible visible)**: the same lens on a third job
+- **Wordsmith (most complicated end-to-end browser-use workflow)**: a third workflow, with a standing rule that scheduling is always the worker's decision
 
 ## 30-second spoken script
 
-> Knack is not just a benefits tool. A role pack tells it what an expert does in a job, which actions always need a click, and what to teach in what order. We built one deep pack, a UK benefits processor, and two thin ones, a data analyst and a programmer, which differ visibly in their questions and risky actions. The thin ones are starting points, not validated, and a deeper version of both is landing now.
+> Knack is not just a benefits tool. A role pack tells it what an expert does in a job, which actions always need a click, and what to teach in what order. We built one deep pack, a UK benefits processor, and two thin ones, a data analyst and a programmer, which differ visibly in their questions and risky actions. Both thin packs are now being filled out: the programmer with twenty-two steps and four gates, the analyst with twenty-one and six. They are written from the job, not validated with people, and the new steps say not enough data until there is data.
 
 ## Slide bullets
 
 - A pack: steps, expert policy, risky actions, tone, routines, curriculum.
-- Deep: UK benefits processor. Thin: data analyst, programmer.
+- Deep: UK benefits processor. Thin: data analyst, programmer, now being raised to standard depth.
 - Different risky actions per role: force-push and merge for programmers, submit and pay for benefits.
-- Thin packs are starting points, not validated.
-- Deeper roles landing (additive only).
+- Programmer: 22 step types, 18 skills, 4 gates, 13 routines (landing); analyst: 21, 16, 6, 13.
+- Written from the job, not validated with people; new steps have no traces and say not enough data.
 
 ## Sources
 
@@ -102,7 +139,7 @@ Not verified. Update this entry from docs/roles/*.md after it lands.
 - `docs/SPEC_LIST.md (D4)`
 - `docs/DECISIONS.md (D55, D56 item 6)`
 - `evals/report.md`
-- `docs/roles/ (landing)`
+- `docs/roles/programmer.md and docs/roles/data-analyst.md (on branch worktree-agent-aef8c35334df68596, landing)`
 
 ## Related pages
 

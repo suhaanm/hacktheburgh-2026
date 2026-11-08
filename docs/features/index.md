@@ -1,6 +1,6 @@
 # Knack feature index
 
-33 pages and 61 entries (features, plus four write-ups of results that did not hold up), for the pitch (Hack the Burgh XIII), the launch video, the demo and the submission video. The master document is `docs/PITCH_FEATURES.md`; the 20 video claims are in `video-beats.md`; the 25 hardest judge questions are in `faq.md`.
+33 pages and 62 entries (features, plus four write-ups of results that did not hold up), for the pitch (Hack the Burgh XIII), the launch video, the demo and the submission video. The master document is `docs/PITCH_FEATURES.md`; the 20 video claims are in `video-beats.md`; the 25 hardest judge questions are in `faq.md`.
 
 **Status words.** `verified`: the lead saw it work end to end (`docs/FEATURE_CATALOGUE.md`). `built`: built and tested by its track, on main, not yet seen end to end by the lead. `landing`: not on main yet (another agent's branch, or its document has not landed). `not run`: designed or built but never run. The status is taken from the sources at the time of writing (see the time stamp in `docs/PITCH_FEATURES.md`); nothing here was run by the author.
 
@@ -135,7 +135,8 @@
 | Feature | Page | Status | Targets |
 |---|---|---|---|
 | Role packs: benefits processor deep, analyst and programmer thin | [role-packs](role-packs.md) | **built** | G-Research, Wordsmith |
-| Deeper programmer and data-analyst roles | [role-packs](role-packs.md) | **landing** (ROLE-DEPTH (Track F), additive only; built overnight, not on main yet; docs/roles/*.md have not landed) | G-Research, Wordsmith |
+| Programmer pack at standard depth | [role-packs](role-packs.md) | **landing** (ROLE-DEPTH (Track F); docs/roles/programmer.md is on branch worktree-agent-aef8c35334df68596, not on main; additive only (D55, D56 item 6)) | G-Research, Wordsmith |
+| Data analyst pack at standard depth | [role-packs](role-packs.md) | **landing** (ROLE-DEPTH (Track F); docs/roles/data-analyst.md is on branch worktree-agent-aef8c35334df68596, not on main; additive only (D55, D56 item 6)) | G-Research, Wordsmith |
 
 ## Also in this folder
 
