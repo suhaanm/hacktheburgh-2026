@@ -7,7 +7,7 @@
     "details": { "wordsAbove": 120, "wordsTotal": 250, "longParas": 0, "pills": 1, "controls": 8 }
   },
   "routes": {
-    "home": { "audience": "worker", "wordsAbove": 50, "controls": 5, "baseline_wordsAbove": 173 },
+    "home": { "audience": "worker", "wordsAbove": 70, "controls": 6, "baseline_wordsAbove": 173, "note": "the task box (one field, one send, one mic) is Home's second job since owner request 4.18; lead decision D66" },
     "needs-you": { "audience": "worker", "wordsAbove": 120, "controls": 12, "baseline_wordsAbove": 157, "baseline_route": "queue" },
     "routines": { "audience": "worker", "wordsAbove": 100, "baseline_wordsAbove": 183 },
     "growth": { "audience": "worker", "wordsAbove": 60, "wordsAboveEmpty": 25, "baseline_wordsAbove": 152 },
