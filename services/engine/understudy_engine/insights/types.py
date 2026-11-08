@@ -37,9 +37,10 @@ class PersonRecord:
     role_since_t: float | None = None
     pack_rev: str = "1"
     joined_t: float | None = None
-    label: str = ""                  # the pseudonym an admin sees (BP-07), never a name
+    label: str = ""                  # the stable short id an admin sees (BP-07) and the sort key
     origin: str = "synthetic"
     rows: tuple[dict[str, Any], ...] = ()
+    name: str = ""                   # the display name a seeded firm carries (display only: ``label`` stays the id and the sort key); empty when the firm has none
 
 
 @dataclass(frozen=True)

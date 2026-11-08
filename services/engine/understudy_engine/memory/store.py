@@ -161,13 +161,16 @@ class MemoryStore:
 
     # ----- writes -----
     def _commit(self, actor: str, mutate: Callable[[D.MemoryDoc], Any], *, base_revision: int | None = None,
-                what: str = "memory") -> tuple[D.MemoryDoc, Any]:
+                what: str = "memory", idempotent: bool = False) -> tuple[D.MemoryDoc, Any]:
         self._check_actor(actor, what)
         with self._locked():
             doc = self.read()
             if base_revision is not None and base_revision != doc.revision:
                 raise StaleRevision(base_revision, doc.revision)
+            before = D.render(doc) if idempotent and self.path.exists() else None
             result = mutate(doc)
+            if before is not None and D.render(doc) == before:
+                return doc, result          # the same request again: the file is already this, so no new revision and no write
             doc.revision = doc.revision + 1
             atomic_write(self.path, D.render(doc))
             return doc, result
@@ -229,9 +232,10 @@ class MemoryStore:
         doc, _ = self._commit(actor, mutate)
         return doc.revision
 
-    def mutate(self, actor: str, fn: Callable[[D.MemoryDoc], Any]) -> tuple[D.MemoryDoc, Any]:
-        """For modules inside this package that do several edits as one revision (onboarding, rules)."""
-        return self._commit(actor, fn)
+    def mutate(self, actor: str, fn: Callable[[D.MemoryDoc], Any], *, idempotent: bool = False) -> tuple[D.MemoryDoc, Any]:
+        """For modules inside this package that do several edits as one revision (onboarding, rules). ``idempotent=True``: when the edit leaves the file
+        exactly as it was, nothing is written and the revision does not move (an existing file only: the first write always happens)."""
+        return self._commit(actor, fn, idempotent=idempotent)
 
     def export_markdown(self) -> str:
         return self.read_text()

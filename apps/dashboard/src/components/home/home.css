@@ -6,8 +6,11 @@
 .home { gap: var(--space-6); align-content: start; }
 .home__meta { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); color: var(--muted); font-size: var(--text-sm); }
 .home__hero { display: grid; gap: var(--space-2); }
+.home__hero-text, .home__row-text, .home__why { overflow-wrap: anywhere; }
 .home__hero-text { margin: 0; max-width: 24em; font: 600 var(--text-2xl)/1.2 var(--font-display); letter-spacing: var(--tracking-display); text-wrap: balance; }
 .home__why { margin: var(--space-2) 0 0; max-width: 40ch; font-size: var(--text-md); line-height: 1.5; color: var(--muted); }
+.home__why--lead { max-width: 52ch; }
+.home__why--small { font-size: var(--text-sm); }
 .home__cost { margin: var(--space-1) 0 0; font: 600 var(--text-sm)/1.4 var(--font-body); color: var(--fg); }
 .home__cost[data-risk="irreversible"] { color: var(--bad); }
 .home__actions { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--space-2) var(--space-4); margin-top: var(--space-4); }

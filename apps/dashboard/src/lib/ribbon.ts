@@ -103,20 +103,29 @@ export function columnCaption(col: RibbonColumn): string {
 
 const cogText = (c: string) => c.toLowerCase().replace(/_/g, " ");
 
+/** Who "expert" and "novice" are in a sentence: the group's words, or the worker's own ("you") against one experienced worker. */
+export type Voice = "group" | "you";
+
 /** One plain sentence for a column, used by the scrubber and as the accessible name of the column. */
-export function describeColumn(col: RibbonColumn, index: number, total: number): string {
+export function describeColumn(col: RibbonColumn, index: number, total: number, voice: Voice = "group"): string {
+  const you = voice === "you";
+  const E = you ? "The experienced worker" : "Expert";
+  const e = you ? "the experienced worker" : "the expert";
   const pos = `Step ${index + 1} of ${total}. `;
   const lost = Math.round(col.lost);
   if (col.expert && col.novice) {
     const same = col.expert.cog === col.novice.cog;
-    const what = same ? `Both did ${cogText(col.expert.cog)}.` : `Expert did ${cogText(col.expert.cog)}, novice did ${cogText(col.novice.cog)}.`;
-    return `${pos}${what} Expert ${Math.round(col.expert.seconds)} s, novice ${Math.round(col.novice.seconds)} s. ${lost > 0 ? `${lost} s lost.` : "No time lost."}`;
+    const what = same
+      ? (you ? `Both of you did ${cogText(col.expert.cog)}.` : `Both did ${cogText(col.expert.cog)}.`)
+      : (you ? `${E} did ${cogText(col.expert.cog)}, you did ${cogText(col.novice.cog)}.` : `Expert did ${cogText(col.expert.cog)}, novice did ${cogText(col.novice.cog)}.`);
+    const times = you ? `${E} ${Math.round(col.expert.seconds)} s, you ${Math.round(col.novice.seconds)} s.` : `Expert ${Math.round(col.expert.seconds)} s, novice ${Math.round(col.novice.seconds)} s.`;
+    return `${pos}${what} ${times} ${lost > 0 ? `${lost} s lost.` : "No time lost."}`;
   }
-  if (col.novice) return `${pos}Only the novice did this: ${cogText(col.novice.cog)}, ${Math.round(col.novice.seconds)} s. ${lost} s lost.`;
+  if (col.novice) return `${pos}${you ? "Only you did this" : "Only the novice did this"}: ${cogText(col.novice.cog)}, ${Math.round(col.novice.seconds)} s. ${lost} s lost.`;
   if (col.expert) {
     const saved = Math.round(col.saved);
     const price = saved > 0 ? `Skipping it shows as ${saved} s saved here, but it often costs more later.` : `${lost} s counted as lost.`;
-    return `${pos}Only the expert did this: ${cogText(col.expert.cog)}, ${Math.round(col.expert.seconds)} s. The novice skipped it. ${price}`;
+    return `${pos}Only ${e} did this: ${cogText(col.expert.cog)}, ${Math.round(col.expert.seconds)} s. ${you ? "You" : "The novice"} skipped it. ${price}`;
   }
   return pos;
 }

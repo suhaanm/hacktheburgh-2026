@@ -121,8 +121,60 @@ def tiny_firm(window_days: int, seed: int = 43) -> list[dict[str, Any]]:
     return out
 
 
+def roster_firm(roster: Sequence[tuple[str, str]], window_days: int, seed: int = 43) -> list[dict[str, Any]]:
+    """The repeated actions of the people of a built firm, so the Automation screen counts the same people as the other Admin screens. ``roster`` is ``[(person id, role)]``.
+
+    Same rows, rates and speeds as ``tiny_firm`` (only templates with a planted rate), except that WHO repeats an action is decided per role: the share of the role's people who
+    do it (``SHARE_WHO_DO_IT``) is rounded to a head count and the people are picked by a fixed hash, so a role of six always has five doing its main routine and the
+    count never depends on luck. Deterministic; the order of ``roster`` does not matter."""
+    import hashlib
+
+    weeks = max(window_days, 7) / 7.0
+    by_role: dict[str, list[str]] = {}
+    for pid, role in roster:
+        by_role.setdefault(role, []).append(pid)
+    have = set(list_pack_ids())
+    out: list[dict[str, Any]] = []
+    for role in sorted(by_role):
+        if role not in have:
+            continue
+        pids = sorted(by_role[role])
+        pack = load_pack(role)
+        templates = [t for t in pack.templates if t.get("automatable", True) and str(t["id"]) in RUNS_PER_WEEK]
+        doers: dict[str, set[str]] = {}
+        for t in templates:
+            tid = str(t["id"])
+            k = round(SHARE_WHO_DO_IT.get(tid, 0.7) * len(pids))
+            order = sorted(pids, key=lambda p, tid=tid: hashlib.sha1(f"{seed}:{role}:{tid}:{p}".encode()).hexdigest())
+            doers[tid] = set(order[:k])
+        for pid in pids:
+            rng = random.Random(f"{seed}:{role}:{pid}")
+            speed = rng.lognormvariate(0.0, 0.3)
+            rows = []
+            for t in templates:
+                rate = RUNS_PER_WEEK[str(t["id"])] * rng.lognormvariate(0.0, 0.35)           # drawn for everyone, so one person's rows do not depend on who else repeats it
+                count = max(0, round(rate * weeks + rng.gauss(0, math.sqrt(max(rate * weeks, 1.0)))))
+                if pid not in doers[str(t["id"])]:
+                    continue
+                mpr = float((t.get("value_defaults") or {}).get("manual_minutes_per_run", 4.0)) * speed
+                if count >= 3 and count / weeks * mpr >= 1.0:
+                    rows.append(_row(t, count, mpr, weeks, pack))
+            out.append({"person": pid, "role": role, "rows": rows})
+    return out
+
+
 def firm_people(window_days: int) -> tuple[list[dict[str, Any]], str]:
-    """``(people, source)``: the insights layer's synthetic firm when it offers one in the right shape, else the small one built here."""
+    """``(people, source)``: the people of the built firm in the data directory when there is one (the same people the other Admin screens show), else the insights
+    layer's firm when it offers one in the right shape, else the small one built here."""
+    try:
+        from ..insights import firmstore as FS
+        from ..insights.paths import data_dir
+
+        snap = FS.load_cached(data_dir())
+        if snap is not None and snap.people:
+            return roster_firm([(p.id, p.role) for p in snap.people], window_days), "roster"
+    except Exception:
+        pass
     try:
         from ..insights import firm as F          # type: ignore[attr-defined]
 

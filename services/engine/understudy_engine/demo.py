@@ -97,7 +97,7 @@ def reset_home(home: Path, out: Callable[[str], None]) -> None:
 def reset_data(dd: Path, out: Callable[[str], None]) -> None:
     """Empty the demo data directory's own folders. Symlinks to the shared data are unlinked, never followed."""
     removed = []
-    for name in ("queue", "runs", "routines", GROWTH_DIR):
+    for name in ("queue", "runs", "routines", GROWTH_DIR, "firm"):
         d = dd / name
         if d.is_symlink():
             d.unlink()
@@ -253,6 +253,30 @@ def seed_growth(dd: Path, now: datetime, out: Callable[[str], None]) -> dict[str
     return {"growth": True, "growth_rows": n, "growth_counts": counts}
 
 
+def seed_firm(dd: Path, now: datetime, out: Callable[[str], None], *, refresh: bool = False) -> dict[str, Any]:
+    """Write the firm the Admin screens show into ``<dd>/firm/``: 32 people in three roles and three teams, twelve weeks of history ending at ``now``, their routines, open
+    approvals and risk events (``insights.firm.demo_firm``, then ``insights.firmstore.write_firm``). Only the demo data directory is written. Idempotent: a firm that is already
+    there, of this plan, version and seed, and that reads back clean, is left exactly as it is (``refresh=True`` writes it again with its history ending at ``now``). It is a top-up:
+    it touches nothing but ``<dd>/firm/`` (not the queue, the runs, the routines, the audit log, the worker's own ledger or the home)."""
+    from .insights import firm as F
+    from .insights import firmstore as FS
+
+    if not is_demo_data_dir(dd):
+        out(f"firm: {dd} is not a demo data dir; not written.")
+        return {"firm": False}
+    have = FS.describe(dd)
+    same = bool(have) and have.get("plan") == F.DEMO32.name and have.get("version") == FS.VERSION and have.get("seed") == F.DEMO_SEED
+    if same and not refresh and FS.load_firm(dd) is not None:
+        out(f"firm: already seeded ({have['people']} people, {have['rows']} ledger rows, {len(have['units'])} teams); nothing changed. (--refresh moves its history to end now.)")
+        return {"firm": True, "firm_people": have["people"], "firm_written": False}
+    snap = F.demo_firm(now.timestamp()).snapshot
+    res = FS.write_firm(dd, snap, plan=F.DEMO32.name, seed=F.DEMO_SEED)
+    got = FS.describe(dd) or {}
+    out(f"firm: {res['people']} people ({', '.join(f'{n} {r}' for r, n in sorted(got.get('roles', {}).items()))}) in {len(got.get('units', []))} teams, {res['rows']} ledger rows over 12 weeks, "
+        f"{len(snap.routines)} routines, {len(snap.approvals)} open approvals; written to {res['path']}")
+    return {"firm": True, "firm_people": res["people"], "firm_rows": res["rows"], "firm_written": True}
+
+
 def install_demo_bundle(dd: Path, out: Callable[[str], None]) -> str | None:
     """Agent-core's compiled bundle for calc-entry-3x. Lazy: skipped with a note when their module is absent."""
     try:
@@ -310,6 +334,11 @@ def seed(*, reset: bool = False, now: datetime | None = None, out: Callable[[str
             except Exception as e:  # the base demo does not depend on it: say what failed, keep going
                 out(f"growth: NOT SEEDED, the Growth screen will show its empty state ({type(e).__name__}: {str(e)[:160]})")
                 result["growth"] = False
+        try:
+            result.update(seed_firm(dd, t, out))
+        except Exception as e:  # the base demo does not depend on it: say what failed, keep going
+            out(f"firm: NOT SEEDED, the Admin screens will show their empty state ({type(e).__name__}: {str(e)[:160]})")
+            result["firm"] = False
         if bundle:
             result["bundle"] = install_demo_bundle(dd, out)
         else:
@@ -448,10 +477,25 @@ def main(argv: list[str] | None = None) -> int:
     sp.add_argument("--reset", action="store_true", help="wipe the demo files in the home and the demo data dir first")
     sp.add_argument("--no-bundle", action="store_true", help="do not call understudy_agent.demo_bundle.install() (tests, or no browsers installed)")
     sub.add_parser("status", help="show what the home holds")
+    sf = sub.add_parser("seed-firm", help="top up the data dir named by UNDERSTUDY_DATA_DIR with the firm the Admin screens show (writes only <data>/firm/; safe on a running stack; no --reset)")
+    sf.add_argument("--refresh", action="store_true", help="write the firm again with its twelve weeks of history ending now (same people)")
+    sub.add_parser("seed-growth", help="top up the data dir with the worker's own learning curve (writes only <data>/assist/ and one marker, once)")
     args = ap.parse_args(argv)
     try:
         if args.cmd == "status":
             return status()
+        if args.cmd in ("seed-firm", "seed-growth"):
+            dd = data_dir().resolve()
+            if not is_demo_data_dir(dd):
+                raise DemoError(f"{dd} is not a demo data dir (name it demo-data or give it the {DATA_MARKER} marker); I will not write there.")
+            t = datetime.now(timezone.utc)
+            if args.cmd == "seed-firm":
+                seed_firm(dd, t, print, refresh=args.refresh)
+            elif (dd / GROWTH_MARKER).exists():
+                print("growth: already seeded; nothing changed.")
+            else:
+                seed_growth(dd, t, print)
+            return 0
         seed(reset=args.reset, bundle=not args.no_bundle)
         return 0
     except DemoError as e:

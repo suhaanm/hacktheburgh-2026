@@ -4,8 +4,10 @@ import { useLoad } from "../hooks";
 import { useAppState } from "../store";
 import { Note, OriginBadge, SourceNote } from "./common";
 import { Hint } from "./Hint";
-import { Details } from "./ui";
-import { CHIPS, MAX_QUESTION, actionsOf, askedTimeNote, badgeText, bodySentences, checkReading, cleanQuestion, fallbackReading, fmtFact, isAnswer, limitsOf, pathWords, sourceReading, usesWithFacts } from "../lib/explain";
+import { Details, fitItems } from "./ui";
+import { CHIPS, MAX_QUESTION, actionsOf, askedTimeNote, bodySentences, checkReading, cleanQuestion, fallbackReading, fmtFact, isAnswer, limitsOf, pathWords, sourceReading, usesWithFacts } from "../lib/explain";
+import { readRemembered, writeRemembered } from "../lib/remember";
+import type { Fallback } from "../lib/fallback";
 import type { ExplainResult, PacketFact } from "../types";
 
 /**
@@ -23,6 +25,9 @@ export function Explain({ person }: { person?: string }) {
   const [elapsed, setElapsed] = useState(0);
   const run = useRef(0);
   const auto = useRef(false);
+  // Explain runs by itself where no model is involved (mock mode, example data). With a live model it is the worker's switch, off until they turn it on
+  // here, and then remembered: a call to a model is never started on a worker's behalf without that choice (docs/knack-ux/defaults.md).
+  const [autoLive, setAutoLive] = useState<"on" | "off">(() => readRemembered("explain-auto", ["on", "off"] as const, "off"));
 
   const ask = async (q: string | undefined, hint: string) => {
     const mine = ++run.current;
@@ -42,12 +47,14 @@ export function Explain({ person }: { person?: string }) {
     return () => window.clearInterval(id);
   }, [phase]);
 
-  // The first look is free when no model can be involved: mock mode (the template only) or example data. Otherwise the worker presses.
+  // The first look is free when no model can be involved: mock mode (the template only) or example data. With a live model it runs by itself only if
+  // the worker switched "Explain when this opens" on; otherwise they press.
   useEffect(() => {
     if (auto.current || !app.extReady || !packet.data) return;
-    if (app.mock === true || packet.why) { auto.current = true; void ask(undefined, "where_time_went"); }
+    if (app.mock === true || packet.why || autoLive === "on") { auto.current = true; void ask(undefined, "where_time_went"); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [app.extReady, app.mock, packet.data, packet.why]);
+  }, [app.extReady, app.mock, packet.data, packet.why, autoLive]);
+  const liveModel = app.mock === false && !packet.why;
 
   const submit = (text: string, hint: string) => { setQuestion(text); void ask(cleanQuestion(text), hint); };
   const facts = packet.data?.facts ?? [];
@@ -59,13 +66,20 @@ export function Explain({ person }: { person?: string }) {
         <h2 id="ex-h" className="section__title">Where did my time go?<Hint label="How this is written">Reads the numbers behind this case. Code checks each number in the words against the data.</Hint></h2>
         <p className="u-sr-only">Reads the numbers behind this case. Code checks each number in the words against the data.</p>
       </div>
-      <SourceNote why={res?.why ?? (phase === "idle" ? packet.why : null)} also={example ? "These are example answers. They do not change with what you ask." : undefined} alsoInline />
+      {example && <p className="note">Example data: the answers do not change with what you ask.</p>}
+      {(res?.why ?? (phase === "idle" ? packet.why : null))?.kind === "error" && <SourceNote why={res?.why ?? packet.why} />}
 
       <p className="u-sr-only" role="status" aria-live="polite">{phase === "loading" ? "Writing the answer." : phase === "ready" ? "The answer is ready." : phase === "error" ? "The answer could not be made." : ""}</p>
 
       {phase === "idle" && (
         <div className="explain__start">
           <div className="row"><button type="button" className="btn btn--primary" onClick={() => void ask(undefined, "where_time_went")}>Explain this case</button><Hint label="About this explanation">It reads numbers only, and nothing else on this screen waits for it.</Hint></div>
+          {liveModel && (
+            <label className="explain__auto">
+              <input type="checkbox" checked={autoLive === "on"} onChange={(e) => { const v = e.target.checked ? "on" : "off"; setAutoLive(v); writeRemembered("explain-auto", v, "off"); }} />
+              Explain when this opens
+            </label>
+          )}
         </div>
       )}
 
@@ -82,9 +96,11 @@ export function Explain({ person }: { person?: string }) {
 
       {res && phase !== "loading" && phase !== "error" && <Answer r={res.data} facts={facts} example={example} />}
 
-      <Ask question={question} onChange={setQuestion} onSubmit={submit} busy={phase === "loading"} />
+      <Details summary="Ask about this case" wide>
+        <Ask question={question} onChange={setQuestion} onSubmit={submit} busy={phase === "loading"} />
+      </Details>
 
-      {res && phase === "ready" && <Backing r={res.data} facts={facts} />}
+      {res && phase === "ready" && <Backing r={res.data} facts={facts} why={res.why ?? packet.why ?? null} />}
     </section>
   );
 }
@@ -101,7 +117,6 @@ function Progress({ elapsed }: { elapsed: number }) {
 /** The words, the coaching, and under them where the words came from. */
 function Answer({ r, facts, example }: { r: ExplainResult; facts: PacketFact[]; example: boolean }) {
   const body = bodySentences(r);
-  const actions = actionsOf(r);
   const src = sourceReading(r);
   const chk = checkReading(r.check);
   const fb = fallbackReading(r);
@@ -110,14 +125,9 @@ function Answer({ r, facts, example }: { r: ExplainResult; facts: PacketFact[]; 
     <div className="explain__answer stack" data-testid="explain-answer" data-source={r.source}>
       <div className="stack" style={{ gap: "var(--space-3)" }}>
         <p className="t-label">{isAnswer(r) ? "The answer" : "What the numbers show"}</p>
-        {body.slice(0, 2).map((s, i) => (
+        {body.slice(0, 1).map((s, i) => (
           <p key={i} className="explain__text">{s.text}<Uses uses={s.uses} facts={facts} /></p>
         ))}
-        {body.length > 2 && (
-          <Details summary={`${body.length - 2} more ${body.length - 2 === 1 ? "sentence" : "sentences"}`}>
-            <div className="stack" style={{ gap: "var(--space-3)" }}>{body.slice(2).map((s, i) => <p key={i} className="explain__text">{s.text}<Uses uses={s.uses} facts={facts} /></p>)}</div>
-          </Details>
-        )}
         {asked && <p className="note">{asked}</p>}
       </div>
 
@@ -125,26 +135,13 @@ function Answer({ r, facts, example }: { r: ExplainResult; facts: PacketFact[]; 
         <div className="row" style={{ gap: "var(--space-2)" }}>
           <span className="pill pill--source" data-source={r.source}>{src.label}</span>
           <span className="pill pill--check-run" data-ok={chk.ok}><span className="pill__glyph-char" aria-hidden="true">{chk.ok ? "✓" : "✕"}</span>{chk.ok ? "Checked against the data" : "Did not pass the check"}</span>
-          <Hint label="About this answer">{src.detail} {chk.text}</Hint>
+          <Hint label="About this answer">{src.detail} {chk.text}{chk.ok ? " Checked by code. That does not make the data right." : ""}</Hint>
         </div>
-        {chk.ok && <p className="note">Checked by code against the data. That shows the words come from the data, not that the data is right.</p>}
+        
         {fb && <Note tone="warn">{fb}</Note>}
         {!chk.ok && <Note tone="warn">{chk.text}</Note>}
       </div>
 
-      {actions.length > 0 && (
-        <div className="stack" style={{ gap: "var(--space-3)" }}>
-          <p className="t-label">Worth practising</p>
-          <ul className="explain__actions">
-            {actions.map((a) => (
-              <li key={a.id}>
-                <p className="explain__text">{a.text}<Uses uses={a.uses} facts={facts} /></p>
-                <p className="note">{a.chosen_by === "code" ? "Picked by code from a fixed list." : "Picked by the model from a fixed list; code checked it."}</p>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
       {example && <p className="u-sr-only">Example answer.</p>}
     </div>
   );
@@ -175,13 +172,13 @@ function Ask({ question, onChange, onSubmit, busy }: { question: string; onChang
   return (
     <form className="explain__ask" onSubmit={(e) => { e.preventDefault(); onSubmit(question, "where_time_went"); }} aria-label="Ask about this case">
       <div className="field">
-        <label className="field__label" htmlFor="ex-q">Ask about this case</label>
+        <label className="u-sr-only" htmlFor="ex-q">Ask about this case</label>
         <div className="explain__bar">
           <input id="ex-q" className="input" type="text" value={question} maxLength={MAX_QUESTION} autoComplete="off" spellCheck={false}
             placeholder="For example, why was I slow?" onChange={(e) => onChange(e.target.value)} />
           <button type="submit" className="btn btn--secondary" disabled={busy}>{busy ? "Asking" : "Ask"}</button>
         </div>
-        <span className="field__hint">Your words are turned into one of a few fixed questions by code. A model never sees them.</span>
+        <span className="field__hint">Code turns your words into a fixed question. A model never sees them.</span>
       </div>
       <div className="row" style={{ gap: "var(--space-2)" }} role="group" aria-label="Example questions">
         {CHIPS.map((c) => <button key={c.id} type="button" className="chip" aria-label={c.text} disabled={busy} onClick={() => onSubmit(c.text, c.id)}>{c.label}</button>)}
@@ -190,32 +187,75 @@ function Ask({ question, onChange, onSubmit, busy }: { question: string; onChang
   );
 }
 
-/** Always shown with an answer: the limits and the footer with its badge. Then the numbers themselves, one click away. */
-function Backing({ r, facts }: { r: ExplainResult; facts: PacketFact[] }) {
+/**
+ * Always shown with an answer: the footer with its badge (and, when the engine listed no limits, that fact, which is itself a problem). Everything else
+ * is one closed "More" holding closed rows: the other sentences, what is worth practising, the limits, the numbers, and why this is example data.
+ */
+function Backing({ r, facts, why }: { r: ExplainResult; facts: PacketFact[]; why: Fallback | null }) {
   const limits = limitsOf(r);
+  const body = bodySentences(r).slice(1);
+  const actions = actionsOf(r);
   const meta = { origin: r.badge.origin as "real" | "synthetic" | "mixed", n: r.badge.n, n_unit: r.badge.n_unit, split: r.badge.split, interval_level: 0.95, note: null, generated_at: "" };
+  const row = (x: { text: string; uses: string[] }, i: number) => <li key={i} className="explain__text">{x.text}<Uses uses={x.uses} facts={facts} /></li>;
+  const kSent = fitItems(body.map((x) => x.text), 52).shown.length;
+  const kLim = fitItems(limits.map((l) => l.text), 48).shown.length;
+  const hasMore = body.length > 0 || actions.length > 0 || limits.length > 0 || facts.length > 0 || (why && why.kind !== "error");
   return (
     <div className="stack explain__backing">
-      <div data-testid="explain-limits">
-        {limits.length === 0 ? <p className="note">The engine listed no limits for this answer. That is itself a problem: every answer must list its limits.</p> : (
-          <Details summary={`What this does not show (${limits.length})`}>
-            <ul className="plain-list explain__limits">{limits.map((l) => <li key={l.id} className="ev-note">{l.text}</li>)}</ul>
-          </Details>
-        )}
-      </div>
+      {limits.length === 0 && <div data-testid="explain-limits"><p className="note">The engine listed no limits for this answer. That is itself a problem: every answer must list its limits.</p></div>}
       <p className="explain__footer" data-testid="explain-footer">
         <OriginBadge meta={meta} always />
         <span>{r.footer}</span>
-        <span className="u-muted">{badgeText(r.badge)}{r.badge.split ? `, ${r.badge.split.replace(/_/g, " ")}` : ""}</span>
       </p>
-      {facts.length > 0 && (
-        <Details summary={`All the numbers an explanation can use (${facts.length})`} wide>
-          <div className="table-wrap"><table className="table">
-            <thead><tr><th>Where in the packet</th><th className="num">Value</th></tr></thead>
-            <tbody>{facts.map((f) => <tr key={f.path}><td><code>{f.path}</code></td><td className="num">{fmtFact(f)}</td></tr>)}</tbody>
-          </table></div>
+      {hasMore && (
+        <Details summary="More" wide>
+          <div className="stack">
+            {why && why.kind !== "error" && <SourceNote why={why} />}
+            {body.length > 0 && (
+              <Details summary={`${body.length} more ${body.length === 1 ? "sentence" : "sentences"}`}>
+                <ul className="plain-list explain__more">{body.slice(0, kSent).map(row)}</ul>
+                {body.length > kSent && <Details summary={`More (${body.length - kSent})`}><ul className="plain-list explain__more">{body.slice(kSent).map((x, i) => row(x, i + kSent))}</ul></Details>}
+              </Details>
+            )}
+            {actions.length > 0 && (
+              <Details summary={`Worth practising (${actions.length})`}>
+                <ul className="plain-list explain__actions">
+                  {actions.map((a) => <li key={a.id} className="explain__text">{a.text}<Uses uses={a.uses} facts={facts} /></li>)}
+                </ul>
+                <p className="note">{actions.every((a) => a.chosen_by === "code") ? "Picked by code from a fixed list." : "Picked from a fixed list; code checked each one."}</p>
+              </Details>
+            )}
+            {limits.length > 0 && (
+              <div data-testid="explain-limits">
+                <Details summary={`What this does not show (${limits.length})`}>
+                  <ul className="plain-list explain__limits">{limits.slice(0, kLim).map((l) => <li key={l.id} className="ev-note">{l.text}</li>)}</ul>
+                  {limits.length > kLim && <Details summary={`More (${limits.length - kLim})`}><ul className="plain-list explain__limits">{limits.slice(kLim).map((l) => <li key={l.id} className="ev-note">{l.text}</li>)}</ul></Details>}
+                </Details>
+              </div>
+            )}
+            {facts.length > 0 && (
+              <Details summary={`All the numbers an explanation can use (${facts.length})`} wide>
+                <FactsTable facts={facts} />
+              </Details>
+            )}
+          </div>
         </Details>
       )}
     </div>
+  );
+}
+
+/** The packet's numbers: seven rows, then "Show all N" (the whole list is one click away, never cut). */
+function FactsTable({ facts }: { facts: PacketFact[] }) {
+  const [all, setAll] = useState(false);
+  const shown = all ? facts : facts.slice(0, 7);
+  return (
+    <>
+      <div className="table-wrap"><table className="table">
+        <thead><tr><th>Where in the packet</th><th className="num">Value</th></tr></thead>
+        <tbody>{shown.map((f) => <tr key={f.path}><td><code>{f.path}</code></td><td className="num">{fmtFact(f)}</td></tr>)}</tbody>
+      </table></div>
+      {facts.length > 7 && <button type="button" className="btn btn--quiet btn--sm" aria-expanded={all} onClick={() => setAll(!all)}>{all ? "Show fewer" : `Show all ${facts.length}`}</button>}
+    </>
   );
 }

@@ -2,12 +2,10 @@
 // The contents belong to the Settings screen folder (apps/dashboard/src/screens/Settings/index.tsx, default export, props { section, onClose }):
 // the shell finds that file with import.meta.glob. Until it exists, a short fallback shows the two settings the shell itself owns (Appearance and Views).
 import { Suspense, lazy, useEffect, useRef, type ComponentType } from "react";
-import { Notices } from "../../legacyScreens";
 import { pick } from "../../screenRegistry";
 import { closeSettings, useOverlay } from "../home/overlayStore";
 import { VIEW_LABEL, setViewRole, useViewRole, type ViewRole } from "../home/viewAs";
 import { Icon } from "./icons";
-import { usePinnedViews } from "./pinned";
 import { THEMES, THEME_LABEL, useTheme } from "./theme";
 
 export interface SettingsProps { section: string | null; onClose: () => void }
@@ -18,9 +16,6 @@ const Contents = lazy(pick(FILES, ["../../screens/Settings/index.tsx"]) ?? (asyn
 function Fallback({ section }: SettingsProps) {
   const [theme, setTheme] = useTheme();
   const view = useViewRole();
-  const [pinned, setPinned] = usePinnedViews();
-  // Until the Settings folder exists, the old Notices screen answers "Interruptions" (the address #/notices lands here).
-  if (section === "interruptions" && Notices) return <Suspense fallback={null}><Notices /></Suspense>;
   return (
     <div className="settings__fallback" data-section={section ?? undefined}>
       <section aria-labelledby="set-look">
@@ -34,7 +29,6 @@ function Fallback({ section }: SettingsProps) {
         <div className="segmented" role="group" aria-label="View as">
           {(["worker", "admin"] as ViewRole[]).map((r) => <button key={r} type="button" aria-pressed={view === r} onClick={() => setViewRole(r)}>{VIEW_LABEL[r]}</button>)}
         </div>
-        <label className="settings__check"><input type="checkbox" checked={pinned} onChange={(e) => setPinned(e.target.checked)} /> Show Genome, Graph and Presence in the sidebar</label>
       </section>
       <p><a href="#/setup" onClick={() => closeSettings()}>Set up again</a></p>
     </div>
@@ -65,14 +59,14 @@ function Sheet({ section }: { section: string | null }) {
     return () => { document.removeEventListener("keydown", key); if (back && document.contains(back)) back.focus(); };
   }, []);
   return (
-    <div className="sheet" data-testid="settings-sheet">
-      <div className="sheet__scrim" onClick={closeSettings} aria-hidden="true" />
-      <div ref={box} className="sheet__panel" role="dialog" aria-modal="true" aria-labelledby="settings-title">
-        <header className="sheet__head">
-          <h2 id="settings-title" className="sheet__title">Settings</h2>
-          <button type="button" className="sheet__close" aria-label="Close settings" onClick={closeSettings}><Icon name="close" /></button>
+    <div className="drawer" data-testid="settings-sheet">
+      <div className="drawer__scrim" onClick={closeSettings} aria-hidden="true" />
+      <div ref={box} className="drawer__panel" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+        <header className="drawer__head">
+          <h2 id="settings-title" className="drawer__title">Settings</h2>
+          <button type="button" className="drawer__close" aria-label="Close settings" onClick={closeSettings}><Icon name="close" /></button>
         </header>
-        <div className="sheet__body">
+        <div className="drawer__body">
           <Suspense fallback={<p className="note" role="status">Opening settings</p>}>
             <Contents section={section} onClose={closeSettings} />
           </Suspense>
