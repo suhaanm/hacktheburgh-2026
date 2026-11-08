@@ -122,8 +122,7 @@ def _meta(origin: str, b: B.Briefing) -> dict[str, Any]:
     n = sum(int(v.get("n") or 0) for v in b.diagnostics.values())
     return {"origin": origin, "n": n, "n_unit": "decisions", "split": None, "interval_level": 0.95,
             "note": ("Cards are chosen by fixed rules from routines, skills, calendar and git summaries, and re-checked against the current state. "
-                     "No model decides what is shown, and nothing runs until you press go."
-                     + (" Built from generated data." if origin != "real" else "")),
+                     "No model decides what is shown, and nothing runs until you press go."),
             "generated_at": iso(datetime.now(timezone.utc))}
 
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { aboutPeople, ownMeta } from "./ownMeta";
-import { oneExpert } from "./voice";
+import { aboutCohort, isCohortFact, noCounts, oneExpert, restsOnCohort, workerText } from "./voice";
 import { caseSecondsLost, stepsHeadline, topLosses } from "./steps";
 import { describeColumn, type RibbonColumn } from "./ribbon";
 import { commitsHeadline } from "../components/growth/CommitsSection";
@@ -55,6 +55,28 @@ describe("oneExpert: the group of experts becomes one experienced worker", () =>
     expect(oneExpert(t)).toBe(t);
     expect(oneExpert(oneExpert("than the experts"))).toBe("than an experienced worker");
     expect(oneExpert("12 of 40 commits")).toBe("12 of 40 commits");
+  });
+});
+
+describe("workerText: no count of people, no group of experts, no cohort fact", () => {
+  it("drops the number of a group and keeps the group", () => {
+    expect(noCounts("Based on n = 24 people; synthetic data.")).toBe("Based on a group of people; synthetic data.");
+    expect(noCounts("Across the 24 people in this data")).toBe("Across the a group of people in this data");
+    expect(noCounts("12 of 40 households")).toBe("12 of 40 households");
+    expect(noCounts("8 experts")).toBe("an experienced worker");
+  });
+  it("names the nearest expert as one experienced worker", () => {
+    expect(workerText("for the nearest expert, which is longer")).toBe("for an experienced worker, which is longer");
+    expect(workerText("Follow the nearest expert's pace")).toBe("Follow an experienced worker's pace");
+  });
+  it("knows which facts and sentences rest on the cohort", () => {
+    for (const p of ["cohort_habit.pace.seconds", "gap.cohort_gap_s", "gap.cohort_n", "meta.n"]) expect(isCohortFact(p), p).toBe(true);
+    for (const p of ["gap.case_s", "habit.pace.seconds", "cog.READ.seconds", "meta.level", "consequence.RECONCILE.n"]) expect(isCohortFact(p), p).toBe(false);
+    expect(restsOnCohort(["gap.case_s", "gap.cohort_gap_s"])).toBe(true);
+    expect(restsOnCohort(["gap.case_s"])).toBe(false);
+    expect(restsOnCohort(undefined)).toBe(false);
+    expect(aboutCohort("the intervals shown are for the cohort average")).toBe(true);
+    expect(aboutCohort("The sample is small, so the intervals are wide.")).toBe(false);
   });
 });
 

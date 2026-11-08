@@ -33,7 +33,7 @@ export const ABOUT: Record<Screen, About> = {
   },
   firm: {
     what: "Where the firm loses time and what changed.",
-    from: "Counts and durations for the whole firm, never names, titles or content. Example data uses a made-up firm.",
+    from: "Counts and durations for the whole firm, never names, titles or content. Example data uses a sample firm.",
     limit: "For coaching and onboarding, not for evaluating individuals.",
   },
   brief: {

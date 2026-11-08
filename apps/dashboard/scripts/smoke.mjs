@@ -29,21 +29,18 @@ const hintText = async (scope, name) => {
   return t;
 };
 // The question box of Explain is one closed row, "Ask about this case": open it when it is shut.
-const openAsk = async (scope) => { const d = scope.locator("details").filter({ has: page.locator("summary", { hasText: "Ask about this case" }) }).first(); if (!(await d.evaluate((e) => e.open))) await d.locator("summary").first().click(); };
+const openAsk = (scope) => scope.locator("details").evaluateAll((els) => els.forEach((e) => { e.open = true; })); // the question box and the rows around it are nested closed rows; open them all
 const openAll = (scope) => scope.locator("details").evaluateAll((els) => els.forEach((e) => { e.open = true; }));
+// Evidence, Models and Forecasts are Admin screens (docs/knack-ux/views.md): the Worker view shows only the gate sentence. Switch the view the way the
+// account menu does (the choice is kept in this tab's storage), reload so the shell reads it, and switch back when done.
+const asView = async (view) => {
+  await page.evaluate((v) => { try { if (v === "admin") localStorage.setItem("understudy-view-as", "admin"); else localStorage.removeItem("understudy-view-as"); } catch { /* storage blocked */ } }, view);
+  await page.reload(); await page.waitForTimeout(500);
+};
 const go = async (hash, wait = 700) => {
   // Same-hash navigations do not remount, so hop through another route first.
   if (page.url().endsWith(`#${hash}`)) { await page.goto(`${base}/#/today`); await page.waitForTimeout(150); }
   await page.goto(`${base}/#${hash}`); await page.waitForTimeout(wait);
-};
-
-// The view role is remembered on this device and read when the page loads, so changing it is a write and a reload. A worker has five screens; the screens that
-// belong to the firm (Evidence, Models and cost, Background runs, the Firm views) and the older work views that Growth now bridges are measured as an admin, where
-// they are not behind the gate or the cohort guard.
-const asView = async (v) => {
-  await page.evaluate((role) => { try { if (role === "admin") localStorage.setItem("understudy-view-as", "admin"); else localStorage.removeItem("understudy-view-as"); } catch { /* */ } }, v);
-  await page.reload();
-  await page.waitForTimeout(600);
 };
 
 // 1. First run (the old Onboarding): two roles, timed. Set up again reruns the same three screens in a browser tab: role, what Knack may do, then Show my week.
@@ -203,24 +200,26 @@ await page.getByRole("button", { name: "Approve and submit" }).click();
 await page.waitForTimeout(700);
 check("needs you: approving decides the item", (await submitHead.count()) === 0);
 
-// 8. Presence: quiet hours save changes idle capacity (Growth, section time: /presence redirects there; the hours sit in closed disclosures, so they are opened first)
+// 8. Presence is now the hours part of Growth, "Where my time goes": quiet hours save changes idle capacity
 await go("/presence", 1200);
-await openAll(page.locator("main"));
-const idleStat = page.locator("section[aria-labelledby=idle-h] .stat__value");
-const idle0 = await idleStat.first().innerText();
-await page.locator("#qs").fill("01:00");
-await page.locator("#qe").fill("11:00");
-await page.getByRole("button", { name: "Save quiet hours" }).click();
-await page.waitForTimeout(900);
-await openAll(page.locator("main"));
-const idle1 = await idleStat.first().innerText();
+const time = page.locator("#gr-time");
+check("growth: the old presence address lands on Where my time goes, open", /section=time/.test(page.url()) && (await time.locator(":scope > details").evaluate((e) => e.open)));
+await openAll(time);
+const idleOf = () => time.locator(".stat", { hasText: "Idle capacity" }).locator(".stat__value").first().innerText();
+const idle0 = await idleOf();
+await time.locator("#qs").fill("01:00");
+await time.locator("#qe").fill("11:00");
+await time.getByRole("button", { name: "Save quiet hours" }).click();
+await page.waitForTimeout(700);
+await openAll(time);
+const idle1 = await idleOf();
 check("presence: saving quiet hours recomputes idle capacity", idle0 !== idle1, `${idle0.replace(/\n/g, " ")} -> ${idle1.replace(/\n/g, " ")}`);
-await page.locator("#gr-time svg[role='application']").first().focus();   // the weekly map (the progress chart above it has the same role)
+await time.locator("svg[role='application']").focus();
 await page.keyboard.press("ArrowRight");
 await page.waitForTimeout(150);
-check("presence: arrow keys read a cell with its interval", (await page.locator("#gr-time p[aria-live]").allInnerTexts()).some((t) => /95% interval/.test(t)));
+check("presence: arrow keys read a cell with its interval", /95% interval/.test(await time.locator("p[aria-live]", { hasText: /interval|%/ }).first().innerText()));
 
-// 8b. Evidence: honest states (a reviewer's screen, behind the gate for a worker: read as an admin)
+// 8b. Evidence: honest states (an Admin screen: View as Admin)
 await asView("admin");
 await go("/evidence", 1200);
 check("evidence: high limits are open, medium and low are folded, and there is a sticky jump list", (await page.locator("#limits .limit:visible").count()) > 0 && (await page.locator("details.limits-fold:not([open])").count()) === 2 && (await page.locator("nav.ev-jump a").count()) >= 10 && (await page.locator("nav.ev-jump").evaluate((el) => getComputedStyle(el).position)) === "sticky");
@@ -267,6 +266,7 @@ check("study: headline is the skill difference with n, exact sign-flip p and the
 check("study: time columns say uncoached and coached, never before and after", /Uncoached block, time/i.test(studyText) && /\bCoached block, time/i.test(studyText) && !/\bbefore\b|\bafter\b/i.test(await page.locator("#study table thead").innerText()));
 check("study: assisted speed is reported separately", /Assisted speed, reported separately/i.test(studyText));
 await page.unroute("**/eval/report");
+await asView("worker");
 
 await asView("worker");
 // 8c. Today and the live coach brain (mocked engine so the checks are exact)
@@ -311,12 +311,13 @@ await asView("worker");
 }
 
 // 8d. Extension screens (REQ-2), demo fixtures
-await go("/week", 900);
-await openAll(page.locator("main"));
-const weekText = await page.locator("#gr-time").innerText();   // Growth draws every section on one page: read this one
-check("week: the ribbon, the gap table with intervals and 3 to 5 suggestion cards", (await page.locator("#gr-time .weekribbon svg").count()) === 2 && /95% interval/i.test(weekText) && (await page.locator("#gr-time .sug").count()) >= 3 && (await page.locator("#gr-time .sug").count()) <= 5);
-check("week: the suggestions say, once under the list, that nothing is sent, booked or changed", (weekText.match(/Nothing is sent, booked or changed\./g) ?? []).length === 1);
-check("week: no titles or names anywhere on the screen", !/(standup|(?<![\d:])1:1(?![\d:])|review with|@[a-z]+\.)/i.test(weekText));
+await go("/week", 1200);
+await openAll(page.locator("#gr-time"));
+const weekText = await page.locator("#gr-time").innerText();
+check("week: the ribbons, the gap table with intervals and 3 to 5 ideas", (await page.locator("#gr-time .weekribbon svg").count()) === 2 && /95% interval/i.test(weekText) && (await page.locator("#gr-time .sug").count()) >= 3 && (await page.locator("#gr-time .sug").count()) <= 5);
+check("week: the ideas say that nothing is sent, booked or changed", /Nothing is sent, booked or changed\./.test(weekText));
+check("week: the baseline is one experienced worker, never a person or a count of experts", /An experienced worker's week/.test(weekText) && !/p_exp|\d+ experts/.test(weekText));
+check("week: no titles or names anywhere on the screen", !/(standup|\b1:1\b|review with|@[a-z]+\.)/i.test(weekText));
 
 await asView("worker");
 await go("/needs-you", 900);
@@ -438,15 +439,17 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
 
 // 8f. Explain: "Where did my time go?" in the steps section of Growth
 {
-  const openExplain = () => page.locator("summary", { hasText: "Explain this case" }).first().evaluate((sm) => { for (let d = sm.parentElement; d; d = d.parentElement) if (d.tagName === "DETAILS") d.open = true; });   // it and every disclosure around it
   // Example answers first (the engine is blocked): the answer, where it came from, the checks, the limits and the footer are all there.
   await go("/genome", 1500);
-  await openExplain();   // "Explain this case" is a closed disclosure in the steps section
+  check("growth: the old genome address lands on My steps, open", /section=steps/.test(page.url()) && (await page.locator("#gr-steps > details").evaluate((e) => e.open)));
+  // the explanation runs by itself on example data; its footer is drawn with the answer, and the rows under it are closed until opened
+  await page.locator("#explain [data-testid=explain-footer]").first().waitFor({ state: "attached", timeout: 10000 });
+  await openAll(page.locator("#gr-steps"));
   const ex = page.locator("#explain");
   const exText = await ex.innerText();
   check("explain: example data is badged and says the answers do not change with the question", /example data/i.test(exText) && /do not change with what you ask/i.test(exText));
-  check("explain: the answer comes first, then where the words came from and the check", (await ex.locator("[data-testid=explain-answer]").count()) === 1 && /Written from a fixed template/.test(exText) && /Checked against the data/.test(exText) && /not that the data is right/.test(await hintText(ex, "About this answer")));
-  check("explain: the limits and the footer are always shown, with no origin tag", (await ex.locator("[data-testid=explain-limits] li").count()) >= 3 && /Based on n = 24 people; generated data\./.test(await ex.locator("[data-testid=explain-footer]").innerText()) && !/synthetic|simulated/i.test(await ex.locator("[data-testid=explain-footer]").innerText()));
+  check("explain: the answer comes first, then where the words came from and the check", (await ex.locator("[data-testid=explain-answer]").count()) === 1 && /Written from a fixed template/.test(exText) && /Checked against the data/.test(exText) && /does not make the data right/.test(await hintText(ex, /About this answer/)));
+  check("explain: the limits and the footer are always shown, with no origin tag", (await ex.locator("[data-testid=explain-limits] li").count()) >= 3 && /Based on a group of people; generated data\./.test(await ex.locator("[data-testid=explain-footer]").innerText()) && !/synthetic|simulated/i.test(await ex.locator("[data-testid=explain-footer]").innerText()));
   const usesNote = await hintText(ex, /Where (this number comes|these numbers come) from/);
   check("explain: each sentence has a hint with the packet facts its numbers come from", /gap · case s/.test(usesNote) && /9 min 45 s/.test(usesNote) && /not supplied by the model/.test(usesNote));
   check("explain: five example questions are offered", (await ex.locator("[aria-label='Example questions'] button").count()) === 5);
@@ -477,7 +480,7 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
     if (u.pathname === "/evidence/explain") { explainBody = { body: JSON.parse(req.postData() ?? "{}"), actor: req.headers()["x-understudy-actor"], type: req.headers()["content-type"] }; if (delayMs) await new Promise((r) => setTimeout(r, delayMs)); return json(route, { meta, data: scenario }); }
     return json(route, { error: { code: "not_found", message: "not mocked" } }, 404);
   });
-  const fresh = async () => { await page.goto(`${base}/#/today`); await page.reload(); await page.waitForTimeout(6800); await page.goto(`${base}/#/genome`); await page.waitForTimeout(1500); await openExplain(); };
+  const fresh = async () => { await page.goto(`${base}/#/today`); await page.reload(); await page.waitForTimeout(6800); await page.goto(`${base}/#/genome`); await page.waitForTimeout(1500); await openAll(page.locator("#gr-steps")); };
   await fresh();
   const live = page.locator("#explain");
   check("explain: with a real engine and no mock mode, nothing is asked until the worker presses", (await live.getByRole("button", { name: "Explain this case" }).count()) === 1 && explainBody === null && !/example data/i.test(await live.innerText()));
@@ -674,6 +677,10 @@ for (const sec of ["time", "steps", "map", "commits"]) {
   await page.unroute(TASKS);
 }
 
+// 8h0. The built-in sample is never a task: with the services refused, Routines draws no background tasks and Needs you no run that reads 'paused'
+await go("/routines", 1500);
+check("routines: example data draws no background tasks (a sample is never a task)", (await page.locator("[data-testid=background-tasks]").count()) === 0 && /Your routines/.test(await page.locator("main").innerText()) && !/\bRunning\b/.test(await page.locator("[role=tablist]").innerText()));
+
 // 8h. Live: a task that finishes in the background shows as finished with no reload, an open row stays open, and the announcement is one quiet sentence
 {
   const AGENT = /^https?:\/\/[^/]+\/agent(\/|$)/;
@@ -682,7 +689,8 @@ for (const sec of ["time", "steps", "map", "commits"]) {
   const row = () => ({ task_id: "tk_live1", title: "Tidy the invoices folder", state, started: new Date(Date.now() - 60000).toISOString(), latest: state === "running" ? "Reading invoices.pdf" : null, result: state === "done" ? "Moved 12 files into Paid and Unpaid." : null, finished: state === "done" ? new Date().toISOString() : null });
   await page.route(AGENT, async (route) => {
     const path = new URL(route.request().url()).pathname.replace(/^\/agent/, "");
-    if (path === "/tasks") return reply(route, [row()]);
+    // A ghost (a record a dead process left 'planning', three days old) and an old finished one come with the real task: neither may be drawn or counted.
+    if (path === "/tasks") return reply(route, [row(), { task_id: "tk_ghost", title: "Ghost job from three days ago", state: "planning", started: new Date(Date.now() - 3 * 86400000).toISOString() }, { task_id: "tk_old", title: "Finished two days ago", state: "done", result: "Old.", started: new Date(Date.now() - 2 * 86400000).toISOString(), finished: new Date(Date.now() - 2 * 86400000 + 60000).toISOString() }]);
     if (path === "/tasks/events") return route.abort();                      // polling covers it: the check is that the page updates by itself
     if (path === "/tasks/tk_live1") return reply(route, { ...row(), steps: ["Listed the folder", "Read invoices.pdf"] });
     return reply(route, { error: { code: "not_found", message: "not mocked" } }, 404);
@@ -692,6 +700,8 @@ for (const sec of ["time", "steps", "map", "commits"]) {
   await page.waitForFunction(() => /Reading invoices\.pdf/.test(document.body.innerText), null, { timeout: 15000 }).catch(() => undefined);
   const bt = page.locator("[data-testid=background-tasks]");
   check("routines: a running task is one line with the current step, and no id", /Tidy the invoices folder/.test(await bt.innerText()) && /Reading invoices\.pdf/.test(await bt.innerText()) && !/tk_live1/.test(await bt.innerText()));
+  const everything = await page.locator("main").innerText();
+  check("routines: a ghost and an old record are not listed, and do not count as running", !/Ghost job/.test(everything) && !/Finished two days ago/.test(everything) && /1 task is working in the background\./.test(everything));
   await bt.locator("button.bt-open").first().click();
   await page.waitForTimeout(500);
   check("routines: a click on the line shows the steps as a plain list", (await bt.locator(".bt-steps li").count()) >= 2);

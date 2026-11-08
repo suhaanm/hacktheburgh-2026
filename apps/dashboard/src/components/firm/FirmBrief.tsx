@@ -6,7 +6,8 @@ import { loadOnboarding, loadOverview, loadRoles } from "../../screens/Firm/data
 import { BRIEF_LIMITS, buildBrief, longDate } from "./brief";
 import { FreshNote, Headline, NumbersTable, SeeNumbers } from "./InsightFirst";
 import { OnboardingCurves } from "./OnboardingCurves";
-import { FirmBadge } from "./Badges";
+import { AboutData } from "../ui";
+import { originLine } from "../../lib/evidence";
 import { briefHeadline } from "./insights";
 
 /**
@@ -100,7 +101,7 @@ export function FirmBrief() {
           <h3 className="brief-sec__title">What this cannot show</h3>
           <ul className="brief-limits">{BRIEF_LIMITS.map((l) => <li key={l}>{l}</li>)}</ul>
         </section>
-        <footer className="brief-page__foot"><FirmBadge meta={o.meta} /> Built from the same data as the Firm screens.</footer>
+        <footer className="brief-page__foot">Built from the same data as the Firm screens.<AboutData rows={[["where from", originLine(o.meta?.origin ?? "synthetic")]]} /></footer>
       </article>
     </div>
   );

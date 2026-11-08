@@ -283,7 +283,7 @@ try {
     for (const view of ["worker", "admin"]) {
       if (viewSel !== "all" && viewSel !== view) continue;
       const ids = Object.entries({ ...budgets.routes, ...Object.fromEntries(Object.entries(budgets.exempt).map(([k, v]) => [k, v])) })
-        .filter(([id, r]) => (view === "admin" ? r.audience === "admin" : r.audience !== "admin") && (!only || only.has(id)));
+        .filter(([id, r]) => (r.view ?? (r.audience === "admin" ? "admin" : "worker")) === view && (!only || only.has(id)));
       if (ids.length === 0) continue;
       // A fresh profile is sent to first run when the engine answers; openAs marks it done and remembers the view the way the app itself does.
       const ok = await openAs(page, base, view);

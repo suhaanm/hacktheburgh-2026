@@ -1,7 +1,7 @@
 // The live-update controller with a fake clock and a fake event stream: fast polling while a run is active, slow otherwise, a refresh on focus, streams that
 // ask for a refresh and close at their end, a broken stream that polling covers, and no two refreshes at once.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { FAST_MS, LiveController, SLOW_MS, type LiveEnv, type LiveStream } from "./live";
+import { FAST_MS, LiveController, SLOW_MS, pokeLive, type LiveEnv, type LiveStream } from "./live";
 
 class FakeStream implements LiveStream {
   onevent: ((name: string) => void) | null = null;
@@ -229,5 +229,31 @@ describe("live updates", () => {
     ctl.update({ active: false, streams: ["r_1"] });
     expect(streams).toHaveLength(1);
     ctl.stop();
+  });
+
+  it("a poke refreshes every live screen now and keeps the fast pace for 30 seconds, then goes back to the slow one", async () => {
+    const a = setup(), b = setup();
+    a.ctl.update({ active: false, streams: [] });
+    b.ctl.update({ active: false, streams: [] });
+    pokeLive();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(a.reload).toHaveBeenCalledTimes(1);
+    expect(b.reload).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(FAST_MS * 5);
+    expect(a.reload).toHaveBeenCalledTimes(6);                  // every 2 s while boosted
+    await vi.advanceTimersByTimeAsync(30_000);                  // past the boost
+    const before = a.reload.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(FAST_MS * 3);
+    expect(a.reload.mock.calls.length - before).toBeLessThanOrEqual(1);
+    a.ctl.stop(); b.ctl.stop();
+  });
+
+  it("a stopped screen is not poked", async () => {
+    const a = setup();
+    a.ctl.update({ active: false, streams: [] });
+    a.ctl.stop();
+    pokeLive();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(a.reload).not.toHaveBeenCalled();
   });
 });

@@ -1,6 +1,7 @@
 // Needs you: ONE list for everything that waits on the worker (docs/knack-ux/02-needs-you.md). Pure: no network, no React.
 // The model proposes, code decides: the order is a fixed table (safety, then time-sensitive, then the rest, newest first inside a class).
 import { arr, clip, num, uniqueBy } from "../../lib/safeText";
+import { isGhostRow, isGhostRun } from "../../lib/tasks";
 import type { AgentRun, BriefingCard, QueueItem, Routine, TaskRow } from "../../types";
 
 /** 0 safety, 1 time-sensitive (a decision a job waits on), 2 can wait. docs/ATTENTION_DESIGN.md section 1. */
@@ -41,7 +42,8 @@ const ms = (iso: string | null): number => { const t = iso ? Date.parse(iso) : N
  * skipped, one without an id is keyed by its place in the list, and an id that comes twice is one item (the first), so a list never has two rows
  * with the same key.
  */
-export function buildItems(src: { queue?: QueueItem[] | null; routines?: Routine[] | null; cards?: BriefingCard[] | null; cardsAt?: string | null; runs?: AgentRun[] | null; tasks?: TaskRow[] | null }): NeedsItem[] {
+export function buildItems(src: { queue?: QueueItem[] | null; routines?: Routine[] | null; cards?: BriefingCard[] | null; cardsAt?: string | null; runs?: AgentRun[] | null; tasks?: TaskRow[] | null; /** The clock, for the ghost test (a test fixes it). */ now?: number }): NeedsItem[] {
+  const now = src.now ?? Date.now();
   const out: NeedsItem[] = [];
   const idOf = <T extends object>(field: string) => (row: T, i: number): string => { const v = (row as Record<string, unknown>)[field]; return typeof v === "string" && v ? v : typeof v === "number" ? String(v) : `#${i}`; };
   for (const q of uniqueBy<QueueItem>(src.queue, idOf("id"))) {
@@ -57,13 +59,13 @@ export function buildItems(src: { queue?: QueueItem[] | null; routines?: Routine
     out.push({ key: `b:${idOf("id")(c, out.length)}`, kind: "prepared", cls: 2, when: src.cardsAt ?? null, card: c });
   }
   for (const run of uniqueBy<AgentRun>(src.runs, idOf("run_id"))) {
-    if (!isPausedRun(run)) continue;
+    if (!isPausedRun(run) || isGhostRun(run, now)) continue;      // a record a dead process left 'paused' is not waiting for anyone
     out.push({ key: `a:${idOf("run_id")(run, out.length)}`, kind: "paused", cls: 1, when: typeof run.started === "string" ? run.started : null, run });
   }
   // A task that waits for the worker: a consent card, or a question. The card's words are in the row; nothing here decides for the worker.
   for (const t of uniqueBy<TaskRow>(src.tasks, idOf("task_id"))) {
     const waits = (t.state === "waiting_consent" && !!t.needs_consent) || (!!t.question && typeof t.question.text === "string" && t.state !== "done" && t.state !== "stopped" && t.state !== "failed");
-    if (!waits) continue;
+    if (!waits || isGhostRow(t, now)) continue;
     out.push({ key: `t:${idOf("task_id")(t, out.length)}`, kind: "task", cls: 1, when: typeof t.started === "string" ? t.started : null, task: t });
   }
   // A key can still repeat when two ids were missing in different places: make every key unique, keeping order.

@@ -101,7 +101,8 @@
     },
     "forecasts": {
       "path": "/forecasts",
-      "audience": "details"
+      "audience": "details",
+      "view": "admin"
     },
     "agents": {
       "path": "/agents",
@@ -109,7 +110,8 @@
     },
     "models": {
       "path": "/models",
-      "audience": "details"
+      "audience": "details",
+      "view": "admin"
     },
     "today": {
       "path": "/today",
@@ -148,6 +150,7 @@
     "evidence": {
       "path": "/evidence",
       "audience": "worker",
+      "view": "admin",
       "why": "D45: Evidence prints everything a reviewer needs. Only the sidebar rule, the header rule (no mono capitals outside axes) and the banned-word scan apply to it."
     }
   },
