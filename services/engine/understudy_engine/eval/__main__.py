@@ -16,6 +16,7 @@ from .facts import build_facts
 from .fixture import dumps_min, trim
 from .render_md import render
 from .schema import errors
+from .wording import reword_tree
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -25,6 +26,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--only", default=None, help="comma-separated sections to run; with --merge, only these are re-run and merged into the existing report")
     ap.add_argument("--merge", action="store_true", help="merge the --only sections into the existing report (--out, default evals/report.json) and re-assemble the limitations register, "
                                                          "findings, evidence map, markdown, facts and fixture from the merged sections (about a minute; no full run)")
+    ap.add_argument("--reword", action="store_true", help="re-emit the existing report (--out) in the app's wording (D57) and regenerate the markdown, facts and --fixture from it: "
+                                                          "no section is run, no number changes (a second)")
     ap.add_argument("--fast", action="store_true", help="fewer bootstrap resamples (CI and dev); the default is the full run")
     ap.add_argument("--seed", type=int, default=0, help="base seed handed to the owners' evaluators (default 0)")
     ap.add_argument("--data", default=None, help="data root (default: UNDERSTUDY_DATA_DIR or <repo>/data)")
@@ -39,6 +42,28 @@ def main(argv: list[str] | None = None) -> int:
     pick = args.only or args.sections
     sections = [s.strip() for s in pick.split(",") if s.strip()] if pick else None
     try:
+        if args.reword:
+            try:
+                base = json.loads(out.read_text(encoding="utf-8"))
+            except (OSError, ValueError) as e:
+                print(f"eval: --reword needs an existing report at {out} ({type(e).__name__})", file=sys.stderr)
+                return 2
+            report = reword_tree(base)
+            errs = errors(report)
+            if errs and not args.force:
+                print("eval: reworded report does not match report.schema.json; nothing written:", file=sys.stderr)
+                for e in errs[:30]:
+                    print("  " + e, file=sys.stderr)
+                return 3
+            write_atomic(out, dumps(report))
+            if not args.no_md:
+                write_atomic(out.with_suffix(".md"), render(report))
+            if not args.no_facts:
+                write_atomic(out.with_suffix(".facts.json"), dumps(build_facts(report)))
+            if args.fixture:
+                write_atomic(Path(args.fixture), dumps_min(trim(report)))
+            print(f"eval: re-emitted {out} in the app's wording (no section was run)")
+            return 0
         if args.merge:
             if not sections:
                 print("eval: --merge needs --only <sections>", file=sys.stderr)
