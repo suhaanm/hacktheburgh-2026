@@ -100,6 +100,16 @@ describe("Growth, the one worker page", () => {
   it("My commits is for programmers: absent for a benefits processor, present for a programmer", async () => {
     await mount();
     expect(host.querySelector("#gr-commits")).toBeNull();
+    // a link to the section (the old #/git address) does not draw it for a role with no commits: benefits processor and data analyst
+    for (const role of ["benefits-processor", "data-analyst", null]) {
+      act(() => root.unmount());
+      root = createRoot(host);
+      window.location.hash = "#/growth?section=commits";
+      setState({ role });
+      await mount();
+      expect(host.querySelector("#gr-commits"), `role ${role}`).toBeNull();
+    }
+    window.location.hash = "#/growth";
     act(() => root.unmount());
     root = createRoot(host);
     setState({ role: "programmer" });

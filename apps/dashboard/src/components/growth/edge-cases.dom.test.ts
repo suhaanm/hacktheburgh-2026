@@ -236,7 +236,8 @@ describe("A section whose data cannot be read", () => {
   it("commits: no repository for the worker reads as none registered", async () => {
     api.gitHabits.mockImplementation(() => reject(404, LEAK));
     const t = await commits();
-    expect(t).toMatch(/No repository is registered for you yet/);
+    expect(t).toMatch(/Commits appear once a repository is connected/);
+    expect(t).not.toMatch(/could not be read/);
     expect(around(t, OTHERS)).toBeNull();
   });
 });

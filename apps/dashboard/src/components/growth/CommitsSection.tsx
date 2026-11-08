@@ -6,7 +6,7 @@ import { HabitDeltas } from "../HabitDeltas";
 import { Hint } from "../Hint";
 import { Details, fitItems } from "../ui";
 import { GrowthSection, SectionError, useReportSource } from "./GrowthSection";
-import { notKnown, unknownAsError, useOwnPerson } from "./own";
+import { isCalm, notKnown, unknownAsError, useOwnPerson } from "./own";
 import { splitSentence } from "../../lib/week";
 import { DIGEST_LABEL, fmtPoints, fmtPointsInterval, fmtShare, readHabit, sortHabits, splitCounts } from "../../lib/git";
 import { oneExpert, safeWhy } from "../../lib/voice";
@@ -33,7 +33,11 @@ export function CommitsSection({ open }: { open: boolean }) {
   const [allHabits, setAllHabits] = useState(false);
   useReportSource("commits", h.why ?? null);
 
-  if (h.status === "error" && !h.data) return <GrowthSection id="commits" title="My commits" headline="Your commit habits could not be read just now."><SectionError error={h.error} retry={h.reload} what="your commit habits" empty="No repository is registered for you yet." /></GrowthSection>;
+  if (h.status === "error" && !h.data) {
+    // A programmer with no repository yet: a calm sentence, never an error phrase.
+    if (isCalm(h.error)) return <GrowthSection id="commits" title="My commits" headline="Commits appear once a repository is connected." />;
+    return <GrowthSection id="commits" title="My commits" headline="Your commit habits could not be read just now."><SectionError error={h.error} retry={h.reload} what="your commit habits" empty="" /></GrowthSection>;
+  }
   if (!h.data) return <GrowthSection id="commits" title="My commits" headline="Reading your commit habits." busy><Loading label="Loading your commit habits" /></GrowthSection>;
   const d = h.data;
   const habits = sortHabits(d.habits);
