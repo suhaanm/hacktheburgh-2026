@@ -152,7 +152,7 @@ def test_every_admin_view_has_content_from_the_real_rules(client):
     ov = client.get("/insights/admin/overview", headers=h).json()
     assert ov["meta"]["source"] == "firm" and ov["meta"]["badge"] == "firm" and ov["meta"]["n"] == 32
     d = ov["data"]
-    assert d["firm"] == {"users": 32, "roles": 3, "label": "firm"} and len(d["top"]) >= 5 and not d["nothing_stands_out"]
+    assert d["firm"] == {"users": 32, "roles": 3, "label": "Firm"} and len(d["top"]) >= 5 and not d["nothing_stands_out"]
     assert {c["kind"] for c in d["top"]} >= {"role_gap", "automation_value", "risk_signal"}
     for role, juniors in (("benefits-processor", 6), ("data-analyst", 5), ("programmer", 5)):    # every role is compared: 5 experts against 5 or more juniors with enough data, k = 5 held
         r = next(x for x in d["role_comparison"] if x["role"] == role)
