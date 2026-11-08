@@ -19,7 +19,6 @@ export const PENDING_D57: Record<string, string> = {
   "apps/dashboard/src/components/firm/scorecard.ts": "Track D: the leave-one-person-out sentence",
   "apps/dashboard/src/components/growth/model.ts": "Track D: the origin sentences and the experimental-score caveats",
   "apps/dashboard/src/screens/Evidence.tsx": "Track D: the head's lede",
-  "apps/dashboard/src/screens/Firm/Firm.tsx": "Track D: a class name on the origin pill",
   "apps/dashboard/src/screens/Growth/data.ts": "Track D: the example-data suffix",
 };
 export const PENDING_D57_MAX = 13;
