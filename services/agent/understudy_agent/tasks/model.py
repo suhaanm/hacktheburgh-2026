@@ -43,7 +43,7 @@ _SECRET_IN_REQUEST = re.compile(
 
 
 def now_iso(t: float | None = None) -> str:
-    return datetime.fromtimestamp(time.time() if t is None else t, timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    return datetime.fromtimestamp(time.time() if t is None else t, timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 
 def new_task_id() -> str:

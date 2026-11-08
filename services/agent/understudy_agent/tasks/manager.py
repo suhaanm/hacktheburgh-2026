@@ -493,10 +493,11 @@ class TaskManager:
             t.stop_requested = True
         if run is not None:
             run.stop("kill" if why == "kill" else "stop")
+        reason = {"kill": "Stopped by the kill switch.", "shutdown": "Knack was closed, so this stopped."}.get(why, "Stopped by you.")
         with self._lock:
             if t.state not in FINISHED:                      # the child (or the model call) is ending; show it at once
-                self._finish(t, "stopped", reason="Stopped by the kill switch." if why == "kill" else "Stopped by you.")
-        self._audit("human", "task", t, "stopped", "kill" if why == "kill" else "stop")
+                self._finish(t, "stopped", reason=reason)
+        self._audit("human" if why == "worker" else "system", "task", t, "stopped", why)
         return t
 
     def kill_all(self) -> int:
@@ -510,7 +511,13 @@ class TaskManager:
         return len(ids)
 
     def shutdown(self) -> None:
-        self.kill_all()
+        with self._lock:
+            ids = [t.task_id for t in self._tasks.values() if t.state not in FINISHED]
+        for tid in ids:
+            try:
+                self.stop(tid, why="shutdown")
+            except TaskError:
+                pass
         for th in list(self._threads.values()):
             th.join(timeout=8)
 

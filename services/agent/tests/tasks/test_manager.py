@@ -468,6 +468,63 @@ def test_list_is_newest_first_and_capped(make_manager):
     ids = []
     for i in range(3):
         ids.append(m.create(f"what time is it {i}?", "typed")["task_id"])
-        time.sleep(1.05)                                                                    # started has one-second resolution
+        time.sleep(0.02)                                                                    # started has millisecond resolution
     rows = m.list_rows()
     assert [r["task_id"] for r in rows] == ids[::-1]
+
+
+# ------------------------------------------------------------------------------------------------ lifecycle edges
+def test_a_waiting_task_more_than_a_day_old_is_dropped_at_restart(make_manager):
+    m = make_manager()
+    tid = m.create(claude_text("ok"), "typed")["task_id"]
+    t = m.get(tid)
+    t.started = "2020-01-01T00:00:00.000Z"
+    m.store.save(t)
+    r = make_manager().get(tid)
+    assert r.state == "stopped" and r.reason == "Nobody answered in a day, so it was dropped." and r.row()["needs_consent"] is None
+
+
+def test_closing_the_service_stops_children_and_says_so(make_manager):
+    from .test_claude_cli import alive
+
+    m = make_manager()
+    tid = m.create(claude_text("hang"), "typed")["task_id"]
+    m.consent(tid, "allow")
+    t = m.get(tid)
+    assert wait_for(lambda: t.pid and (Path(t.folder) / "grandchild.pid").exists(), 10)
+    gpid, pid = int((Path(t.folder) / "grandchild.pid").read_text()), t.pid
+    m.shutdown()
+    assert m.get(tid).state == "stopped" and m.get(tid).reason == "Knack was closed, so this stopped."
+    assert wait_for(lambda: not alive(gpid) and not alive(pid), 8)
+
+
+def test_an_unclear_task_can_be_dismissed_with_stop(make_manager):
+    m = make_manager()
+    tid = m.create("sort this out for me", "typed")["task_id"]
+    t = m.stop(tid)
+    assert t.state == "stopped" and t.reason == "You dismissed it." and t.row()["question"] is None
+    assert m.stop(tid).state == "stopped"                                                    # stopping twice is harmless
+
+
+def test_too_many_waiting_tasks_are_refused(make_manager, monkeypatch):
+    from understudy_agent.tasks import manager as mm
+
+    monkeypatch.setattr(mm, "MAX_WAITING", 2)
+    m = make_manager()
+    m.create("sort this out for me", "typed")
+    m.create("sort this out for me please", "typed")
+    with pytest.raises(TaskError) as e:
+        m.create("sort this out for me again", "typed")
+    assert e.value.status == 429 and e.value.code == "too_many_tasks"
+
+
+def test_every_row_time_has_milliseconds_and_orders_newest_first(make_manager):
+    m = make_manager(offline=True)
+    a = m.create("what time is it?", "typed")["task_id"]
+    time.sleep(0.02)
+    b = m.create("what day is it?", "typed")["task_id"]
+    rows = m.list_rows()
+    assert [r["task_id"] for r in rows] == [b, a]
+    import re
+
+    assert re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z", rows[0]["started"])
