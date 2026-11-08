@@ -20,10 +20,11 @@ const UNITS = "people|persons|learners|workers|users|experts|novices|personas|pa
 const COUNT = new RegExp(`\\b(?:n\\s*=\\s*)?\\d[\\d,]*\\s+(${UNITS})\\b`, "gi");
 
 /** A group's size is not for a worker's screen ("n = 24 people" says nothing they can use, and counts other people): the group stays, the number goes. */
-const OF_GROUP = new RegExp(`\\b\\d[\\d,]*\\s+of\\s+\\d[\\d,]*\\s+(${UNITS})\\b`, "gi");
+const OF_GROUP = new RegExp(`\\b(\\d[\\d,]*)\\s+of\\s+(\\d[\\d,]*)\\s+(?:${UNITS})\\b`, "gi");
 
 export function noCounts(text: string): string {
-  return text.replace(OF_GROUP, (_m, unit: string) => `some of a group of ${unit.toLowerCase()}`).replace(COUNT, (_m, unit: string) => (/^experts$/i.test(unit) ? "an experienced worker" : /^people$/i.test(unit) ? "a group of people" : `a group of ${unit.toLowerCase()}`));
+  // "2 of 10 learners" is how often a test picked a change up in a run of generated cases, not a count of anybody: it reads "2 in 10 cases"
+  return text.replace(OF_GROUP, (_m, a: string, b: string) => `${a} in ${b} cases`).replace(COUNT, (_m, unit: string) => (/^experts$/i.test(unit) ? "an experienced worker" : /^people$/i.test(unit) ? "a group of people" : `a group of ${unit.toLowerCase()}`));
 }
 
 /** What the engine's words become on a worker's screen: no group of experts, no count of other people. */

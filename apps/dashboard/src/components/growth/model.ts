@@ -88,7 +88,7 @@ export function normalizeGrowth(raw: Partial<WireGrowth>): WireGrowth {
     },
     trend: {
       slope_per_10: raw.trend?.slope_per_10 ?? null, ci: raw.trend?.ci ?? null, direction: directionOf(raw.trend?.direction), blocks: raw.trend?.blocks ?? [],
-      needed_more: raw.trend?.needed_more ?? null, power_note: raw.trend?.power_note ?? null,
+      needed_more: raw.trend?.needed_more ?? null, power_note: raw.trend?.power_note ? workerText(raw.trend.power_note) : null,
     },
     curve: raw.curve ?? [],
     occurrences: occ,

@@ -66,7 +66,7 @@ describe("workerText: no count of people, no group of experts, no cohort fact", 
     expect(noCounts("8 experts")).toBe("an experienced worker");
   });
   it("a count inside a sentence goes too: 2 of 10 learners", () => {
-    expect(noCounts("picked up by this test in about 2 of 10 learners at 90 occurrences")).toBe("picked up by this test in about some of a group of learners at 90 occurrences");
+    expect(noCounts("picked up by this test in about 2 of 10 learners at 90 occurrences")).toBe("picked up by this test in about 2 in 10 cases at 90 occurrences");
     expect(noCounts("rose 10 points or more in 33% of learners")).toBe("rose 10 points or more in 33% of learners");
   });
   it("safeWhy replaces a reason that names other people and keeps one that does not", () => {
