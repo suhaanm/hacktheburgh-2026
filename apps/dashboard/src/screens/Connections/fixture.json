@@ -398,7 +398,7 @@
    "kind": "mcp",
    "reads": "Spreadsheets and Drive files you can already open.",
    "short": "Sheets and Drive files",
-   "caution": "Community server",
+   "caution": "",
    "state": "off",
    "mode": null,
    "reason": null,
@@ -423,11 +423,10 @@
     },
     "real": {
      "mode": "real",
-     "summary": "Knack starts Sheets and Drive server 2.3.0 (PyPI workspace-mcp) by Taylor Wilsdon (community author). It talks to www.googleapis.com, sheets.googleapis.com, accounts.google.com with your token. Community server. Reads spreadsheets and Drive files you can already open. Any change needs your click. Revoke any time.",
+     "summary": "Knack starts Sheets and Drive server 2.3.0 (PyPI workspace-mcp) by Taylor Wilsdon (community author). It talks to www.googleapis.com, sheets.googleapis.com, accounts.google.com with your token. Reads spreadsheets and Drive files you can already open. Any change needs your click. Revoke any time.",
      "lines": [
       "Knack starts Sheets and Drive server 2.3.0 (PyPI workspace-mcp) by Taylor Wilsdon (community author).",
       "It talks to www.googleapis.com, sheets.googleapis.com, accounts.google.com with your token.",
-      "Community server.",
       "Reads spreadsheets and Drive files you can already open. Any change needs your click.",
       "Revoke any time."
      ],
@@ -444,7 +443,7 @@
       "accounts.google.com"
      ],
      "needs_token": true,
-     "caution": "Community server",
+     "caution": "",
      "params": [
       {
        "name": "client_id",
@@ -490,7 +489,7 @@
    "kind": "mcp",
    "reads": "Issues, boards and sprints you can already see in Jira.",
    "short": "Issues, boards, sprints",
-   "caution": "Community server",
+   "caution": "",
    "state": "off",
    "mode": null,
    "reason": null,
@@ -515,11 +514,10 @@
     },
     "real": {
      "mode": "real",
-     "summary": "Knack starts Jira server 0.23.1 (PyPI mcp-atlassian) by sooperset (community author). It talks to your own address with your token. Community server. Reads issues, boards and sprints you can already see in Jira. Any change needs your click. Revoke any time.",
+     "summary": "Knack starts Jira server 0.23.1 (PyPI mcp-atlassian) by sooperset (community author). It talks to your own address with your token. Reads issues, boards and sprints you can already see in Jira. Any change needs your click. Revoke any time.",
      "lines": [
       "Knack starts Jira server 0.23.1 (PyPI mcp-atlassian) by sooperset (community author).",
       "It talks to your own address with your token.",
-      "Community server.",
       "Reads issues, boards and sprints you can already see in Jira. Any change needs your click.",
       "Revoke any time."
      ],
@@ -534,7 +532,7 @@
       "your own address"
      ],
      "needs_token": true,
-     "caution": "Community server",
+     "caution": "",
      "params": [
       {
        "name": "site",
@@ -585,7 +583,7 @@
    "kind": "mcp",
    "reads": "Notebooks and cells in your own JupyterLab.",
    "short": "Notebooks and cells",
-   "caution": "Community server",
+   "caution": "",
    "state": "off",
    "mode": null,
    "reason": null,
@@ -610,11 +608,10 @@
     },
     "real": {
      "mode": "real",
-     "summary": "Knack starts Jupyter server 2.2.4 (PyPI jupyter-mcp-server) by Datalayer (community). It talks to your own address with your token. Community server. Reads notebooks and cells in your own JupyterLab. Any change needs your click. Revoke any time.",
+     "summary": "Knack starts Jupyter server 2.2.4 (PyPI jupyter-mcp-server) by Datalayer (community). It talks to your own address with your token. Reads notebooks and cells in your own JupyterLab. Any change needs your click. Revoke any time.",
      "lines": [
       "Knack starts Jupyter server 2.2.4 (PyPI jupyter-mcp-server) by Datalayer (community).",
       "It talks to your own address with your token.",
-      "Community server.",
       "Reads notebooks and cells in your own JupyterLab. Any change needs your click.",
       "Revoke any time."
      ],
@@ -629,7 +626,7 @@
       "your own address"
      ],
      "needs_token": true,
-     "caution": "Community server",
+     "caution": "",
      "params": [
       {
        "name": "server",
@@ -1024,7 +1021,7 @@
    "kind": "mcp",
    "reads": "Sites, lists and document libraries you can already open.",
    "short": "Sites, lists, libraries",
-   "caution": "Community server",
+   "caution": "",
    "state": "off",
    "mode": null,
    "reason": null,
@@ -1049,11 +1046,10 @@
     },
     "real": {
      "mode": "real",
-     "summary": "Knack starts SharePoint server 0.171.0 (npm @softeria/ms-365-mcp-server) by Softeria (community). It talks to graph.microsoft.com, login.microsoftonline.com with your token. Community server. Reads sites, lists and document libraries you can already open. Any change needs your click. Revoke any time.",
+     "summary": "Knack starts SharePoint server 0.171.0 (npm @softeria/ms-365-mcp-server) by Softeria (community). It talks to graph.microsoft.com, login.microsoftonline.com with your token. Reads sites, lists and document libraries you can already open. Any change needs your click. Revoke any time.",
      "lines": [
       "Knack starts SharePoint server 0.171.0 (npm @softeria/ms-365-mcp-server) by Softeria (community).",
       "It talks to graph.microsoft.com, login.microsoftonline.com with your token.",
-      "Community server.",
       "Reads sites, lists and document libraries you can already open. Any change needs your click.",
       "Revoke any time."
      ],
@@ -1069,7 +1065,7 @@
       "login.microsoftonline.com"
      ],
      "needs_token": true,
-     "caution": "Community server",
+     "caution": "",
      "params": [],
      "credentials": [
       {
@@ -1109,7 +1105,7 @@
    "kind": "mcp",
    "reads": "Channels, threads and people you can already see in Slack.",
    "short": "Channels and threads",
-   "caution": "Community server",
+   "caution": "",
    "state": "off",
    "mode": null,
    "reason": null,
@@ -1134,11 +1130,10 @@
     },
     "real": {
      "mode": "real",
-     "summary": "Knack starts Slack server 1.3.0 (npm slack-mcp-server) by korotovsky (community author). It talks to slack.com with your token. Community server. Reads channels, threads and people you can already see in Slack. Any change needs your click. Revoke any time.",
+     "summary": "Knack starts Slack server 1.3.0 (npm slack-mcp-server) by korotovsky (community author). It talks to slack.com with your token. Reads channels, threads and people you can already see in Slack. Any change needs your click. Revoke any time.",
      "lines": [
       "Knack starts Slack server 1.3.0 (npm slack-mcp-server) by korotovsky (community author).",
       "It talks to slack.com with your token.",
-      "Community server.",
       "Reads channels, threads and people you can already see in Slack. Any change needs your click.",
       "Revoke any time."
      ],
@@ -1153,7 +1148,7 @@
       "slack.com"
      ],
      "needs_token": true,
-     "caution": "Community server",
+     "caution": "",
      "params": [],
      "credentials": [
       {
