@@ -79,6 +79,14 @@ elif mode == "limit":
     init()
     result("You have hit your usage limit", is_error=True, subtype="error_during_execution")
     sys.exit(1)
+elif mode == "denied":
+    # what the real CLI returned in the second approved run when a deny rule refused a write
+    init()
+    tool("Write", file_path="/data/rung_cleared.json", content="x")
+    emit({"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "t2", "is_error": True,
+          "content": "<tool_use_error>File is in a directory that is denied by your permission settings.</tool_use_error>"}]}})
+    tool("Write", file_path="/work/harmless.txt", content="x")
+    result("One write worked, one was refused.")
 elif mode == "spend":
     # the cost climbs past the limit while the child keeps going: Knack must stop it itself
     init()
