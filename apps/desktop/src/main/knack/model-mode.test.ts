@@ -1,29 +1,29 @@
 import { describe, expect, it, vi } from 'vitest'
-import { EXAMPLE_DATA_NOTICE, boundedBootCheck, canSwitchModels, decideModels, keyPresent, modelStatus, planModels, wantsLive } from './model-mode'
+import { MODELS_OFF_NOTICE, boundedBootCheck, canSwitchModels, decideModels, keyPresent, modelStatus, planModels, wantsLive } from './model-mode'
 
-describe('live or example data', () => {
+describe('live or models off', () => {
   const base = { switchOn: true, hasKey: true, bootOk: true as boolean | null }
   it('is live with the switch on, a key and a passing check, and says nothing', () => {
     expect(decideModels(base)).toEqual({ mode: 'live', reason: 'live', notice: null })
   })
-  it('falls back to example data with one calm line when the key is missing', () => {
-    expect(decideModels({ ...base, hasKey: false, bootOk: null })).toEqual({ mode: 'demo', reason: 'no_key', notice: 'Running with example data' })
+  it('falls back to models off with one calm line when the key is missing', () => {
+    expect(decideModels({ ...base, hasKey: false, bootOk: null })).toEqual({ mode: 'demo', reason: 'no_key', notice: 'Models are off' })
   })
   it('falls back when the boot check fails', () => {
-    expect(decideModels({ ...base, bootOk: false })).toEqual({ mode: 'demo', reason: 'boot_check_failed', notice: EXAMPLE_DATA_NOTICE })
+    expect(decideModels({ ...base, bootOk: false })).toEqual({ mode: 'demo', reason: 'boot_check_failed', notice: MODELS_OFF_NOTICE })
   })
-  it('is example data when the worker switched live models off', () => {
+  it('is models off when the worker switched live models off', () => {
     expect(decideModels({ ...base, switchOn: false })).toMatchObject({ mode: 'demo', reason: 'switched_off' })
   })
-  it('KNACK_LIVE=0 forces example data; KNACK_LIVE=1 asks for live even with the switch off, but still needs the key and the check', () => {
+  it('KNACK_LIVE=0 forces models off; KNACK_LIVE=1 asks for live even with the switch off, but still needs the key and the check', () => {
     expect(wantsLive({ switchOn: true, envOverride: '0' })).toBe(false)
     expect(wantsLive({ switchOn: false, envOverride: '1' })).toBe(true)
     expect(decideModels({ ...base, switchOn: false, envOverride: '1' }).mode).toBe('live')
     expect(decideModels({ ...base, envOverride: '1', hasKey: false, bootOk: null }).reason).toBe('no_key')
   })
   it('the notice is one short line', () => {
-    expect(EXAMPLE_DATA_NOTICE.split(/\s+/).length).toBeLessThanOrEqual(5)
-    expect(EXAMPLE_DATA_NOTICE).not.toContain('\n')
+    expect(MODELS_OFF_NOTICE.split(/\s+/).length).toBeLessThanOrEqual(5)
+    expect(MODELS_OFF_NOTICE).not.toContain('\n')
   })
 })
 
@@ -56,10 +56,10 @@ describe('the boot check', () => {
 
 describe('the status next to the dot', () => {
   it('says what is running, from the agent service first', () => {
-    expect(modelStatus(true, null)).toEqual({ live: false, text: 'Running with example data' })
+    expect(modelStatus(true, null)).toEqual({ live: false, text: 'Models are off' })
     expect(modelStatus(false, null)).toEqual({ live: true, text: 'Live models' })
     expect(modelStatus(null, decideModels({ switchOn: true, hasKey: true, bootOk: true }))).toEqual({ live: true, text: 'Live models' })
-    expect(modelStatus(true, decideModels({ switchOn: true, hasKey: true, bootOk: true })).live).toBe(false) // an attached example-data stack is shown as it is
+    expect(modelStatus(true, decideModels({ switchOn: true, hasKey: true, bootOk: true })).live).toBe(false) // an attached offline stack is shown as it is
     expect(modelStatus(null, null)).toEqual({ live: null, text: '' })
   })
 })

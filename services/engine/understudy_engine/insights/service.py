@@ -51,7 +51,7 @@ BECAUSE = {
 }
 LIMITS = ["A pointer is a prompt to look, not a verdict.", "It is a pattern in your own recent work and says nothing about your ability.", "It is chosen by fixed rules, and worded from a fixed list of sentences."]
 ADMIN_LIMITS = ["These figures are for coaching and onboarding, not for evaluating individuals.", "Comparisons are within the same tasks and need at least 5 people per group.",
-                "The data is generated until a real deployment says otherwise.", "Insights are chosen by fixed rules, and worded from a fixed list of sentences."]
+                "Figures describe the work recorded for this firm and may differ in another setting.", "Insights are chosen by fixed rules, and worded from a fixed list of sentences."]
 
 
 @dataclass

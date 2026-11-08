@@ -100,17 +100,17 @@ describe('a home that cannot be written (read-only, or the disk is full)', () =>
 
 describe('first launch with no key, and a key that was removed', () => {
   const boot = async (hasKey: boolean, switchOn = true) => planModels({ switchOn, hasKey, envOverride: undefined, bootCheck: async () => true })
-  it('with no key it starts on example data and says so in one line (nothing is asked, nothing fails)', async () => {
+  it('with no key it starts with models off and says so in one line (nothing is asked, nothing fails)', async () => {
     const d = await boot(false)
     expect(d).toMatchObject({ mode: 'demo', reason: 'no_key' })
-    expect(d.notice).toBe('Running with example data')
+    expect(d.notice).toBe('Models are off')
   })
   it('a key removed since the last start is the same as no key: the next start is on example data, while a running app keeps what it started with', async () => {
     expect((await boot(true)).mode).toBe('live')
     expect((await boot(false)).mode).toBe('demo')
   })
   it('the worker can switch live models off, and it is example data with the same line', async () => {
-    expect(await boot(true, false)).toMatchObject({ mode: 'demo', reason: 'switched_off', notice: 'Running with example data' })
+    expect(await boot(true, false)).toMatchObject({ mode: 'demo', reason: 'switched_off', notice: 'Models are off' })
   })
 })
 

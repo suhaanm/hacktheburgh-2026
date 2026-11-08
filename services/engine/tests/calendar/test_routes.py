@@ -46,7 +46,7 @@ def test_week_envelope_and_contract_shape(client):
     assert r.status_code == 200
     body = r.json()
     meta, d = body["meta"], body["data"]
-    assert meta["origin"] == "synthetic" and meta["n_unit"] == "days" and meta["interval_level"] == 0.95 and "real people" in meta["note"] and meta["generated_at"]
+    assert meta["origin"] == "synthetic" and meta["n_unit"] == "days" and meta["interval_level"] == 0.95 and "expert reference" in meta["note"] and "generated" not in meta["note"].lower() and meta["generated_at"]
     assert d["week"] == "2026-W43" and len(d["days"]) == 7
     assert set(CONTRACT_KEYS) <= set(d["features"]) and set(CONTRACT_KEYS) <= set(d["expert"])
     for day in d["days"] + d["expert"]["days"]:

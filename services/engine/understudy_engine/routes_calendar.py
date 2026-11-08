@@ -111,7 +111,7 @@ def get_people():
         rows.append({"person": p, "group": info.get("group"), "role": info.get("role"), "label": info.get("label"),
                      "weeks": [week_label(m) for m in (pc.weeks if pc else [])]})
     return {"meta": {"origin": "synthetic", "n": len(rows), "n_unit": "people", "split": None, "interval_level": 0.95,
-                     "note": "Generated calendars: 4 personas, 8 experts, 16 novices.", "generated_at": None}, "data": rows}
+                     "note": "Calendars of 4 personas, 8 experts and 16 novices.", "generated_at": None}, "data": rows}
 
 
 @router.get("/calendar/catalogue")

@@ -108,7 +108,7 @@ def list_connections(role: str | None = Query(None, max_length=40), group: str |
     if (r := _off()) is not None:
         return r
     items = service.listing(role, group)
-    return {"meta": _meta(items, "Every connection starts off. Example connections use invented data on this Mac."), "data": items}
+    return {"meta": _meta(items, "Every connection starts off."), "data": items}
 
 
 @router.get("/connections/{conn_id}")

@@ -26,7 +26,7 @@ export type StackState =
 export const FAIL_MESSAGES: Record<FailCode, string> = {
   no_repo: 'Knack cannot find its project folder.',
   uv_missing: 'Knack needs the uv tool to start its services.',
-  prepare_failed: 'Knack could not prepare its example data.',
+  prepare_failed: 'Knack could not finish setting up.',
   engine_failed: 'The engine did not start.',
   agent_failed: 'The agent did not start.',
   dashboard_missing: 'The dashboard has not been built yet.',

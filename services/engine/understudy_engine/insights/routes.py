@@ -184,7 +184,7 @@ def _meta(svc: InsightsService, source: str, *, n: int = 0, n_unit: str = "peopl
 NOTE_ADMIN = "For coaching and onboarding, not for evaluating individuals. Groups under 5 people are not compared."
 
 
-STAND_IN_NOTE = "An example week stands in for this profile."
+STAND_IN_NOTE = "This profile has no recorded days yet."
 
 
 def _identity_role(pid: str) -> str | None:

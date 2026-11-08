@@ -84,7 +84,7 @@ def test_registered_repo_is_mixed_origin(client, monkeypatch, tmp_path):
     mine = synth.make_repo(synth.learner_specs(210)[2], tmp_path / "mine")
     monkeypatch.setenv("UNDERSTUDY_GIT_REPOS", f"mine={mine}")
     j = client.get("/git/habits", params={"repo": "mine"}).json()
-    assert j["meta"]["origin"] == "mixed" and "reference experts are generated" in j["meta"]["note"] and j["data"]["repo"] == "mine"
+    assert j["meta"]["origin"] == "mixed" and "fixed baseline" in j["meta"]["note"] and j["data"]["repo"] == "mine"
     assert client.get("/git/people").json()["registered"] == ["mine"]
 
 

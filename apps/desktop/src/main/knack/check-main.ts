@@ -74,7 +74,7 @@ function fakeService(name: string, health: () => unknown, route?: (req: http.Inc
         // A route the stand-in does not know is a plain 404, as a service that is up but has not that layer: the dashboard then shows its example data
         // instead of choking on a made-up shape.
         res.statusCode = 404
-        send({ error: { code: 'not_found', message: 'stand-in' } })
+        send({ error: { code: 'not_found', message: 'not available' } })
       })
     })
     server.listen(0, '127.0.0.1', () => resolve({ server, port: (server.address() as { port: number }).port }))
@@ -206,10 +206,10 @@ async function run(): Promise<void> {
   // ---- 4. the starting page and the error page (pictures)
   shell.mainWindow.loadStarting()
   await waitFor(() => (wc.getURL() === STARTING_URL && !wc.isLoading() ? true : null), 8000)
-  shell.mainWindow.pushUiState({ kind: 'starting', text: 'Starting Knack…', notice: 'Running with example data' })
+  shell.mainWindow.pushUiState({ kind: 'starting', text: 'Starting Knack…', notice: 'Models are off' })
   await sleep(400)
   const startText = (await wc.executeJavaScript(`document.getElementById('text').textContent + '|' + document.getElementById('notice').textContent + '|' + document.getElementById('retry').hidden`)) as string
-  check('the starting page says Starting Knack… and the one calm notice, with no button', startText === 'Starting Knack…|Running with example data|true', startText)
+  check('the starting page says Starting Knack… and the one calm notice, with no button', startText === 'Starting Knack…|Models are off|true', startText)
   for (const theme of ['light', 'dark'] as const) {
     nativeTheme.themeSource = theme
     await sleep(400)

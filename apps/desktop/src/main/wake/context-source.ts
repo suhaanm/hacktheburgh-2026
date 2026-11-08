@@ -76,7 +76,7 @@ export function createContextHub(d: ContextSourceDeps): ContextHub {
       const liveRoutine = d.routine ? safe(d.routine) : undefined
       const inputs: PacketInputs = {
         trigger: o.trigger,
-        mode: d.mock ? 'example' : 'live',
+        mode: d.mock ? 'off' : 'live',
         screen: liveScreen ? { value: liveScreen, t } : screen,
         insight: liveInsight !== undefined ? { value: liveInsight, t } : insight,
         routine: liveRoutine !== undefined ? { value: liveRoutine, t } : routine,

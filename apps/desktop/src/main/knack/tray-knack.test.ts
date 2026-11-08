@@ -88,6 +88,6 @@ describe('the older menu is unchanged without the Knack option', () => {
     expect(plain.some((id) => id === 'knack' || id === 'models')).toBe(false)
     const old = buildMenuEntries({ ...base, openApp: true, models: { live: true, text: 'Live models' } }, 0)
     expect(old.find((e) => e.id === 'models')?.label).toBe(`${MODELS_DOT_ON} Live models`)
-    expect(buildMenuEntries({ ...base, models: { live: false, text: 'Running with example data' } }, 0).find((e) => e.id === 'models')?.label).toBe(`${MODELS_DOT_OFF} Running with example data`)
+    expect(buildMenuEntries({ ...base, models: { live: false, text: 'Models are off' } }, 0).find((e) => e.id === 'models')?.label).toBe(`${MODELS_DOT_OFF} Models are off`)
   })
 })

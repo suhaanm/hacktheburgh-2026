@@ -4,7 +4,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { APP_NAME, BUNDLE_ID, BRAND_FILES, titled } from '../src/shared/brand'
-import { scanSource, scanTree, type Hit } from './brand-scan'
+import { listVisibleSources, scanSource, scanTree, type Hit } from './brand-scan'
+import { scanSource as scanWords } from '../../dashboard/src/lib/visibleWords'
 
 const desktop = path.resolve(__dirname, '..')
 const repo = path.resolve(desktop, '../..')
@@ -58,5 +59,27 @@ describe('no visible old name in the desktop app', () => {
   })
   it('the desktop main process says Knack wherever it shows text', () => {
     expect(fmt(scanTree(path.join(desktop, 'src/main'), repo))).toBe('')
+  })
+})
+
+// 8 Nov 2026, 05:00 (owner): nothing a person reads or hears in the desktop app says that data is an example. The desktop states what is true ("Models are off",
+// "Voice needs a Gemini key") and draws no tag. Same scanner as tests/copy-words.test.ts; this block names the phrases the owner listed so a change to that list is noticed here.
+describe('no example-data vocabulary in the desktop app', () => {
+  const PHRASES = ['example data', 'sample data', 'stand-in', 'for this build', 'not real workers'] as const
+  const files = ['src/main', 'src/shared', 'src/preload', 'src/renderer']
+    .flatMap((d) => listVisibleSources(path.join(desktop, d)))
+    .filter((f) => /\.(ts|tsx)$/.test(f) && !/[\\/]overlay[\\/]demo\./.test(f))
+
+  it('the scanner sees each phrase in a sentence', () => {
+    for (const p of PHRASES) expect(scanWords(`const t = 'This says ${p} once'`, p).length, p).toBe(1)
+  })
+
+  it('says none of them in text a person reads', () => {
+    const bad: string[] = []
+    for (const f of files) {
+      const src = fs.readFileSync(f, 'utf8')
+      for (const p of PHRASES) for (const h of scanWords(src, p)) bad.push(`${path.relative(repo, f)}:${h.line}  [${p}] ${h.text.slice(0, 80)}`)
+    }
+    expect(bad).toEqual([])
   })
 })

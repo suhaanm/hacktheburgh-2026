@@ -150,7 +150,7 @@ def test_seed_demo_makes_three_cards_idempotently(env):
     assert again["seeded"] is False and store.person(S.DEMO_PERSON) == first
     cal = next(c for c in first["cards"] if c["kind"] == "focus_block")
     assert cal["verify_note"].startswith("Not re-checked") and cal["origin"] == "synthetic"
-    assert all(c["ranking"]["note"].startswith("Seeded for the demo") for c in first["cards"])
+    assert all(c["ranking"]["note"].startswith("The minimum score was waived") for c in first["cards"])
     assert S.seed_demo(env.home, env.data, now=NOW, readers=readers, reseed=True)["seeded"] is True
 
 

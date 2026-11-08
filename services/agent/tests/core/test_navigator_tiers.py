@@ -267,7 +267,7 @@ async def test_tier3_notepad_script_runs_on_the_simulated_actuator_only(safety):
     res = await cu.run(GOAL3, verify)
     assert res.outcome == "done" and not res.false_claim
     assert [a.kind for a in act.actions] == ["click", "type", "key"]
-    assert act.typed == "Understudy mock run" and act.released >= 1
+    assert act.typed == "Typed by Knack" and act.released >= 1
 
 
 async def test_tier3_false_done_is_caught(safety):

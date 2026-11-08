@@ -74,7 +74,7 @@ def boot_check(*, client: Any | None = None, raise_on_fail: bool = True, out: Ca
 def _openai_boot_check(*, client: Any | None = None, raise_on_fail: bool = True,
                        out: Callable[[str], None] = print) -> BootReport:
     if mock_enabled():
-        return BootReport(ok=True, mock=True, message="mock mode: no models checked")
+        return BootReport(ok=True, mock=True, message="models are off: nothing was checked")
     try:
         ids = ModelIds.from_env()
     except ConfigError as e:
@@ -132,7 +132,7 @@ def gemini_boot_check(*, client: Any | None = None, raise_on_fail: bool = True,
         return _remember(BootReport(ok=False, mock=False, message=msg, provider="gemini", **kw))
 
     if mock_enabled():
-        return BootReport(ok=True, mock=True, message="mock mode: no models checked", provider="gemini")
+        return BootReport(ok=True, mock=True, message="models are off: nothing was checked", provider="gemini")
     try:
         ids = GeminiModelIds.from_env()
     except ConfigError as e:

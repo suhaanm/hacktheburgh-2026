@@ -264,7 +264,7 @@ def consent(preset: Preset, mode: str, params: dict[str, str] | None = None) -> 
     if mode not in MODES:
         raise ValueError("mode must be example or real")
     if mode == "example":
-        lines = ["Example data: invented and kept on this Mac.", _reads_line(preset), "No account is used and nothing leaves this Mac.",
+        lines = ["Runs on this Mac.", _reads_line(preset), "No account is used and nothing leaves this Mac.",
                  "Any change needs your click. Revoke any time."]
         return {"mode": mode, "summary": " ".join(lines), "lines": lines, "example": True, "publisher": "Knack", "package": preset.standin.get("script") or
                 preset.standin.get("source"), "version": preset.version, "hosts": [], "needs_token": False, "caution": ""}

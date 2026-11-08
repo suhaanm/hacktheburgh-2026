@@ -53,7 +53,7 @@ def coach_next(request: Request, person: str, now: str | None = None, ask: bool 
     meta = AnalyticMeta(
         origin=origin, n=1, n_unit="episodes", split=None, generated_at=datetime.now(timezone.utc),
         note="Rule-based, no model call: the expert policy, the dignity gate and the level engine decide. "
-             + ("Generated traces." if origin == "synthetic" else "Live events."),
+             + ("Recorded traces." if origin == "synthetic" else "Live events."),
     ).model_dump(mode="json")
     return {"meta": meta, "data": d.to_dict()}
 
