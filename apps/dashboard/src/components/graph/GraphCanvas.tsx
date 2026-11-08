@@ -63,6 +63,8 @@ const NodeView = memo(function NodeView({ n, p, op, glyph, selected, partner, in
       onPointerEnter={(e) => onEnter(n.id, e.pointerType)}
       onPointerLeave={() => onLeave(n.id)}>
       {p.r < 12 && <circle className="gnode__hit" r={12} />}
+      {/* A faded disc is see-through; a panel-coloured backing keeps links from showing across it and across its glyph. */}
+      {glyph && <circle className="gnode__back" r={p.r} />}
       {glyph ? <circle className="gnode__disc" r={p.r} style={{ opacity: op }} /> : <Dot type={n.type} r={p.r} opacity={op} />}
       {glyph && <g className="gnode__ink"><GlyphG prims={NODE_ICON[n.type]} size={glyphSize(p.r)} /></g>}
       {lapsed && <circle className="gnode__lapsed" r={p.r + 1.5} />}

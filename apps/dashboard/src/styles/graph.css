@@ -25,6 +25,7 @@
 /* Nodes: a disc of the kind's colour (its opacity is strength) with the kind's glyph on it. A lapsed node gets a dashed ring and a pale disc. */
 .gnode { cursor: pointer; }
 .gnode__hit { fill: transparent; }
+.gnode__back { fill: var(--panel); }
 .gnode__disc { fill: var(--k); transition: opacity var(--dur-fade) var(--ease-fade); }
 .gnode__ink { color: var(--on); pointer-events: none; }
 .gnode[data-lapsed] .gnode__ink { color: var(--fg); }
