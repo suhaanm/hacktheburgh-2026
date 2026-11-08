@@ -139,11 +139,14 @@ def test_a_long_title_still_fits_the_card_limits(make_manager, ready):
     check_row(m.list_rows()[0])
 
 
-def test_the_card_names_the_window_behind_knack_and_a_browser(make_manager, ready):
-    mac = FakeMac([win(owner="Google Chrome", number=5, title="Knack"), win(owner="Knack", number=6), win(owner="Numbers", number=7, pid=71, title="Budget")])
+def test_the_card_names_the_window_behind_knack_and_a_browser_counts_like_any_app(make_manager, ready):
+    mac = FakeMac([win(owner="Knack", number=6), win(owner="Numbers", number=7, pid=71, title="Budget")])
     m = desk(make_manager, mac, Spy())
     c = m.create("click the blue button", "typed")["needs_consent"]
-    assert c["folder"] == "Numbers, Budget"                                    # Knack's own window and the browser are never the one named
+    assert c["folder"] == "Numbers, Budget"                                    # Knack's own window is never the one named
+    mac = FakeMac([win(owner="Google Chrome", number=5, title="Inbox"), win(owner="Numbers", number=7, pid=71, title="Budget")])
+    c = desk(make_manager, mac, Spy()).create("click the blue button", "typed")["needs_consent"]
+    assert c["folder"] == "Google Chrome, Inbox"                               # a browser is a window like any other: the card names it
 
 
 def test_not_now_starts_nothing(make_manager, ready):
@@ -346,7 +349,7 @@ def test_the_mac_is_not_read_while_the_record_or_the_switch_is_missing(make_mana
 
 def test_every_problem_sentence_fits_the_result_line_with_the_steps_note():
     problems = [*dk.RUNG_TEXT.values(), dk.NOT_ARMED, dk.HELPER_MISSING, dk.NO_ACCESSIBILITY, dk.UNKNOWN_ACCESSIBILITY, dk.NO_SCREEN, dk.UNKNOWN_SCREEN,
-                dk.NO_MODEL, dk.NO_WINDOW, dk.UNATTENDED, dk.PROBE_FAILED, dk.refused_problem("Google Chrome Canary", dk.app_refusal("Google Chrome Canary", dk.desktop_denylist(Denylist())))]
+                dk.NO_MODEL, dk.NO_WINDOW, dk.UNATTENDED, dk.PROBE_FAILED, dk.refused_problem("Keychain Access", dk.app_refusal("Keychain Access", dk.desktop_denylist(Denylist())))]
     for p in problems:
         assert len(p.text + " Here are the steps.") <= 140, p.code
         assert len(f"Also needed: {p.label}") <= 90, p.code
@@ -354,8 +357,8 @@ def test_every_problem_sentence_fits_the_result_line_with_the_steps_note():
 
 
 def test_no_window_to_work_in_is_a_plain_failure(make_manager, ready):
-    _, t = result_of(desk(make_manager, FakeMac([win(owner="Knack"), win(owner="Safari", number=3)]), Spy()))
-    assert "Knack won't work in Safari" in t.result or t.result.startswith(dk.NO_WINDOW.text)
+    _, t = result_of(desk(make_manager, FakeMac([win(owner="Knack")]), Spy()))       # only Knack's own window is on screen
+    assert t.result.startswith(dk.NO_WINDOW.text)
 
 
 def test_a_probe_that_throws_is_a_reason_not_to_click(make_manager, ready):
@@ -368,7 +371,7 @@ def test_a_probe_that_throws_is_a_reason_not_to_click(make_manager, ready):
 
 # ------------------------------------------------------------------------------------ apps Knack never works in stay refused
 @pytest.mark.parametrize("app", ["Keychain Access", "Passwords", "System Settings", "System Preferences", "1Password", "Bitwarden", "Claude", "Claude Code",
-                                 "Terminal", "iTerm2", "Knack", "Understudy"])
+                                 "Knack", "Understudy"])
 def test_an_app_that_holds_personal_data_is_refused_by_default(make_manager, ready, app):
     mac = FakeMac([win(owner=app, number=31)])
     spy = Spy()
@@ -383,21 +386,21 @@ def test_an_app_that_holds_personal_data_is_refused_by_default(make_manager, rea
     assert not spy.calls and mac.events == [] and mac.captures == 0 and not (data_path() / "owner_tokens.json").exists()
 
 
-@pytest.mark.parametrize("browser", ["Safari", "Google Chrome", "Firefox", "Arc", "Brave Browser", "Microsoft Edge"])
-def test_a_browser_window_of_yours_is_refused_with_the_reason(make_manager, ready, browser):
-    mac = FakeMac([win(owner=browser, number=41)])
+@pytest.mark.parametrize("app", ["Safari", "Google Chrome", "Firefox", "Arc", "Brave Browser", "Microsoft Edge", "Terminal", "iTerm2", "Warp"])
+def test_a_browser_or_terminal_of_yours_gets_a_card_like_any_other_app(make_manager, ready, app):
+    mac = FakeMac([win(owner=app, number=41, title="Work")])
     m = desk(make_manager, mac, Spy())
     r = m.create("click the blue button", "typed")
-    assert r["needs_consent"] is None
-    # a lone browser window is skipped like Knack's own page, so there is no window to name
-    assert done(m, r["task_id"]).result.startswith(dk.NO_WINDOW.text)
+    assert r["needs_consent"] is not None, f"{app} must get a card (the owner asked for the whole computer)"
+    assert r["needs_consent"]["folder"] == f"{app}, Work"
+    assert mac.events == []                                                     # nothing happens until the worker's click
 
 
 def test_the_refusal_names_the_app_and_the_reason_when_it_is_the_window_to_work_in():
     deny = dk.desktop_denylist(Denylist())
     assert dk.app_refusal("Keychain Access", deny) == "Knack won't work in Keychain Access: it can hold your passwords."
     assert dk.app_refusal("System Settings", deny) == "Knack won't work in System Settings: it changes your Mac's security settings."
-    assert dk.app_refusal("Safari", deny) == "Knack won't work in Safari: it holds your signed-in sessions."
+    assert dk.app_refusal("Safari", deny) is None and dk.app_refusal("Terminal", deny) is None   # browsers and terminals are allowed (D74)
     assert dk.app_refusal("Claude", deny).startswith("Knack won't work in Claude:")
     assert dk.app_refusal("TextEdit", deny) is None and dk.app_refusal("Calculator", deny) is None
     assert dk.app_refusal("Knack", deny) == "Knack won't work in Knack: it is Knack itself."

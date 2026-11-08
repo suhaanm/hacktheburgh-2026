@@ -33,8 +33,8 @@ export const LiveSettingsSchema = z.object({
   // See the screen during a conversation (low-rate frames). Off by default, separate from voice.
   liveFrames: z.boolean().default(false),
   // Dollar caps (estimates): per conversation and per local day. A conversation that would pass either is ended.
-  liveSessionUsd: z.number().min(0).max(20).default(2),
-  liveDailyUsd: z.number().min(0).max(100).default(20),
+  liveSessionUsd: z.number().min(0).max(20).default(20),
+  liveDailyUsd: z.number().min(0).max(500).default(200),
   // Seconds of quiet after the model stops talking (and the key is up) before the conversation ends. Default 8.
   liveGraceMs: z.number().int().min(2000).max(30_000).default(8000),
   // A held key with no sound for this long ends the conversation. Default 60 s.

@@ -7,7 +7,7 @@ What has to be true before the card is even shown (`check_ready`, all code, noth
 * the macOS helper (pyobjc) is installed, Accessibility and Screen Recording are granted (status reads only), the model is reachable;
 * there is a window to work in, and it is not one of the apps Knack never works in (`REFUSED_APPS`, plus the worker's own denylist).
 
-The card names the app and ONE window (the topmost window that is not Knack's own and not a browser), the countdown, the kill keys
+The card names the app and ONE window (the topmost window that is not Knack's own), the countdown, the kill keys
 and what is sent where. `Allow for this task` is a real mouse click (the release route needs the actor `worker_approval` and the
 per-boot token); the manager turns it into the owner's one-time token and a RunPermit, and this module's runner then runs the
 model-driven navigator through the full SafetyPipeline: trusted target read, structural gates, denylist, data flow, kill file, the
@@ -47,7 +47,8 @@ FRAME_PURPOSE = "computer_use.real_screen"
 RESULT_PREFIX = "Reported, not checked: "
 
 # Apps Knack never works in from a typed task, whatever the worker's own denylist holds. The first group is the starter denylist (password
-# managers, system security settings, kept whole); the rest are added here. The value is the phrase that follows "Knack won't work in X:".
+# managers, system security settings, kept whole); the rest are added here. Browsers and terminals are NOT on it (the owner asked for the whole
+# computer, 8 Nov 2026): the worker's Allow on the card names the app, and every gate still applies. The value is the phrase that follows "Knack won't work in X:".
 _BUILTIN_APPS: dict[str, str] = {
     "Claude": "it is where you talk to Claude",
     "Claude Code": "it is where you talk to Claude",
@@ -61,12 +62,6 @@ _BUILTIN_APPS: dict[str, str] = {
     "LastPass": "it can hold your passwords",
     "KeePassXC": "it can hold your passwords",
     "Enpass": "it can hold your passwords",
-    "Terminal": "it can run commands on your Mac",
-    "iTerm2": "it can run commands on your Mac",
-    "iTerm": "it can run commands on your Mac",
-    "Warp": "it can run commands on your Mac",
-    "Ghostty": "it can run commands on your Mac",
-    "Alacritty": "it can run commands on your Mac",
 }
 BROWSERS: tuple[str, ...] = (
     "Safari", "Safari Technology Preview", "Google Chrome", "Google Chrome Canary", "Chromium", "Arc", "Firefox", "Firefox Developer Edition",
@@ -77,10 +72,9 @@ _KNACK_OWN = frozenset({"knack", "understudy", "understudy desktop", "understudy
 
 
 def refused_app_entries() -> list[dict[str, str]]:
-    """Every app entry of the built-in refusal list, as denylist entries (the starter list, then the additions, then the browsers)."""
+    """Every app entry of the built-in refusal list, as denylist entries (the starter list, then the additions)."""
     out = [dict(e) for e in STARTER_ENTRIES if e["kind"] == "app"]
     out += [{"kind": "app", "value": name, "why": why} for name, why in _BUILTIN_APPS.items()]
-    out += [{"kind": "app", "value": name, "why": _BROWSER_WHY} for name in BROWSERS]
     return out
 
 
@@ -242,11 +236,11 @@ class MacDesktop:
 
 
 def pick_target(windows: list[WindowRef]) -> WindowRef | None:
-    """The window the card names: the topmost document window that is not Knack's own surface and not a browser window (Knack never works
-    in a browser of yours, and when Knack's own page is open in one, the window you were working in is the next one down)."""
+    """The window the card names: the topmost document window that is not Knack's own surface. Any other app qualifies, a browser and a terminal
+    included (the owner asked for the whole computer; the card names the app, the worker's Allow is per task, and the gates stay)."""
     from ..tiers.computer_use import OVERLAY_OWNERS
 
-    skip = _KNACK_OWN | {o.lower() for o in OVERLAY_OWNERS} | {b.lower() for b in BROWSERS}
+    skip = _KNACK_OWN | {o.lower() for o in OVERLAY_OWNERS}
     for w in windows:
         if w.app.strip().lower() not in skip:
             return w
