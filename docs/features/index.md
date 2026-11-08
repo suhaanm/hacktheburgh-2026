@@ -1,6 +1,6 @@
 # Knack feature index
 
-As of Sun 08 Nov 2026, 03:19 UTC, checked against main at 304ba37.
+As of Sun 08 Nov 2026, 03:34 UTC, checked against main at 4640ff9.
 
 35 pages and 70 entries (features, plus four write-ups of results that did not hold up), for the pitch (Hack the Burgh XIII), the launch video, the demo and the submission video. The master document is `docs/PITCH_FEATURES.md`; the 25 video claims are in `video-beats.md`; the 28 hardest judge questions are in `faq.md`.
 
@@ -94,7 +94,7 @@ As of Sun 08 Nov 2026, 03:19 UTC, checked against main at 304ba37.
 |---|---|---|---|
 | Home: one sentence, one action | [home-insights](home-insights.md) | **built** (merged to main; measured on a prototype; owner has not used it) | G-Research |
 | Top insights engine: a few pointers, chosen by code | [home-insights](home-insights.md) | **built** | G-Research, HRT |
-| Admin views: Firm, Roles, Onboarding | [firm-admin](firm-admin.md) | **built** (UI merged to main; the firm is synthetic; owner request 4.4 (made-up people for several users): Track R found the cause of the blank live Admin view, the engine read this device's own ledger (one person); the page has the rest) | G-Research, HRT |
+| Admin views: Firm, Roles, Onboarding | [firm-admin](firm-admin.md) | **built** (UI merged to main; the firm is synthetic; owner request 4.4 and decision D67 (about 03:35 GMT): the blank live Admin view was a data and wiring gap (the engine read this device's own history, one worker; the page has the rest) | G-Research, HRT |
 | Monday note, firm brief and prediction scorecard | [firm-admin](firm-admin.md) | **built** | HRT |
 
 ## Growth and independence
