@@ -479,7 +479,10 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("status", help="show what the home holds")
     sf = sub.add_parser("seed-firm", help="top up the data dir named by UNDERSTUDY_DATA_DIR with the firm the Admin screens show (writes only <data>/firm/; safe on a running stack; no --reset)")
     sf.add_argument("--refresh", action="store_true", help="write the firm again with its twelve weeks of history ending now (same people)")
-    sub.add_parser("seed-growth", help="top up the data dir with the worker's own learning curve (writes only <data>/assist/ and one marker, once)")
+    sg = sub.add_parser("seed-growth", help="top up the data dir with the worker's own working history (writes only <data>/assist/, <data>/real/<person>/ and marker files; idempotent; no --reset)")
+    sg.add_argument("--role", default="benefits-processor", choices=("benefits-processor", "programmer", "data-analyst", "all"),
+                    help="benefits-processor: the demo's own learning curve (the default, as before); programmer or data-analyst: twelve weeks of work under that role for the same worker, "
+                         "kept apart per role; all: the three")
     args = ap.parse_args(argv)
     try:
         if args.cmd == "status":
@@ -491,10 +494,16 @@ def main(argv: list[str] | None = None) -> int:
             t = datetime.now(timezone.utc)
             if args.cmd == "seed-firm":
                 seed_firm(dd, t, print, refresh=args.refresh)
-            elif (dd / GROWTH_MARKER).exists():
-                print("growth: already seeded; nothing changed.")
-            else:
-                seed_growth(dd, t, print)
+                return 0
+            if args.role in ("benefits-processor", "all"):
+                if (dd / GROWTH_MARKER).exists():
+                    print("growth: already seeded; nothing changed.")
+                else:
+                    seed_growth(dd, t, print)
+            if args.role != "benefits-processor":
+                from .seedroles import ROLES, seed_roles
+
+                seed_roles(dd, ROLES if args.role == "all" else (args.role,), t, print)
             return 0
         seed(reset=args.reset, bundle=not args.no_bundle)
         return 0

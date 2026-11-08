@@ -81,6 +81,15 @@ def first_sentence(text: Any, limit: int = RESULT_MAX) -> str:
     return one_line(s, limit)
 
 
+def with_cost(line: str, cost: float | None) -> str:
+    """A result line with the cost the Claude CLI reported appended, as a number of dollars: "Wrote a.md. (cost US$0.06)". The whole line
+    stays within RESULT_MAX; the cost is kept and the sentence is cut to make room."""
+    if cost is None:
+        return line
+    tail = f" (cost US${cost:.2f})"
+    return one_line(line, RESULT_MAX - len(tail)) + tail
+
+
 def looks_like_secret(text: str) -> bool:
     """True when a request contains something that looks like a key or a password. Such a request is not sent anywhere."""
     return bool(_SECRET_IN_REQUEST.search(text or ""))
@@ -100,6 +109,7 @@ class Task:
     steps_done: int = 0
     result: str | None = None
     answer: str | None = None                  # the full text of an inline answer (route answer); shown in the detail only
+    cost_usd: float | None = None              # what the Claude CLI reported it cost (a number); null for every other route
     reason: str | None = None
     started: str = field(default_factory=now_iso)
     finished: str | None = None
@@ -115,6 +125,7 @@ class Task:
     session_id: str | None = None
     pid: int | None = None
     max_minutes: int = 30
+    max_budget_usd: float | None = None        # the spend brake pinned when the card was shown (claude_agent only)
     stop_requested: bool = False
     out_bytes: int = 0
 
@@ -123,7 +134,7 @@ class Task:
         return {
             "task_id": self.task_id, "title": self.title, "route": self.route, "source": self.source, "state": self.state,
             "attended": self.attended, "latest": self.latest, "steps_done": self.steps_done, "result": self.result,
-            "reason": self.reason, "started": self.started, "finished": self.finished, "open": self.open,
+            "reason": self.reason, "cost_usd": self.cost_usd, "started": self.started, "finished": self.finished, "open": self.open,
             "needs_consent": self.consent if self.state == "waiting_consent" else None,
             "question": self.question if self.state == "waiting_consent" else None,
         }
