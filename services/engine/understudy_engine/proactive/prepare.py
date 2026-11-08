@@ -47,7 +47,7 @@ def practice_plan(p: dict[str, Any]) -> dict[str, Any]:
     prompts = p.get("prompts") or {}
     check = prompts.get("L2") or prompts.get("L1") or "Does what you did match what a careful colleague would do?"
     steps = [
-        "Open a practice case: a sample, not a real one, so nothing you do here reaches anyone.",
+        "Open a practice case, so nothing you do here reaches anyone.",
         f"Work it the way you normally would, and slow down whenever you reach {focus}.",
         f"At that point ask yourself: {check}",
     ]

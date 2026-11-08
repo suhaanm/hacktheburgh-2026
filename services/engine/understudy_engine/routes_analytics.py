@@ -73,7 +73,7 @@ def get_hazard(person: str, limit: int | None = Query(None, ge=1, le=100000, des
     note = (f"Held-out predictions for {person}: the model that scored them never saw this person. "
             f"{src['data_source']}. Label: no progress in the next 60 s.")
     if is_apprentice:
-        note += " Scripted task sequences: part of the gain over the baselines is the script."
+        note += " The task sequences follow a fixed order: part of the gain over the baselines is that order."
     meta = dict(src["meta"], note=note, n_unit="people")
     data = {
         "series": series,

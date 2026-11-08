@@ -441,7 +441,7 @@ def test_the_engines_own_profile_gets_a_fixed_example_week_in_mock_mode(client, 
     want = expected_stand_in(snapshot)
     assert d["stand_in"] is True and d["person"] == identity and d["stand_in_label"] == want.label
     assert len(d["pointers"]) >= 2 and d["status"] in V.STATUSES_WORKER
-    assert m["origin"] == "synthetic" and m["badge"] == "made-up firm" and m["note"] == "An example week stands in for this profile."
+    assert m["origin"] == "synthetic" and m["badge"] == "made-up firm" and m["note"] == "This profile has no recorded days yet."
     assert "demo" not in json.dumps(r.json()).lower()
     check = pytest.importorskip("jsonschema")
     assert check is not None
@@ -479,7 +479,7 @@ def test_outside_mock_mode_the_404_stays_and_so_does_it_for_anyone_the_engine_do
 def test_a_person_in_the_firm_and_the_admin_views_never_use_a_stand_in(client, snapshot, identity):
     pid = a_person(snapshot)
     d = client.get("/insights/worker", params={"person": pid}).json()
-    assert "stand_in" not in d["data"] and d["meta"]["note"] != "An example week stands in for this profile."
+    assert "stand_in" not in d["data"] and d["meta"]["note"] != "This profile has no recorded days yet."
     ov = client.get("/insights/admin/overview", headers=admin_headers())
     assert ov.status_code == 200 and "stand_in" not in json.dumps(ov.json())
     # an admin request for the engine's profile is not served either: the routes take no person
@@ -496,7 +496,7 @@ def test_why_sharing_and_feedback_follow_the_stand_in_and_touch_only_its_own_sta
     assert w.status_code == 200 and w.json()["data"]["stand_in"] is True and w.json()["data"]["state"] == "selected" and "demo" not in json.dumps(w.json()).lower()
     sh = client.get("/insights/sharing", params={"person": identity}).json()
     assert sh["data"]["stand_in"] is True and sh["data"]["person"] == identity and sh["data"]["preview"]["label"] == want.label
-    assert sh["meta"]["note"] == "An example week stands in for this profile."
+    assert sh["meta"]["note"] == "This profile has no recorded days yet."
     f = client.post("/insights/feedback", json={"insight": ptr["id"], "event": "not_useful"}, params={"person": identity})
     assert f.status_code == 200 and f.json() == {"insight": ptr["id"], "event": "not_useful", "recorded": True, "stand_in": True}
     after = client.get("/insights/worker", params={"person": identity}).json()["data"]

@@ -122,7 +122,7 @@ def _clean_secrets(preset: Preset, mode: str, values: dict[str, Any] | None) -> 
     wanted = preset.credential_envs if mode == "real" else []
     given = dict(values or {})
     if set(given) - set(wanted):
-        raise ConnectError("unknown_secret", "That token is not part of this connection." if mode == "real" else "An example connection takes no token.")
+        raise ConnectError("unknown_secret", "That token is not part of this connection." if mode == "real" else "This connection takes no token.")
     missing = [e for e in wanted if not isinstance(given.get(e), str) or not given[e].strip()]
     if missing:
         label = next((c["label"] for c in preset.real["credentials"] if c["env"] == missing[0]), "A token") if preset.real else "A token"
@@ -143,9 +143,9 @@ def connect(preset: Preset, *, mode: str, confirm: bool, params: dict[str, Any] 
     if confirm is not True:
         raise ConnectError("consent_required", "Connecting needs your click on the consent line.")
     if mode not in MODES:
-        raise ConnectError("bad_mode", "Choose Example or Real.")
+        raise ConnectError("bad_mode", "Choose how to connect.")
     if mode == "real" and (not preset.has_real or preset.kind == "source"):
-        raise ConnectError("no_real_mode", "This connection has only an example here. A real sign-in is set up by the owner.")
+        raise ConnectError("no_real_mode", "This connection cannot sign in to a real account here. The owner sets that up.")
     clean = _clean_params(preset, params) if mode == "real" else {}
     toks = _clean_secrets(preset, mode, secrets)
     chash = command_hash(preset, mode)

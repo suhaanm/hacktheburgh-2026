@@ -91,7 +91,7 @@ def _person_origin(person: str, origin: str) -> JSONResponse | None:
     try:
         _store().path(person, origin)
     except ValueError:
-        return _error(422, "bad_person", "person must look like p_demo01.")
+        return _error(422, "bad_person", "person must look like p_ann01.")
     return None
 
 
@@ -178,5 +178,5 @@ async def post_clear(request: Request):
         try:
             _store().path(str(person), origin or "real")
         except ValueError:
-            return _error(422, "bad_person", "person must look like p_demo01.")
+            return _error(422, "bad_person", "person must look like p_ann01.")
     return {"cleared": _store().clear(person, origin), "at": datetime.now(timezone.utc).isoformat()}

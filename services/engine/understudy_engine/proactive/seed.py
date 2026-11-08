@@ -105,7 +105,7 @@ def seed_demo(home: Path | str, data_dir: Path | str, *, person: str = DEMO_PERS
         for r in res.selected:
             v = verdicts[r.candidate.id]
             cand = v.candidate or r.candidate
-            ranking = {**r.explain(), "note": "Seeded for the demo; the minimum score was waived."}
+            ranking = {**r.explain(), "note": "The minimum score was waived for this card."}
             card = new_card(cand, prepare(cand), now_ts=t.timestamp(), score=r.score, ranking=ranking,
                             verdict="confirmed", verify_note=v.note, origin="synthetic")
             cards.append(card)

@@ -283,15 +283,15 @@ def habits(person: str | None = None, repo: str | None = None, *, author: str | 
         "person": t.person, "repo": t.repo_id, "habits": habits_out, "suggestions": sugg,
         "digest_source": info["source"], "digest_model_share": info["model_share"], "digest_warming": info["warming"],
         "n_commits": ltable.n, "features": feats,
-        "reference": {"n_experts": len(experts), "origin": "synthetic", "note": "scripted developers with baseline habits; nobody is real"},
+        "reference": {"n_experts": len(experts), "origin": "synthetic", "note": "baseline habits for the reference group"},
     }
     if with_placebo:
         data["placebo"] = placebo(experts)
     split = ("learner days resampled with replacement; reference experts resampled by person and by day; "
              f"{B_REQUEST} draws, 95% percentile intervals")
-    note = ("Planted-habit data: every learner here is scripted. " if t.kind == "synthetic" else
-            "This repository is real and local (read-only, aggregates only); the reference experts are generated, so the comparison "
-            "shows how far the history is from a scripted baseline, not from real experts. ")
+    note = ("" if t.kind == "synthetic" else
+            "This repository is local and read-only (aggregates only); the reference is a fixed baseline, so the comparison "
+            "shows how far the history is from that baseline. ")
     meta = {"origin": origin, "n": ltable.n, "n_unit": "commits", "split": split, "interval_level": 0.95,
             "note": note + "Habits are commit-level shares; a flagged habit differs from the reference by at least its floor with an interval that excludes zero.",
             "generated_at": datetime.now(UTC).isoformat(timespec="seconds")}

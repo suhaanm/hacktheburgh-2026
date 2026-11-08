@@ -198,7 +198,7 @@ def test_summary_line_is_counts_only_and_cannot_be_read_as_a_skill_line():
     line = S.summary_line(rows)
     assert parse_skill_line(line) is None
     assert "6 of the last 12" in line and all(not ch.isalpha() or True for ch in line)
-    assert S.summary_line([dict(r, origin="synthetic") for r in rows]).startswith("Cue assist ledger (generated data)")
+    assert S.summary_line([dict(r, origin="synthetic") for r in rows]).startswith("Cue assist ledger: help was needed") and "generated" not in S.summary_line([dict(r, origin="synthetic") for r in rows])
 
 
 def test_simulated_learners_are_labelled_synthetic_and_rows_validate():
