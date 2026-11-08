@@ -686,6 +686,10 @@ class QuartzBackend:
             out.append(d)
         return out
 
+    def all_windows(self) -> list[dict[str, Any]]:
+        """Every on-screen window, front to back, any layer (the list the hit test uses). Metadata only: no pixels are read."""
+        return self._all_windows()
+
     def window_at(self, x_pt: float, y_pt: float) -> dict[str, Any] | None:
         """The topmost window of any layer at the point: the one that would receive the click."""
         for d in self._all_windows():
@@ -795,6 +799,20 @@ class QuartzBackend:
             raise ActuatorRefused("the window could not be captured")
         return self._png_of(img)
 
+    def secure_input(self) -> bool:  # pragma: no cover - real desktop
+        """True while macOS secure input is on (a password field has the keyboard): the login session's own dictionary carries the pid of the
+        process that turned it on (`kCGSSessionSecureInputPID`). A status read, no prompt, no capture. If the dictionary cannot be read the
+        answer is True: unknown counts as on, so a frame is not sent. NOT yet confirmed on the real Mac against a focused password field."""
+        try:
+            import Quartz
+
+            d = Quartz.CGSessionCopyCurrentDictionary()
+            if d is None:
+                return True
+            return bool(d.get("kCGSSessionSecureInputPID"))
+        except Exception:  # noqa: BLE001
+            return True
+
     def release_all(self) -> None:
         if self._down:
             import Quartz as Q
@@ -885,7 +903,7 @@ class MacActuator:
                  clock: Callable[[], float] = time.monotonic, env: dict[str, str] | None = None,
                  focus_wait_s: float = FOCUS_WAIT_S, focus_poll_s: float = FOCUS_POLL_S,
                  is_cancelled: Callable[[], bool] | None = None, require_single_window: bool = True,
-                 permit: Any = None) -> None:
+                 permit: Any = None, pinned_window: dict[str, Any] | None = None, window_capture: bool = False) -> None:
         if (env if env is not None else os.environ).get("UNDERSTUDY_REAL_ACTUATOR") != "1":
             raise ActuatorRefused("the real actuator is disabled; set UNDERSTUDY_REAL_ACTUATOR=1 (owner present only)")
         if not target_app:
@@ -906,8 +924,22 @@ class MacActuator:
         self._last_point: tuple[float, float] | None = None
         self._pin: tuple[Any, ...] | None = None
         self._expected: TargetRead | None = None
+        self._origin: tuple[float, float] = (0.0, 0.0)     # window capture: where the picture's top-left corner is on the display, in points
         self.report: dict[str, Any] = {"target_app": target_app, "backing_scale": self.scale, "scale_check": None,
                                        "hits": [], "typed_chars": 0, "pinned_window": None}
+        # A run for ONE window the worker was shown (a typed task): the window is pinned from the start, by number and pid, instead of at the
+        # first click, so no other window of the same app can ever be acted in. With `window_capture` the model is shown that window ALONE
+        # (never the display), so nothing of any other app enters a frame, and its picture's pixels are mapped through the window's origin.
+        if window_capture and not pinned_window:
+            raise ActuatorRefused("window capture needs the pinned window")
+        self._window_capture = bool(window_capture and pinned_window)
+        if pinned_window:
+            if pinned_window.get("number") is None or pinned_window.get("owner", target_app) != target_app:
+                raise ActuatorRefused("the pinned window must be a window of the target app with a window number")
+            self._pin = self._identity(pinned_window)
+            self.report["pinned_window"] = {"number": pinned_window.get("number"), "pid": pinned_window.get("pid")}
+            if self._window_capture:
+                self._origin = (float(pinned_window["bounds"][0]), float(pinned_window["bounds"][1]))
         stop = getattr(self.backend, "set_stop_check", None)
         if callable(stop):
             stop(self._should_stop)
@@ -1006,6 +1038,32 @@ class MacActuator:
     def _pt(self, v: int) -> float:
         return v / self.scale
 
+    def _xy(self, x: int, y: int) -> tuple[float, float]:
+        """A pixel of the picture the model saw, as a point on the display (the window's origin is added in window-capture mode)."""
+        return self._origin[0] + x / self.scale, self._origin[1] + y / self.scale
+
+    def _pinned_now(self) -> dict[str, Any] | None:
+        """The pinned window as the OS lists it right now (by number and pid), or None if it is not on screen."""
+        ws = getattr(self.backend, "all_windows_of", None) or getattr(self.backend, "windows_of", None)
+        if not callable(ws):
+            return None
+        for w in ws(self.target_app):
+            if self._pin is not None and self._identity(w) == self._pin:
+                return w
+        return None
+
+    def _check_window_unmoved(self) -> None:
+        """Window capture: the picture's pixels map to the display through the window's origin. If the window moved or went away since
+        the picture was taken, a click would land on the wrong control, so nothing is done."""
+        if not self._window_capture:
+            return
+        w = self._pinned_now()
+        if w is None:
+            self._abort("the window this run works in is no longer on screen")
+        bx, by = float(w["bounds"][0]), float(w["bounds"][1])
+        if abs(bx - self._origin[0]) > 1.0 or abs(by - self._origin[1]) > 1.0:
+            self._abort("the window moved since the screenshot, so the click was not made")
+
     def _check_px(self, x: int, y: int) -> None:
         if x < 0 or y < 0:
             self._abort("a negative coordinate is outside the screenshot the model saw")
@@ -1049,7 +1107,7 @@ class MacActuator:
             pts = [(a["x"], a["y"])] if action.kind != "drag" else [(a["path"][0]["x"], a["path"][0]["y"]),
                                                                      (a["path"][-1]["x"], a["path"][-1]["y"])]
             for px, py in pts:
-                reads.append(target_from_ax(elem(self._pt(px), self._pt(py)), app=self.target_app))
+                reads.append(target_from_ax(elem(*self._xy(px, py)), app=self.target_app))
         else:
             if focus is None:
                 return None
@@ -1066,14 +1124,22 @@ class MacActuator:
     # ------------------------------------------------------------------ screenshot and scale
     async def screenshot(self) -> bytes:
         self._guard_passive()
-        png = self.backend.screenshot_png()
+        if self._window_capture:
+            w = self._pinned_now()
+            if w is None:
+                self._abort("the window this run works in is no longer on screen")
+            self._origin = (float(w["bounds"][0]), float(w["bounds"][1]))
+            png = self.backend.window_png(int(w["number"]))      # the one window, in memory: no other app is in the frame
+            pts = float(w["bounds"][2])
+        else:
+            png = self.backend.screenshot_png()
+            pts = float(self.backend.display_width_pts())
         size = png_size(png)
         if size is None:
             self._abort("the screenshot is not a PNG")
         px = size[0]
-        pts = float(self.backend.display_width_pts())
         measured = px / pts if pts else 0.0
-        ok = abs(measured - self.scale) <= 0.05
+        ok = abs(measured - self.scale) <= 0.05 or (self._window_capture and abs(px - pts * self.scale) <= 2.0)
         self.report["scale_check"] = {"backing_scale": self.scale, "screenshot_px": px, "display_pts": pts,
                                       "measured_scale": round(measured, 3), "agree": ok}
         if not ok:
@@ -1099,7 +1165,8 @@ class MacActuator:
                     await self._drag(a["path"])
                     return
                 self._check_px(a["x"], a["y"])
-                x, y = self._pt(a["x"]), self._pt(a["y"])
+                self._check_window_unmoved()
+                x, y = self._xy(a["x"], a["y"])
                 self._hit(x, y, label=action.kind, need_body=action.kind != "move")
                 self.backend.mouse("move", x, y)
                 if action.kind == "move":
@@ -1151,7 +1218,8 @@ class MacActuator:
         space and hit-tested, and the button is always released."""
         for p in path:
             self._check_px(p["x"], p["y"])
-        pts = [(self._pt(p["x"]), self._pt(p["y"])) for p in path]
+        self._check_window_unmoved()
+        pts = [self._xy(p["x"], p["y"]) for p in path]
         for i, (x, y) in enumerate(pts):
             self._hit(x, y, label=f"drag:{i}", need_body=True)
         sx, sy = pts[0]

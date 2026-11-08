@@ -128,6 +128,7 @@ class Task:
     max_budget_usd: float | None = None        # the spend brake pinned when the card was shown (claude_agent only)
     stop_requested: bool = False
     out_bytes: int = 0
+    target: dict[str, Any] | None = None       # desktop route: the ONE window the card named (app, window number, pid, short title, bounds); never in a row
 
     # ---- the API shapes
     def row(self) -> dict[str, Any]:

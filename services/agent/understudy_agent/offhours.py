@@ -410,9 +410,13 @@ def make_actuator(target_app: str, *, real: bool = False, backend: Any = None, e
 
 async def run_desktop_task(goal: str, *, model: ModelPort, guard: Any, actuator: Any, screen: ScreenState,
                            is_current: Callable[[], bool], verify: Callable[[], Any], max_steps: int = 20,
-                           deadline_s: float = 120.0) -> Any:
+                           deadline_s: float = 120.0, max_nudges: int | None = None, stall_limit: int | None = None,
+                           emit: Callable[[Any], None] | None = None) -> Any:
     """Tier 3 on the desktop with the screen guard in front of every action. Defaults to simulated actuators. A REAL
-    actuator must carry a permit granted for THIS routine (and, if the run is unattended, granted with its consent)."""
+    actuator must carry a permit granted for THIS routine (and, if the run is unattended, granted with its consent).
+
+    `max_nudges=0` (a typed task) means a claim of success ends the run: the model is never told to carry on after it said it was done,
+    because on the real screen another action is not free. `stall_limit` ends a run whose screen stops changing."""
     from .tiers.computer_use import ActuatorRefused, ComputerUse
 
     if getattr(actuator, "is_real", False):
@@ -423,6 +427,13 @@ async def run_desktop_task(goal: str, *, model: ModelPort, guard: Any, actuator:
         if permit.routine_id != rid or (getattr(guard, "unattended", False) and not permit.unattended):
             raise ActuatorRefused("the permit was not granted for this routine or for an unattended run")
     guarded = ScreenGuardedActuator(actuator, screen)
+    extra: dict[str, Any] = {}
+    if max_nudges is not None:
+        extra["max_nudges"] = max_nudges
+    if stall_limit is not None:
+        extra["stall_limit"] = stall_limit
+    if emit is not None:
+        extra["emit"] = emit
     cu = ComputerUse(model, guarded, guard, navigator="desktop", is_current=is_current, max_steps=max_steps,
-                     deadline_s=deadline_s)
+                     deadline_s=deadline_s, **extra)
     return await cu.run(goal, verify)

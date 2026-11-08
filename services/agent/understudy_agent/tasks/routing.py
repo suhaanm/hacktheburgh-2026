@@ -1,8 +1,9 @@
 """The router: which route a free-text task takes. The set is closed and CODE decides.
 
-Routes: `answer` (a question, answered inline), `browser` (web work in the agent's own browser window), `desktop` (the real
-screen: this service never clicks, it answers "show instead"), `claude_agent` (code, data and file work through the Claude
-CLI), and `unclear` (one clarifying question as a card).
+Routes: `answer` (a question, answered inline), `browser` (web work in the agent's own browser window), `desktop` (something on the
+worker's own screen right now: "help me with this form", "click the blue button"; it proposes a consent card naming one window, or
+shows the steps instead and says why it cannot click), `claude_agent` (code, data and file work through the Claude CLI), and
+`unclear` (one clarifying question as a card).
 
 How it decides, in order:
 
@@ -30,7 +31,7 @@ QUESTION_OPTIONS: list[dict[str, str]] = [
     {"id": "answer", "label": "Just answer it"},
     {"id": "browser", "label": "Look it up on the web"},
     {"id": "claude_agent", "label": "Work on files or code"},
-    {"id": "desktop", "label": "Show me how on my screen"},
+    {"id": "desktop", "label": "Help me on my screen"},
 ]
 QUESTION_TEXT = "What should Knack do with this?"
 
@@ -41,6 +42,7 @@ _RULES: dict[str, list[tuple[str, float]]] = {
         (r"\b(python|javascript|typescript|rust|java|golang|swift|bash|shell|html|css|react|node|pandas|numpy|jupyter|notebook)\b", 1.5),
         (r"\b(refactor|debug|implement|unit tests?|test suite|bug|stack ?trace|pull request|commit|repo|repository|git|branch|merge)\b", 1.5),
         (r"\b(csv|tsv|json|xlsx?|spreadsheet|dataset|data ?frame|parquet|log files?|logs)\b", 1.5),
+        (r"\b(fix|debug|refactor|implement|add|write)\b.*\b(bug|bugs|function|class|test|tests|code|repo|repository|feature|endpoint|script)\b", 1.5),
         (r"\b(analy[sz]e|summari[sz]e|clean up|convert|parse|transform|merge|dedupe|deduplicate|plot|chart|graph)\b.*\b(data|file|files|folder|csv|spreadsheet|table|documents?|pdfs?|rows|columns)\b", 2.0),
         (r"\b(write|create|build|make|generate|draft)\b.*\b(script|program|app|website|tool|report|document|spreadsheet|csv|file|files|code|readme|notebook|presentation|slides)\b", 2.0),
         (r"\b(rename|organi[sz]e|sort|move|copy|delete|zip|unzip)\b.*\b(files?|folders?|downloads|documents|photos|pictures)\b", 2.0),
@@ -51,6 +53,7 @@ _RULES: dict[str, list[tuple[str, float]]] = {
     "browser": [
         (r"https?://\S+|\bwww\.\S+|\b[\w\-]+\.(?:com|org|net|io|gov\.uk|co\.uk|ac\.uk|edu|dev|app)\b", 2.0),
         (r"\b(search|google|look up|lookup|find out|research|browse|check)\b.*\b(online|web|website|internet|site|page|news|price|prices|reviews?)\b", 2.5),
+        (r"\b(look up|lookup|google|find out|search for)\b", 1.5),
         (r"\b(search the web|search online|on the web|on the internet|go to|open the website|visit)\b", 2.5),
         (r"\b(website|web page|webpage|web site|browser|link|url|online)\b", 1.0),
         (r"\b(flights?|trains?|hotels?|tickets?|weather|forecast|cheapest|compare prices?|in stock|opening hours|reviews?|news)\b", 1.0),
@@ -63,6 +66,22 @@ _RULES: dict[str, list[tuple[str, float]]] = {
         (r"\b(open|launch|quit|close|switch to)\b.*\b(app|application|finder|safari|chrome|firefox|outlook|excel|word|powerpoint|slack|teams|zoom|notes|calendar|mail|messages|preview|terminal)\b", 2.5),
         (r"\b(type|fill in|fill out|enter)\b.*\b(into|in)\b.*\b(field|form|box|window|cell|app)\b", 2.0),
         (r"\b(window|tab|button|dialog|popup|pop-up|cursor|mouse|keyboard shortcut|menu)\b", 1.0),
+        # Something on the screen right now, pointed at with "this" or "here" ("help me with this form", "fill this in").
+        (r"\b(this|that|these|those)\s+(form|forms|field|fields|box|boxes|button|buttons|drop-?down|check ?boxes?|tick ?boxes?|"
+         r"radio buttons?|option|options|dialog|popup|pop-up|window|menu|toolbar|icon|cell|cells|row|rows|column|screen|"
+         r"page|tab|link|prompt|wizard|error|warning|alert|notification|message box)\b", 1.0),
+        (r"\b(help|assist|do|finish|complete|fill|sort out|work through|go through|handle)\b.{0,40}\b(this|that|these|here)\s+"
+         r"(form|page|screen|window|application|wizard|dialog|sheet|spreadsheet|document|error)\b", 2.0),
+        (r"\b(fill|fill in|fill out|complete|finish|tick|untick|select|choose|enter|press|click|tap|hit|toggle)\b.{0,50}"
+         r"\b(this|that|these|here|it|the (?:first|second|third|fourth|next|last|previous|blue|red|green|grey|gray|big|small|top|bottom|left|right))\b", 1.5),
+        (r"\b(press|click|tap|hit)\s+(?:the\s+)?(?:send|submit|save|ok|cancel|next|back|continue|done|close|add|delete|apply|confirm|yes|no|start|stop)\b", 2.0),
+        (r"\b(close|minimi[sz]e|maximi[sz]e|move|resize|drag)\s+(?:this|that|the)\s+(?:window|tab|dialog|popup|pop-up|app)\b", 2.0),
+        (r"\b(?:in|on|inside|with)\s+(?:the\s+)?(?:excel|word|powerpoint|outlook|safari|chrome|slack|teams|zoom|notes|calendar|mail|messages|preview|"
+         r"terminal|keynote|numbers|pages|photos|textedit|calculator|finder)\b", 1.5),
+        (r"\bfill(?:\s+(?:in|out))?\s+(?:this|that|it|these)\b", 2.0),
+        (r"\b(?:select|choose|pick|tick|click)\s+(?:the\s+)?(?:first|second|third|fourth|last|next|previous)\s+\w+", 2.0),
+        (r"\b(?:enter|type|put)\b.{0,50}\bhere\b", 2.0),
+        (r"\b(?:do|handle|finish|sort out|take care of)\s+(?:this|that|it)\s+for me\b", 2.0),
     ],
     "answer": [
         (r"^\s*(what|why|how|when|who|whom|whose|where|which|is|are|was|were)\b", 1.5),
@@ -115,8 +134,9 @@ PROPOSE_SCHEMA: dict[str, Any] = {
 }
 PROPOSE_SYSTEM = (
     "Pick how an assistant should handle the user's request. Reply with JSON {\"route\": one of: answer (a question to "
-    "answer in words), browser (work on web pages), desktop (operate apps on the user's screen), claude_agent (write code, "
-    "analyse data, create or change files), unclear (you cannot tell)}. Choose unclear rather than guess."
+    "answer in words), browser (look things up or work on web pages the user did not name as already open), desktop (the user is "
+    "looking at something on their own screen right now and wants help with it: this form, that button, this window, fill this in), "
+    "claude_agent (write code, analyse data, create or change files), unclear (you cannot tell)}. Choose unclear rather than guess."
 )
 
 

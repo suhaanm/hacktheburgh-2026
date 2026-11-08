@@ -8,8 +8,11 @@ propose. Then:
 * `claude_agent`  waits on a consent card (a real click). On "Allow for this task" Knack starts the owner's own `claude` command as a
                   monitored child (claude_cli.py). "Allow everything for this task" is the explicit second option behind "More".
 * `browser`       waits on a consent card, then runs in the agent's own browser window through the existing safety pipeline.
-* `desktop`       never clicks from here: it answers "show instead" (plain steps). Real clicks stay behind the R1 rung record and the
-                  desktop app's own gates.
+* `desktop`       works in ONE window of the worker's own screen, behind a consent card that names the app and the window, the
+                  countdown and the kill keys (tasks/desktop.py). The card exists only when the supervised first-click test has passed
+                  (the rung record), the real-actuator switch is on, the macOS permissions are there and the app is not one Knack never
+                  works in. Otherwise the task says exactly which of those is missing and how to fix it, and shows the steps instead.
+                  "Allow for this task" (a real click) becomes the owner's one-time token and a RunPermit for that one window.
 * `unclear`       waits on ONE clarifying question; the worker's pick routes the task and the chosen route still has its own card.
 
 Nothing starts without the worker: a consent click arrives on a release route (actor `worker_approval` plus the per-boot token).
@@ -32,7 +35,9 @@ from ..audit import AuditLog
 from ..models.errors import ConfigError, ModelRefusal, ProviderError
 from ..security.killflag import is_killed
 from ..security.paths import data_dir, repo_root
+from ..tiers.owner_present import grant_run_permit, issue_owner_token, real_run_description
 from . import claude_cli as cc
+from . import desktop as dk
 from . import skills as sk
 from .model import (ACTIVE, FINISHED, SCOPES, TEXT_MAX, Task, first_sentence, looks_like_secret, make_title, new_task_id, now_iso,
                     one_line)
@@ -104,8 +109,12 @@ class TaskManager:
                  audit: AuditLog | None = None, popen: Callable[..., Any] = subprocess.Popen, max_running: int = MAX_RUNNING,
                  browser_runner: Callable[..., Any] | None = None, grace_s: float = cc.TERM_GRACE_S, tick_s: float = 0.1,
                  max_out_bytes: int | None = None, idle_seconds: float = cc.DEFAULT_IDLE_SECONDS,
-                 run_threads: bool = True, recover: bool = True) -> None:
+                 run_threads: bool = True, recover: bool = True, desktop_env: Any = None,
+                 desktop_runner: Callable[..., Any] | None = None, desktop_armed: Callable[[], bool] | None = None) -> None:
         self.store = store or TaskStore()
+        self._desktop_env, self._desktop_runner, self._desktop_armed = desktop_env, desktop_runner, desktop_armed
+        self._desktop_why: dict[str, list[dk.Problem]] = {}      # why a desktop task could not click (memory only, until its steps are shown)
+        self._permits: dict[str, Any] = {}                       # task id -> RunPermit, made at the Allow click, spent once, never saved
         self.book = book or sk.SkillBook()
         self._port_factory, self._offline_flag = port_factory, offline
         self._claude_bin = claude_bin
@@ -338,8 +347,7 @@ class TaskManager:
             self._start_thread(task, self._run_answer, start_state="running")
             return "Answering now."
         if r == "desktop":
-            self._start_thread(task, self._run_desktop, start_state="running")
-            return "Knack doesn't click on your screen yet. It will show you the steps instead."
+            return self._propose_desktop(task)
         if r == "claude_agent":
             return self._propose_claude(task)
         if r == "browser":
@@ -434,6 +442,89 @@ class TaskManager:
         self._audit("system", "task", task, "proposed", "browser")
         return "Knack will open its own browser for this once you allow it."
 
+    # ------------------------------------------------------------------------------------------------ desktop proposal
+    def _desk(self) -> Any:
+        if self._desktop_env is None:
+            self._desktop_env = dk.MacDesktop()
+        return self._desktop_env
+
+    def _is_armed(self) -> bool:
+        if self._desktop_armed is not None:
+            return bool(self._desktop_armed())
+        return os.environ.get("UNDERSTUDY_REAL_ACTUATOR") == "1"
+
+    def _desktop_check(self) -> tuple[list[dk.Problem], dk.WindowRef | None]:
+        """What stops a real click right now (status reads only: nothing prompts, captures or clicks), and the window a card would name."""
+        return dk.check_ready(self._desk(), armed=self._is_armed(), offline=self._offline(), deny=dk.desktop_denylist())
+
+    def _propose_desktop(self, task: Task) -> str:
+        if looks_like_secret(task.text):
+            return self._fail_now(task, "Your request looks like it holds a key or a password, so it was not started.")
+        if not task.attended:
+            return self._fail_now(task, dk.UNATTENDED.text)
+        problems, target = self._desktop_check()
+        if problems or target is None:
+            return self._show_instead(task, problems or [dk.NO_WINDOW])
+        self._put_desktop_card(task, target)
+        self._audit("system", "task", task, "proposed", "desktop")
+        return f"Knack will work in the {one_line(target.app, 30, redact=False)} window for this once you allow it."
+
+    def _put_desktop_card(self, task: Task, target: dk.WindowRef) -> None:
+        task.target = target.to_json()
+        task.max_minutes = min(task.max_minutes, dk.DEFAULT_MAX_MINUTES) if task.max_minutes else dk.DEFAULT_MAX_MINUTES
+        task.consent = dk.build_card(target, max_minutes=task.max_minutes)
+        task.scope, task.question = "none", None
+        task.state, task.latest = "waiting_consent", "Waiting for your go-ahead"
+        self._save(task)
+        self._emit("task_progress", task)
+
+    def _show_instead(self, task: Task, problems: list[dk.Problem]) -> str:
+        """The generic line is gone: the result names exactly what is missing and how to fix it, and the plain steps still come."""
+        self._desktop_why[task.task_id] = problems
+        self._start_thread(task, self._run_desktop, start_state="running")
+        return f"{problems[0].text} It will show you the steps instead."
+
+    def _allow_desktop(self, t: Task, max_minutes: int | None) -> Task:
+        """The Allow click on a desktop card. Everything is checked again, because the card may be minutes old. If the worker has moved to
+        another window since, nothing starts and the card now names that window: pressing Allow a second time is the go-ahead for it."""
+        if max_minutes is not None and (not isinstance(max_minutes, int) or isinstance(max_minutes, bool) or not 1 <= max_minutes <= dk.MAX_MINUTES):
+            raise TaskError(422, "bad_body", f"max_minutes must be 1 to {dk.MAX_MINUTES}.")
+        with self._lock:
+            if t.state != "waiting_consent" or not t.consent:
+                raise TaskError(409, "not_waiting", "This task is not waiting for your go-ahead.")
+            if any(o.route == "desktop" and o.task_id != t.task_id and o.state in ACTIVE for o in self._tasks.values()):
+                raise TaskError(429, "too_many_tasks", "Knack works on the screen in one task at a time. Stop the other one or wait.")
+            if self.running_count() >= self.max_running:
+                raise TaskError(429, "too_many_tasks", f"At most {self.max_running} tasks can run at a time. Stop one or wait.")
+            if is_killed():
+                raise TaskError(423, "kill_switch_set", "The kill switch is set; clear it first.")
+        shown = dk.WindowRef.from_json(t.target)
+        problems, current = self._desktop_check()
+        if problems or current is None or shown is None:
+            first = (problems or [dk.NO_WINDOW])[0]
+            self._finish(t, "failed", reason=first.text)
+            self._audit("system", "consent", t, "refused", first.code)
+            return t
+        if not current.same_as(shown):
+            self._put_desktop_card(t, current)
+            self._audit("human", "consent", t, "retargeted", "desktop")
+            return t
+        with self._lock:
+            if t.state != "waiting_consent":
+                raise TaskError(409, "not_waiting", "This task is not waiting for your go-ahead.")
+            if max_minutes is not None:
+                t.max_minutes = max_minutes
+            t.scope, t.consent, t.question, t.stop_requested = "none", None, None, False
+        desc = real_run_description(current.app, dk.ROUTINE_ID)
+        try:                                 # the click on the card is the owner's go-ahead: it becomes the one-time token, and the token the permit
+            self._permits[t.task_id] = grant_run_permit(issue_owner_token(desc), desc, target_app=current.app, routine_id=dk.ROUTINE_ID)
+        except (PermissionError, OSError):
+            self._finish(t, "failed", reason="Knack couldn't record your go-ahead, so nothing was done.")
+            return t
+        self._audit("human", "consent", t, "allowed", "desktop")
+        self._start_thread(t, self._run_desktop_real, start_state="running")
+        return t
+
     def _fail_now(self, task: Task, reason: str) -> str:
         task.state, task.reason, task.finished, task.latest = "failed", one_line(reason, 160, redact=False), now_iso(), None
         self._save(task)
@@ -460,6 +551,8 @@ class TaskManager:
         t = self._need(task_id)
         if choice not in ("allow", "everything", "decline"):
             raise TaskError(422, "bad_body", "choice must be allow, everything or decline.")
+        if t.route == "desktop" and choice == "allow" and t.state == "waiting_consent" and t.consent:
+            return self._allow_desktop(t, max_minutes)
         with self._lock:
             if t.state != "waiting_consent" or not t.consent:
                 raise TaskError(409, "not_waiting", "This task is not waiting for your go-ahead.")
@@ -640,7 +733,8 @@ class TaskManager:
         self._finish(t, "done", result=first_sentence(text))
 
     def _run_desktop(self, t: Task) -> None:
-        rung = (data_dir() / "rung_cleared.json").is_file()
+        """A desktop task that cannot click: the plain steps, and a result that says exactly what is missing and how to fix it."""
+        problems = self._desktop_why.pop(t.task_id, None) or []
         steps: list[str] = []
         if not self._offline() and not looks_like_secret(t.text):
             try:
@@ -655,11 +749,44 @@ class TaskManager:
                 steps = []
         for s in steps:
             self.progress(t, s)
-        why = ("Typed tasks don't use desktop clicking yet, even though it is verified on this Mac."
-               if rung else "Knack doesn't click on your screen yet.")
+        for p in problems[1:]:                                 # the first problem is the result line; the others are listed, once each
+            self.progress(t, f"Also needed: {p.label}")
+        why = problems[0].text if problems else "Knack didn't click on your screen for this one."
         t.answer = None
         self._finish(t, "done", result=(why + (" Here are the steps." if steps else "")))
-        self._audit("system", "task", t, "done", "show_instead", rung=rung)
+        self._audit("system", "task", t, "done", problems[0].code if problems else "show_instead", problems=len(problems))
+
+    def _status(self, t: Task, line: str) -> None:
+        """A live line (a countdown) that replaces the current one instead of adding a step."""
+        with self._lock:
+            if t.state in FINISHED:
+                return
+            t.latest = one_line(line, 90, redact=False)
+        self._emit("task_progress", t, force=False)
+
+    def _run_desktop_real(self, t: Task) -> None:
+        permit = self._permits.pop(t.task_id, None)            # spent here, once: a second start would find none
+        runner = self._desktop_runner
+        if runner is None:
+            runner = dk.DesktopTaskRunner(self._port, self._desk(), audit=self.audit)
+        self._audit("agent", "task", t, "started", "desktop", max_minutes=t.max_minutes)
+        res = runner(t, permit=permit, progress=lambda line: self.progress(t, line), status=lambda line: self._status(t, line),
+                     should_stop=lambda: t.stop_requested or is_killed())
+        if t.state in FINISHED:
+            return
+        if t.stop_requested:
+            self._finish(t, "stopped", reason="Stopped by you.")
+            return
+        state = str(res.get("state", "failed"))
+        err = getattr(runner, "last_error", None)
+        meta: dict[str, Any] = {"error": str(err).lower()[:30]} if err else {}
+        if res.get("why") and state != "done":
+            meta["why"] = str(res["why"])[:30]                   # a closed code from the runner, never the model's or the window's words
+        self._audit("agent", "task", t, state if state in FINISHED else "failed", "desktop", **meta)
+        if state == "done":
+            self._finish(t, "done", result=str(res.get("result") or dk.RESULT_PREFIX + "finished."))
+        else:
+            self._finish(t, "stopped" if state == "stopped" else "failed", reason=str(res.get("reason") or "The screen task stopped."))
 
     # ----------------------------------------------------------------------------------------------- claude
     def _run_claude(self, t: Task) -> None:
