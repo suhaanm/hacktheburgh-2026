@@ -1,6 +1,21 @@
 {
- "frozen_at": "2026-11-08T01:26:10Z",
+ "frozen_at": "2026-11-08T02:05:13Z",
  "parts": {
+  "conformal": {
+   "fingerprint": "582610510feee4a4825402ed33664ea58f4f4cde2f1854c11008b91cf6f9750d",
+   "hashes": {
+    "PLAN.md": "13232641bab434437eee77805aa1ca3d73cdc891ab46a1109a70f3728f6573ce",
+    "PLAN_CONFORMAL.md": "9aeffe240f9dfe58a1c197624e6bf106bc4c6522328ccadf21f52b8282270243",
+    "__init__.py": "1f71121d69a43831b36dea8acd62b6f8513ae96bfc56d262fd613c84aef5568b",
+    "conformal.py": "5b15ebe97ca361f4e5db0d4159286f653164195d8f60d2b853f2af8802390688",
+    "guard.py": "d30683971fece3ba723b65a125ef2a95b1a9d959b6ff9d4f0572b221fc71e65f",
+    "ledger.py": "79bd6deed78caaba3aa292650e9aac9f71a8f61cf100b12b40dfc2324c343813",
+    "prospective.py": "bf4cf6f7831407a0c7cc41bdbe48bf34d6efc3f61d913b3dd79b9176b3991d28",
+    "run_conformal.py": "ceb78d18098e0df4ffbbab19ead55bb13560d8a3f5c3bf95c66592094de1fcc3",
+    "scoring.py": "20fcd43f274757fc31a8eb00879c70e4df73a51425faaa41ab187ed2ee3900c1",
+    "worlds.py": "5035e22fbaa5a0bd1129d6c8f538276d6e75f53f41672f8eb889b80f794ae516"
+   }
+  },
   "decisions": {
    "fingerprint": "125de99f2a71545c1cafedfe19a09be4943530edbe52bc0713da999fe2b7e2ec",
    "hashes": {
