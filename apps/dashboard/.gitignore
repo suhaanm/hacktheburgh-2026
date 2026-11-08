@@ -10,3 +10,10 @@ qa/knack/*
 !qa/knack/menu-account-light-win.png
 !qa/knack/home-quiet-light-win.png
 !qa/knack/home-quiet-dark-m390.png
+!qa/knack/firstrun-app-1b-chips-light-win.png
+!qa/knack/firstrun-app-2-may-light-win.png
+!qa/knack/firstrun-app-3-check-light-win.png
+!qa/knack/home-tasks-running-light-1440.png
+!qa/knack/home-tasks-none-light-1440.png
+!qa/knack/home-tasks-consent-light-win.png
+!qa/knack/menu-account-profile-light-win.png
