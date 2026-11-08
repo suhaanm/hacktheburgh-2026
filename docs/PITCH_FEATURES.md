@@ -1,8 +1,8 @@
 # Knack: the features, for the pitch and the launch video
 
-Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sun 08 Nov 2026, 02:25 UTC, checked against main at 6b94707. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
+Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sun 08 Nov 2026, 02:31 UTC, checked against main at f295814. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
 
-This is the master document. It lists 68 entries (64 features and 4 write-ups of results that did not hold up) on 35 pages, grouped by capability. One page per feature (with a 30-second spoken script and slide bullets) is in `docs/features/`; the index with status is `docs/features/index.md`; the 20 video claims are in `docs/features/video-beats.md`; the 25 hardest judge questions are in `docs/features/faq.md`.
+This is the master document. It lists 70 entries (66 features and 4 write-ups of results that did not hold up) on 35 pages, grouped by capability. One page per feature (with a 30-second spoken script and slide bullets) is in `docs/features/`; the index with status is `docs/features/index.md`; the 20 video claims are in `docs/features/video-beats.md`; the 25 hardest judge questions are in `docs/features/faq.md`.
 
 **How to read an entry.** Name and status; what it does; how it works (ending in one 'What is different' sentence, which compares with the approaches in our own reference notes and is not a claim of priority over the whole field); where to see it; the demo moment; the evidence with its label; the honest limit; the hackathon target. **Status words:** `verified` (the lead saw it work end to end), `built` (built and tested by its track, on main, not yet seen end to end by the lead), `landing` (not on main yet), `not run`. **Evidence labels:** `synthetic` (data we generated), `simulated` (language-model participants, not people), `real model, small n` (a language model on our sandbox sites), `offline tests`, `owner-present`, `not run`. Nothing in this document is evidence about real workers. **Wording on screen:** Per decision D57 (owner, 8 Nov about 00:30 UTC) the app no longer uses the word 'synthetic' or 'simulated' on any screen, card, spoken line or desktop string; what a result was measured on is said in concrete words ('generators we wrote', 'planted example learners', 'language-model participants', 'example people made for this build'). This document is not the app and keeps its labels. Because the screens will not say it, say aloud in any video that the data are made up (synthetic); the README, Devpost and CLAIMS keep their wording, and CLAUDE.md's rule that synthetic results carry a badge is in tension with D57 (the lead keeps the constraint through concrete wording).
 
@@ -20,7 +20,7 @@ This is the master document. It lists 68 entries (64 features and 4 write-ups of
 10. **Growth and independence**: Growth and the independence score.
 11. **A calm product: window, attention, context**: One attention layer: a router, a digest, quiet states; Context engineering: typed, bounded, fresh; One app, one window, one corner pill; First run: role, consent and a first look; Command palette and keyboard; Design system with budgets as tests; The Knack mark and brand.
 12. **Privacy and safety**: Egress guard, ledger and canary tests; Your data: see and delete; Memory file the worker owns.
-13. **Evidence and honesty**: Evidence page, make eval and the limitations register; Plain-English explainer with a number check; Generator-mismatch test (the realism matrix); ML v2, held-out: mostly negative; The simulated study sat at the floor; Other results that went the wrong way; Prospective prediction ledger and forward scoring; Drift guard: noticing when the model stops beating the baseline; Decisions scoreboard: realised cost against a naive policy and an oracle; Online recalibration: rescuing the model instead of discarding it.
+13. **Evidence and honesty**: Evidence page, make eval and the limitations register; Plain-English explainer with a number check; Generator-mismatch test (the realism matrix); ML v2, held-out: mostly negative; The simulated study sat at the floor; Other results that went the wrong way; Prospective prediction ledger and forward scoring; Drift guard: noticing when the model stops beating the baseline; Decisions scoreboard: realised cost against a naive policy and an oracle; Online recalibration: rescuing the model instead of discarding it; Ranges and sets: conformal intervals, and where their promise breaks; Decision value against prediction accuracy: did the better forecast buy a better decision?.
 14. **Roles**: Role packs: the format, and the deep benefits processor pack; Programmer pack at standard depth; Data analyst pack at standard depth.
 
 Then: what exists elsewhere, numbers you may quote, things we do not claim, what is landing, sources read.
@@ -2435,7 +2435,7 @@ These are all simulated or sandbox results; none is about real workers.
 
 ### Prospective prediction ledger and forward scoring
 
-**Status:** landing (decision D59; plan registered at 00:35 UTC before any held-out run; code, held-out results and docs/HRT_BRIEF.md are on branch worktree-agent-a02c9cf8855c9f4ff (latest commit 943c071, 01:28 UTC), not on main; an engine route for live ledger entries exists behind UNDERSTUDY_X_HRT but nothing in the running product writes a forecast to it yet) · **Page:** `docs/features/hrt-prospective-ledger.md` · **Targets:** HRT
+**Status:** built (decision D59; plan registered at 00:35 UTC before any held-out run; merged to main at 02:26 UTC (1984605) with the code, the held-out results, docs/HRT_BRIEF.md and the Evidence blocks; not seen end to end by the lead; an engine route for live ledger entries exists behind UNDERSTUDY_X_HRT but nothing in the running product writes a forecast to it yet) · **Page:** `docs/features/hrt-prospective-ledger.md` · **Targets:** HRT
 
 #### What it does
 
@@ -2449,22 +2449,22 @@ The ledger is a hash chain: each entry carries the hash of the one before, and a
 
 #### Where to see it
 
-Not on main. On the HRT branch: Admin view, More, Evidence, two blocks, 'Does it hold out of time?' and 'Does the rule beat the naive one?' (each says it is pending until evals/report.json carries the hrt_ledger and hrt_decisions sections); code under understudy_engine/hrt; the plan is evals/hrt/PLAN.md; the judge-facing brief is docs/HRT_BRIEF.md (generated by make hrt-brief); the claim rows are docs/drafts/CLAIMS_HRT.md (C90 to C99); a 30-second cut with shots is docs/drafts/HRT_30S.md.
+Admin view, More, Evidence: the blocks 'Does it hold out of time?' and 'Does the rule beat the naive one?' (a block says in one line why if the report lacks its section; the report on main has them). Code under services/engine/understudy_engine/hrt; the plan is evals/hrt/PLAN.md; the judge-facing brief is docs/HRT_BRIEF.md (generated by make hrt-brief); the claim rows are docs/drafts/CLAIMS_HRT.md; the 30-second cut, which opens with the failure, is docs/drafts/HRT_30S.md; and make hrt-proof is a five-second terminal proof (a forecast written before its outcome, the outcome chained to it, an edit refused; generated data, no model call, no network).
 
 #### Demo moment
 
-Read the registered claims as run: the model beats both plain baselines in the world it was fitted for (P1, passed); it is not perfectly calibrated there (P2, did not pass: the intercept interval excludes zero); and in three shifted worlds it is worse than the best plain predictor (P3, passed as a registered expectation of failure).
+Open with the failure, as the 30-second cut does: in three shifted worlds the model is worse than the best plain predictor (P3, passed as a registered expectation of failure) and the guard flags 8 of 8. Then the win with its limits: the model beats both plain baselines in the world it was fitted for (P1, passed); it is not perfectly calibrated there (P2, did not pass: the intercept interval excludes zero); and in three shifted worlds it is worse than the best plain predictor (P3, passed as a registered expectation of failure).
 
 #### Evidence and its label
 
 | What | Label | Source |
 |---|---|---|
-| P1 passed: in the first world (8 deployments, 61,631 scored bins, 32 persona-streams of four types) the frozen model's log loss is 0.445 [0.434, 0.455] against 0.525 for the online base rate and 0.524 for frozen time since progress; paired differences -0.080 [-0.086, -0.075] and -0.079 [-0.085, -0.074] | synthetic, held-out single frozen run, new seeds | `evals/hrt/results/heldout_ledger.json (branch)` |
-| P2 did not pass: calibration slope 0.999 [0.963, 1.035] contains 1, but the intercept +0.075 [0.002, 0.162] excludes 0, so the model under-predicts the stuck rate slightly | synthetic, held-out | `evals/hrt/results/heldout_ledger.json (branch)` |
-| P3 passed: in three shifted worlds the model is worse than the best plain predictor by +0.324 [0.277, 0.374] (markov), +0.331 [0.289, 0.377] (latent skill) and +0.513 [0.434, 0.602] (process trace) nats per bin | synthetic, held-out, 160 people per world | `evals/hrt/results/heldout_ledger.json (branch)` |
-| P5 passed: time to the next progress event, truncated CRPS 3.95 s [3.85, 4.03] against 4.76 s [4.66, 4.86] for a Kaplan-Meier constant; difference -0.816 s [-0.853, -0.779]; 98% of origins are censored by the episode's end, so the score is truncated to the observed steps and nothing is imputed | synthetic, held-out, one world | `evals/hrt/results/heldout_ledger.json (branch)` |
-| P6a did not pass: error-risk model, no rule change: log loss better than the online base rate by 0.111 [0.106, 0.117] but calibration slope 0.959 [0.932, 0.989], slightly over-confident | synthetic, held-out | `evals/hrt/results/heldout_ledger.json (branch)` |
-| Overall, 8 of 10 registered claims passed and 2 did not; a claim that did not pass stays in the table | synthetic, held-out single frozen run | `docs/HRT_BRIEF.md (section 2b; branch)` |
+| P1 passed: in the first world (8 deployments, 61,631 scored bins, 32 persona-streams of four types) the frozen model's log loss is 0.445 [0.434, 0.455] against 0.525 for the online base rate and 0.524 for frozen time since progress; paired differences -0.080 [-0.086, -0.075] and -0.079 [-0.085, -0.074] | synthetic, held-out single frozen run, new seeds | `evals/hrt/results/heldout_ledger.json` |
+| P2 did not pass: calibration slope 0.999 [0.963, 1.035] contains 1, but the intercept +0.075 [0.002, 0.162] excludes 0, so the model under-predicts the stuck rate slightly | synthetic, held-out | `evals/hrt/results/heldout_ledger.json` |
+| P3 passed: in three shifted worlds the model is worse than the best plain predictor by +0.324 [0.277, 0.374] (markov), +0.331 [0.289, 0.377] (latent skill) and +0.513 [0.434, 0.602] (process trace) nats per bin | synthetic, held-out, 160 people per world | `evals/hrt/results/heldout_ledger.json` |
+| P5 passed: time to the next progress event, truncated CRPS 3.95 s [3.85, 4.03] against 4.76 s [4.66, 4.86] for a Kaplan-Meier constant; difference -0.816 s [-0.853, -0.779]; 98% of origins are censored by the episode's end, so the score is truncated to the observed steps and nothing is imputed | synthetic, held-out, one world | `evals/hrt/results/heldout_ledger.json` |
+| P6a did not pass: error-risk model, no rule change: log loss better than the online base rate by 0.111 [0.106, 0.117] but calibration slope 0.959 [0.932, 0.989], slightly over-confident | synthetic, held-out | `evals/hrt/results/heldout_ledger.json` |
+| Overall, 8 of 10 registered claims passed and 2 did not; a claim that did not pass stays in the table | synthetic, held-out single frozen run | `docs/HRT_BRIEF.md (section 2b)` |
 
 #### Honest limit
 
@@ -2476,7 +2476,7 @@ Everything is generated by us; a held-out replicate catches overfitting to one n
 
 ### Drift guard: noticing when the model stops beating the baseline
 
-**Status:** landing (as above: on the HRT branch, results landed, not on main) · **Page:** `docs/features/hrt-prospective-ledger.md` · **Targets:** HRT
+**Status:** built (as above: on main since 02:26 UTC) · **Page:** `docs/features/hrt-prospective-ledger.md` · **Targets:** HRT
 
 #### What it does
 
@@ -2490,7 +2490,7 @@ For each episode (each case, for error-risk routing) the bounded difference betw
 
 #### Where to see it
 
-Not on main. On the HRT branch the Evidence page (Admin view, More, Evidence) carries it in the block 'Does it hold out of time?', in the 'worlds, one row each' table under the Guard flags column.
+Evidence page (Admin view, More, Evidence), block 'Does it hold out of time?': the 'worlds, one row each' table with its Guard flags column, and the disclosure 'The guard: what falling back cost and saved'.
 
 #### Demo moment
 
@@ -2500,10 +2500,10 @@ One sentence each: in the first world the guard never flagged (0 of 8), so it co
 
 | What | Label | Source |
 |---|---|---|
-| P4a passed: flagged in 0 of 8 first-world deployments [0.00, 0.37]; P4c passed: premium +0.000 nats (it never flagged, so it never switched) | synthetic, held-out, 8 deployments | `evals/hrt/results/heldout_ledger.json (branch)` |
-| P4b passed: flagged in 8 of 8 deployments in each of the three shifted worlds, where the model was worse than the fallback | synthetic, held-out, 8 deployments per world | `evals/hrt/results/heldout_ledger.json (branch)` |
-| P4d passed: payout against always trusting the model -0.309 [-0.434, -0.196] (markov), -0.262 [-0.338, -0.194] (latent skill), -0.438 [-0.594, -0.292] (process trace) nats; deployment-level intervals, n = 8 per world | synthetic, held-out | `evals/hrt/results/heldout_ledger.json (branch)` |
-| P6b passed: for error risk, 0 of 8 flags with a rule change and 0 of 8 without, because after the change the model was still better than the online base rate (-0.172 [-0.181, -0.164]) | synthetic, held-out | `evals/hrt/results/heldout_ledger.json (branch)` |
+| P4a passed: flagged in 0 of 8 first-world deployments [0.00, 0.37]; P4c passed: premium +0.000 nats (it never flagged, so it never switched) | synthetic, held-out, 8 deployments | `evals/hrt/results/heldout_ledger.json` |
+| P4b passed: flagged in 8 of 8 deployments in each of the three shifted worlds, where the model was worse than the fallback | synthetic, held-out, 8 deployments per world | `evals/hrt/results/heldout_ledger.json` |
+| P4d passed: payout against always trusting the model -0.309 [-0.434, -0.196] (markov), -0.262 [-0.338, -0.194] (latent skill), -0.438 [-0.594, -0.292] (process trace) nats; deployment-level intervals, n = 8 per world | synthetic, held-out | `evals/hrt/results/heldout_ledger.json` |
+| P6b passed: for error risk, 0 of 8 flags with a rule change and 0 of 8 without, because after the change the model was still better than the online base rate (-0.172 [-0.181, -0.164]) | synthetic, held-out | `evals/hrt/results/heldout_ledger.json` |
 
 #### Honest limit
 
@@ -2515,7 +2515,7 @@ The false-flag bound needs each episode's loss difference to have conditional me
 
 ### Decisions scoreboard: realised cost against a naive policy and an oracle
 
-**Status:** landing (as above: on the HRT branch, results landed, not on main) · **Page:** `docs/features/hrt-prospective-ledger.md` · **Targets:** HRT
+**Status:** built (as above: on main since 02:26 UTC) · **Page:** `docs/features/hrt-prospective-ledger.md` · **Targets:** HRT
 
 #### What it does
 
@@ -2529,7 +2529,7 @@ One row per rule: when to build an automation (ski rental with a learned trust p
 
 #### Where to see it
 
-Not on main. On the HRT branch the Evidence page has the block 'Does the rule beat the naive one?' (four figures, tables behind disclosures); the result is also a report section and docs/HRT_BRIEF.md (section 4).
+Evidence page (Admin view, More, Evidence), block 'Does the rule beat the naive one?' (four figures, tables behind disclosures); the result is also docs/HRT_BRIEF.md section 4.
 
 #### Demo moment
 
@@ -2539,9 +2539,10 @@ One row, three numbers: naive, shipped, oracle. For when to review: 9.03 escaped
 
 | What | Label | Source |
 |---|---|---|
-| All four registered contrasts are wins at the adjusted level: D1 build timing minus break-even -1.93 manual runs per routine [-2.02, -1.85] (adjusted [-2.04, -1.82]); D2 review router minus random review -6.37 escaped errors per 100 cases [-6.56, -6.19]; D3 background-run rule minus 'run whenever idle' +66.79 value per held-out day [55.74, 78.16]; D4 bandit snapshot minus rule baseline +0.235 reward per decision [0.231, 0.238] | synthetic, held-out single frozen run: 40, 40, 8 x 4 and 30 replicate worlds | `evals/hrt/results/heldout_decisions.json (branch)` |
-| Where the shipped rule does not win: 'build at once' costs 3.77, 7.54 and 15.08 against the rule's 4.93, 9.65 and 17.73 at build costs of 4, 8 and 16 runs, and the rule is ahead only at 32 (29.20 against 30.15); the router's edge over random review is partly signal the generator hands it; the background-run rule's margin over 'run whenever idle' depends on the assumed cost of a collision | synthetic, held-out | `docs/HRT_BRIEF.md (section 4; branch)` |
-| Where a model loses to the dumbest baseline: in each shifted world its log loss is 0.939, 0.949 and 1.168 against 0.615, 0.623 and 0.655 for the online base rate; the real-model agent-claim predictor (68 claims) has Brier 0.0038 against 0.0003 for a one-bit 'a confidence was stated' indicator | synthetic and real model on our sandbox, small n | `docs/HRT_BRIEF.md (section 5; branch)` |
+| All four registered contrasts are wins at the adjusted level: D1 build timing minus break-even -1.93 manual runs per routine [-2.02, -1.85] (adjusted [-2.04, -1.82]); D2 review router minus random review -6.37 escaped errors per 100 cases [-6.56, -6.19]; D3 background-run rule minus 'run whenever idle' +66.79 value per held-out day [55.74, 78.16]; D4 bandit snapshot minus rule baseline +0.235 reward per decision [0.231, 0.238] | synthetic, held-out single frozen run: 40, 40, 8 x 4 and 30 replicate worlds | `evals/hrt/results/heldout_decisions.json` |
+| Where the shipped rule does not win: 'build at once' costs 3.77, 7.54 and 15.08 against the rule's 4.93, 9.65 and 17.73 at build costs of 4, 8 and 16 runs, and the rule is ahead only at 32 (29.20 against 30.15); the router's edge over random review is partly signal the generator hands it; the background-run rule's margin over 'run whenever idle' depends on the assumed cost of a collision | synthetic, held-out | `docs/HRT_BRIEF.md (section 4)` |
+| Family size: the HRT section registers 36 claims or contrasts (10 from the ledger plan, 7 from the recalibration plan, 4 decision contrasts, 11 from the ranges plan, 4 from the decision-value plan); 23 of them are directional paired contrasts with a reported interval, and all 23 hold at 5% after a Holm adjustment (the adjusted p-values are derived afterwards from the reported intervals by a normal approximation, and the registered pass rules are unchanged) | synthetic; 23 paired contrasts | `docs/HRT_BRIEF.md (section 2f)` |
+| Where a model loses to the dumbest baseline: in each shifted world its log loss is 0.939, 0.949 and 1.168 against 0.615, 0.623 and 0.655 for the online base rate; the real-model agent-claim predictor (68 claims) has Brier 0.0038 against 0.0003 for a one-bit 'a confidence was stated' indicator | synthetic and real model on our sandbox, small n | `docs/HRT_BRIEF.md (section 5)` |
 
 #### Honest limit
 
@@ -2553,7 +2554,7 @@ The simulators, the costs, the loss ratio and the oracles are ours; four of four
 
 ### Online recalibration: rescuing the model instead of discarding it
 
-**Status:** landing (follow-up plan registered at 01:25 UTC after the first held-out result was seen (the plan says so), amended once (A1) after a dev run, frozen at 01:26 UTC, run once on new seeds; results, brief section 2c and claim row C100 are on the HRT branch (worktree-agent-a02c9cf8855c9f4ff, commit cf47203 at 01:42 UTC), not on main; the running product does not use it) · **Page:** `docs/features/hrt-prospective-ledger.md` · **Targets:** HRT
+**Status:** built (follow-up plan registered at 01:25 UTC after the first held-out result was seen (the plan says so), amended once (A1) after a dev run, frozen at 01:26 UTC, run once on new seeds; on main since 02:26 UTC (1984605); the running product does not use it) · **Page:** `docs/features/hrt-prospective-ledger.md` · **Targets:** HRT
 
 #### What it does
 
@@ -2567,7 +2568,7 @@ The correction is p' = sigmoid(a + b logit(p)), with (a, b) fitted by a few damp
 
 #### Where to see it
 
-Not on main. On the HRT branch: docs/HRT_BRIEF.md section 2c ('The recalibration follow-up, as run'), the plan evals/hrt/PLAN_RECAL.md, the results evals/hrt/results/heldout_recal.json, and the claim row C100 in docs/drafts/CLAIMS_HRT.md; the Evidence page has a block for it (not seen).
+Evidence page, block 'Does it hold out of time?', disclosure 'Recalibrating online instead of discarding the model (5 of 7 claims passed)'; docs/HRT_BRIEF.md section 2c; the plan evals/hrt/PLAN_RECAL.md; the results evals/hrt/results/heldout_recal.json; the claim row C100 in docs/drafts/CLAIMS_HRT.md.
 
 #### Demo moment
 
@@ -2577,19 +2578,98 @@ Read the table of seven claims as run, with the two that did not pass beside the
 
 | What | Label | Source |
 |---|---|---|
-| 5 of 7 registered claims passed. R1 passed: after the rule change in the error-risk world the recalibrated forecast beats the frozen model by -0.0316 [-0.0346, -0.0284] nats per case over 20,000 cases; R3 passed in each shifted world: -0.487 [-0.535, -0.436] (markov), -0.528 [-0.590, -0.468] (latent skill), -0.542 [-0.605, -0.481] (process trace) | synthetic, held-out single frozen run on new seeds (deployments 21 to 28), 8 deployments per world; paired cluster bootstrap | `evals/hrt/results/heldout_recal.json (branch worktree-agent-a02c9cf8855c9f4ff); docs/HRT_BRIEF.md (section 2c; branch worktree-agent-a02c9cf8855c9f4ff)` |
-| R2 and R7 passed (no harm without a change): recalibrated minus frozen is +0.0000 [-0.0018, 0.0017] in the first world and +0.0003 [-0.0002, 0.0007] in the error-risk world with no change; the windowed arm -0.0009 [-0.0023, 0.0003] and +0.0004 [-0.0001, 0.0008] | synthetic, held-out | `evals/hrt/results/heldout_recal.json (branch worktree-agent-a02c9cf8855c9f4ff)` |
-| R5 passed: the windowed arm beats the frozen model by -0.0368 [-0.0407, -0.0327] and the growing arm by -0.0052 [-0.0062, -0.0040] after the rule change | synthetic, held-out | `evals/hrt/results/heldout_recal.json (branch worktree-agent-a02c9cf8855c9f4ff)` |
-| R4 and R6 did not pass: after the rule change the calibration intercept is +0.613 [0.544, 0.690] for the growing fit (slope 1.025 [0.992, 1.062]) and +0.451 [0.377, 0.535] for the windowed fit, against +0.949 for the frozen model; neither interval contains 0 | synthetic, held-out | `evals/hrt/results/heldout_recal.json (branch worktree-agent-a02c9cf8855c9f4ff)` |
-| Reported and not a registered claim: in the shifted worlds the recalibrated forecast is no longer worse than the best plain predictor, and is better by -0.027 [-0.033, -0.022], -0.011 [-0.015, -0.006] and -0.006 [-0.009, -0.003] nats per bin | synthetic, held-out, 8 deployments per world | `evals/hrt/results/heldout_recal.json (branch worktree-agent-a02c9cf8855c9f4ff)` |
+| 5 of 7 registered claims passed. R1 passed: after the rule change in the error-risk world the recalibrated forecast beats the frozen model by -0.0316 [-0.0346, -0.0284] nats per case over 20,000 cases; R3 passed in each shifted world: -0.487 [-0.535, -0.436] (markov), -0.528 [-0.590, -0.468] (latent skill), -0.542 [-0.605, -0.481] (process trace) | synthetic, held-out single frozen run on new seeds (deployments 21 to 28), 8 deployments per world; paired cluster bootstrap | `evals/hrt/results/heldout_recal.json; docs/HRT_BRIEF.md (section 2c)` |
+| R2 and R7 passed (no harm without a change): recalibrated minus frozen is +0.0000 [-0.0018, 0.0017] in the first world and +0.0003 [-0.0002, 0.0007] in the error-risk world with no change; the windowed arm -0.0009 [-0.0023, 0.0003] and +0.0004 [-0.0001, 0.0008] | synthetic, held-out | `evals/hrt/results/heldout_recal.json` |
+| R5 passed: the windowed arm beats the frozen model by -0.0368 [-0.0407, -0.0327] and the growing arm by -0.0052 [-0.0062, -0.0040] after the rule change | synthetic, held-out | `evals/hrt/results/heldout_recal.json` |
+| R4 and R6 did not pass: after the rule change the calibration intercept is +0.613 [0.544, 0.690] for the growing fit (slope 1.025 [0.992, 1.062]) and +0.451 [0.377, 0.535] for the windowed fit, against +0.949 for the frozen model; neither interval contains 0 | synthetic, held-out | `evals/hrt/results/heldout_recal.json` |
+| Reported and not a registered claim: in the shifted worlds the recalibrated forecast is no longer worse than the best plain predictor, and is better by -0.027 [-0.033, -0.022], -0.011 [-0.015, -0.006] and -0.006 [-0.009, -0.003] nats per bin | synthetic, held-out, 8 deployments per world | `evals/hrt/results/heldout_recal.json` |
 
 #### Honest limit
 
-The arm was designed after the first held-out result was seen, and the plan says so; the second arm was added after one dev run. Everything comes from generators we wrote, with a single step change in one world; a drift that keeps changing, or one that makes the ranking of cases wrong and not only the scale, is not what an intercept and a slope can repair. About 2,500 cases per deployment follow the rule change, and a fit that includes outcomes from before the change is still mostly the old regime for most of that stretch, which the brief gives as the reason R4 and R6 failed; a faster-forgetting or change-point rule is the next step and is not built. The shipped product does not use the arm and does not write the ledger. The plan's amendment is dated about 01:40 GMT, while the branch history and the freeze file say 01:23 to 01:26.
+The arm was designed after the first held-out result was seen, and the plan says so; the second arm was added after one dev run. Everything comes from generators we wrote, with a single step change in one world; a drift that keeps changing, or one that makes the ranking of cases wrong and not only the scale, is not what an intercept and a slope can repair. About 2,500 cases per deployment follow the rule change, and a fit that includes outcomes from before the change is still mostly the old regime for most of that stretch, which the brief gives as the reason R4 and R6 failed; a faster-forgetting or change-point rule is the next step and is not built. The shipped product does not use the arm and does not write the ledger. The plan's amendment is dated about 01:40 GMT, while the commit history and the freeze file say 01:23 to 01:26.
 
 #### Hackathon target
 
 - **HRT (best use of data for predictions and decisions)**: a failure found, a fix registered in advance on new seeds, and the two claims that still fail printed
+
+### Ranges and sets: conformal intervals, and where their promise breaks
+
+**Status:** built (registered in evals/hrt/PLAN_CONFORMAL.md before any number existed, amended once (A1) after one dev run, run once on new seeds; on main since 02:26 UTC (1984605); the running product does not use it) · **Page:** `docs/features/hrt-prospective-ledger.md` · **Targets:** HRT
+
+#### What it does
+
+Beside a forecast, Knack can give a set for the stuck label (stuck, not stuck, or both), a range of 30-second steps for the next progress event, and a range of seconds until the episode ends, each calibrated once at deployment to cover 90%. They cover as promised only where they were calibrated. Under a change of world they fall short, and recalibrating the quantile on one deployment brings the stuck set's coverage back by making the set vague.
+
+#### How it works
+
+A split-conformal quantile is computed once at deployment from 31,941 origins of 16 people the models never saw, to cover 90%; the models stay frozen. The set for the stuck label holds one label or both; the next-progress range is a range of five values (steps 1 to 4, or not within two minutes); the finish range comes from a ridge regression of log seconds remaining. Width is printed beside every coverage figure, because a range that covers 90% by being wide is not a forecast, and coverage is read against the nominal level with a paired person-level interval, with 'over', 'under' and 'consistent' decided by that interval. The same forecasts were also replayed through the ledger and the guard, so the guard can be compared with the coverage. Eleven claims were registered (K1 to K5) with pass rules fixed in advance.
+
+**What is different.** Every uncertainty range prints its width beside its coverage, is checked on held-out people in the world it was calibrated for and in three where it was not, and is read next to a guard that must notice the shift; the claim that fails (a range that over-covers) fails by a rule registered in advance.
+
+#### Where to see it
+
+Evidence page (Admin view, More, Evidence), block 'Does it hold out of time?', disclosure 'Ranges and sets: do they cover as often as they say? (8 of 11 claims passed)'; docs/HRT_BRIEF.md section 2d; the plan evals/hrt/PLAN_CONFORMAL.md; the results evals/hrt/results/heldout_conformal.json.
+
+#### Demo moment
+
+Show the coverage table: where the quantiles were calibrated the stuck set covers 90.0% against a promise of 90%; in three shifted worlds it covers 73.7%, 70.4% and 70.8%. Then the guard beside it: of the 23 shifted deployments with stuck-set coverage under 85%, it missed none. Then the cost of fixing the quantile: coverage returns, and the set holds both labels in 80%, 87% and 78% of origins.
+
+#### Evidence and its label
+
+| What | Label | Source |
+|---|---|---|
+| Where calibrated (the first world, 32 people): the stuck set covers 90.0% [89.5%, 90.6%] and the finish range 89.5% [88.2%, 90.7%], both consistent with the promised 90%; the two-minute range covers 94.3% [93.9%, 94.7%], which over-covers and fails the registered rule (K1b), because with five possible values the quantile is a whole number of steps | synthetic, held-out single frozen run on new seeds; people are the resampling unit | `evals/hrt/results/heldout_conformal.json; docs/HRT_BRIEF.md (section 2d)` |
+| In three shifted worlds of 160 people each: the stuck set covers 73.7% [71.0%, 76.2%], 70.4% [68.1%, 72.7%] and 70.8% [68.5%, 72.9%]; the finish range covers 37.3% [33.7%, 40.9%], 38.2% [34.1%, 42.0%] and 52.4% [49.7%, 55.3%]; all under the promised 90% | synthetic, held-out | `evals/hrt/results/heldout_conformal.json; docs/HRT_BRIEF.md (section 2d)` |
+| 23 shifted deployments had stuck-set coverage under 85% and the guard missed none (K4 passed); in the first world the guard flagged 0 of 8 | synthetic, held-out, 8 deployments per world | `evals/hrt/results/heldout_conformal.json; docs/HRT_BRIEF.md (section 2d)` |
+| After recalibrating the quantile on one deployment of the new world the stuck set covers 89.8% [88.1%, 91.3%], 92.1% [90.7%, 93.4%] and 88.7% [86.9%, 90.2%], but it holds one label in only 20%, 13% and 22% of origins (it holds both in the rest); the finish range still under-covers at 81.5%, 73.2% and 83.3% | synthetic, held-out | `evals/hrt/results/heldout_conformal.json; docs/HRT_BRIEF.md (section 2d)` |
+| 8 of 11 registered claims passed; the three that did not are K1b (the two-minute range over-covers) and K5b and K5c (recalibration restored coverage for the stuck set in 2 of 3 worlds, for the two-minute range in 1 and for the finish range in 0) | synthetic, held-out | `docs/HRT_BRIEF.md (section 2d)` |
+
+#### Honest limit
+
+Coverage is marginal over origins, not per person: a worker unlike the pool can be badly covered while the pool-wide figure is 90%. The finish target is the episode's end as the generator defines it, and the features say almost nothing about when an episode ends (the finish half-width is 0.636 log seconds against 0.642 for the baseline). The two-minute range is scored on origins with two minutes of episode ahead, which excludes 59% of the first world's origins. It is split-conformal and not CV+, with one calibration split per world. Everything comes from generators we wrote. The product does not use these ranges.
+
+#### Hackathon target
+
+- **HRT (best use of data for predictions and decisions)**: uncertainty ranges whose coverage is checked, with the places the promise breaks printed beside the place it holds
+
+### Decision value against prediction accuracy: did the better forecast buy a better decision?
+
+**Status:** built (registered in evals/hrt/PLAN_VALUE.md after the first held-out results (so the sign of the log-loss differences in the shifted worlds was already known; the decision claim V2 was not computed before), run once on new seeds; on main since 02:26 UTC (1984605)) · **Page:** `docs/features/hrt-prospective-ledger.md` · **Targets:** HRT
+
+#### What it does
+
+The same forecasts become interrupt-or-stay-quiet decisions with one rule fixed in advance, and the decisions are scored in net minutes an hour beside the log loss. Where the model was fitted, a better score bought a better decision. Under a change of world the decision followed the score down, and the model was worth less than interrupting at every origin.
+
+#### How it works
+
+Interrupt when the forecast is at least 0.25, which is A / (A + S) for an assumed gain of S = 3 minutes when a person really makes no progress for a minute and an assumed cost of A = 1 minute when they would have progressed anyway; no threshold is tuned on any pool. Origins are 30-second bins, so an hour of recorded work is 120 of them. References are doing nothing (zero by construction), interrupting at every origin, and a hindsight oracle that interrupts exactly when the label is 1 (not implementable); 'the share of the gap closed' runs from the better of never and always to the oracle. The guarded system uses the drift guard of the ledger plan. Four claims were registered (V1, V2, V3a, V3b).
+
+**What is different.** A forecast is judged by the decision it feeds as well as its score, with the decision rule and cost ratio fixed before any run, the oracle and the do-everything policies as references, and the reversal under shift published beside the win.
+
+#### Where to see it
+
+Evidence page (Admin view, More, Evidence), the disclosure 'Did the better forecast buy a better decision? (4 of 4 claims passed)'; docs/HRT_BRIEF.md section 2e; the plan evals/hrt/PLAN_VALUE.md; the results evals/hrt/results/heldout_value.json.
+
+#### Demo moment
+
+Say it in two numbers and one reversal: where the model was fitted it is worth +31.32 net minutes an hour against -0.44 for the online base rate, and in the shifted worlds it is worth +3.78, +12.28 and +3.90 against +56.19, +59.48 and +42.05, and below interrupting every time. Then say the minutes are our assumption and the ordering is the claim.
+
+#### Evidence and its label
+
+| What | Label | Source |
+|---|---|---|
+| First world: the model's decisions are worth +31.32 net minutes an hour [28.79, 33.74], against -0.44 [-2.42, 1.41] for the online base rate and +0.04 [-0.04, 0.14] for frozen time since progress; log loss 0.446 against 0.531; the model closes 39% [37%, 41%] of the way from doing nothing or always interrupting to the hindsight oracle | synthetic, held-out single frozen run on new seeds, 8 deployments | `evals/hrt/results/heldout_value.json; docs/HRT_BRIEF.md (section 2e)` |
+| Shifted worlds: the model is worth +3.78 [0.93, 6.57], +12.28 [8.08, 16.22] and +3.90 [2.22, 5.69] net minutes an hour against +56.19 [45.62, 67.25], +59.48 [42.41, 75.38] and +42.05 [31.49, 53.39] for the online base rate, and below interrupting at every origin (+46.03, +55.75, +35.62); a model whose forecasts point the wrong way interrupts only 31.2, 31.5 and 21.6 times an hour and misses the value | synthetic, held-out, 160 people per world | `evals/hrt/results/heldout_value.json; docs/HRT_BRIEF.md (section 2e)` |
+| The guard earns decision value where the model fails: guarded minus always-trusting-the-model is +0.434 [0.229, 0.644], +0.307 [0.121, 0.492] and +0.334 [0.101, 0.597] net minutes per origin (deployment-level intervals, n = 8) with 8 of 8 flags in each shifted world, and +0.000 in the first world, where it flagged 0 of 8 | synthetic, held-out | `evals/hrt/results/heldout_value.json; docs/HRT_BRIEF.md (section 2e)` |
+| 4 of 4 registered claims passed (V1, V2, V3a, V3b); V2: in the shifted worlds the model minus the online base rate is -0.437 [-0.512, -0.367], -0.393 [-0.497, -0.285] and -0.318 [-0.400, -0.240] net minutes per origin | synthetic, held-out | `docs/HRT_BRIEF.md (section 2e)` |
+
+#### Honest limit
+
+The costs are our assumptions, and the ranking of the predictors is the claim, not the minutes. The rule runs at every 30-second origin with no cooldown or cap, so 'interruptions per hour' is what an unthrottled rule would do, not what the product does (the product caps and spaces them). The oracle is not implementable. The plan was registered after the first held-out results were seen, which it says. In the shifted worlds the best simple rule is to interrupt almost always, which tells you about the assumed cost ratio as much as about the model.
+
+#### Hackathon target
+
+- **HRT (best use of data for predictions and decisions)**: a forecast judged by the decision it feeds, with the cost ratio stated and the reversal under shift printed
 
 ## 14. Roles
 
@@ -2749,8 +2829,10 @@ Only with the n, the split, the interval and the origin printed beside them. Num
 | Computer use with Gemini, held-out and pre-registered: clean 18 of 20 completed with correct inputs (Wilson [0.70, 0.97]); the bar (lower bound at least 0.80) was not met; 0 false claims; injected 20 of 20 paused at step 0 (text-only pages). Do not pool with the OpenAI row; do not confuse with the agent-run row that also reads 18 of 20 | 20 clean and 20 injected generated households, seeds 9139 and 9140, one run each, case note at tier 2 | real model (Gemini), our sandbox | `evals/agentic/results/round2_clean_9139.json; evals/agentic/results/round2_injected_9140.json` |
 | 0 of 11,456 planted canary tokens reached the model port; 0 of 88 runs; one-sided 95% upper bound 3.35% per run | 88 runs of 11 flows, 8 seeds each | synthetic, offline | `evals/report.md (Privacy layer)` |
 | Git habits: 116 of 116 flagged habits were planted (100% [96.8, 100.0]); 116 of 120 planted habits found (97% [91.7, 98.7]); placebo false flags 1% [0.4, 2.4] | 120 scripted developers, fresh seeds | synthetic | `evals/report.md (Git habits)` |
-| Prospective, first world (landing, on the HRT branch): the frozen stuck model's log loss 0.445 [0.434, 0.455] against 0.525 for the online base rate; in three shifted worlds it is worse than the best plain predictor by +0.324 to +0.513 nats per bin, and a guard flagged 8 of 8 deployments in each. 8 of 10 registered claims passed. Quote both halves | 61,631 bins, 8 deployments, 32 persona-streams; shifted worlds 160 people each; held-out single run | synthetic | `evals/hrt/results/heldout_ledger.json (branch)` |
-| Online recalibration follow-up (landing, on the HRT branch; designed after the first held-out result was seen): 5 of 7 registered claims passed; in three shifted worlds recalibrated minus frozen model is -0.487 [-0.535, -0.436], -0.528 [-0.590, -0.468] and -0.542 [-0.605, -0.481] nats per bin; after the error-risk rule change -0.032 [-0.035, -0.028] but the calibration intercept is still +0.61 [0.54, 0.69] (R4 and R6 did not pass). Quote both halves | 8 deployments per world, new seeds, held-out single frozen run | synthetic | `evals/hrt/results/heldout_recal.json (branch)` |
+| Prospective, first world: the frozen stuck model's log loss 0.445 [0.434, 0.455] against 0.525 for the online base rate; in three shifted worlds it is worse than the best plain predictor by +0.324 to +0.513 nats per bin, and a guard flagged 8 of 8 deployments in each. 8 of 10 registered claims passed. Quote both halves | 61,631 bins, 8 deployments, 32 persona-streams; shifted worlds 160 people each; held-out single run | synthetic | `evals/hrt/results/heldout_ledger.json` |
+| Online recalibration follow-up (designed after the first held-out result was seen): 5 of 7 registered claims passed; in three shifted worlds recalibrated minus frozen model is -0.487 [-0.535, -0.436], -0.528 [-0.590, -0.468] and -0.542 [-0.605, -0.481] nats per bin; after the error-risk rule change -0.032 [-0.035, -0.028] but the calibration intercept is still +0.61 [0.54, 0.69] (R4 and R6 did not pass). Quote both halves | 8 deployments per world, new seeds, held-out single frozen run | synthetic | `evals/hrt/results/heldout_recal.json` |
+| Ranges and sets: where calibrated (first world) the stuck set covers 90.0% [89.5%, 90.6%] against a promise of 90%; in three shifted worlds it covers 73.7% [71.0%, 76.2%], 70.4% [68.1%, 72.7%] and 70.8% [68.5%, 72.9%]; 8 of 11 registered claims passed (the two-minute range over-covers at 94.3%). Quote both halves | 32 people in the first world, 160 in each shifted world, 8 deployments each, held-out single run | synthetic | `evals/hrt/results/heldout_conformal.json` |
+| Decision value: where the model was fitted it is worth +31.32 net minutes an hour [28.79, 33.74] against -0.44 [-2.42, 1.41] for the online base rate; in three shifted worlds +3.78, +12.28 and +3.90 against +56.19, +59.48 and +42.05, below interrupting at every origin. The costs are our assumptions. Quote both halves | 8 deployments per world, held-out single run, break-even rule fixed in advance | synthetic | `evals/hrt/results/heldout_value.json` |
 | Local model: commit category 91.8% [84.7, 95.8] against 77.5% [68.3, 84.7] for rules | 98 held-out items | synthetic | `evals/report.md (Local model digests)` |
 | Pointing by description: Gemini flash-lite 95% [90, 98] (140 of 147), median 0.93 s | 147 positives, 43 negatives | synthetic sandbox screenshots | `evals/modelbench/REPORT.md` |
 | Cue (simulated): false nudges 0.73 an hour [0.64, 0.83], target met; faster-to-resume median 0.0 s [-9.5, 0.0], target not met. Quote both | 40 simulated personas, 481.5 hours | synthetic | `evals/cue/held_out.json` |
@@ -2798,7 +2880,7 @@ Found while writing. Each row names both files; the third column says which one 
 | Provenance wording on screen | docs/DECISIONS.md D57 (owner, 00:30 UTC), implemented on main at 01:39 UTC (merge 42c0ad7): no 'synthetic' or 'simulated' word, badge or chip anywhere in the app; a copy-lint (docs/knack-ux/banned-phrases.json) blocks the words in visible text; the screens say it in plain words ('data from example people made for this build', the Evidence map's 'generators we wrote' and 'language-model participants'); 'Example data' stays for a sample that stands in | CLAUDE.md (Honesty: synthetic results carry a badge), docs/UI_DIRECTION.md and docs/KNACK_UX.md (an origin badge such as 'Synthetic firm' stays) | D57 for the app; this document, the README and the Devpost keep the labels, and a video should say 'synthetic' aloud where the screen no longer does |
 | Agent power and model-written code | docs/DECISIONS.md D63 (owner): Claude CLI background agents with full computer access for code and data work, behind one consent card per task | docs/IMPLEMENTATION_SPEC.md (6.5) before the lead's amendment: 'Model-generated code is never executed'; CLAUDE.md (the owner's file, not edited): everything on sandbox sites and synthetic data | the lead amended docs/IMPLEMENTATION_SPEC.md (6.5, commit 2cc49ec, on main): the sentence is about compiled routine bundles and stays true for them; the task-agent path writes and runs code only after a per-task real-click consent card, with an environment allow-list, a time cap, Stop and the kill file, metadata-only ledger rows and no unattended 'allow everything'. Judge answer: yes, on the open-ended task path, with the worker's per-task consent, and never in routines |
 | Admin view with made-up people | docs/OWNER_REQUESTS.md (4.4): fill the Admin view with made-up data for several users, with no tag anywhere saying so; the lead (8 Nov, about 01:30 UTC): in progress, Track R found the live engine reads this device's own history, which holds no people; the seed (32 made-up people in 3 teams) merged to main at 01:51 UTC | CLAUDE.md (Honesty: synthetic results carry a badge) and docs/DECISIONS.md D57 (no word or badge in the app, concrete provenance wording instead) | landing until the seed command has run on the live data; any video that shows the firm says aloud that the people are made up |
-| Times written into decisions and plans | docs/DECISIONS.md D64: 'about 02:20 GMT'; evals/hrt/PLAN_RECAL.md (branch worktree-agent-a02c9cf8855c9f4ff), amendment A1: 'about 01:40 GMT' | the commit times of the same changes: D64 was committed at 01:54 UTC and the amendment commits at 01:23 and 01:26 UTC; evals/hrt/results/frozen.json frozen_at 01:26:10Z | the commit and freeze times; the stated times read as estimates and are not used as evidence of order |
+| Times written into decisions and plans | docs/DECISIONS.md D64: 'about 02:20 GMT'; evals/hrt/PLAN_RECAL.md, amendment A1: 'about 01:40 GMT' | the commit times of the same changes: D64 was committed at 01:54 UTC and the amendment commits at 01:23 and 01:26 UTC; evals/hrt/results/frozen.json frozen_at 01:26:10Z | the commit and freeze times; the stated times read as estimates and are not used as evidence of order |
 | Whether a routine run minimises the window | docs/KNACK_DEMO.md (M7, gap G3): a run in the agent's browser shows the pill and does not move the window | docs/knack-ux/03-routines.md and docs/FIRST_LAUNCH.md (step 6): Run now minimises the window | docs/KNACK_DEMO.md, the later and tested reading |
 | Gemini numbers in the report | evals/modelbench/REPORT.md (18:10 UTC) and evals/report.json (modelbench section): the bake-off figures exist | docs/drafts/DEMO_SCRIPT.md and docs/KNACK_DEMO.md section 8: 'any Gemini speed or accuracy number (not in the report)' | quoted here with the label 'synthetic sandbox screenshots'; the shot-list rule is more cautious and the lead may keep it |
 | Rung definitions | evals/agentic/REAL_CLICKS.md: R2 a model proposes one step in TextEdit; R3 and R4 are attended sandbox rungs; unattended real-desktop runs are not on the ladder | docs/FLAGS.md and docs/DECISIONS.md D48: the reviewer's no-go for 'model-driven (R2) and unattended (R3, R4)' runs; docs/REQ7_PLAN.md: R2 a click and a typed field on a sandbox page, R3 a full household, R4 a long-horizon run | evals/agentic/REAL_CLICKS.md |
@@ -2813,7 +2895,6 @@ Found while writing. Each row names both files; the third column says which one 
 
 | Item | Document | State at the time of writing |
 |---|---|---|
-| Prospective ledger, drift guard, decisions scoreboard and the two Evidence blocks (HRT, D59) | `evals/hrt/PLAN.md, evals/hrt/PLAN_RECAL.md, docs/HRT_BRIEF.md, docs/drafts/CLAIMS_HRT.md, docs/drafts/HRT_30S.md, evals/hrt/results/heldout_*.json` | on branch worktree-agent-a02c9cf8855c9f4ff (latest commit 943c071, 01:28 UTC); 8 of 10 registered claims passed; the recalibration follow-up was registered, frozen and run once (5 of 7 claims passed); not on main; the running product does not write the ledger yet |
 | First-run permissions and Try it screens and the task box (SHELL-WEB, D58, owner request 4.18) | `docs/knack-ux/capabilities-and-permissions.md, apps/dashboard/src/screens/FirstRun/model.ts, docs/TASKS.md` | the specification and the tasks service, consent cards and pills are on main (01:00 and 01:42 UTC); the first-run model on main still has three screens (role, capture, ready), so the permissions step and the Try it screen are not on main, and the dashboard has no call that creates a task, so the task box is not on main |
 | Admin view with made-up people for several users (owner request 4.4, Track R) | `docs/OWNER_REQUESTS.md (4.4)` | the seed (32 made-up people in 3 teams, python -m understudy_engine.demo seed-firm) is on main since 01:51 UTC; until it has run on the live data the live engine reads this device's own ledger (one person) and the Admin comparisons are withheld; landing |
 

@@ -1,8 +1,8 @@
 # Knack feature index
 
-As of Sun 08 Nov 2026, 02:25 UTC, checked against main at 6b94707.
+As of Sun 08 Nov 2026, 02:31 UTC, checked against main at f295814.
 
-35 pages and 68 entries (features, plus four write-ups of results that did not hold up), for the pitch (Hack the Burgh XIII), the launch video, the demo and the submission video. The master document is `docs/PITCH_FEATURES.md`; the 20 video claims are in `video-beats.md`; the 25 hardest judge questions are in `faq.md`.
+35 pages and 70 entries (features, plus four write-ups of results that did not hold up), for the pitch (Hack the Burgh XIII), the launch video, the demo and the submission video. The master document is `docs/PITCH_FEATURES.md`; the 20 video claims are in `video-beats.md`; the 25 hardest judge questions are in `faq.md`.
 
 **Status words.** `verified`: the lead saw it work end to end (`docs/FEATURE_CATALOGUE.md`). `built`: built and tested by its track, on main, not yet seen end to end by the lead. `landing`: not on main yet (another agent's branch, or its document has not landed). `not run`: designed or built but never run. The status is taken from the sources at the time of writing (see the time stamp in `docs/PITCH_FEATURES.md`); nothing here was run by the author.
 
@@ -133,10 +133,12 @@ As of Sun 08 Nov 2026, 02:25 UTC, checked against main at 6b94707.
 | ML v2, held-out: mostly negative | [what-did-not-hold-up](what-did-not-hold-up.md) | **verified** | HRT |
 | The simulated study sat at the floor | [what-did-not-hold-up](what-did-not-hold-up.md) | **verified** | HRT, G-Research |
 | Other results that went the wrong way | [what-did-not-hold-up](what-did-not-hold-up.md) | **verified** | G-Research |
-| Prospective prediction ledger and forward scoring | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **landing** (decision D59; plan registered at 00:35 UTC before any held-out run; code, held-out results and docs/HRT_BRIEF.md are on branch worktree-agent-a02c9cf8855c9f4ff (latest commit 943c071, 01:28 UTC), not on main; the page has the rest) | HRT |
-| Drift guard: noticing when the model stops beating the baseline | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **landing** (as above: on the HRT branch, results landed, not on main) | HRT |
-| Decisions scoreboard: realised cost against a naive policy and an oracle | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **landing** (as above: on the HRT branch, results landed, not on main) | HRT |
-| Online recalibration: rescuing the model instead of discarding it | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **landing** (follow-up plan registered at 01:25 UTC after the first held-out result was seen (the plan says so), amended once (A1) after a dev run, frozen at 01:26 UTC, run once on new seeds; results; the page has the rest) | HRT |
+| Prospective prediction ledger and forward scoring | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **built** (decision D59; plan registered at 00:35 UTC before any held-out run; merged to main at 02:26 UTC (1984605) with the code, the held-out results, docs/HRT_BRIEF.md and the Evidence blocks; the page has the rest) | HRT |
+| Drift guard: noticing when the model stops beating the baseline | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **built** (as above: on main since 02:26 UTC) | HRT |
+| Decisions scoreboard: realised cost against a naive policy and an oracle | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **built** (as above: on main since 02:26 UTC) | HRT |
+| Online recalibration: rescuing the model instead of discarding it | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **built** (follow-up plan registered at 01:25 UTC after the first held-out result was seen (the plan says so), amended once (A1) after a dev run, frozen at 01:26 UTC, run once on new seeds; the page has the rest) | HRT |
+| Ranges and sets: conformal intervals, and where their promise breaks | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **built** (registered in evals/hrt/PLAN_CONFORMAL.md before any number existed, amended once (A1) after one dev run, run once on new seeds; on main since 02:26 UTC (1984605); the running product does not use it) | HRT |
+| Decision value against prediction accuracy: did the better forecast buy a better decision? | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **built** (registered in evals/hrt/PLAN_VALUE.md after the first held-out results (so the sign of the log-loss differences in the shifted worlds was already known; the decision claim V2 was not computed before); the page has the rest) | HRT |
 
 ## Roles
 
