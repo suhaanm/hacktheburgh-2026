@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import workFx from "../fixtures/workgraph.json";
 import transFx from "../fixtures/transitions.json";
 import type { Transitions, WorkGraph, WorkLink, WorkNode, WorkNodeType } from "../types";
-import { NODE_COLOUR, NODE_INK, capsule, cleanGraph, densityScale, firstSentence, isLapsed, layoutGraph, linkBuckets, linkOpacity, nextNode, nodeAria, nodeOpacity, radiusFn, stepNode, tickBudget, tipFor, tipPlace } from "./graph";
+import { NODE_COLOUR, NODE_INK, capsule, cleanGraph, densityScale, firstSentence, graphHeadline, isLapsed, layoutGraph, linkBuckets, linkOpacity, nextNode, nodeAria, nodeOpacity, radiusFn, stepNode, tickBudget, tipFor, tipPlace } from "./graph";
 import { GLYPH_MIN_R } from "./nodeIcons";
 import { edgeKind, layers, layoutTransitions } from "./tgraph";
 
@@ -203,6 +203,21 @@ describe("when a name is shown", () => {
     expect(low.side).toBe("above");
     expect(low.x + 180).toBeLessThanOrEqual(394);
     expect(low.y + 48).toBeLessThanOrEqual(294);
+  });
+});
+
+describe("the headline", () => {
+  it("counts the things and the fading ones, in one sentence", () => {
+    expect(graphHeadline({ nodes: [mk("a"), mk("b"), mk("c", "skill", { strength: 0.1 }), mk("d", "memory", { strength: 0.3 })] })).toBe("4 things Knack knows about your work, 2 fading now.");
+    expect(graphHeadline({ nodes: [mk("a"), mk("b")] })).toBe("2 things Knack knows about your work.");
+  });
+  it("says 'thing' for one, says nothing for none, and counts a repeated id once", () => {
+    expect(graphHeadline({ nodes: [mk("a")] })).toBe("1 thing Knack knows about your work.");
+    expect(graphHeadline({ nodes: [] })).toBe("");
+    expect(graphHeadline({ nodes: [mk("a", "routine", { strength: 0.1 }), mk("a", "routine", { strength: 0.1 }), mk("b")] })).toBe("2 things Knack knows about your work, 1 fading now.");
+  });
+  it("agrees with the example graph", () => {
+    expect(graphHeadline(wg)).toBe(`${wg.nodes.length} things Knack knows about your work${wg.nodes.some((n) => n.strength < 0.4) ? `, ${wg.nodes.filter((n) => n.strength < 0.4).length} fading now` : ""}.`);
   });
 });
 
