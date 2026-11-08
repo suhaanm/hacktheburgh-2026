@@ -413,6 +413,7 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
     u.pathname = u.pathname.replace(/^\/engine/, "");
     if (req.method() === "OPTIONS") return route.fulfill({ status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" } });
     if (u.pathname === "/health") return json(route, { ok: true, version: "x", mock: false, extensions: { evidence: true } });
+    if (u.pathname === "/identity") return json(route, { person: "p_t", role: "benefits-processor" });   // the worker is known: Growth asks a live engine only for its own worker's data
     if (u.pathname === "/evidence/packet") return json(route, { meta, data: { person: "p_t", case: "t_t", facts: [{ path: "gap.case_s", value: 585, unit: "s" }], limitations: [] } });
     if (u.pathname === "/evidence/explain") { explainBody = { body: JSON.parse(req.postData() ?? "{}"), actor: req.headers()["x-understudy-actor"], type: req.headers()["content-type"] }; if (delayMs) await new Promise((r) => setTimeout(r, delayMs)); return json(route, { meta, data: scenario }); }
     return json(route, { error: { code: "not_found", message: "not mocked" } }, 404);
