@@ -25,7 +25,9 @@ First launch of an unsigned app: macOS refuses a double-click on a downloaded or
 - it checks the engine (7700) and the agent (7710). If both answer it uses them and never stops them. If not it starts them as its own children, **live** (real Gemini models, `data/live-home` and `data/live-data`, seeded once) when `GEMINI_API_KEY` is in the environment or the repository's `.env`, and the models boot check passes; otherwise **example data** (`data/demo-home`, `data/demo-data`) with the one line "Running with example data". On quit it stops only the processes it started. Logs go to `data/logs/knack-<service>.log`;
 - it needs `uv` (on `PATH`, `/opt/homebrew/bin`, `/usr/local/bin`, `~/.local/bin` or `~/.cargo/bin`) to start the Python services. Without it the window says so, plainly, with one Try again button.
 
-Environment: `KNACK_REPO` (the repository, if the built app was moved), `KNACK_LIVE=0` (force example data) or `1` (ask for live), `KNACK_SHELL=0` (the old behaviour: no main window, no Dock icon changes), `KNACK_NO_SINGLE_INSTANCE=1`.
+Environment: `KNACK_REPO` (the repository, if the built app was moved), `KNACK_LIVE=0` (force example data) or `1` (ask for live), `KNACK_SHELL=0` (the old behaviour: no main window, no Dock icon changes), `KNACK_NO_SINGLE_INSTANCE=1`, `KNACK_SITES=0` (do not start the sandbox calculator sites, which bind fixed ports 7801 to 7803).
+
+Two hidden end-to-end runs of the real app exist (nothing shown, free ports): `scripts/electron-lock.sh KNACK node scripts/knack-e2e.mjs` (stand-in services, the pill, the cards, a clean quit) and the same with `--real-services` (the app starts the real engine and agent itself, quitting stops exactly those two).
 
 ## The hidden check (no window, no Dock icon, nothing on the screen)
 
