@@ -20,6 +20,7 @@ import { pStuckForTrigger } from './engine/coach-next'
 import { isKilled } from './kill-flag'
 import { configureLegacyRemote, createLegacyRemoteGate, legacyGateReader, legacyRemoteOn } from './legacy-remote'
 import { liveFlagOn } from './live/flags'
+import { checkGeminiKey } from './live/token'
 import { registerLive } from './live/electron'
 import { registerWake } from './wake/electron'
 import { createContextHub, screenIdFromUrl } from './wake/context-source'
@@ -124,7 +125,8 @@ void app.whenReady().then(async () => {
       env: process.env,
       glyphSvg,
       // The key is only checked for being there; the boot check lists the models it can use. A port built for live (never the mock) answers it.
-      bootCheck: async () => (await createModelPortFromEnv({ env: { ...process.env, UNDERSTUDY_MOCK: '0', ALONGSIDE_MOCK: '0' } }).bootCheck()).ok,
+      // The models check is the Gemini one (key present, and the service answers for a configured model): the old OpenAI check could never pass with a Gemini key.
+      bootCheck: async () => (await checkGeminiKey({ env: process.env })).ok,
       killAccelerator: () => lastHotkeyReport()?.kill[0] ?? null,
       stopEverything: () => lateBox.kill?.(),
       log: (...args) => console.log('[knack]', ...args),
