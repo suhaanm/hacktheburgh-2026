@@ -1,6 +1,6 @@
 # Knack: the features, for the pitch and the launch video
 
-Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sun 08 Nov 2026, 01:09 UTC, checked against main at 558cdcc. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
+Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sun 08 Nov 2026, 01:16 UTC, checked against main at 049a7cb. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
 
 This is the master document. It lists 66 entries (62 features and 4 write-ups of results that did not hold up) on 35 pages, grouped by capability. One page per feature (with a 30-second spoken script and slide bullets) is in `docs/features/`; the index with status is `docs/features/index.md`; the 20 video claims are in `docs/features/video-beats.md`; the 25 hardest judge questions are in `docs/features/faq.md`.
 
@@ -11,7 +11,7 @@ This is the master document. It lists 66 entries (62 features and 4 write-ups of
 1. **See the work**: Text-free capture (Chrome extension and event store); Work genome: aligned traces priced in seconds; Controls: placebo and shuffled-label null; What skipping costs in answers; Stuck prediction and the Forecasts scorecard; Your hours: presence map and away forecast; How work connects: the work graph; Calendar layer (week ribbon, Outlook and Teams adapters); Git habits for programmers.
 2. **Coach on the screen**: Live coach: one decision at a time, with a dignity gate; Fading help: levels L1 to L4 decided by code; On-screen annotations: ring, one label, ghost cursor; On-device awareness and triggered glances.
 3. **Step in when stuck**: Cue: stuck rescue.
-4. **Agents that do the work safely**: Benefits agent on three sandbox calculators; Code decides 'done'; Independent verifier (a second model family); Eight security layers, approval queue and audit log; Optional sign-in step-up for irreversible approvals (Auth0); Computer use on the sandbox calculators; Real-click ladder (R0 to R4) and the arm switch; Background agents: parent and child; Overnight runs and the morning report; Stop everything: the kill switch; Open-ended tasks, skills in context and live background pills.
+4. **Agents that do the work safely**: Benefits agent on three sandbox calculators; Code decides 'done'; Independent verifier (a second model family); Eight security layers, approval queue and audit log; Optional sign-in step-up for irreversible approvals (Auth0); Computer use on the sandbox calculators; Real-click ladder (R0 to R4) and the arm switch; Background agents: parent and child; Overnight runs and the morning report; Stop everything: the kill switch; Open-ended tasks, skills in context and Claude background agents.
 5. **Routines and automations**: Routine finder and proposals; Watch first and the trust ladder; Could automate: the repeat list; Needs you: one list for decisions; When to build an automation: ski rental with predictions; Review routing under a risk bound; Proactive briefing: judge, verify, prepare, press to fire.
 6. **Connections and MCP plugins**: Connections: curated MCP plugins with role presets.
 7. **Voice and Hey Knack**: Hey Knack: an on-device wake phrase; Voice guidance and 'do it for me' behind a click.
@@ -1005,41 +1005,41 @@ Measured on a laptop other processes were also using, with fake desktops for the
 
 - **Wordsmith (most complicated end-to-end browser-use workflow)**: a visible, key-reachable stop for an agent that acts
 
-### Open-ended tasks, skills in context and live background pills
+### Open-ended tasks, skills in context and Claude background agents
 
-**Status:** landing (owner requests 4.15 and 4.18 to 4.21 in docs/OWNER_REQUESTS.md, tracks T, V, A, C and E; no document, code or result seen when this was written; everything on this entry is unverified) · **Page:** `docs/features/open-ended-tasks.md` · **Targets:** Wordsmith
+**Status:** landing (owner decision D63 (01:05 UTC); a vertical slice tested with a fake claude is on the Tasks branch (worktree-agent-a40520cb1ac55fcdc, Track T); docs/TASKS.md has not been seen; nothing run with the real command; not on main) · **Page:** `docs/features/open-ended-tasks.md` · **Targets:** Wordsmith
 
 #### What it does
 
-The worker can type or speak any task in a task box on Home ('What should Knack do?') instead of choosing from a preset list. Skill files and plugins load into the agent's context automatically. Background agents appear as small pills at the top right with animated icons and update live without a refresh. The owner has also asked for computer use and background agents that can create code.
+The worker types or says any task (a task box on Home, and 'Hey Knack, do ...'). Knack routes it with code to one of four routes: answer inline, work in the agent's own browser window, show how on the real screen, or hand code, data and file work to a Claude background agent. Every route except 'answer' waits for the worker's click. Skills, including the owner's existing ones, load into context, and background agents show as small pills at the top right.
 
 #### How it works
 
-Not verified. What is written down: the Home screen is to hold the task box and a short list of background tasks (docs/knack-ux/views.md); the open-ended track is Track T and the connections track is Track E (docs/OWNER_REQUESTS.md); the progress UI is to be as minimal as Claude Code's task list. Rules that already hold and must still hold: every automation is opt-in, an approval is a real click, irreversible steps wait for the worker, and the eight security layers sit between page content and any action. The existing rule that automations are a JSON step language and that model-written code is never executed sits against the request for agents that create code; how the two are reconciled is not documented yet (the runtime's raw mode, which runs model-written code on files the worker named, is foreground only and sandboxed).
+Routing is code: weighted keyword and shape rules score each route; a clear winner is the route; when they cannot separate, an optional fast-model call may propose one value from the closed list, and code accepts it only if it is 'answer' or the rules already found some evidence for it, so a model can break a tie but never introduce a risky route; otherwise Knack asks one question, as a card with a button per route. The desktop route never clicks from this service: it answers 'show instead'. A Claude background agent is the owner's own claude command started as a monitored child in its own process group, in a working folder, with an allow-listed environment (home, path, language, terminal, user, temp folder: Knack's keys and every other variable are never passed), a 30-minute wall-clock cap, a 10-minute idle cap and an output cap. Stream events become short progress lines (a tool name and a file's base name, never contents, commands or prompts). Stop, the kill file and the time cap end the whole process group. The final message is returned as untrusted text. Two permission scopes: files and commands (edits and a fixed tool list, any prompt denied so the child cannot hang), or 'everything' (the skip-permissions flag), used only when the worker picks that second option on the consent card for that task. One consent card per task says in plain words what the agent can do (read and change files, run commands, uses the owner's own Claude account, not Knack's models). Ledger rows are metadata only. An unattended run never gets 'allow everything', and real desktop clicks stay behind the supervised first-click test.
 
-**What is different.** Nothing is claimed: this entry records an owner request and the rules it must still obey.
+**What is different.** Routing is code with a closed list of routes (a model may break a tie but never add a risky route), every non-answer route waits for one consent card that says in plain words what the agent can do, and the agent is a monitored child with caps and a kill path.
 
 #### Where to see it
 
-Home (the task box and the task list); the top right of the screen (pills). Not verified on main.
+Home (the task box and a short list of background tasks) and the voice tool in Hey Knack; pills at the top right while an agent works, with Knack's own attention (approvals, voice, Stop) staying in the bottom-right column. Not verified on main.
 
 #### Demo moment
 
-Not available. Do not film until it lands and the lead has seen it.
+Not available yet. When it lands and the lead has seen it: type 'summarise this CSV'; the consent card names what the agent can do; click once; a pill shows progress; the result arrives as text the worker reads. Do not film until then.
 
 #### Evidence and its label
 
 | What | Label | Source |
 |---|---|---|
-| No evidence: requested and unticked on the owner's checklist | not run | `docs/OWNER_REQUESTS.md (items 4.15, 4.18 to 4.21)` |
+| The routing, the child process handling, the manager and the routes are covered by tests that use a fake claude command; nothing was run against the real command | offline tests with a fake command; not a real run | `services/agent/tests/tasks/ (branch worktree-agent-a40520cb1ac55fcdc)` |
 
 #### Honest limit
 
-Everything on this entry is a request, not a result. The tension with 'model-generated code is never executed' is stated in the spec and has no recorded resolution.
+Full computer access is the owner's choice (D63) and the permission deny rules for Knack's own protected files are defence in depth, not a sandbox: a shell command can reach anything the owner's account can. This sits against the routines layer's rule that automations are a JSON step language and model-written code is never executed; the two are different layers and D63 governs the new one, but a judge will ask. Claude CLI usage is billed to the owner's own Claude account, outside the US$200 Gemini cap. Nothing here is verified on main.
 
 #### Hackathon target
 
-- **Wordsmith (most complicated end-to-end browser-use workflow)**: a workflow the worker defines by typing or speaking, not one we preset
+- **Wordsmith (most complicated end-to-end browser-use workflow)**: a workflow the worker defines by typing or speaking, with one plain consent per task and a monitored agent
 
 ## 5. Routines and automations
 
@@ -2709,6 +2709,7 @@ Found while writing. Each row names both files; the third column says which one 
 | Connection preset ids | docs/CONNECTIONS.md and packages/connections/presets/ on the CONNECTIONS branch: 13 presets, Linear listed as unverified and not shipped (hosted only), Jira shipped | docs/roles/programmer.md and docs/roles/data-analyst.md suggest the ids linear and sheets; docs/DECISIONS.md D55 names Linear | docs/CONNECTIONS.md |
 | Reader memo and meter manifest | docs/KNACK_DEMO.md section 6 (on its branch): both are built now; the documents lag the code | docs/CONTEXT_ENGINEERING.md: the reader memo is not built | docs/KNACK_DEMO.md (later); not verified in code by the author |
 | Provenance wording on screen | docs/DECISIONS.md D57 (owner, 00:30 UTC): no 'synthetic' or 'simulated' word, badge or chip anywhere in the app; concrete wording instead | CLAUDE.md (Honesty: synthetic results carry a badge), docs/UI_DIRECTION.md and docs/KNACK_UX.md (an origin badge such as 'Synthetic firm' stays) | D57 for the app; this document, the README and the Devpost keep the labels, and a video should say it aloud |
+| Agent power and model-written code | docs/DECISIONS.md D63 (owner): Claude CLI background agents with full computer access for code and data work, behind one consent card per task | docs/IMPLEMENTATION_SPEC.md (6.5): automations are a JSON step language and model-written code is never executed; docs/MVP_STATUS.md and CLAUDE.md: everything on sandbox sites and synthetic data | D63 for the new tasks layer; the older lines describe the routines layer |
 | Whether a routine run minimises the window | docs/KNACK_DEMO.md (M7, gap G3): a run in the agent's browser shows the pill and does not move the window | docs/knack-ux/03-routines.md and docs/FIRST_LAUNCH.md (step 6): Run now minimises the window | docs/KNACK_DEMO.md, the later and tested reading |
 | Gemini numbers in the report | evals/modelbench/REPORT.md (18:10 UTC) and evals/report.json (modelbench section): the bake-off figures exist | docs/drafts/DEMO_SCRIPT.md and docs/KNACK_DEMO.md section 8: 'any Gemini speed or accuracy number (not in the report)' | quoted here with the label 'synthetic sandbox screenshots'; the shot-list rule is more cautious and the lead may keep it |
 | Rung definitions | evals/agentic/REAL_CLICKS.md: R2 a model proposes one step in TextEdit; R3 and R4 are attended sandbox rungs; unattended real-desktop runs are not on the ladder | docs/FLAGS.md and docs/DECISIONS.md D48: the reviewer's no-go for 'model-driven (R2) and unattended (R3, R4)' runs; docs/REQ7_PLAN.md: R2 a click and a typed field on a sandbox page, R3 a full household, R4 a long-horizon run | evals/agentic/REAL_CLICKS.md |
@@ -2728,6 +2729,7 @@ Found while writing. Each row names both files; the third column says which one 
 | Demo shot list and spoken lines (DEMO-DIRECTOR) | `docs/KNACK_DEMO.md` | not on main |
 | Demo shot list, spoken lines, the context audit and the headless checks (DEMO-DIRECTOR) | `docs/KNACK_DEMO.md, docs/knack-demo/context-audit.md` | written, on branch worktree-agent-ab26657c3d23ea392; not on main yet |
 | Prospective ledger, drift guard and decisions scoreboard; docs/HRT_BRIEF.md (HRT, D59) | `evals/hrt/PLAN.md, docs/HRT_BRIEF.md, evals/hrt/results/heldout_*.json` | plan, code, held-out results and the brief are on branch worktree-agent-a02c9cf8855c9f4ff; 8 of 10 registered claims passed; not on main; the running product does not write the ledger yet |
+| Open-ended tasks, skills and Claude background agents (Track T, D63) | `docs/TASKS.md` | a vertical slice tested with a fake claude is on branch worktree-agent-a40520cb1ac55fcdc; the document has not been seen; not on main |
 | Computer use on Gemini, development results (AGENTIC-3) | `evals/agentic/ITERATIONS_8.md` | on branch worktree-agent-acf889b730112335b; merges after its full suite is green (docs/FIRST_LAUNCH.md) |
 
 When one of these lands, update its page in `docs/features/` and the status in `docs/features/index.md`.
