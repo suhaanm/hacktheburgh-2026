@@ -5,13 +5,14 @@
 // What it never does: start the listener while any guard says dormant; give the listener's audio to any model (the helper only says `heard`);
 // click anything itself (the click machine only emits effects, and the card's Allow counts only as a real mouse click).
 import type { VoiceLock } from '../attention/lock'
-import type { DoItAnswer, DoItRequest } from '../live/ports'
+import type { DoItAnswer, DoItRequest, TaskAnswer } from '../live/ports'
+import type { ConsentCard, ConsentChoice, QuestionCard, TaskClient, TaskRow } from './tasks'
 import { INITIAL, reduce, type ClickEffect, type ClickEvent, type ClickState, type ToolAnswer } from './click-machine'
 import { dormancy, type Dormancy, type WakeInputs } from './guards'
 import type { HelperStatus } from './helper'
 import type { RungReading } from './rung'
 import { consentOutcome, consentStep, type CardChoice, type WakeSettingsStore } from './settings'
-import { BLOCKED_LINE, CARDS, FIRST_WAKE_OPENING, clickFailureCard, LISTENING_LINE, REFUSAL_LINE, dormantLine, infoCardFor, type InfoCard } from './texts'
+import { BLOCKED_LINE, CARDS, EVERYTHING_CARD, FIRST_WAKE_OPENING, taskConsentCard, taskQuestionCard, taskResultCard, clickFailureCard, LISTENING_LINE, REFUSAL_LINE, dormantLine, infoCardFor, type InfoCard } from './texts'
 
 export interface CardSpec {
   id: string
@@ -89,7 +90,16 @@ export interface WakeControllerDeps {
   chime?: () => void
   /** The button on an information card: Knack's Settings, or the macOS microphone pane. */
   openSettings?: (where: 'knack' | 'microphone' | 'screen' | 'speech' | 'accessibility' | 'dictation') => void
-  say?: (line: 'show_instead' | 'done' | 'did_not_work' | 'stopped') => void
+  say?: (line: 'show_instead' | 'done' | 'did_not_work' | 'stopped' | 'started') => void
+  /** The task service (loopback). Absent: `start_task` answers that it is unavailable. */
+  tasks?: TaskClient
+  /** Reads a result line out in the open conversation (data, not an instruction). False when no conversation is open: a card then shows it. */
+  readOut?: (text: string) => boolean
+  /** Waits (tests move time by hand). */
+  sleep?: (ms: number) => Promise<void>
+  /** How often a started task is looked at, and for how long. */
+  taskPollMs?: number
+  taskWatchMs?: number
   now?: () => number
   setTimer?: (fn: () => void, ms: number) => unknown
   clearTimer?: (h: unknown) => void
@@ -121,6 +131,8 @@ export interface WakeController {
   openingText(): string | null
   /** The helper said `heard`. Exposed for the supervisor and for tests. */
   onHeard(): Promise<void>
+  /** The Live tool `start_task`: hands the worker's request to the task service, shows the consent card, never starts anything itself. */
+  startTask(text: string): Promise<TaskAnswer>
   /** The wake session's `do_it_for_me` (the Live tool host calls it). */
   doIt(req: DoItRequest): Promise<DoItAnswer>
 }
@@ -151,6 +163,9 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
   let pendingBox: [number, number, number, number] | null = null
   let restartTimer: unknown = null
   const lastExplained = new Map<string, number>()
+  const sleep = d.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)))
+  const watching = new Set<string>()
+  let taskCardId: string | null = null // the task consent or question card on screen, closed by Stop everything
   let blockedShown: string | null = null // the helper's blocked cause already explained on a card (cleared when the listener works again)
   const listeners = new Set<(s: WakeStatus) => void>()
 
@@ -360,6 +375,107 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
   }
 
   // ---- the model's do_it_for_me
+  // ---- "Hey Knack, do X": the task service, the consent card, and what Knack says when it is done
+  const failureCard = (reason: string): string => (reason === 'too_many_tasks' ? 'too_many_tasks' : reason === 'kill_switch' ? 'killed' : 'task_unavailable')
+
+  /** A started task is looked at every couple of seconds until it finishes: Done. on success, a plain line if it failed, and an answer read out or shown. */
+  function watch(id: string): void {
+    if (!d.tasks || watching.has(id)) return
+    watching.add(id)
+    const pollMs = d.taskPollMs ?? 2000
+    const until = now() + (d.taskWatchMs ?? 30 * 60_000)
+    const tick = async (): Promise<void> => {
+      if (!started || now() > until) return void watching.delete(id)
+      const row = await d.tasks?.get(id).catch(() => null)
+      if (row && (row.state === 'done' || row.state === 'failed' || row.state === 'stopped')) {
+        watching.delete(id)
+        finished(row)
+        return
+      }
+      await sleep(pollMs)
+      void tick()
+    }
+    void tick()
+  }
+
+  function finished(row: TaskRow): void {
+    if (row.state === 'stopped') return // the worker stopped it (or declined): nothing to say
+    if (row.state === 'failed') return d.say?.('did_not_work')
+    if (row.route === 'answer' && row.result) {
+      const spoken = d.readOut?.(row.result) === true
+      if (!spoken) void d.cards.ask({ id: `result-${row.task_id}`, ...taskResultCard(row.result), expireMs: 30_000 })
+      return
+    }
+    d.say?.('done')
+  }
+
+  /** The consent card for a task, answered only by a real mouse click. Not now and a timeout leave the task waiting (it is still in Needs you). */
+  async function confirm(id: string, nc: ConsentCard | null): Promise<void> {
+    if (!d.tasks || !nc) return
+    const card = taskConsentCard(nc)
+    taskCardId = `task-${id}`
+    let a = await d.cards.ask({ id: taskCardId, title: card.title, body: card.body, buttons: card.buttons, expireMs: 120_000 })
+    if (!a || a.via !== 'mouse') return void (taskCardId = null)
+    let choice: ConsentChoice | null = a.buttonId === 'decline' ? 'decline' : a.buttonId === 'allow' ? 'allow' : null
+    if (a.buttonId === 'more' && nc.buttons.more.some((m) => m.id === 'everything')) {
+      taskCardId = `task-${id}-more`
+      a = await d.cards.ask({ id: taskCardId, title: EVERYTHING_CARD.title, body: EVERYTHING_CARD.body, buttons: EVERYTHING_CARD.buttons, expireMs: 120_000 })
+      choice = a && a.via === 'mouse' && a.buttonId === 'everything' ? 'everything' : null
+    }
+    taskCardId = null
+    if (choice === null) return
+    const r = await d.tasks.consent(id, choice)
+    if (!r.ok) return explain(failureCard(r.reason))
+    if (choice === 'decline') return
+    d.say?.('started')
+    watch(id)
+  }
+
+  async function askQuestion(id: string, q: QuestionCard | null): Promise<void> {
+    if (!d.tasks || !q) return
+    const card = taskQuestionCard(q)
+    taskCardId = `task-${id}-q`
+    const a = await d.cards.ask({ id: taskCardId, title: card.title, body: card.body, buttons: card.buttons, expireMs: 120_000 })
+    taskCardId = null
+    if (!a || a.via !== 'mouse') return
+    const r = await d.tasks.answer(id, a.buttonId)
+    if (!r.ok) return explain(failureCard(r.reason))
+    if (r.row?.needs_consent) return void confirm(id, r.row.needs_consent)
+    if (r.row && (r.row.state === 'running' || r.row.state === 'planning')) watch(id)
+  }
+
+  async function startTask(text: string): Promise<TaskAnswer> {
+    if (!d.tasks) return { ok: false, reason: 'unavailable' }
+    if (machine.k === 'killed') return { ok: false, reason: 'kill_switch' }
+    const r = await d.tasks.create(text)
+    if (!r.ok) {
+      const why = r.reason === 'too_many_tasks' || r.reason === 'kill_switch' || r.reason === 'refused' ? r.reason : 'unavailable'
+      explain(failureCard(r.reason))
+      return { ok: false, reason: why }
+    }
+    const c = r.created
+    if (c.question) {
+      void askQuestion(c.task_id, c.question)
+      return { ok: true, started: false, waiting_consent: false, route: c.route, asked: true }
+    }
+    if (c.needs_consent) {
+      void confirm(c.task_id, c.needs_consent)
+      return { ok: true, started: false, waiting_consent: true, route: c.route }
+    }
+    if (c.route === 'desktop') return { ok: true, started: false, waiting_consent: false, route: 'desktop', desktop_click_possible: d.rung().cleared }
+    if (c.route === 'answer') {
+      // A question answered inline: wait a few seconds for the one result line, which the model then says.
+      for (let i = 0; i < 20; i++) {
+        const row = await d.tasks.get(c.task_id).catch(() => null)
+        if (row && (row.state === 'done' || row.state === 'failed' || row.state === 'stopped')) return { ok: true, started: false, waiting_consent: false, route: 'answer', result: row.state === 'done' ? row.result : null }
+        await sleep(1000)
+      }
+      watch(c.task_id) // still working: it is read out or shown when it finishes
+      return { ok: true, started: false, waiting_consent: false, route: 'answer', result: null }
+    }
+    return { ok: true, started: false, waiting_consent: false, route: c.route }
+  }
+
   async function doIt(req: DoItRequest): Promise<DoItAnswer> {
     if (machine.k === 'card_shown' || machine.k === 'running') return { ok: false, reason: 'busy' }
     const rung = d.rung()
@@ -406,6 +522,8 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
       offLive = null
       d.helper.stop()
       if (currentCard) d.cards.close(currentCard.id)
+      if (taskCardId) d.cards.close(taskCardId)
+      watching.clear()
       listeners.clear()
     },
     status,
@@ -420,10 +538,12 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
     },
     setKilled(k) {
       killed = k
+      if (k && taskCardId) d.cards.close(taskCardId)
       dispatch({ t: k ? 'kill' : 'resume' })
       evaluate()
     },
     refresh: evaluate,
+    startTask,
     arm() {
       armed = true
       d.helper.unblock()
