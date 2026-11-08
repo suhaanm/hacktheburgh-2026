@@ -1,3 +1,7 @@
+# Skills in teaching order. Level L1 is full help, L4 is gone (deterministic ladder), so a skill carries hints for L1 to L3 only.
+# Prompts are a hypothesis or a question, never the answer. Terse, command first, as the pack's tone defaults say.
+# Skills 1 to 6 are frozen (the role studies use their ids and prompts). Skills 7 to 18 were appended by the role-depth track (RD,
+# 7 Nov 2026) for the rest of the job; each has a short `name` (a noun phrase for sentences) and is taught from a new cog.
 version: 1
 ladder: { L1: full, L2: small, L3: dot, L4: gone }
 skills:
@@ -61,3 +65,135 @@ skills:
       L1: "What happens at the edges: empty, one item, exactly full, one past the end?"
       L2: Edges tried?
       L3: Try the edges.
+  - id: reproduce-before-fixing
+    label: Reproduce the failure locally before you fix it
+    name: reproducing before fixing
+    order: 7
+    cogs: [REPRODUCE_LOCALLY]
+    prerequisites: [read-the-trace-first]
+    expert_signal: Makes the failure happen locally with one command before the first edit.
+    prompts:
+      L1: Can you make this fail on your own machine, with one command, before you change anything?
+      L2: Does it fail locally?
+      L3: Reproduce first.
+  - id: bisect-before-guessing
+    label: Bisect the history instead of guessing
+    name: bisecting before guessing
+    order: 8
+    cogs: [BISECT_CHANGE]
+    prerequisites: [reproduce-before-fixing]
+    expert_signal: Marks one good and one bad point and halves the range.
+    prompts:
+      L1: It worked before. Which change in between broke it, and what would halve the range?
+      L2: Good point and bad point marked?
+      L3: Halve it.
+  - id: log-for-the-next-incident
+    label: Log what the next incident will need
+    name: logging for the next incident
+    order: 9
+    cogs: [ADD_LOGGING]
+    prerequisites: [read-the-trace-first]
+    expert_signal: Adds ids and counts at the decision point, never the data itself.
+    prompts:
+      L1: If this fails again at night, what will the log tell you, and which ids would you want?
+      L2: What would the log say next time?
+      L3: Log the ids.
+  - id: message-for-the-next-reader
+    label: Write the commit message for the next reader
+    name: the commit message
+    order: 10
+    cogs: [WRITE_COMMIT_MSG]
+    prerequisites: [test-first-clean-commits]
+    expert_signal: First line says what changed, the body says why.
+    prompts:
+      L1: Someone finds this commit in six months. Does the message say what changed and why?
+      L2: Does it say why?
+      L3: Say why.
+  - id: open-a-reviewable-pr
+    label: Open a pull request a reviewer can read in one sitting
+    name: the pull request description
+    order: 11
+    cogs: [OPEN_PR]
+    prerequisites: [message-for-the-next-reader]
+    expert_signal: One concern per pull request, with what, why and how it was checked.
+    prompts:
+      L1: What does a reviewer need before they open the diff, and is this one change or two?
+      L2: What, why, how checked?
+      L3: Describe it.
+  - id: read-ci-before-asking
+    label: Read the CI result before you ask for a review
+    name: reading CI first
+    order: 12
+    cogs: [READ_CI]
+    prerequisites: [open-a-reviewable-pr]
+    expert_signal: Opens the first failing job before pinging anyone.
+    prompts:
+      L1: Is every check green? If one is red, is it your change or a flaky job?
+      L2: What does CI say?
+      L3: Read CI.
+  - id: answer-review-with-evidence
+    label: Answer each review comment with a change or a reason
+    name: answering review comments
+    order: 13
+    cogs: [ANSWER_REVIEW]
+    prerequisites: [read-ci-before-asking]
+    expert_signal: Every thread ends in a commit or a stated reason.
+    prompts:
+      L1: For this comment, what did you change, or why does it stay as it is?
+      L2: Changed, or reasoned?
+      L3: Reply with evidence.
+  - id: review-like-an-owner
+    label: Review a colleague's change like its owner
+    name: reviewing like an owner
+    order: 14
+    cogs: [REVIEW_PEER]
+    prerequisites: [test-first-clean-commits]
+    expert_signal: Submits one clear verdict with at most one blocking reason.
+    prompts:
+      L1: Which one thing would you block on, and which would you only mention?
+      L2: What blocks it?
+      L3: Block on one.
+  - id: watch-the-release
+    label: Watch the release before you walk away
+    name: watching the release
+    order: 15
+    cogs: [WATCH_PROD]
+    prerequisites: [confirm-the-fix]
+    expert_signal: Keeps error rate and latency in view for ten minutes after a release.
+    prompts:
+      L1: What would tell you in ten minutes that this release is bad, and are you looking at it?
+      L2: Error rate and latency?
+      L3: Watch ten minutes.
+  - id: roll-back-safely
+    label: Roll back one step, and know what it undoes
+    name: rolling back safely
+    order: 16
+    cogs: [ROLL_BACK]
+    prerequisites: [watch-the-release]
+    expert_signal: Checks what the release wrote before rolling back.
+    prompts:
+      L1: Is rolling back safe here? Did the release write anything the old version cannot read?
+      L2: What does rolling back undo?
+      L3: Check, then roll back.
+  - id: profile-before-optimising
+    label: Profile before you optimise
+    name: profiling before optimising
+    order: 17
+    cogs: [PROFILE_HOTPATH]
+    prerequisites: [confirm-the-fix]
+    expert_signal: Finds the widest bar in the flame graph before editing.
+    prompts:
+      L1: Where does the time really go? Which bar is widest, and is it the one you are about to change?
+      L2: Which bar is widest?
+      L3: Profile first.
+  - id: migrate-in-small-safe-steps
+    label: Change the schema in small steps that can be undone
+    name: the migration
+    order: 18
+    cogs: [WRITE_MIGRATION]
+    prerequisites: [probe-the-boundary]
+    expert_signal: Adds before removing, with the undo step written alongside.
+    prompts:
+      L1: Can the old code still run against the new schema, and where is the undo step?
+      L2: Can you undo this step?
+      L3: Add, then remove.

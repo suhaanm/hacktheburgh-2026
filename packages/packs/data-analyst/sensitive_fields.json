@@ -1,12 +1,14 @@
 {
-  "description": "Data-analyst additions to the global sensitive-fields list. The effective list is the union of this file and packages/schema/sensitive_fields.json. Patterns are case-insensitive regexes over field name, id, label, placeholder, autocomplete and aria-label.",
+  "description": "Data-analyst additions to the global sensitive-fields list. The effective list is the union of this file and packages/schema/sensitive_fields.json. Patterns are case-insensitive regexes over field name, id, label, placeholder, autocomplete and aria-label. Role-depth additions (7 Nov 2026): row-level identifiers and personal columns that show up in profile and lineage panels. Finding editors, metric descriptions and review boxes are deliberately NOT listed: the capture never reads their text, and listing them would drop the events that make WRITE_FINDING, DOCUMENT_METRIC and PEER_CHECK visible.",
   "extends": "../../schema/sensitive_fields.json",
   "patterns": [
     "connection[- ]?string|dsn|jdbc",
     "warehouse[- ]?(user|password|key)|service[- ]?account|credentials?",
     "access[- ]?key|secret[- ]?key|bearer",
     "(customer|user|patient|employee)[- ]?(name|email|phone|address|id)",
-    "\\bemail\\b|\\bphone\\b|\\bmobile\\b|\\bpostcode\\b|\\bpost[- ]?code\\b"
+    "\\bemail\\b|\\bphone\\b|\\bmobile\\b|\\bpostcode\\b|\\bpost[- ]?code\\b",
+    "\\bsalary\\b|\\bdate[- ]?of[- ]?birth\\b|\\bdob\\b|national[- ]?insurance|\\bssn\\b",
+    "row[- ]?level|sample[- ]?rows?|\\bpii\\b"
   ],
   "autocomplete_tokens": ["email", "tel", "street-address", "postal-code"],
   "input_types": ["password", "email", "tel"]

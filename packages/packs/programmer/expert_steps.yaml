@@ -1,14 +1,27 @@
 # Expert policy for the programmer pack. Semantics: pack.schema.json#/$defs/expert_steps.
-# Coverage stays "stub": one task family (fix a failing test and commit it), no oracle in the pack. The role sandbox
-# (services/agent/understudy_agent/sandbox_roles/programmer, REQ-7 STU) adds the checks that the three study skills need:
+# The first eight checks (read_trace_first .. commit_fix) are the study task "fix a failing build". They are frozen: the role sandbox
+# (services/agent/understudy_agent/sandbox_roles/programmer, REQ-7 STU) and the role studies depend on their ids, cogs and order.
 #   probe-the-boundary          probe_edges        (try the edges in the console before committing)
 #   inspect-the-inputs          inspect_inputs     (look at the real sample inputs before changing code)
 #   test-first-clean-commits    write_failing_test (write the failing test before changing code), review_diff (read the diff before committing)
 # `after` is a hard prerequisite; the coach (study mode, skill_on) speaks only for the steps of one skill, and a task that does
 # not need a step drops it with study mode `steps_off` (the sandbox tasks say which).
+#
+# The role-depth track (RD, 7 Nov 2026) appended twelve checks for the rest of the job, one per new cog, each tagged with a task
+# `family`. Three rules keep them from touching anything frozen:
+#   1. every new check's cog list STARTS with a new cog, and no sandbox page emits a new cog, so a new check is never started, partly
+#      matched or violated in a study case, and the sandbox tasks do not need to list them in `steps_off`;
+#   2. every new check is `required: false` (a task that has no pull request has no pull-request step), so the end-of-task skill tracing,
+#      which scores required checks only, does not mark a skill "error" for work the task never had;
+#   3. `critical: true` on an optional check is a CRITICAL GATE: it is allowed only when another check lists it in `after`. The coach
+#      already insists on a critical prerequisite the moment a later check is started without it (CoachBrain: pick_missed on a
+#      violation), so "reproduce before you bisect" is spoken for only when the worker has started bisecting.
+# Families: fix-a-failing-build (the frozen eight), find-the-regression, add-observability, ship-a-change, review-a-pull-request,
+# release-and-watch, speed-up-a-hot-path, change-the-schema-safely. The policy is one document with one `task`; `family` is the
+# reader's index into it (docs/roles/programmer.md), not something the engine switches on.
 version: 1
 task: fix-a-failing-build
-coverage: stub
+coverage: full
 
 checks:
   - id: read_trace_first
@@ -86,3 +99,160 @@ checks:
     required: true
     after: [probe_edges, review_diff]
     expert_median_s: 40
+
+  # ---- role-depth checks (RD). Optional, each starts with a new cog, grouped by task family.
+  # find-the-regression
+  - id: reproduce_locally
+    label: Reproduce the failure on your own machine first
+    cogs: [REPRODUCE_LOCALLY]
+    required: false
+    critical: true
+    after: [read_trace_first]
+    family: find-the-regression
+    skill: reproduce-before-fixing
+    expert_median_s: 60
+    coach:
+      question: "Can you make it fail on your own machine, with one command, before you change anything?"
+      hint: "Run the failing case locally and watch it fail the same way."
+      target: { zone: repro_console, label_hint: "Terminal", role_hint: textbox }
+  - id: bisect_change
+    label: Narrow the failure to the change that caused it
+    cogs: [BISECT_CHANGE]
+    required: false
+    after: [reproduce_locally]
+    family: find-the-regression
+    skill: bisect-before-guessing
+    expert_median_s: 150
+    coach:
+      question: "Which change made this start failing? Halving the range beats guessing."
+      hint: "Open the history, mark one good and one bad point, and halve the range."
+      target: { zone: history_view, label_hint: "Commits", role_hint: region }
+  # add-observability
+  - id: add_logging
+    label: Add a log line where the failure hides
+    cogs: [ADD_LOGGING]
+    required: false
+    after: [read_trace_first]
+    family: add-observability
+    skill: log-for-the-next-incident
+    expert_median_s: 60
+    coach:
+      question: "What would you want in the log if this happened again at night? Ids and counts, not values."
+      hint: "Log the decision and the ids that led to it, never the data itself."
+      target: { zone: logging_panel, label_hint: "Logging", role_hint: button }
+  # ship-a-change
+  - id: write_commit_msg
+    label: Write a commit message the next reader can use
+    cogs: [WRITE_COMMIT_MSG]
+    required: false
+    critical: true
+    after: [review_diff]
+    family: ship-a-change
+    skill: message-for-the-next-reader
+    expert_median_s: 45
+    coach:
+      question: "Would someone reading this in six months know what changed and why?"
+      hint: "Say what changed in the first line, and why in the body."
+      target: { zone: commit_message, label_hint: "Commit message", role_hint: textbox }
+  - id: open_pr
+    label: Open a pull request a reviewer can read in one sitting
+    cogs: [OPEN_PR]
+    required: false
+    after: [commit_fix, write_commit_msg]
+    family: ship-a-change
+    skill: open-a-reviewable-pr
+    expert_median_s: 70
+    coach:
+      question: "What does a reviewer need to know before reading the diff?"
+      hint: "Open the pull request with what changed, why, and how you checked it."
+      target: { zone: pr_form, label_hint: "Create pull request", role_hint: button }
+  - id: read_ci
+    label: Read the CI result before asking anyone to look
+    cogs: [READ_CI]
+    required: false
+    critical: true
+    after: [open_pr]
+    family: ship-a-change
+    skill: read-ci-before-asking
+    expert_median_s: 45
+    coach:
+      question: "Did every check pass? If one failed, is it your change or a flaky job?"
+      hint: "Open the checks list and read the first failing job."
+      target: { zone: ci_checks, label_hint: "Checks", role_hint: region }
+  - id: answer_review
+    label: Answer each review comment with a change or a reason
+    cogs: [ANSWER_REVIEW]
+    required: false
+    after: [read_ci]
+    family: ship-a-change
+    skill: answer-review-with-evidence
+    expert_median_s: 120
+    coach:
+      question: "For each comment: what did you change, or why did you leave it?"
+      hint: "Reply in the thread with the commit that fixed it, or the reason it stays."
+      target: { zone: review_thread, label_hint: "Reply", role_hint: textbox }
+  # review-a-pull-request
+  - id: review_peer_pr
+    label: Review a colleague's pull request like its owner
+    cogs: [REVIEW_PEER]
+    required: false
+    after: []
+    family: review-a-pull-request
+    skill: review-like-an-owner
+    expert_median_s: 300
+    coach:
+      question: "Which one thing would you block on, and which would you only mention?"
+      hint: "Submit the review with a clear verdict and the one blocking reason."
+      target: { zone: review_composer, label_hint: "Review changes", role_hint: button }
+  # release-and-watch
+  - id: watch_prod
+    label: Watch the logs and metrics after a release
+    cogs: [WATCH_PROD]
+    required: false
+    critical: true
+    after: []
+    family: release-and-watch
+    skill: watch-the-release
+    expert_median_s: 300
+    coach:
+      question: "What would tell you in the first ten minutes that this release is bad?"
+      hint: "Keep the error rate and latency in view for ten minutes after the release."
+      target: { zone: prod_logs, label_hint: "Logs", role_hint: region }
+  - id: roll_back_safely
+    label: Roll back to the last good release if it is bad
+    cogs: [ROLL_BACK]
+    required: false
+    after: [watch_prod]
+    family: release-and-watch
+    skill: roll-back-safely
+    expert_median_s: 120
+    coach:
+      question: "Is rolling back safe here: does anything written since the release need undoing too?"
+      hint: "Check what the release changed before you roll back, then roll back one step."
+      target: { zone: rollback_control, label_hint: "Rollback", role_hint: button }
+  # speed-up-a-hot-path
+  - id: profile_hot_path
+    label: Profile before you optimise
+    cogs: [PROFILE_HOTPATH]
+    required: false
+    after: []
+    family: speed-up-a-hot-path
+    skill: profile-before-optimising
+    expert_median_s: 180
+    coach:
+      question: "Where does the time really go? Which function is the widest bar?"
+      hint: "Open the flame graph and find the widest bar before touching code."
+      target: { zone: profiler_view, label_hint: "Flame graph", role_hint: region }
+  # change-the-schema-safely
+  - id: write_migration
+    label: Write the migration in small steps that can be undone
+    cogs: [WRITE_MIGRATION]
+    required: false
+    after: []
+    family: change-the-schema-safely
+    skill: migrate-in-small-safe-steps
+    expert_median_s: 300
+    coach:
+      question: "Can the old code still run against the new schema, and can you undo this step?"
+      hint: "Add before you remove, and write the undo step with the change."
+      target: { zone: migration_editor, label_hint: "SQL editor", role_hint: textbox }

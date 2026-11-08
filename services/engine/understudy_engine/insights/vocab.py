@@ -157,6 +157,15 @@ SKILL_PHRASE = {
     "profile-before-querying": "profiling before querying", "inspect-before-trusting": "inspecting the rows", "compare-to-last-period": "comparing with last period",
     "reconcile-to-control": "reconciling with the control figure",
     "read-the-trace-first": "reading the error trace first", "smallest-change": "the smallest change", "confirm-the-fix": "confirming the fix", "inspect-the-inputs": "inspecting the inputs",
+    # the role-depth skills (RD, 7 Nov 2026): the same noun phrases as the `name` of each skill in the pack's curriculum
+    "reproduce-before-fixing": "reproducing before fixing", "bisect-before-guessing": "bisecting before guessing", "log-for-the-next-incident": "logging for the next incident",
+    "message-for-the-next-reader": "the commit message", "open-a-reviewable-pr": "the pull request description", "read-ci-before-asking": "reading CI first",
+    "answer-review-with-evidence": "answering review comments", "review-like-an-owner": "reviewing like an owner", "watch-the-release": "watching the release",
+    "roll-back-safely": "rolling back safely", "profile-before-optimising": "profiling before optimising", "migrate-in-small-safe-steps": "the migration",
+    "trace-the-source": "tracing the source", "join-without-multiplying": "joining safely", "aggregate-at-the-right-grain": "choosing the grain",
+    "sanity-check-magnitudes": "the magnitude check", "state-the-uncertainty": "the uncertainty", "write-the-finding-with-its-caveat": "the finding and its caveat",
+    "get-a-second-pair-of-eyes": "the peer check", "make-it-reproducible": "making it reproducible", "parameterise-before-copying": "the report parameters",
+    "schedule-a-refresh-you-trust": "scheduling the refresh", "document-the-metric": "the metric definition",
 }
 
 

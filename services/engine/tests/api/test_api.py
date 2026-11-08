@@ -135,7 +135,7 @@ def test_replay_default_is_a_novice_case(client):
 def test_packs_list_matches_contract(client):
     rows = client.get("/packs").json()
     assert {"benefits-processor", "data-analyst", "programmer"} <= {r["id"] for r in rows}
-    assert all(set(r) == {"id", "name", "summary", "depth"} and r["depth"] in ("deep", "thin") for r in rows)
+    assert all(set(r) == {"id", "name", "summary", "depth"} and r["depth"] in ("deep", "standard", "thin") for r in rows)
 
 
 # ------------------------------------------------------------------ genome, transitions

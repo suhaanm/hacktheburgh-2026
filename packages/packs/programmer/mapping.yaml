@@ -1,9 +1,15 @@
 # Event -> cog mapping for the programmer pack. Format and semantics: the engine's
-# cogs/default_mapping.yaml. Zones are enums derived by the extension from capture_sites (best-effort
-# samples for a thin pack: selectors for real tools are starting points, not guarantees).
+# cogs/default_mapping.yaml. Zones are enums derived by the extension from capture_sites. Selectors for real tools are
+# best-effort starting points, not tested against live sites; the sandbox site (roles_sandbox) is the tested one.
+# The first ten cogs and their zones (code_view .. test_editor) are frozen: the role studies depend on them.
+# The role-depth track (RD, 7 Nov 2026) appended twelve cogs and their zones for the rest of the job (reproduce, bisect, commit
+# message, pull request, CI, review, production logs, rollback, logging, profiling, migrations). They have no sandbox page, so they are
+# inert in the studies; every capture rule is an element selector (L0: no page text, no URL, no field value). The real-tool sites list
+# hosted tools only: a generic dev-server port (3000, 8080 and so on) would label the engineer's own app as production logs or a profiler.
 version: 1
 params: { follow_s: 5, gap_idle_s: 15, reformulate_within_s: 90, max_cog_s: 240 }
-extra_cogs: [READ_CODE, EDIT_CODE, RUN_TESTS, READ_TRACE, REVIEW_DIFF, COMMIT, SEARCH_DOCS, PROBE_EDGE, INSPECT_INPUT, WRITE_TEST]
+extra_cogs: [READ_CODE, EDIT_CODE, RUN_TESTS, READ_TRACE, REVIEW_DIFF, COMMIT, SEARCH_DOCS, PROBE_EDGE, INSPECT_INPUT, WRITE_TEST,
+  REPRODUCE_LOCALLY, BISECT_CHANGE, WRITE_COMMIT_MSG, OPEN_PR, READ_CI, ANSWER_REVIEW, REVIEW_PEER, WATCH_PROD, ROLL_BACK, ADD_LOGGING, PROFILE_HOTPATH, WRITE_MIGRATION]
 
 zones:
   - code_view
@@ -17,6 +23,18 @@ zones:
   - input_data
   - test_editor
   - test_report
+  - repro_console
+  - history_view
+  - commit_message
+  - pr_form
+  - ci_checks
+  - review_thread
+  - review_composer
+  - prod_logs
+  - rollback_control
+  - logging_panel
+  - profiler_view
+  - migration_editor
   - doc
   - form_field
   - search_box
@@ -44,6 +62,22 @@ rules:
   - { match: { type: nav, zone: test_report }, cog: READ_TRACE, starts: true }   # the sandbox navigates to #run-N when a test run finishes: the output is on screen
   - { match: { type: nav, zone: commit_box }, cog: COMMIT }
   - { match: { type: nav, zone: decision_btn }, cog: DECIDE }
+  # ---- programmer role cogs added by the role-depth track (RD): the rest of the job. New zones only, so no rule above is shadowed.
+  - { match: { type: [click, focus], zone: repro_console }, cog: REPRODUCE_LOCALLY }
+  - { match: { type: [scroll, click, focus, tab], zone: history_view }, cog: BISECT_CHANGE }
+  - { match: { type: [click, focus], zone: commit_message }, cog: WRITE_COMMIT_MSG }
+  - { match: { type: [click, focus], zone: pr_form }, cog: OPEN_PR }
+  - { match: { type: [scroll, click, focus], zone: ci_checks }, cog: READ_CI }
+  - { match: { type: nav, zone: ci_checks }, cog: READ_CI, starts: true }   # a checks page is read on arrival
+  - { match: { type: [click, focus, paste], zone: review_thread }, cog: ANSWER_REVIEW }
+  - { match: { type: [click, focus, scroll], zone: review_composer }, cog: REVIEW_PEER }
+  - { match: { type: [scroll, click, focus], zone: prod_logs }, cog: WATCH_PROD }
+  - { match: { type: nav, zone: prod_logs }, cog: WATCH_PROD, starts: true }   # arriving on a log or metrics page is watching it
+  - { match: { type: click, zone: rollback_control }, cog: ROLL_BACK }
+  - { match: { type: [click, focus], zone: logging_panel }, cog: ADD_LOGGING }
+  - { match: { type: [scroll, click, focus], zone: profiler_view }, cog: PROFILE_HOTPATH }
+  - { match: { type: nav, zone: profiler_view }, cog: PROFILE_HOTPATH, starts: true }
+  - { match: { type: [click, focus], zone: migration_editor }, cog: WRITE_MIGRATION }
   # ---- base cogs
   - { match: { type: idle }, cog: IDLE, backdate_meta: idle_s }
   - { match: { type: undo }, cog: REVERT }
@@ -69,7 +103,17 @@ capture_sites:
     hosts: ["github.com", "gitlab.com", "bitbucket.org"]
     nav_default: code_view
     tab_default: compare_view
+    nav:
+      - { zone: ci_checks, when: '.merge-status-list, [data-testid*="checks"], .mr-state-widget' }
     elements:
+      # RD: the controls of a pull request and a commit, deepest first (the closest ancestor that matches wins). GitHub and GitLab
+      # shapes; Bitbucket falls back to the frozen zones below.
+      - { zone: commit_message, selector: '#commit-summary-input, #commit-description-textarea, textarea[name="commit[message]"], input[name="commit[message]"], #commit_message' }
+      - { zone: review_composer, selector: '#pull_requests_submit_review, #review-changes-modal, [data-testid*="submit-review"], .review-bar' }
+      - { zone: review_thread, selector: '.review-thread-component, .js-inline-comments-container, .timeline-comment-group, .discussion-body' }
+      - { zone: pr_form, selector: '#new_pull_request, [data-testid*="create-pull-request"], #new_merge_request' }
+      - { zone: ci_checks, selector: '.merge-status-list, .branch-action-item, [data-testid*="checks"], .mr-state-widget, .ci-widget' }
+      - { zone: history_view, selector: '.commits-listing, .blame-container, [data-testid="commits-list"], .commit-list, .blame-commit' }
       - { zone: commit_box, selector: '#commit-changes-modal, form[action*="commit"], [data-testid="commit-button"]' }
       - { zone: code_editor, selector: '.cm-editor, .monaco-editor, textarea[name="value"]' }
       - { zone: diff_view, selector: '#files, .diff-view, [data-testid="diff"]' }
@@ -81,6 +125,7 @@ capture_sites:
     elements:
       - { zone: test_runner, selector: 'button[aria-label*="Re-run"], button[aria-label*="Rerun"], [data-testid*="rerun"]' }
       - { zone: ci_log, selector: "pre, .log, [data-testid*=\"log\"]" }
+      - { zone: ci_checks, selector: '[data-testid*="workflow"], [data-testid*="pipeline"], .workflow-list, .pipelines' }
   - id: tracker
     hosts: ["*.atlassian.net", "linear.app"]
     nav_default: doc
@@ -93,6 +138,43 @@ capture_sites:
     tab_default: docs_page
     elements:
       - { zone: docs_page, selector: "main, article, #content, .answercell" }
+  - id: observability
+    hosts: ["*.grafana.net", "app.datadoghq.com", "app.datadoghq.eu", "sentry.io", "*.sentry.io"]
+    nav_default: doc
+    tab_default: compare_view
+    nav:
+      - { zone: prod_logs, when: '[data-testid*="log"], [class*="LogsTable"], .logs-viewer, .discover-table' }
+    elements:
+      - { zone: prod_logs, selector: '[data-testid*="log"], [class*="LogsTable"], .logs-viewer, [aria-label*="Logs"], .discover-table' }
+  - id: release_console
+    hosts: ["vercel.com", "app.netlify.com", "dashboard.render.com", "dashboard.heroku.com"]
+    nav_default: doc
+    tab_default: compare_view
+    elements:
+      - { zone: rollback_control, selector: 'button[aria-label*="Rollback"], button[aria-label*="rollback"], [data-testid*="rollback"]' }
+      - { zone: prod_logs, selector: '[data-testid*="log"], .deploy-log, pre' }
+  - id: profiler
+    hosts: ["speedscope.app", "www.speedscope.app"]
+    nav_default: doc
+    tab_default: compare_view
+    nav:
+      - { zone: profiler_view, when: 'canvas, .flamegraph, #flamegraph' }
+    elements:
+      - { zone: profiler_view, selector: 'canvas, svg, .flamegraph, #flamegraph' }
+  - id: db_console
+    hosts: ["supabase.com", "app.supabase.com", "console.neon.tech", "app.planetscale.com"]
+    nav_default: doc
+    tab_default: compare_view
+    elements:
+      - { zone: migration_editor, selector: '.monaco-editor, .cm-editor, textarea.sql' }
+  - id: dev_env
+    hosts: ["github.dev", "*.github.dev", "*.app.github.dev", "gitpod.io", "*.gitpod.io"]
+    nav_default: code_view
+    tab_default: compare_view
+    elements:
+      - { zone: repro_console, selector: '.xterm, .terminal-wrapper' }
+      - { zone: commit_message, selector: '.scm-editor .monaco-editor' }
+      - { zone: code_editor, selector: '.monaco-editor' }
   - id: roles_sandbox
     hosts: ["127.0.0.1:7941", "127.0.0.1:7942", "127.0.0.1:7943", "127.0.0.1:7944", "127.0.0.1:7945", "127.0.0.1:7946", "127.0.0.1:7947", "127.0.0.1:7948", "localhost:7941", "localhost:7942", "localhost:7943", "localhost:7944", "localhost:7945", "localhost:7946", "localhost:7947", "localhost:7948"]
     nav_default: code_view
@@ -139,3 +221,37 @@ examples:
       - { dt: 8,  type: click, role: button, meta: { zone: diff_view } }
       - { dt: 8,  type: click, role: button, meta: { zone: commit_box } }
     expect: [RUN_TESTS, READ_TRACE, INSPECT_INPUT, WRITE_TEST, EDIT_CODE, PROBE_EDGE, REVIEW_DIFF, COMMIT]
+  - name: reproduce locally, narrow it with the history view
+    events:
+      - { dt: 0,  type: click,  role: textbox, meta: { zone: repro_console } }
+      - { dt: 6,  type: scroll, role: region,  meta: { zone: history_view, depth_bin: 2 } }
+      - { dt: 4,  type: tab,    role: tab,     meta: { zone: history_view } }
+    expect: [REPRODUCE_LOCALLY, BISECT_CHANGE, BISECT_CHANGE]
+  - name: message, pull request, CI, then the review thread
+    events:
+      - { dt: 0,  type: focus, role: textbox, meta: { zone: commit_message } }
+      - { dt: 12, type: click, role: button,  meta: { zone: pr_form } }
+      - { dt: 20, type: nav,   meta: { zone: ci_checks, spa: true } }
+      - { dt: 5,  type: scroll, role: region, meta: { zone: ci_checks, depth_bin: 1 } }
+      - { dt: 30, type: focus, role: textbox, meta: { zone: review_thread } }
+      - { dt: 6,  type: paste, role: textbox, meta: { zone: review_thread } }
+    expect: [WRITE_COMMIT_MSG, OPEN_PR, READ_CI, READ_CI, ANSWER_REVIEW, ANSWER_REVIEW]
+  - name: review someone else's pull request
+    events:
+      - { dt: 0,  type: click, role: button, meta: { zone: diff_view } }
+      - { dt: 25, type: focus, role: textbox, meta: { zone: review_composer } }
+      - { dt: 8,  type: click, role: button,  meta: { zone: review_composer } }
+    expect: [REVIEW_DIFF, REVIEW_PEER, REVIEW_PEER]
+  - name: watch the logs after a release, then roll back
+    events:
+      - { dt: 0,  type: nav,    meta: { zone: prod_logs, spa: true } }
+      - { dt: 8,  type: scroll, role: region, meta: { zone: prod_logs, depth_bin: 3 } }
+      - { dt: 40, type: click,  role: button, meta: { zone: rollback_control } }
+    expect: [WATCH_PROD, WATCH_PROD, ROLL_BACK]
+  - name: profile, add a log line, write the migration
+    events:
+      - { dt: 0,  type: nav,   meta: { zone: profiler_view, spa: true } }
+      - { dt: 15, type: click, role: button, meta: { zone: profiler_view } }
+      - { dt: 30, type: click, role: button, meta: { zone: logging_panel } }
+      - { dt: 45, type: focus, role: textbox, meta: { zone: migration_editor } }
+    expect: [PROFILE_HOTPATH, PROFILE_HOTPATH, ADD_LOGGING, WRITE_MIGRATION]
