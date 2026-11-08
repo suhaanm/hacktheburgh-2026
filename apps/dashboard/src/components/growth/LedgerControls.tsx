@@ -21,8 +21,8 @@ export function LedgerControls({ counts, fields, example, onExport, onDelete }: 
 
   const doExport = async () => {
     setErr(null); setBusy("export");
-    try { await onExport(); toast({ tone: "success", text: "Ledger exported.", detail: "A JSON file was saved to your downloads. It holds the same rows, enums and numbers only." }); }
-    catch (e) { setErr(e instanceof ApiError || e instanceof Error ? e.message : "Could not export the ledger."); }
+    try { await onExport(); toast({ tone: "success", text: "Record exported.", detail: "A JSON file was saved to your downloads. It holds the same rows, enums and numbers only." }); }
+    catch (e) { setErr(e instanceof ApiError || e instanceof Error ? e.message : "Could not export your record."); }
     finally { setBusy(null); }
   };
   const doDelete = async () => {
@@ -30,8 +30,8 @@ export function LedgerControls({ counts, fields, example, onExport, onDelete }: 
     try {
       const n = await onDelete();
       setConfirm(false);
-      toast({ tone: "success", text: `Deleted ${plural(n, "row")}.`, detail: example ? "That was example data, so only this screen changed." : "The ledger is empty. Nothing else was touched. An audit line records the deletion." });
-    } catch (e) { setErr(e instanceof ApiError || e instanceof Error ? e.message : "Could not delete the ledger. Nothing was deleted."); }
+      toast({ tone: "success", text: `Deleted ${plural(n, "row")}.`, detail: example ? "That was example data, so only this screen changed." : "Your record is empty. Nothing else was touched. An audit line records the deletion." });
+    } catch (e) { setErr(e instanceof ApiError || e instanceof Error ? e.message : "Could not delete your record. Nothing was deleted."); }
     finally { setBusy(null); }
   };
 
@@ -49,7 +49,7 @@ export function LedgerControls({ counts, fields, example, onExport, onDelete }: 
         {!confirm && <button type="button" className="btn btn--danger" onClick={() => setConfirm(true)} disabled={busy != null || total === 0}>Forget</button>}
         <a className="btn btn--quiet" href="#/your-data?section=sent">See what has left this computer</a>
       </div>
-      {total === 0 && <p className="note">The ledger is empty.</p>}
+      {total === 0 && <p className="note">Your record is empty.</p>}
       {confirm && (
         <ul className="listrows">
           <ConfirmRow

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRoute } from "../../router";
+import { useAppState } from "../../store";
+import { growthSectionOf } from "../../components/home/navModel";
 import { useLoad, prefersReducedMotion } from "../../hooks";
 import { ErrorState, ExampleBadge, Loading, OriginBadge, PageHead, SourceNote, workerOriginLabel } from "../../components/common";
 import { GrowthChart, GrowthKey } from "../../components/growth/GrowthChart";
@@ -9,6 +11,11 @@ import { LedgerControls } from "../../components/growth/LedgerControls";
 import { AboutGrowth } from "../../components/growth/About";
 import { Details } from "../../components/ui";
 import { EarlyHero, EmptyHero, HowStepsAreCounted } from "../../components/growth/States";
+import { SectionSources, useExampleSource } from "../../components/growth/GrowthSection";
+import { TimeSection } from "../../components/growth/TimeSection";
+import { StepsSection } from "../../components/growth/StepsSection";
+import { MapSection } from "../../components/growth/MapSection";
+import { CommitsSection } from "../../components/growth/CommitsSection";
 import { buildView, countsOf, ledgerFields, marksOf, normalizeGrowth, offloadItems, totalRows, type LedgerCounts } from "../../components/growth/model";
 import "../../components/growth/growth.css";
 import { STORIES, deleteLedger, downloadText, exportLedger, loadGrowth, loadLedger, type Story } from "./data";
@@ -19,15 +26,17 @@ const STORY_ALIAS: Record<string, Story> = { improves: "improves", improve: "imp
 export const GROWTH_LIMIT = "Measures help needed, not expertise.";
 
 /**
- * Growth: whether the worker needs less help over time (KNACK_UX, 04-growth.md). A sentence for a title, the one printed limit, one chart,
- * the skills as rows, and four closed disclosures (About this data, The fade, Your ledger, What Knack did for you). At most 60 words above the fold.
+ * My progress: whether the worker needs less help over time (KNACK_UX, 04-growth.md). A sentence for a title, the one printed limit, one chart,
+ * the skills as rows, and closed disclosures (About this data, The fade, Your record, What Knack did for you). At most 60 words above the fold.
+ * The page that holds it is `Growth` below: the other sections of "growth" follow it on the same page.
  */
-export default function Growth() {
+function Progress() {
   const route = useRoute();
   const [story, setStory] = useState<Story>(() => STORY_ALIAS[route.query.get("story") ?? ""] ?? "improves");
   const [skill, setSkill] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
   const heroRef = useRef<HTMLElement>(null);
+  const anyExample = useExampleSource();
 
   const g = useLoad(() => loadGrowth(skill, story), [skill, story, tick]);
   const needsMarks = g.data ? normalizeGrowth(g.data).readiness.occurrences < normalizeGrowth(g.data).readiness.needed : false;
@@ -47,8 +56,8 @@ export default function Growth() {
     if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: "start", behavior: prefersReducedMotion() ? "auto" : "smooth" });
   }, []);
 
-  if (g.status === "error" && !g.data) return <div className="page page--wide"><ErrorState error={g.error} retry={g.reload} what="your growth curve" /></div>;
-  if (!wire || !view) return <div className="page page--wide"><Loading label="Loading your growth curve" /></div>;
+  if (g.status === "error" && !g.data) return <div className="gr-progress"><ErrorState error={g.error} retry={g.reload} what="your growth curve" /></div>;
+  if (!wire || !view) return <div className="gr-progress"><Loading label="Loading your growth curve" /></div>;
 
   const rows = led.data?.rows ?? [];
   const counts: LedgerCounts = countsOf(wire, led.data?.counts ?? null);
@@ -74,10 +83,10 @@ export default function Growth() {
   // One origin badge per screen: the sample badge when the screen shows built-in example data, else the engine's origin in a worker's words.
   // A live answer with nothing counted shows no numbers, so there is nothing to qualify: no badge. The origin is still printed in "About this data".
   const liveAndEmpty = !g.why && g.source === "live" && view.status === "empty";
-  const badge = g.why ? <ExampleBadge why={g.why} /> : liveAndEmpty ? null : <OriginBadge meta={g.meta} label={g.meta ? workerOriginLabel(g.meta.origin) : undefined} />;
+  const badge = g.why ? <ExampleBadge why={g.why} /> : anyExample ? <ExampleBadge why={anyExample} /> : liveAndEmpty ? null : <OriginBadge meta={g.meta} label={g.meta ? workerOriginLabel(g.meta.origin) : undefined} />;
 
   return (
-    <div className="page page--wide gr-page" aria-busy={busy}>
+    <div className="gr-progress" aria-busy={busy}>
       <PageHead hero title={view.title} lede={GROWTH_LIMIT} aside={badge} />
 
       <section ref={heroRef} className={`gr-hero${busy ? " gr-busy" : ""}`} aria-label="Independence curve" style={{ scrollMarginTop: "var(--space-5)" }}>
@@ -130,7 +139,7 @@ export default function Growth() {
           </Details>
         )}
         {hasLedger && (
-          <Details summary="Your ledger" wide>
+          <Details summary="Your record" wide>
             <LedgerControls counts={counts} fields={ledgerFields(rows)} example={example} onExport={onExport} onDelete={onDelete} />
           </Details>
         )}
@@ -141,5 +150,40 @@ export default function Growth() {
         )}
       </div>
     </div>
+  );
+}
+
+/** The roles that get "My commits". The section also opens for anyone who follows a link to it. */
+const COMMIT_ROLES = new Set(["programmer"]);
+
+/**
+ * Growth is the one worker page for personal insight (docs/knack-ux/views.md): My progress, then Where my time goes, My steps against an
+ * experienced worker's, How my routines connect and, for programmers, My commits, one under the other with no extra navigation.
+ * Each section is a title, one headline sentence and its numbers behind a disclosure. `?section=` scrolls to a section and opens it.
+ */
+export default function Growth() {
+  const route = useRoute();
+  const section = growthSectionOf(route.query.get("section"));
+  const role = useAppState().role;
+  const commits = (role != null && COMMIT_ROLES.has(role)) || section === "commits";
+
+  useEffect(() => {
+    if (section === "progress") return;
+    const go = () => document.getElementById(`gr-${section}`)?.scrollIntoView({ block: "start", behavior: prefersReducedMotion() ? "auto" : "smooth" });
+    const a = window.setTimeout(go, 60);
+    const b = window.setTimeout(go, 700);
+    return () => { window.clearTimeout(a); window.clearTimeout(b); };
+  }, [section]);
+
+  return (
+    <SectionSources>
+      <div className="page page--wide gr-page">
+        <Progress />
+        <TimeSection open={section === "time"} />
+        <StepsSection open={section === "steps"} />
+        <MapSection open={section === "map"} />
+        {commits && <CommitsSection open={section === "commits"} />}
+      </div>
+    </SectionSources>
   );
 }
