@@ -37,36 +37,40 @@ const go = async (hash, wait = 700) => {
   await page.goto(`${base}/#${hash}`); await page.waitForTimeout(wait);
 };
 
-// 1. Onboarding, two roles, timed
+// 1. First run (the old Onboarding): two roles, timed. Set up again reruns the same three screens in a browser tab: role, what Knack may do, then Show my week.
+const memoryText = async () => {
+  await go("/your-data?section=remembers", 1000);
+  await page.locator("#yd-remembers-body details summary", { hasText: /^More/ }).click();
+  await page.getByRole("button", { name: "Edit as text" }).click();
+  return page.locator("#memtext").inputValue();
+};
 for (const [role, pack] of [["UK benefits processor", "benefits-processor"], ["Data analyst", "data-analyst"]]) {
   await go("/setup");
   const t0 = Date.now();
-  await page.locator(".role-card", { hasText: role }).click();
-  await page.getByRole("button", { name: "Next" }).click();
-  for (let i = 0; i < 5; i++) await page.getByRole("button", { name: "Next" }).click();
-  const write = page.getByRole("button", { name: "Write my memory file" });
-  check(`onboarding ${pack}: capture is never pre-selected (cannot write before choosing)`, await write.isDisabled());
-  await page.locator(".role-card", { hasText: pack === "benefits-processor" ? "Yes, record times" : "Not now" }).click();
-  await write.click();
-  await page.getByText("Your memory file is written").waitFor();
+  await page.locator(".rolecard__btn", { hasText: role }).click();
+  const cards = page.locator(".consent");
+  check(`first run ${pack}: capture is never pre-selected (nothing is answered until a real click)`, (await page.getByRole("heading", { name: "What may Knack do?" }).count()) === 1 && (await cards.locator("button[aria-pressed=true]").count()) === 0);
+  await cards.first().getByRole("button", { name: pack === "benefits-processor" ? "Yes, learn my times" : "Not now" }).click();
+  await page.getByRole("button", { name: "Show my week" }).waitFor();
   const secs = (Date.now() - t0) / 1000;
-  const text = await page.locator(".pv").innerText();
-  check(`onboarding ${pack}: file written in under 60 s`, secs < 60, `${secs.toFixed(1)} s`);
-  check(`onboarding ${pack}: file names the role`, text.includes(`role: ${pack}`));
-  check(`onboarding ${pack}: capture line only when the worker said yes`, text.includes("Capture: times only") === (pack === "benefits-processor"));
+  await page.getByRole("button", { name: "Show my week" }).click();
+  const text = await memoryText();
+  check(`first run ${pack}: file written in under 60 s`, secs < 60, `${secs.toFixed(1)} s`);
+  check(`first run ${pack}: file names the role`, text.includes(`role: ${pack}`));
+  check(`first run ${pack}: capture line only when the worker said yes`, text.includes("Capture: times only") === (pack === "benefits-processor"));
   if (pack === "benefits-processor") await page.screenshot({ path: join(qa, "onboarding-done-1440.png") });
   globalThis[pack] = text;
 }
-check("onboarding: two roles give different files", globalThis["benefits-processor"] !== globalThis["data-analyst"]);
+check("first run: two roles give different files", globalThis["benefits-processor"] !== globalThis["data-analyst"]);
 
-// 2. Onboarding mid-flow screenshot (risky question)
+// 2. First run mid-flow screenshot (the consent screen), and Not sure yet writes nothing
 await go("/setup");
-await page.locator(".role-card", { hasText: "Data analyst" }).click();
-await page.getByRole("button", { name: "Next" }).click();
-await page.locator(".role-card", { hasText: "SQL console" }).click();
-await page.getByRole("button", { name: "Next" }).click();
+await page.locator(".rolecard__btn", { hasText: "Data analyst" }).click();
 await page.waitForTimeout(300);
 await page.screenshot({ path: join(qa, "onboarding-question-1440.png") });
+await go("/setup");
+await page.locator(".rolecard__btn", { hasText: "Not sure yet" }).click();
+check("first run: Not sure yet picks nothing and still reaches the consent screen", (await page.getByRole("heading", { name: "What may Knack do?" }).count()) === 1);
 
 // 3. Graph: open a node, panel shows why
 await go("/graph", 2600);
@@ -494,10 +498,14 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
 }
 
 // 9. Kill switch
-await go("/genome");
+await go("/growth");
+// One red square, once: exactly one Stop button is visible, it holds the word and nothing else, and its only square is the design system's ::before.
+const stopFace = await page.evaluate(() => [...document.querySelectorAll(".stop-button")].filter((b) => b.offsetParent !== null).map((b) => ({ kids: b.children.length, svg: b.querySelectorAll("svg").length, text: b.textContent.trim(), before: getComputedStyle(b, "::before").content, after: getComputedStyle(b, "::after").content })));
+check("kill switch: one visible Stop button with one red square (the word, no icon of its own)", stopFace.length === 1 && stopFace[0].kids === 1 && stopFace[0].svg === 0 && stopFace[0].text === "Stop" && stopFace[0].before === '""' && stopFace[0].after === "none", JSON.stringify(stopFace));
 await page.getByRole("button", { name: "Stop everything now" }).click();
 await page.waitForTimeout(600);
 check("kill switch: says everything is stopped", await page.getByText("Everything is stopped.").isVisible());
+check("kill switch: stopped, the button says Resume in words and the banner carries one alert icon, not a stop square", (await page.locator(".stopped-banner svg").count()) === 1 && (await page.locator(".stop-button:visible").first().innerText()).trim() === "Resume");
 await page.screenshot({ path: join(qa, "killed-1440.png") });
 await page.getByRole("button", { name: "Resume" }).first().click();
 await page.waitForTimeout(500);

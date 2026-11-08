@@ -26,6 +26,12 @@ for (const [theme, tag, width, height] of [["light", "win", 1152, 735], ["dark",
   // Settings sheet
   await page.keyboard.press("Meta+,"); await shot("settings-sheet");
   await page.keyboard.press("Escape");
+  // palette, then a phrase, then About this screen, then the tour
+  await page.keyboard.press("Meta+k"); await shot("palette");
+  await page.keyboard.type("explain"); await shot("palette-query");
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Meta+/"); await shot("about-panel");
+  await page.keyboard.press("Escape");
   // admin gate (worker view), then admin view
   await page.goto(`${base}/#/roles`); await shot("admin-gate");
   // first run: three screens
