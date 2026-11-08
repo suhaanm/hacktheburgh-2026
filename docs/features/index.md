@@ -1,6 +1,6 @@
 # Knack feature index
 
-As of Sun 08 Nov 2026, 03:10 UTC, checked against main at 24d960c.
+As of Sun 08 Nov 2026, 03:11 UTC, checked against main at 236428c.
 
 35 pages and 70 entries (features, plus four write-ups of results that did not hold up), for the pitch (Hack the Burgh XIII), the launch video, the demo and the submission video. The master document is `docs/PITCH_FEATURES.md`; the 25 video claims are in `video-beats.md`; the 28 hardest judge questions are in `faq.md`.
 
