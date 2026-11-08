@@ -195,11 +195,23 @@ def _records_with(items, digests) -> list[CommitRecord]:
 
 
 # ------------------------------------------------------------------------------------------------ registry
+def worker_repos() -> dict[str, Path]:
+    """The worker's own commit history on this device: ``<data>/git/<person>/repo`` (a git repository; ``seedroles.events`` writes one for the programmer). Compared with the same reference
+    experts as every other learner. Never the shared cohort's folder, so a worker's history never changes the cohort."""
+    base = data_dir() / "git"
+    out: dict[str, Path] = {}
+    if base.is_dir():
+        for d in sorted(base.iterdir()):
+            if d.is_dir() and re.fullmatch(r"p_[a-z0-9]{2,16}", d.name) and (d / "repo" / ".git").exists():
+                out[d.name] = d / "repo"
+    return out
+
+
 def cohort() -> dict:
-    """The synthetic cohort index (materialised on first use). Maps ids to repo paths."""
+    """The synthetic cohort index (materialised on first use) plus the worker's own repository. Maps ids to repo paths."""
     d = cohort_dir()
     idx = synth.ensure_cohort(d)
-    return {"dir": d, "learners": {k: d / v for k, v in idx["learners"].items()}, "experts": {k: d / v for k, v in idx["experts"].items()}}
+    return {"dir": d, "learners": {**{k: d / v for k, v in idx["learners"].items()}, **worker_repos()}, "experts": {k: d / v for k, v in idx["experts"].items()}}
 
 
 def repo_id_for(person: str) -> str:
@@ -213,7 +225,7 @@ def resolve(person: str | None, repo: str | None) -> Target:
     c = cohort()
     person = person or DEFAULT_PERSON
     if person not in c["learners"]:
-        raise GitServiceError("unknown_person", f"No learner repository for {person!r}. Known people: {', '.join(sorted(c['learners']))}.", 404)
+        raise GitServiceError("unknown_person", f"No learner repository for {person!r}.", 404)
     rid = repo_id_for(person)
     if repo and repo != rid:
         raise GitServiceError("unknown_repo", f"No repository {repo!r} for {person!r}. Known repositories: {rid}"
