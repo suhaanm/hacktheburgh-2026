@@ -4,6 +4,8 @@
 
 **Capability:** Evidence and honesty · **Status:** verified · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
+**Navigation note (landing).** The lead's views rule (`docs/knack-ux/views.md`, from owner requests 4.1, 4.2, 4.11, 4.12 and 4.17 at about 00:50 UTC) is reorganising where screens live. Where this page says 'More, <screen>', check `apps/dashboard/src/components/home/navModel.ts` on main for the final place. The Evidence page is not shown to a worker under the rule; it sits in the Admin view (More, For reviewers), which is where reviewers and judges are shown it.
+
 This page covers Evidence page, make eval and the limitations register, Plain-English explainer with a number check.
 
 ## Evidence page, make eval and the limitations register

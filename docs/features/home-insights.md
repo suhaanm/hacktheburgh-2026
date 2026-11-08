@@ -4,6 +4,8 @@
 
 **Capability:** Insights and admin · **Status:** built · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
+**Navigation note (landing).** The lead's views rule (`docs/knack-ux/views.md`, from owner requests 4.1, 4.2, 4.11, 4.12 and 4.17 at about 00:50 UTC) is reorganising where screens live. Where this page says 'More, <screen>', check `apps/dashboard/src/components/home/navModel.ts` on main for the final place. Home also gains a task box ('What should Knack do?', type or speak) and a short list of background tasks (owner request 4.18, landing). A worker's Home shows only their own insight and approval, never firm-wide data.
+
 This page covers Home: one sentence, one action, Top insights engine: a few pointers, chosen by code.
 
 ## Home: one sentence, one action

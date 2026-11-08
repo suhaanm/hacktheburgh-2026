@@ -37,6 +37,8 @@ From `docs/KNACK_DEMO.md` (on its branch, not yet on main), which holds the full
 - The coach and Cue shots can be played by a script (`apps/desktop/scripts/demo-worker.mjs`) acting as a teammate on the sandbox, with no operating-system input. Put 'played by a script on our sandbox' on screen.
 - The two Hey Knack consent cards and the approval in beat 10 can only be answered by a real mouse click. Do not approve the seeded CN-2041 on camera if it is wanted for the teaser.
 - At the time of writing a routine run in the agent's browser does not minimise the window by itself (press Command-M; gap G3 in `docs/KNACK_DEMO.md`). Approving a live agent item now submits the sandbox note (decision D61, which fixed gap G11); a seeded item such as CN-2041 only marks approved.
+- Navigation is being reorganised under the lead's views rule (`docs/knack-ux/views.md`): for a worker, Evidence, Forecasts, Models and cost and the other system screens are not shown, and 'Where time goes', 'Your hours' and 'How work connects' become sections of Growth. Film Evidence, Forecasts and the firm screens in the Admin view, and re-check every shot's path against the build you film.
+- The Admin view is meant to be filled with made-up people (owner request 4.4) and, under D57, the app will not say 'synthetic'. Say aloud that the firm and the people are made up.
 - Recording is owner-initiated only (decision D54); the lead runs `scripts/record-demo.sh` when the owner says begin.
 
 ## Suggested cuts

@@ -4,6 +4,8 @@
 
 **Capability:** A calm product: window, attention, context · **Status:** built · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
+**Navigation note (landing).** The lead's views rule (`docs/knack-ux/views.md`, from owner requests 4.1, 4.2, 4.11, 4.12 and 4.17 at about 00:50 UTC) is reorganising where screens live. Where this page says 'More, <screen>', check `apps/dashboard/src/components/home/navModel.ts` on main for the final place. The account menu holds the worker's name and role, View as, Settings (including Connections and Advanced), Set up again and Change role (owner requests 4.8 and 4.9, landing).
+
 This page covers One app, one window, one corner pill, First run: role, consent and a first look, Command palette and keyboard.
 
 ## One app, one window, one corner pill

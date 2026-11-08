@@ -4,6 +4,8 @@
 
 **Capability:** Insights and admin · **Status:** built · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
+**Navigation note (landing).** The lead's views rule (`docs/knack-ux/views.md`, from owner requests 4.1, 4.2, 4.11, 4.12 and 4.17 at about 00:50 UTC) is reorganising where screens live. Where this page says 'More, <screen>', check `apps/dashboard/src/components/home/navModel.ts` on main for the final place. Admin main navigation under the rule: Firm, Brief, Forecasts, Roles, People, Onboarding, Automation, Risk; More: Models and cost, Evidence, Background runs. Owner request 4.4 asks for the Admin view to be filled with made-up people for several users with no tag anywhere saying so; that sits against the honesty rule that synthetic data is labelled (see D57 and 'Things we do not claim'), so say aloud in any video that the firm is made up.
+
 This page covers Admin views: Firm, Roles, Onboarding, Monday note, firm brief and prediction scorecard.
 
 ## Admin views: Firm, Roles, Onboarding

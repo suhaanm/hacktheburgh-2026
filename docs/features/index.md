@@ -1,6 +1,6 @@
 # Knack feature index
 
-34 pages and 65 entries (features, plus four write-ups of results that did not hold up), for the pitch (Hack the Burgh XIII), the launch video, the demo and the submission video. The master document is `docs/PITCH_FEATURES.md`; the 20 video claims are in `video-beats.md`; the 25 hardest judge questions are in `faq.md`.
+35 pages and 66 entries (features, plus four write-ups of results that did not hold up), for the pitch (Hack the Burgh XIII), the launch video, the demo and the submission video. The master document is `docs/PITCH_FEATURES.md`; the 20 video claims are in `video-beats.md`; the 25 hardest judge questions are in `faq.md`.
 
 **Status words.** `verified`: the lead saw it work end to end (`docs/FEATURE_CATALOGUE.md`). `built`: built and tested by its track, on main, not yet seen end to end by the lead. `landing`: not on main yet (another agent's branch, or its document has not landed). `not run`: designed or built but never run. The status is taken from the sources at the time of writing (see the time stamp in `docs/PITCH_FEATURES.md`); nothing here was run by the author.
 
@@ -49,6 +49,7 @@
 | Background agents: parent and child | [background-agents](background-agents.md) | **built** | Wordsmith |
 | Overnight runs and the morning report | [background-agents](background-agents.md) | **built** | Wordsmith, HRT |
 | Stop everything: the kill switch | [stop-everything](stop-everything.md) | **built** | Wordsmith |
+| Open-ended tasks, skills in context and live background pills | [open-ended-tasks](open-ended-tasks.md) | **landing** (owner requests 4.15 and 4.18 to 4.21 in docs/OWNER_REQUESTS.md, tracks T, V, A, C and E; no document, code or result seen when this was written; everything on this entry is unverified) | Wordsmith |
 
 ## Routines and automations
 
