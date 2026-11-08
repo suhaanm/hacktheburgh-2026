@@ -1,13 +1,16 @@
 import type { ExplainAction, ExplainResult, ExplainSection, ExplainSentence, PacketFact } from "../types";
 import { fmtDuration } from "./format";
 
-/** The questions offered as chips. The text is what is sent; the id is only for the example answers shown when the engine is not there. */
-export const CHIPS: { id: string; text: string }[] = [
-  { id: "where_time_went", text: "Where did my time go?" },
-  { id: "why_slow", text: "Why was I slow?" },
-  { id: "biggest_habit", text: "What is my biggest habit?" },
-  { id: "how_sure", text: "How sure are you?" },
-  { id: "what_to_practise", text: "What should I practise?" },
+/**
+ * The questions offered as chips. The text is what is sent and what a screen reader hears; the label is what the chip shows (a button is three words
+ * at most, KNACK_UX section 5). The id is only for the example answers shown when the engine is not there.
+ */
+export const CHIPS: { id: string; text: string; label: string }[] = [
+  { id: "where_time_went", text: "Where did my time go?", label: "Where time went" },
+  { id: "why_slow", text: "Why was I slow?", label: "Why slow" },
+  { id: "biggest_habit", text: "What is my biggest habit?", label: "Biggest habit" },
+  { id: "how_sure", text: "How sure are you?", label: "How sure" },
+  { id: "what_to_practise", text: "What should I practise?", label: "What to practise" },
 ];
 export const MAX_QUESTION = 400;
 

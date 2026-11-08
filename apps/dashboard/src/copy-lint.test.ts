@@ -96,7 +96,7 @@ const PENDING: Record<string, string> = {
   "apps/dashboard/src/fixtures/home-worker.json": "the example data of Home (the Monday note), Track B",
 };
 const STRICT = process.env.KNACK_LINT_STRICT === "1";
-const PENDING_MAX = 8;
+const PENDING_MAX = 6;
 
 /** Findings by repo-relative file, then split into the ones a pending entry covers and the ones nothing covers. */
 function judge(byFile: Map<string, string[]>, inScope: (file: string) => boolean): { unexpected: string[]; stale: string[] } {

@@ -142,6 +142,22 @@ describe("words", () => {
     expect(visibleItems(urgent, false).every((i) => i.cls === 0)).toBe(true);
     expect(visibleItems([], false)).toEqual([]);
   });
+  it("the first routine proposal is never folded, even when four approvals wait", () => {
+    const four = ["a", "b", "c", "d"].map((n, i) => q({ id: n, kind: "irreversible_step", risk_class: "irreversible", created_at: `2026-11-07T0${i}:00:00Z` }));
+    const items = buildItems({ queue: four, routines });
+    const shown = visibleItems(items, false);
+    expect(shown.filter((i) => i.cls === 0)).toHaveLength(4);
+    expect(shown.some((i) => i.kind === "proposal")).toBe(true);
+    expect(shown.filter((i) => i.kind === "proposal")).toHaveLength(1);                    // the first one only
+    expect(visibleItems(items, true)).toHaveLength(items.length);
+  });
+  it("with room, the proposal replaces the last quiet row rather than adding a fourth", () => {
+    const items = buildItems({ queue: [q({ id: "a", kind: "irreversible_step", risk_class: "irreversible" })].concat(["1", "2", "3"].map((n) => q({ id: n, kind: "batch_result", risk_class: "normal", created_at: `2026-11-07T1${n}:00:00Z` }))), routines });
+    const shown = visibleItems(items, false);
+    expect(shown).toHaveLength(3);
+    expect(shown.at(-1)?.kind).toBe("proposal");
+    expect(shown[0].key).toBe("q:a");
+  });
   it("shows seven rows then all", () => {
     const rows = Array.from({ length: 10 }, (_, i) => i);
     expect(visible(rows, false)).toHaveLength(7);

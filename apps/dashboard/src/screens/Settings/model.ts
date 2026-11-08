@@ -4,10 +4,17 @@ import { clampBudget } from "../../lib/attention";
 
 /** The section ids: the contract with the shell (docs/KNACK_UX.md section 3, in this order). */
 export const SECTIONS = ["live-models", "interruptions", "coaching", "move-aside", "open-at-login", "appearance", "models", "views", "about"] as const;
-export type SectionId = (typeof SECTIONS)[number] | "connections";
-/** Sections another track adds behind a lazy slot (Connections: plugins and MCP apps). Accepted as an address even when the slot is empty. */
-export const SLOT_SECTIONS = ["connections"] as const;
+export type SectionId = (typeof SECTIONS)[number] | "connections" | "hey-knack";
+/** Sections other tracks add: Connections (plugins and MCP apps, behind a lazy slot) and Hey Knack (the voice switch). Accepted as an address even when the slot is empty. */
+export const SLOT_SECTIONS = ["connections", "hey-knack"] as const;
 export const sectionOf = (s: string | null | undefined): SectionId | null => ((SECTIONS as readonly string[]).includes(s ?? "") || (SLOT_SECTIONS as readonly string[]).includes(s ?? "") ? (s as SectionId) : null);
+
+/** Hey Knack's row: the fixed note always, and the shell's own line only when the switch is on but it is not listening (why it is quiet). */
+export const WAKE_NOTE = "Stays on this Mac. Nothing is stored.";
+export function wakeLine(w: { switchOn: boolean; listening: boolean; line: string } | null): string | null {
+  if (!w) return null;
+  return w.switchOn && !w.listening && w.line ? `${WAKE_NOTE} ${w.line}` : WAKE_NOTE;
+}
 
 /* -- Use live models ------------------------------------------------------------------------------------------------------------------- */
 export interface LiveInput {

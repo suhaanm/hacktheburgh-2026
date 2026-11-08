@@ -168,7 +168,7 @@ class SettingsGuard:
             return SettingsDecision(False, None, "unreadable path")
         protected = [kill_path(), data_dir() / "denylist.json", data_dir() / "queue", data_dir() / "routines",
                      data_dir() / "audit.jsonl", data_dir() / ".token", data_dir() / "owner_tokens.json",
-                     data_dir() / ".queue_key"]
+                     data_dir() / ".queue_key", data_dir() / "rung_cleared.json"]  # the last one unlocks voice "do it for me": only a supervised R1 run may write it
         home = os.environ.get("UNDERSTUDY_HOME", "").strip()
         protected.append(Path.home() / ".understudy")  # the default location is protected even when another home is configured
         if home:

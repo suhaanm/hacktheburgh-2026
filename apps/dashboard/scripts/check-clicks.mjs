@@ -12,6 +12,7 @@ import { chromium } from "playwright";
 import fs from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { openAs } from "./lib/knack-page.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const jobsFile = join(here, "..", "..", "..", "docs", "knack-ux", "jobs.json");
@@ -39,17 +40,8 @@ export const DEPTH = spec.budget;
 export const nav = (page, label) =>
   page.locator(".side nav a, .side nav button, nav a, nav button, .nav a").filter({ hasText: new RegExp(`^\\s*${label}(?![A-Za-z])`) }).first();
 
-/** The view-as switch: the account menu in the new shell, the sidebar segmented control in the old one. Not a counted click (see budgetOf). */
-export async function becomeAdmin(page) {
-  const old = page.locator(".viewas .segmented button", { hasText: "Admin" });
-  if (await old.count()) { await old.first().click(); await page.waitForTimeout(300); return; }
-  // The account button by its name. (A selector that also matched `.side button[aria-haspopup="menu"]` found More first, because More is earlier in the page.)
-  const acct = page.getByRole("button", { name: /^Account/ }).first();
-  await acct.click();
-  await page.getByRole("menuitemradio", { name: /admin/i }).or(page.getByRole("menuitem", { name: /admin/i })).or(page.getByRole("radio", { name: /admin/i })).or(page.getByRole("button", { name: /view as admin|^admin$/i })).first().click();
-  await page.waitForTimeout(300);
-  await page.keyboard.press("Escape").catch(() => undefined);
-}
+/** Setup for an Admin job: first run marked done and the Admin view remembered, as the app does it. Not a counted click (see budgetOf). */
+export const becomeAdmin = (page) => openAs(page, base, "admin");
 
 // ---- the paths -------------------------------------------------------------------------------------------------------------------
 // `setup` runs before counting starts. `steps: []` means the screen the app opens on is the answer (0 clicks).
@@ -57,7 +49,7 @@ export async function becomeAdmin(page) {
 export const PATHS = {
   J1: { steps: [], then: (page) => page.locator("#main h1, #main .hero-insight").first() },
   J2: { steps: [{ d: 'the Home hero\'s own button: "Approve and submit" (counted, not executed)', loc: (p) => p.getByTestId("home-approval").getByRole("button", { name: /^(Approve|Resume)/ }), skip: true }] },
-  J3: { steps: [{ d: 'sidebar "Needs you"', loc: (p) => nav(p, "Needs you") }, { d: '"Watch first" on a routine proposal (counted, not executed)', loc: (p) => p.locator("article.kc-row[data-kind='proposal']").getByRole("button", { name: "Watch first" }).first(), skip: true }] }, // sidebar "Needs you", then Watch first | Not now | Never (2). Away variant: "More ways to say yes", switch, confirm (3).
+  J3: { steps: [{ d: 'sidebar "Needs you"', loc: (p) => nav(p, "Needs you") }, { d: '"Watch first" on a routine proposal (counted, not executed)', loc: (p) => p.locator("article.kc-row[data-kind='proposal']").getByRole("button", { name: "Watch first" }).first(), skip: true }] },
   J4: { steps: [{ d: 'sidebar "Growth"', loc: (p) => nav(p, "Growth") }] },
   J5: { steps: [{ d: 'sidebar "Your data"', loc: (p) => nav(p, "Your data") }, { d: '"Forget" beside a line (counted, not executed)', hover: (p) => p.locator("#main .yd-line").first(), loc: (p) => p.locator("#main").getByRole("button", { name: /^Forget/ }).first(), skip: true }, { d: '"Forget it" (counted, not executed, not located)', blind: true, skip: true }] },
   J6: { steps: [{ d: "the sidebar Stop button (counted, not executed)", loc: (p) => p.getByRole("button", { name: "Stop everything now" }), skip: true }] },
@@ -100,7 +92,7 @@ try {
       const log = [`open the app -> ${await page.evaluate(() => location.hash)}`];
       let broke = null;
       for (const s of path.steps) {
-        if (s.blind) { clicks++; log.push(`${clicks}. ${s.d}`); continue; }
+        if (s.blind) { clicks++; log.push(`${clicks}. ${s.d}`); continue; } // a control that only exists after the click before it: counted, not located
         const loc = s.loc(page);
         if (s.hover) await s.hover(page).hover().catch(() => undefined); // a row's actions show on hover or focus; a hover is not a click
         try { await loc.waitFor({ state: "visible", timeout: 4000 }); } catch { broke = `not found: ${s.d}`; break; }

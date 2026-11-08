@@ -57,6 +57,7 @@ export function Remembers({ memory: m, proposals, onChanged }: { memory: Memory;
 
   return (
     <div className="yd-body" data-testid="remembers">
+      <p className="kc-sub" data-testid="only-you">Stored on this Mac. Only you can change it.</p>
       {items.length === 0 ? (
         <div className="kc-empty"><h2>Nothing remembered yet.</h2><p>Set up again to write the first lines.</p></div>
       ) : (
