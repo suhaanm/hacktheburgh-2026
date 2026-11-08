@@ -23,6 +23,8 @@ import { liveFlagOn } from './live/flags'
 import { registerLive } from './live/electron'
 import { registerWake } from './wake/electron'
 import { createContextHub, screenIdFromUrl } from './wake/context-source'
+import { chainGround, COLLECT_KNACK_ELEMENTS_JS, createDomPointPort, createKnackWindowGround, parseKnackElements } from './live/point-ground'
+import { parseCalibration } from './dom-ground/rect-map'
 import { readRung } from './wake/rung'
 import { dataDirPath } from './kill-file'
 import { LIVE_CONSENT_VERSION } from './live/settings'
@@ -152,7 +154,7 @@ void app.whenReady().then(async () => {
   // The awareness module is created below (it needs the coach poller); the legacy gate, the consent card and the tray read it through this box.
   const awarenessBox: { a: Awareness | null } = { a: null }
   // Hey Knack (the on-device listener) is created after Live and the attention layer; the tray and Live's `do_it_for_me` read it through this box.
-  const wakeBox: { ctl: WakeController | null; settings: { get(): { voiceAnswer: string; screenAnswer: string } } | null } = { ctl: null, settings: null }
+  const wakeBox: { ctl: WakeController | null; settings: { get(): { voiceAnswer: string; screenAnswer: string } } | null; running: (() => { n: number; t: number } | null) | null } = { ctl: null, settings: null, running: null }
   // The last coach decision's step id and capture zone (ids only), for the voice conversation's context packet.
   const coachBox: { last: { step: string | null; zone: string | null; t: number } | null } = { last: null }
 
@@ -370,12 +372,47 @@ void app.whenReady().then(async () => {
       return { voice: voiceOk ? 'yes' : (w?.voiceAnswer ?? 'unset'), screen: l?.liveFrames === true ? 'yes' : (w?.screenAnswer ?? 'unset'), frames: l?.liveFrames === true }
     },
     rung: () => readRung(dataDirPath()),
+    // A count of the tasks that are planning or running (never what they are).
+    tasksRunning: () => wakeBox.running?.() ?? null,
     // The Knack window's route, only while the worker is looking at it (otherwise the screen id would mislead the model).
     screen: () => {
       const id = knack?.mainWindow.window()?.webContentsId()
       const wc = id !== undefined && knack?.mainWindow.isFocused() ? webContents.fromId(id) : null
       return wc && !wc.isDestroyed() ? screenIdFromUrl(wc.getURL()) : null
     },
+  })
+
+  // Pointing without Screen Recording: the Knack window first (its own page, read through its web contents), then a browser tab with the extension (DOM
+  // grounding); only "find it anywhere on my screen" needs the permission, and without it a card says why (see live/point-ground.ts).
+  const primaryDisplay = () => {
+    const d = screen.getPrimaryDisplay()
+    return { bounds: d.bounds, scaleFactor: d.scaleFactor }
+  }
+  const knackContents = () => {
+    const win = knack?.mainWindow.window()
+    if (!win || win.isDestroyed() || !win.isVisible() || win.isMinimized()) return null
+    const wc = webContents.fromId(win.webContentsId())
+    return wc && !wc.isDestroyed() ? wc : null
+  }
+  const knackGround = knack
+    ? createKnackWindowGround({
+        elements: async () => {
+          const wc = knackContents()
+          return wc ? parseKnackElements(await wc.executeJavaScript(COLLECT_KNACK_ELEMENTS_JS, true)) : null
+        },
+        content: () => {
+          const wc = knackContents()
+          const b = wc ? BrowserWindow.fromWebContents(wc)?.getContentBounds() : null
+          return wc && b ? { x: b.x, y: b.y, zoom: wc.getZoomFactor() } : null
+        },
+        display: primaryDisplay,
+      })
+    : null
+  const extGround = createDomPointPort({
+    grounder: understudy.domGrounder,
+    display: primaryDisplay,
+    calibration: parseCalibration(process.env.UNDERSTUDY_RING_OFFSET),
+    extensionPresent: () => (understudy.extServer()?.lastSeenAt() ?? 0) > Date.now() - 10_000,
   })
 
   // Live voice (flags UNDERSTUDY_X_LIVE and UNDERSTUDY_FLAG_VOICE): the websocket lives in main; the dock only owns the microphone and speaker.
@@ -391,6 +428,12 @@ void app.whenReady().then(async () => {
         cue: cue?.livePort ?? noCuePort,
         doIt: (req) => (wakeBox.ctl ? wakeBox.ctl.doIt(req) : Promise.resolve({ ok: false, reason: 'not_available' })),
         context: (o) => contextHub.build(o),
+        opening: () => wakeBox.ctl?.openingText() ?? null,
+        // "Hey Knack, do X": the request goes to the task service (loopback) and a card asks the worker first; nothing starts by itself.
+        startTask: (text) => (wakeBox.ctl ? wakeBox.ctl.startTask(text) : Promise.resolve({ ok: false, reason: 'unavailable' })),
+        domGround: chainGround(knackGround, extGround),
+        screenStatus: () => (process.platform === 'darwin' && !flag('UNDERSTUDY_MOCK') && !flag('ALONGSIDE_MOCK') ? systemPreferences.getMediaAccessStatus('screen') : 'granted'),
+        onScreenMissing: () => wakeBox.ctl?.explainRefusal('screen_recording'),
         killed: isKilled,
         agentActing: () => understudy.hudModel.state().agentActing,
         cueVoiceOn: () => settings.get().cueVoice === true,
@@ -400,11 +443,19 @@ void app.whenReady().then(async () => {
     : null
   liveBox.reg = live
   live?.manager.start()
+  // The talk key never fails silently: when it cannot start a conversation (no consent yet, no key, the microphone not allowed ...) a card says why.
+  const offTalkExplain = live
+    ? bus.on('talk', (e) => {
+        if (e.phase !== 'press') return
+        const st = live.manager.status()
+        if (st.phase === 'idle' && st.refused) wakeBox.ctl?.explainRefusal(st.refused)
+      })
+    : null
   // The corner pill says what a voice conversation is doing (Listening, Thinking, Speaking) for both the talk key and Hey Knack, and leaves with it.
   let pillVoice: 'Listening' | 'Thinking' | 'Speaking' | null = null
   const offVoicePill = live && knack
     ? live.manager.subscribe((s) => {
-        const next = s.phase === 'connecting' || s.phase === 'listening' ? 'Listening' : s.phase === 'thinking' || s.phase === 'waiting' ? 'Thinking' : s.phase === 'speaking' ? 'Speaking' : null
+        const next = s.phase === 'connecting' || s.phase === 'listening' || s.phase === 'waiting' ? 'Listening' : s.phase === 'thinking' ? 'Thinking' : s.phase === 'speaking' ? 'Speaking' : null
         if (next === pillVoice) return
         const was = pillVoice
         pillVoice = next
@@ -429,12 +480,15 @@ void app.whenReady().then(async () => {
         owns: (id) => windows.owns(id) || knack?.mainWindow.owns(id) === true,
         openSettings: () => knack?.openSettings(),
         openMicrophoneSettings: () => permissions.openSettings('microphone'),
+        openScreenSettings: () => permissions.openSettings('screen'),
+        openPane: (pane) => (pane === 'dictation' ? void shell.openExternal('x-apple.systempreferences:com.apple.Keyboard-Settings.extension').catch(() => undefined) : permissions.openSettings(pane)),
         context: contextHub,
         log: ctx.log,
       })
     : null
   wakeBox.ctl = wake?.controller ?? null
   wakeBox.settings = wake?.settings ?? null
+  wakeBox.running = wake ? () => wake.running() : null
   wake?.controller.subscribe(() => shellTray?.refresh())
   const offWakeKill = wake ? understudy.kill.subscribe((k) => wake.controller.setKilled(k.killed)) : null
 
@@ -450,6 +504,7 @@ void app.whenReady().then(async () => {
     cueSignals.stop()
     offWakeKill?.()
     offVoicePill?.()
+    offTalkExplain?.()
     wake?.dispose()
     live?.dispose()
     attentionWiring?.dispose()
