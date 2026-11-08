@@ -20,6 +20,8 @@
 //   --out=qa/knack/copy-report.json   write the measurements
 //   --report-only               print and write, never exit 1 (for the baseline)
 //   --dump                      print every counted text node above the fold (what the words are)
+//   --dump-all                  with --dump: list the text of the whole default view, not only above the fold
+//   --expanded                  also open each top-level disclosure on its own and hold its body to budgets.expanded (words, controls, paragraphs); Evidence is exempt
 //   --list                      print the routes and their budgets, then stop
 import { chromium } from "playwright";
 import fs from "node:fs";
@@ -86,7 +88,10 @@ if (flag("list")) {
 }
 
 /** Runs inside the page: everything is read from the rendered DOM. Mirrors measure-clutter.mjs, plus the element rules. */
-const measureInPage = (dump) => {
+const measureInPage = (opts) => {
+  const dump = Boolean(opts && opts.dump);
+  const dumpAll = Boolean(opts && opts.dumpAll);
+  const expand = Boolean(opts && opts.expand);
   const FOLD = window.innerHeight;
   const hiddenAncestor = (el) => {
     for (let e = el; e && e !== document.body; e = e.parentElement) {
@@ -110,7 +115,7 @@ const measureInPage = (dump) => {
   // A word has a letter or a digit in it: a separator such as a chevron, a slash or a lone full stop is not a word.
   const wc = (s) => s.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
   const sink = [];
-  const words = (root, foldOnly) => {
+  const words = (root, foldOnly, skipSvg = false) => {
     let n = 0;
     const tw = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     while (tw.nextNode()) {
@@ -119,13 +124,14 @@ const measureInPage = (dump) => {
       if (!s) continue;
       const el = t.parentElement;
       if (!el || hiddenAncestor(el) || ["SCRIPT", "STYLE", "OPTION"].includes(el.tagName)) continue;
+      if (skipSvg && el.closest("svg")) continue;
       const range = document.createRange();
       range.selectNodeContents(t);
       const r = range.getBoundingClientRect();
       if (r.width <= 1 || r.height <= 1) continue;
       if (foldOnly && (r.top >= FOLD || r.bottom <= 0)) continue;
       n += wc(s);
-      if (dump && foldOnly && root.id === "main") sink.push(`${Math.round(r.top)}  ${el.tagName.toLowerCase()}  ${s.slice(0, 70)}`);
+      if (dump && (dumpAll ? !foldOnly : foldOnly) && root.id === "main") sink.push(`${Math.round(r.top)}  ${el.tagName.toLowerCase()}  ${s.slice(0, 70)}`);
     }
     return n;
   };
@@ -169,6 +175,24 @@ const measureInPage = (dump) => {
   }
   const rows = side ? [...side.querySelectorAll("nav a, nav button, .nav a, .nav button")].filter((e) => vis(e) && !hiddenAncestor(e)) : [];
   const hintWords = side ? [...side.querySelectorAll("[class*='hint']")].filter((e) => vis(e)).reduce((n, e) => n + wc(e.textContent), 0) : 0;
+  // Expanded blocks: open each top-level disclosure on its own and count what is inside it (its summary and anything folded deeper do not count).
+  const expanded = [];
+  if (expand) {
+    const tops = [...main.querySelectorAll("details")].filter((d) => !d.parentElement.closest("details") && vis(d) && !hiddenAncestor(d.parentElement));
+    for (const d of tops) {
+      const was = d.open;
+      d.open = true;
+      const sm = d.querySelector(":scope > summary");
+      const body = [...d.children].filter((c) => c !== sm);
+      // Prose and rows count; the labels drawn inside a chart (SVG text) do not: a chart is one object, and its numbers are not a paragraph.
+      const bodyWords = body.reduce((n, c) => n + words(c, false, true), 0);
+      const bodyControls = body.reduce((n, c) => n + [...c.querySelectorAll("button, a[href], input, select, textarea, summary, [role='button'], [role='tab'], [role='switch']")].filter((e) => vis(e) && !hiddenAncestor(e)).length, 0);
+      // A paragraph is a <p> of eight words or more. Rows (dl, li, table cells) are not paragraphs: label and value rows are how an opened block is meant to read.
+      const paras = body.reduce((n, c) => n + [...c.querySelectorAll("p")].filter((e) => vis(e) && !hiddenAncestor(e) && words(e, false, true) >= 8).length + (c.matches("p") && words(c, false, true) >= 8 ? 1 : 0), 0);
+      expanded.push({ summary: sm ? sm.textContent.trim().slice(0, 50) : "(no summary)", words: bodyWords, controls: bodyControls, longParagraphs: paras });
+      d.open = was;
+    }
+  }
   const empty = Boolean(main.querySelector(".state:not(.state--loading), [data-empty]")) && !main.querySelector("svg[role='img'], figure svg");
   const busy = /Loading|Reading|Starting Knack/i.test(main.innerText);
   return {
@@ -180,7 +204,7 @@ const measureInPage = (dump) => {
     pills: pills.length, pillTexts: pills.slice(0, 6).map((e) => e.textContent.trim().slice(0, 28)),
     controls: controls.length,
     buttonsLong, rowTitlesLong, ledesLong, eyebrows, uppercase: upper.slice(0, 5), uppercaseCount: upper.length,
-    empty, busy, dump: sink,
+    empty, busy, dump: sink, expanded,
     controlDump: dump ? controls.map((e) => `${e.tagName.toLowerCase()}${e.getAttribute("role") ? `[${e.getAttribute("role")}]` : ""} ${(e.getAttribute("aria-label") || e.textContent || "").trim().slice(0, 50)}`) : [],
     pillDump: dump ? pills.map((e) => e.textContent.trim().slice(0, 40)) : [],
     gate: /part of the Admin view|Admin view only|not in this view|Switch to Admin to see this/i.test(main.innerText),
@@ -188,14 +212,15 @@ const measureInPage = (dump) => {
 };
 
 async function settle(page) {
-  let m = await page.evaluate(measureInPage, false);
+  let m = await page.evaluate(measureInPage, { dump: false });
   let prev = -1;
   for (let i = 0; i < 16 && !m.noMain && (m.wordsTotal !== prev || m.busy); i++) {
     prev = m.wordsTotal;
     await page.waitForTimeout(500);
-    m = await page.evaluate(measureInPage, false);
+    m = await page.evaluate(measureInPage, { dump: false });
   }
-  if (flag("dump")) m = await page.evaluate(measureInPage, true);
+  if (flag("dump")) m = await page.evaluate(measureInPage, { dump: true, dumpAll: Boolean(flag("dump-all")) });
+  if (flag("expanded")) m = { ...m, expanded: (await page.evaluate(measureInPage, { dump: false, expand: true })).expanded };
   return m;
 }
 
@@ -220,6 +245,12 @@ function judge(id, spec, vp, m, narrow) {
     }
   }
   const exempt = Boolean(budgets.exempt[id]);
+  for (const x of budgets.exempt[id] ? [] : m.expanded ?? []) {
+    const wmax = budgets.expanded.words, cmax = budgets.expanded.controls;
+    if (x.words > wmax) problems.push(`expanded "${x.summary}": ${x.words} words > ${wmax}`);
+    if (x.controls > cmax) problems.push(`expanded "${x.summary}": ${x.controls} controls > ${cmax}`);
+    if (x.longParagraphs > budgets.expanded.paragraphs) problems.push(`expanded "${x.summary}": ${x.longParagraphs} paragraphs of 8 words or more > ${budgets.expanded.paragraphs}`);
+  }
   if (!narrow && !exempt) {
     if (m.h1Words > (m.h1IsHero ? budgets.elements.heroWords : budgets.elements.screenTitleWords)) problems.push(`title is ${m.h1Words} words (limit ${m.h1IsHero ? budgets.elements.heroWords : budgets.elements.screenTitleWords})`);
     if (m.buttonsLong.length) problems.push(`buttons over ${budgets.elements.buttonWords} words: ${m.buttonsLong.join(" | ")}`);
@@ -288,7 +319,8 @@ try {
         }
         if (flag("dump")) console.log(m.dump.map((d) => `      ${d}`).join("\n") + "\n   controls: " + m.controlDump.join(" | ") + "\n   pills: " + m.pillDump.join(" | "));
         results.push({ view, route: id, viewport: vp.join("x"), theme, example, ...m, dump: undefined, controlDump: undefined, pillDump: undefined, problems });
-        const brief = `above ${String(m.wordsAbove).padStart(3)}/${budgetFor(id, "wordsAbove", aud, { empty: m.empty }) ?? "-"}  total ${String(m.wordsTotal).padStart(4)}/${budgetFor(id, "wordsTotal", aud) ?? "-"}  long ${m.longParas}  pills ${m.pills}  ctl ${String(m.controls).padStart(2)}  side ${m.sideRows}r ${m.sideWords}w ${m.sideHintWords}h`;
+        const exp = m.expanded ? `  open max ${Math.max(0, ...m.expanded.map((x) => x.words))}w ${Math.max(0, ...m.expanded.map((x) => x.controls))}c` : "";
+        const brief = `above ${String(m.wordsAbove).padStart(3)}/${budgetFor(id, "wordsAbove", aud, { empty: m.empty }) ?? "-"}  total ${String(m.wordsTotal).padStart(4)}/${budgetFor(id, "wordsTotal", aud) ?? "-"}  long ${m.longParas}  pills ${m.pills}  ctl ${String(m.controls).padStart(2)}  side ${m.sideRows}r ${m.sideWords}w ${m.sideHintWords}h${exp}`;
         console.log(`${problems.length ? "FAIL" : "PASS"}  ${tag.padEnd(24)} ${brief}${problems.length ? "\n      " + problems.join("\n      ") : ""}`);
         for (const p of problems) fails.push(`${tag}: ${p}`);
       }

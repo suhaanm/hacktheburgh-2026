@@ -1,10 +1,12 @@
-# One app, one window, one pill, three clicks
+# One app, one window, one pill, a short first run
 
 > Knack is one app: a calm window, a menu-bar item, and a small corner pill that says what is happening in five words and offers Stop.
 
 **Capability:** A calm product: window, attention, context · **Status:** built · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
-This page covers One app, one window, one corner pill, First run in three clicks, Command palette and keyboard.
+**Navigation note (landing).** The lead's views rule (`docs/knack-ux/views.md`, from owner requests 4.1, 4.2, 4.11, 4.12 and 4.17 at about 00:50 UTC) is reorganising where screens live. Where this page says 'More, <screen>', check `apps/dashboard/src/components/home/navModel.ts` on main for the final place. The account menu holds the worker's name and role, View as, Settings (including Connections and Advanced), Set up again and Change role (owner requests 4.8 and 4.9, landing).
+
+This page covers One app, one window, one corner pill, First run: role, consent and a first look, Command palette and keyboard.
 
 ## One app, one window, one corner pill
 
@@ -43,17 +45,17 @@ Not yet seen by the owner on a real desktop with real windows behind it; the cor
 
 - **Wordsmith (most complicated end-to-end browser-use workflow)**: an agent that works in the background and tells the worker in five words
 
-## First run in three clicks
+## First run: role, consent and a first look
 
-**Status:** built · **Page:** `docs/features/knack-shell.md` · **Targets:** G-Research
+**Status:** built (the spec is three clicks; decision D58 (00:45 UTC) adds a permissions step and a Try it step, still landing) · **Page:** `docs/features/knack-shell.md` · **Targets:** G-Research
 
 ### What it does
 
-First launch asks two questions and shows one summary: a role card, one capture consent, and 'Show my week'. Everything else takes the role pack's safe defaults and is editable in Your data.
+First launch asks two questions and shows one summary: a role card, one capture consent, and 'Show my week'. Everything else takes the role pack's safe defaults and is editable in Your data. Decision D58 (owner, after the first launch showed the old eight-step wizard) makes this the only onboarding: it opens on the first launch whatever the engine knows, adds three equal consent cards, a permissions step (microphone, speech, screen) and a Try it step, and the legacy wizard never renders in the Knack shell.
 
 ### How it works
 
-Click 1 picks a role (three cards from the packs); the pack's tools, risky actions set to 'never without me', short tone, gradual pace and hours are written to the memory file. Click 2 is the one consent: 'It records when you are active, never what you read: no page text, no URLs, no field values. The record stays on this laptop.' Yes, Not now and Never have equal weight; Not now asks again once after a week; Never never asks again. Click 3 shows four plain lines from the file just written and opens Home. Screen glances, the microphone, Accessibility, Screen Recording and Open at login are each asked once, in context, when first needed. The role card will also offer connection presets (landing), which adds one click.
+Click 1 picks a role (three cards from the packs); the pack's tools, risky actions set to 'never without me', short tone, gradual pace and hours are written to the memory file. Click 2 is the one consent: 'It records when you are active, never what you read: no page text, no URLs, no field values. The record stays on this laptop.' Yes, Not now and Never have equal weight; Not now asks again once after a week; Never never asks again. Click 3 shows four plain lines from the file just written and opens Home. Screen glances, the microphone, Accessibility, Screen Recording and Open at login are each asked once, in context, when first needed. The role card will also offer 'Connect your tools' chips for the chosen role (landing), all off. Permissions are asked one at a time and in context: on the step 'Turn on Hey Knack' the worker clicks Turn on (or Not now), and only then does the listener start, so no prompt appears at launch out of context; macOS asks for the microphone and then speech recognition. Screen Recording is asked only when the worker turns on screen glances or says Yes to the screen card and then asks Knack to find something outside Knack or a browser tab with the extension; Accessibility only for 'click for me', after the first supervised test. Input Monitoring, Automation and Full Disk Access are never asked. A last Try it step says 'Say Hey Knack', then 'show me where the Needs you list is', with a Skip button.
 
 **What is different.** Two questions and one summary, with a consent whose three buttons weigh the same.
 
@@ -69,11 +71,11 @@ Launch fresh: role card, the consent with three equal buttons, 'Here is what Kna
 
 | What | Label | Source |
 |---|---|---|
-| About 20 clicks over 15 screens before; 3 clicks after. Words on the first screen 159 to 20 | design measurement of a prototype | `docs/knack-ux/07-first-run.md; docs/knack-ux/after/after-measurements.json` |
+| In the spec: about 20 clicks over 15 screens before; 3 clicks after. Words on the first screen 159 to 20. D58 adds steps, so the shipped count is higher and has not been re-measured | design measurement of a prototype | `docs/knack-ux/07-first-run.md; docs/knack-ux/after/after-measurements.json` |
 
 ### Honest limit
 
-Measured on a prototype and by the reducer's tests; no person has done it. Permission dialogs (Accessibility, Screen Recording, Microphone) can only be granted by the owner in System Settings.
+Measured on a prototype and by the reducer's tests; no person has done it, and the D58 steps are not in the measurement. Permission dialogs (Accessibility, Screen Recording, Microphone) can only be granted by the owner in System Settings.
 
 ### Hackathon target
 
@@ -117,14 +119,14 @@ The tap-to-type Ask bar is a lower-priority item in the build plan and may not b
 
 ## 30-second spoken script
 
-> Knack is one app. A calm window with five destinations, a menu-bar item, and when an agent starts working on your real screen, the window gets out of the way and a small pill in the corner says what is happening in five words and offers Stop. It does not pop back on its own. First launch is three clicks: your role, one consent with three equal buttons, and show my week.
+> Knack is one app. A calm window with five destinations, a menu-bar item, and when an agent starts working on your real screen, the window gets out of the way and a small pill in the corner says what is happening in five words and offers Stop. It does not pop back on its own. First launch is a short first run: your role, a consent with three equal buttons, the permissions Knack needs, and a first look at your week.
 
 ## Slide bullets
 
 - One app: window, Dock, menu bar, corner pill; five destinations.
 - Window minimises when an agent works; the pill says it in five words and offers Stop.
 - One interrupting surface at a time; never over a password field.
-- First run: 20 clicks over 15 screens became 3.
+- First run: the spec cut about 20 clicks over 15 screens to 3; D58 adds a permissions step and a Try it step.
 - No keystroke ever approves anything.
 
 ## Sources
@@ -132,6 +134,7 @@ The tap-to-type Ask bar is a lower-priority item in the build plan and may not b
 - `docs/KNACK_UX.md`
 - `docs/knack-ux/08-window-states.md`
 - `docs/knack-ux/07-first-run.md`
+- `docs/knack-ux/capabilities-and-permissions.md`
 - `docs/knack-ux/shell-transitions.json`
 - `apps/desktop/KNACK_BUILD.md`
 - `docs/DECISIONS.md (D51)`

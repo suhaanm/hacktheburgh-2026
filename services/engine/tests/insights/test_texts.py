@@ -13,7 +13,7 @@ ADMIN_SLOTS = {"role": "benefits-processor", "seconds": 15, "habit1": "check-the
                "days": 7, "open": 3, "enough": 40, "users": 60, "before_pct": 5, "after_pct": 15, "direction": "up"}
 
 
-def mk(kind, audience, badge="synthetic firm", slots=None, polarity=None, action=None):
+def mk(kind, audience, badge="made-up firm", slots=None, polarity=None, action=None):
     return InsightCandidate(id="i_x", kind=kind, audience=audience, subject="s", group="g", polarity=polarity or V.KINDS[kind].polarity, badge=badge, origin="synthetic", n=1,
                             slots=dict(slots or (WORKER_SLOTS if audience == "worker" else ADMIN_SLOTS)), action_id=action)
 
@@ -58,7 +58,7 @@ def test_every_worker_template_renders_and_passes_the_lint(tid, c):
     assert T.lint(r["text"], audience="worker", kind="body", badge=c.badge) == [], r["text"]
     if r["title"]:
         assert T.lint(r["title"], audience="worker", kind="title") == [], r["title"]
-    assert "synthetic firm data" in r["text"] and r["source"] in V.SOURCE_SET
+    assert "made-up firm data" in r["text"] and r["source"] in V.SOURCE_SET
     assert not any(ch.isdigit() for ch in r["title"])
 
 
@@ -79,7 +79,7 @@ def test_the_lint_catches_what_it_promises_to():
     assert "worker_statistics:interval" in T.lint("The interval is wide.", audience="worker", kind="body")
     assert "worker_statistics:%" in T.lint("Up 5% this week.", audience="worker", kind="body")
     assert "no_statement" in T.lint("Fine text. Source: Firm assist ledgers.", audience="admin", kind="body")
-    assert "no_badge" in T.lint("Fine text. Source: Your assist ledger.", audience="worker", kind="body", badge="synthetic firm")
+    assert "no_badge" in T.lint("Fine text. Source: Your assist ledger.", audience="worker", kind="body", badge="made-up firm")
     assert "no_source" in T.lint("Fine text.", audience="worker", kind="body")
 
 

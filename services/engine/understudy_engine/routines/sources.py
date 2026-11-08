@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import threading
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -24,6 +24,8 @@ class PersonData:
     role: str
     truth: dict[str, Any] | None = None
     slug: str | None = None
+    #: a real worker who changed role: the events from before the change. They stay readable but are never mixed into ``events`` (the current role's)
+    earlier_events: list[Event] = field(default_factory=list)
 
     @property
     def t_first(self) -> float:
@@ -48,6 +50,16 @@ def segment_for_role(events, role: str):
     from ..cogs import segment_episodes
 
     return segment_episodes(events, pack_mapping(role))
+
+
+def split_by_current_role(events: list[Event]) -> tuple[str, list[Event], list[Event]]:
+    """``(current role, events of the current role, earlier events)`` for one real worker's time-ordered events. The current role is the newest event's; the
+    current events are the unbroken run of it at the end, so work done under another role is never segmented with the new role's pack."""
+    role = events[-1].role
+    i = len(events)
+    while i > 0 and events[i - 1].role == role:
+        i -= 1
+    return role, events[i:], events[:i]
 
 
 class PersonSource:
@@ -122,14 +134,17 @@ class PersonSource:
             events.sort(key=lambda e: (e.t, e.id))
             truth = json.loads(info["truth"].read_text()) if info["truth"] else None
             role = events[0].role if events else (truth or {}).get("role", "benefits-processor")
+            earlier: list[Event] = []
+            if info["origin"] == "real" and events:
+                role, events, earlier = split_by_current_role(events)
             for k in [k for k in self._cache if k[0] == person]:
                 del self._cache[k]
-            pd = PersonData(person, info["origin"], events, role, truth, info["slug"])
+            pd = PersonData(person, info["origin"], events, role, truth, info["slug"], earlier)
             self._cache[key] = pd
             return pd
 
     def episodes(self, pd: PersonData) -> list[Episode]:
-        key = (pd.person, "episodes", self._signature(pd.person))
+        key = (pd.person, "episodes", self._signature(pd.person), pd.role, len(pd.events))
         with self._lock:
             hit = self._cache.get(key)
             if hit is not None:

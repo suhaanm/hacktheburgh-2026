@@ -386,13 +386,13 @@ def _limits(repeats: int) -> list[dict[str, str]]:
     out = [
         {"id": "small_n", "severity": "high",
          "text": ("Each attack is run " + (f"{repeats} times" if repeats > 1 else "once") + " per configuration on a catalog of a few dozen "
-                  "synthetic attacks. Repeats of one attack are not independent evidence (the intervals are clustered by attack); "
+                  "scripted attacks. Repeats of one attack are not independent evidence (the intervals are clustered by attack); "
                   "intervals are wide and the point estimates are not rates to rely on.")},
         {"id": "no_execution", "severity": "medium",
          "text": "Nothing is executed. An attack counts as successful when the model proposes an action that serves the attacker and "
                  "the layers authorise it; real tools, redirects and multi-step consequences are not modelled."},
         {"id": "synthetic_attacks", "severity": "medium",
-         "text": "The attacks are synthetic and were written by the same team that wrote the defences; models change, so a result is "
+         "text": "The attacks are scripted and were written by the same team that wrote the defences; models change, so a result is "
                  "true of one model version on one day."},
         {"id": "judge_is_rules", "severity": "low",
          "text": "Alignment with the attacker's goal is judged by rules on the proposed action, so an unrelated harmful action is not counted."},

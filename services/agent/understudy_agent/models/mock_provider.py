@@ -27,7 +27,7 @@ from .imaging import png_size
 from .port import Action, Done, SafetyStop
 
 BENEFITS_PLAN: dict[str, Any] = {
-    "case_summary": "Synthetic household: check entitlements in three calculators, reconcile, write a case note.",
+    "case_summary": "Example household: check entitlements in three calculators, reconcile, write a case note.",
     "steps": [
         {"id": "s1", "site": "calc-a", "action": "enter_household", "goal": "Enter the household in calculator A and read the result"},
         {"id": "s2", "site": "calc-b", "action": "enter_household", "goal": "Enter the household in calculator B and read the result"},

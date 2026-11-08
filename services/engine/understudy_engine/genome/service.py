@@ -195,7 +195,7 @@ class GenomeService:
         raise GenomeError(
             "no_cohort",
             "No expert/novice cohort found. Real data needs data/real/roster.json ({person: expert|novice}) with at least 2 of each; "
-            "synthetic data needs `understudy synth --all`.",
+            "generated data needs `understudy synth --all`.",
         )
 
     # --------------------------------------------------------------- results
@@ -289,7 +289,7 @@ class GenomeService:
                 {"deficit": d["type"], "price_s": d["price_s"], "recovered_s": round(rec.get(d["type"], 0.0), 3)} for d in tr["deficits"]
             ]
         note = (
-            "Synthetic apprentices with planted deficits; the ribbon is one novice case against its nearest expert. "
+            "Scripted apprentices with planted deficits; the ribbon is one novice case against its nearest expert. "
             f"Waterfall = mean seconds lost per case over {len(pp)} novices vs {len({e.person for e in co.experts})} experts."
             if b.origin == "synthetic" else
             f"Real traces. n = {len(pp)} novices vs {len({e.person for e in co.experts})} experts; the interval is wide because n is small."
@@ -308,7 +308,7 @@ class GenomeService:
             for e in g["edges"]:
                 e["planted"] = (e["from"], e["to"]) in planted if e["missing_for_novice"] else None
         note = "Edges are mean transitions per case. missing_for_novice: experts take the edge, novices take it less than 85% as often."
-        return g, self.meta(b, note + (" Synthetic apprentices; `planted` marks edges broken by a planted deficit." if b.truth else ""))
+        return g, self.meta(b, note + (" Scripted apprentices; `planted` marks edges broken by a planted deficit." if b.truth else ""))
 
 
 def planted_missing_edges(truth: dict) -> set[tuple[str, str]]:

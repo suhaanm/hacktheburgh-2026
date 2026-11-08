@@ -43,7 +43,7 @@ def evaluate_skills(root: Path | str | None = None, dirs: tuple[str, ...] = PERS
     for d in dirs:
         ev, tr = base / "synthetic" / d / "events.jsonl", base / "synthetic" / d / "truth.json"
         if not ev.exists() or not tr.exists():
-            raise FileNotFoundError(f"synthetic persona data missing: {ev}")
+            raise FileNotFoundError(f"generated persona data missing: {ev}")
         truth = json.loads(tr.read_text())
         person = truth["person"]
         day0 = _dt.datetime.fromisoformat(truth["start_date"]).replace(tzinfo=_dt.timezone.utc).timestamp()

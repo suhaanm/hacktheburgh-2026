@@ -268,7 +268,7 @@ def test_good_results_add_no_computed_entries():
 
 def test_owner_entries_are_deduplicated_by_id_with_sources_joined_and_generic_synthetic_folded():
     entry = {"id": "ana-hazard-people", "text": "Four people.", "severity": "high"}
-    generic = {"id": "ana-synthetic-origin", "text": "All synthetic.", "severity": "high"}
+    generic = {"id": "ana-synthetic-origin", "text": "All generated.", "severity": "high"}
     sections = {"hazard": _sec(limitations=[entry, generic]), "policy_gate": _sec(limitations=[entry, generic])}
     out = lim.assemble(sections)
     people = [e for e in out if e["id"] == "ana-hazard-people"]
@@ -336,7 +336,7 @@ def test_cli_writes_report_json_and_markdown(synthetic_data, tmp_path, capsys):
     assert schema_errors(rep) == [] and set(rep["sections"]) == {"deficit_recovery", "null_placebo", "ski_rental", "study", "limitations"}
     md = out.with_suffix(".md").read_text()
     assert "# Understudy evaluation report" in md and "## Limitations register" in md
-    assert "origin: **synthetic**" in md and "n = " in md and "95%" in md
+    assert "measured on: **generators we wrote**" in md and "n = " in md and "95%" in md
     assert "NOT RUN" in md          # the study
     assert "wrote" in capsys.readouterr().out
 

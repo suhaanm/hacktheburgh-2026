@@ -633,7 +633,7 @@ LIMITATIONS = [
      "text": "The planner is a script that follows any instruction it can see. These numbers measure what the layers stop, "
              "not how a real model behaves under attack."},
     {"id": "synthetic_catalog", "severity": "medium",
-     "text": "Attacks are synthetic and were written by the same team that wrote the defences. A new attack style can get through."},
+     "text": "Attacks are scripted and were written by the same team that wrote the defences. A new attack style can get through."},
     {"id": "markup_assumption", "severity": "low",
      "text": "Layer 1 (sanitising) is modelled as defeating only markup-based attacks (fake system tags, tool-call syntax); "
              "a scripted planner that follows plain text shows no change when it is off."},

@@ -371,7 +371,7 @@ def generate_workweeks(family: str, role: str, n_people: int = 40, n_days: int =
         "start_date": (start or START_WW).date().isoformat(), "tz": "UTC",
         "realism": {"label": LABEL, "family": family, "params_sha256": params_sha256(), "hyper": {k: round(v, 5) for k, v in h.items()},
                     "cited_status_counts": status_counts(),
-                    "note": "Synthetic. No schedule change is planted on a known day."},
+                    "note": "Generated. No schedule change is planted on a known day."},
         "people": people_truth, "routine_labels": labels, "stuck_episodes": stuck_eps,
         "counts": {"events": len(rows), "tasks": n_tasks_total, "stuck_episodes": len(stuck_eps),
                    "routine_tasks": sum(1 for v in labels.values() if v != "adhoc")},

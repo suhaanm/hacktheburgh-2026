@@ -2,7 +2,7 @@ import { getState, noteSource, setState, whenExtReady } from "./store";
 import type { ApprovalAuth } from "./auth/types";
 import type {
   Analytic, AnalyticMeta, AuditLine, CoachState, EvalReport, Genome, Hazard, Health, KillState, Memory,
-  AgentHealth, AgentKind, AgentRun, AgentRunDetail, AttentionDigest, AttentionPatch, AttentionPeek, AttentionSettings, AttentionWhy, Briefing, CalPerson, CalSuggestion, CalendarWeek, CoachDecision, CoachOutcome, ExtensionName, EvidencePacket, ExplainResult, GitHabits, GitPeople, LedgerEntry, LocalModelStatus, ModelsStatus, OffhoursReport, OnboardingAnswers, OnboardingQuestions, OnboardingResult, Pack, Presence, QueueItem, QuietHours,
+  AgentHealth, AgentKind, AgentRun, AgentRunDetail, TaskDetail, TaskRow, SkillsAnswer, AttentionDigest, AttentionPatch, AttentionPeek, AttentionSettings, AttentionWhy, Briefing, CalPerson, CalSuggestion, CalendarWeek, CoachDecision, CoachOutcome, ExtensionName, EvidencePacket, ExplainResult, GitHabits, GitPeople, LedgerEntry, LocalModelStatus, ModelsStatus, OffhoursReport, OnboardingAnswers, OnboardingQuestions, OnboardingResult, Pack, Presence, QueueItem, QuietHours,
   PrivacySummary, Prepared, Replay, Routine, RuleProposal, SpawnKind, Transitions, WorkGraph,
 } from "./types";
 import { classify, type Fallback } from "./lib/fallback";
@@ -433,6 +433,17 @@ export const api = {
 
   agentsRuns: (person?: string) =>
     read<AgentRun[]>(`/agents/runs${qs({ person })}`, () => ({ data: demo.runs, meta: metaOf(agentsFx) }), AGENT_URL, { layer: "agents", soft: true }),
+
+  /** The worker's tasks, newest first (Track T). Not live yet (a 404, or the service down): an empty list and `source: "demo"`, and the screen uses the run list. */
+  tasks: () => read<TaskRow[]>("/tasks", () => ({ data: [] }), AGENT_URL, { soft: true }),
+  taskDetail: (id: string) => read<TaskDetail | null>(`/tasks/${encodeURIComponent(id)}`, () => ({ data: null }), AGENT_URL, { soft: true }),
+  taskStop: (id: string) => write<unknown>(`/tasks/${encodeURIComponent(id)}/stop`, "POST", {}, () => ({}), "worker", AGENT_URL),
+  /** The worker's own click on a consent card: `allow`, `decline`, or `everything` (behind "More"). The proxy adds the token. */
+  taskConsent: (id: string, choice: "allow" | "everything" | "decline") => write<unknown>(`/tasks/${encodeURIComponent(id)}/consent`, "POST", { choice }, () => ({}), "worker_approval", AGENT_URL),
+  taskAnswer: (id: string, option_id: string) => write<unknown>(`/tasks/${encodeURIComponent(id)}/answer`, "POST", { option_id }, () => ({}), "worker", AGENT_URL),
+  taskOpen: (id: string) => write<unknown>(`/tasks/${encodeURIComponent(id)}/open`, "POST", {}, () => ({}), "worker", AGENT_URL),
+  skills: () => read<SkillsAnswer | null>("/skills", () => ({ data: null }), AGENT_URL, { soft: true }),
+  skillsSet: (patch: { use_claude_skills?: boolean; off?: string[]; max_minutes?: number }) => write<SkillsAnswer | null>("/skills/settings", "POST", patch, () => null, "worker", AGENT_URL),
 
   agentsRunDetail: (id: string) =>
     read<AgentRunDetail>(`/agents/runs/${encodeURIComponent(id)}`, () => ({ data: agentDetails[id] ?? { artifacts: [], result: null } }), AGENT_URL, { layer: "agents", soft: true }),

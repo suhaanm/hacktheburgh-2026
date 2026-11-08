@@ -1191,6 +1191,60 @@
         },
         "claim": {
           "type": "string"
+        },
+        "role_scope": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "role",
+            "current",
+            "viewing_earlier",
+            "roles"
+          ],
+          "properties": {
+            "role": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "The role whose work this answer is computed from: the current one by default, or the one asked for with ?role=. Work under another role is never mixed in."
+            },
+            "current": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "viewing_earlier": {
+              "type": "boolean"
+            },
+            "roles": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "role",
+                  "n",
+                  "last"
+                ],
+                "properties": {
+                  "role": {
+                    "type": "string"
+                  },
+                  "n": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "last": {
+                    "type": "string"
+                  }
+                }
+              },
+              "description": "Every role the person has assist occurrences under, newest first, with the count: so the screen can offer the earlier work."
+            }
+          },
+          "description": "Additive. Which role's work is shown and which roles have work."
         }
       },
       "description": "data of GET /growth (cue/score.py growth()). Every number that cannot be computed yet is null, never 0."

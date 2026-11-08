@@ -245,12 +245,13 @@ describe("composite is experimental and never the headline", () => {
     expect(v.independence).toEqual({ share: IMP.components.independence!.share, ci: IMP.components.independence!.wilson, k: IMP.components.independence!.k, n: IMP.components.independence!.n });
     expect(v.trend.per10).not.toBeNull();
   });
-  it("prints the caveat among the limitations and says a zero-crossing interval is not evidence of no change", () => {
+  // The composite is not drawn, and the engine's caveat about it speaks of other learners, so a worker's limits no longer print it (docs/knack-ux/views.md).
+  it("says a zero-crossing interval is not evidence of no change, and prints neither the composite nor the engine's caveat about other learners", () => {
     const v = { ...buildView(IMP), caveat: "Engine caveat text." };
     const l = limitations(v, "synthetic").join(" ");
-    expect(l).toContain("Engine caveat text.");
-    expect(l).toContain("experimental");
     expect(l).toContain("not evidence of no change");
+    expect(l).not.toContain("Engine caveat text.");
+    expect(l).not.toContain("experimental");
   });
 });
 
@@ -468,14 +469,14 @@ describe("origin and limits", () => {
     expect(originSentence(undefined, "synthetic")).toContain("not people");
     expect(originSentence("live_worker", "real")).toContain("One person is not a study");
   });
-  it("states the limits, including causation and the unrun live study", () => {
+  it("states the limits, including causation and that the method is not yet tested on real people", () => {
     const v = buildView(IMP);
     const l = limitations(v, "synthetic").join(" ");
     expect(l).toContain("does not show that the cues caused the change");
     expect(l).toContain("not the same as being expert");
     expect(l).toContain("never counted");
-    expect(l).toContain("has not been run");
-    expect(l).toContain("4 teammates");
+    expect(l).toContain("has not been tested on real people");
+    expect(l).not.toMatch(/teammates|\d+ (?:people|learners)/);
     expect(limitations(v, "real").join(" ")).toContain("One person is not a study");
   });
 });

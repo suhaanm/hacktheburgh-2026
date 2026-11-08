@@ -29,11 +29,6 @@ export function WhyPopover({ why, canShowMe, onAction }: { why: CueWhyView | nul
       {why?.phrase ? (
         <p className="phrase">
           <span>{sentence(why.phrase)}</span>
-          {why.simulated ? (
-            <span className="tag" role="note" aria-label="Simulated experts, not recorded people">
-              Simulated
-            </span>
-          ) : null}
         </p>
       ) : null}
       <div className="actions">

@@ -25,7 +25,7 @@ export function HabitDeltas({ habits }: { habits: GitHabit[] }) {
     <div ref={box} className="chart">
       {width > 0 && (
         <svg width={width} height={H} viewBox={`0 0 ${width} ${H}`} role="img"
-          aria-label={`Difference from the experts for ${habits.length} commit habits, in percentage points. ${habits.filter((h) => h.flagged).length} differ clearly.`}>
+          aria-label={`Difference from an experienced worker for ${habits.length} commit habits, in percentage points. ${habits.filter((h) => h.flagged).length} differ clearly.`}>
           <defs>
             <pattern id="floor-hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
               <line x1="0" y1="0" x2="0" y2="5" style={{ stroke: "var(--muted)", strokeWidth: 1, opacity: 0.55 }} />
@@ -38,7 +38,7 @@ export function HabitDeltas({ habits }: { habits: GitHabit[] }) {
                 <text className="svg-text" x={x(t)} y={habits.length * rowH + 16} textAnchor="middle">{pp(t)}</text>
               </g>
             ))}
-            <text className="svg-text" x={x(0)} y={habits.length * rowH + 30} textAnchor="middle">percentage points. 0 = the experts</text>
+            <text className="svg-text" x={x(0)} y={habits.length * rowH + 30} textAnchor="middle">percentage points. 0 = the experienced worker</text>
             {habits.map((h, i) => {
               const r = readHabit(h);
               const top = i * rowH;
@@ -55,9 +55,9 @@ export function HabitDeltas({ habits }: { habits: GitHabit[] }) {
                   <line className="dw-line" x1={x(h.ci[1])} x2={x(h.ci[1])} y1={cy - 4} y2={cy + 4} />
                   <circle cx={x(h.delta)} cy={cy} r={5} className={tone === "bad" ? "gh-dot gh-dot--bad" : tone === "good" ? "gh-dot gh-dot--good" : "gh-dot"} />
                   {compact
-                    ? <text className="wf-val" x={plotW} y={top + 14} textAnchor="end">{fmtPoints(h.delta)} <tspan className="svg-text">you {fmtShare(h.learner)} · experts {fmtShare(h.expert)}</tspan></text>
-                    : <text className="wf-val" x={plotW + 14} y={cy - 2} dominantBaseline="auto">{fmtPoints(h.delta)}<tspan className="svg-text" x={plotW + 14} dy="13">you {fmtShare(h.learner)} · experts {fmtShare(h.expert)}</tspan></text>}
-                  <title>{`${h.label}: you ${fmtShare(h.learner)}, experts ${fmtShare(h.expert)}, difference ${fmtPoints(h.delta)}, 95% interval ${fmtPointsInterval(h.ci)}. ${r.state}.`}</title>
+                    ? <text className="wf-val" x={plotW} y={top + 14} textAnchor="end">{fmtPoints(h.delta)} <tspan className="svg-text">you {fmtShare(h.learner)} · expert {fmtShare(h.expert)}</tspan></text>
+                    : <text className="wf-val" x={plotW + 14} y={cy - 2} dominantBaseline="auto">{fmtPoints(h.delta)}<tspan className="svg-text" x={plotW + 14} dy="13">you {fmtShare(h.learner)} · expert {fmtShare(h.expert)}</tspan></text>}
+                  <title>{`${h.label}: you ${fmtShare(h.learner)}, experienced worker ${fmtShare(h.expert)}, difference ${fmtPoints(h.delta)}, 95% interval ${fmtPointsInterval(h.ci)}. ${r.state}.`}</title>
                 </g>
               );
             })}

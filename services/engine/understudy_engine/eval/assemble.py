@@ -114,7 +114,7 @@ def build_report(*, fast: bool = False, sections: list[str] | None = None, root:
         try:
             ensure_synthetic(root, log)
         except Exception as e:  # pragma: no cover
-            log(f"eval: could not generate synthetic data: {type(e).__name__}: {e}")
+            log(f"eval: could not generate the data: {type(e).__name__}: {e}")
     ctx = Ctx(fast=fast, root=Path(root) if root else None, seed=seed)
     out: dict[str, Any] = {}
     secs: dict[str, float] = {}

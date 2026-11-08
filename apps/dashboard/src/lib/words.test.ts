@@ -3,6 +3,7 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { jsxTexts, scanJson, scanSource, tokenise } from "./visibleWords";
+import { PENDING_D57, PENDING_D57_MAX } from "./pendingCopy";
 
 // The owner's rule (7 Nov): the word "demo" never appears in anything a person can see or a screen reader reads. This test reads every source
 // file of the dashboard and of the desktop renderer, and every fixture, and fails on a visible "demo". The allow-list is empty: the only thing
@@ -73,37 +74,73 @@ describe("the scanner itself", () => {
   });
 });
 
-describe("no visible 'demo' anywhere", () => {
+/**
+ * The words a person never sees (the owner's rules): "demo" (7 Nov) and "synthetic", "synthetically" and "simulated" (D57, 8 Nov 2026: say concretely where numbers
+ * come from, in plain words, and draw no tag). A literal that is exactly the bare word is a data enum (`origin: "synthetic"`), not text, and is skipped.
+ *
+ * PENDING_D57 (src/lib/pendingCopy.ts) is the ratchet for files that are not clean yet, each entry naming its owner. A pending file must still have a finding (so the entry is deleted the
+ * moment its track lands) and the list can only shrink; it must be empty by 05:00 on 8 Nov. KNACK_LINT_STRICT=1 ignores it and shows every finding.
+ */
+const D57_WORDS = ["synthetic", "synthetically", "simulated"] as const;
+const STRICT_WORDS = process.env.KNACK_LINT_STRICT === "1";
+
+describe("no visible banned word anywhere", () => {
   it("is scanning real files", () => {
     expect(dashboardSources.length).toBeGreaterThan(100);
     expect(fixtures.length).toBeGreaterThan(30);
     expect(rendererSources.length).toBeGreaterThan(20);
   });
 
-  it("in the dashboard's screens and components", () => {
-    const bad: string[] = [];
-    for (const f of dashboardSources) for (const h of scanSource(readFileSync(f, "utf8"))) bad.push(`${relative(repo, f)}:${h.line}  ${h.text.slice(0, 90)}`);
-    expect(bad).toEqual([]);
+  it("the pending list only shrinks", () => {
+    expect(Object.keys(PENDING_D57).length).toBeLessThanOrEqual(PENDING_D57_MAX);
   });
 
-  it("in the dashboard's fixtures (what the example data says on screen)", () => {
-    const bad: string[] = [];
-    for (const f of fixtures) {
-      let v: unknown;
-      try { v = JSON.parse(readFileSync(f, "utf8")); } catch { continue; }
-      for (const h of scanJson(v)) bad.push(`${relative(repo, f)} ${h.path}  ${h.text.slice(0, 90)}`);
-    }
-    expect(bad).toEqual([]);
+  /** Findings by repo-relative file, then split into the ones a pending entry covers and the ones nothing covers. A pending file of this kind must still have a finding. */
+  const judge = (bad: { file: string; line: string }[], inScope: (file: string) => boolean): { unexpected: string[]; stale: string[] } => {
+    const by = new Map<string, string[]>();
+    for (const b of bad) by.set(b.file, [...(by.get(b.file) ?? []), b.line]);
+    const unexpected = [...by].filter(([f]) => STRICT_WORDS || !(f in PENDING_D57)).flatMap(([, l]) => l);
+    const stale = STRICT_WORDS ? [] : Object.keys(PENDING_D57).filter((f) => inScope(f) && !by.has(f));
+    return { unexpected, stale };
+  };
+  const inDashboardSource = (f: string) => /^apps\/dashboard\/src\/.*\.(ts|tsx)$/.test(f);
+  const inFixtures = (f: string) => /^apps\/dashboard\/src\/fixtures\/.*\.json$/.test(f);
+  const inRenderer = (f: string) => f.startsWith("apps/desktop/src/renderer/");
+
+  const sourceHits = (words: readonly string[]) => dashboardSources.flatMap((f) => words.flatMap((w) => scanSource(readFileSync(f, "utf8"), w).map((h) => ({ file: relative(repo, f), line: `${relative(repo, f)}:${h.line}  [${w}] ${h.text.slice(0, 90)}` }))));
+  const fixtureHits = (words: readonly string[]) => fixtures.flatMap((f) => {
+    let v: unknown;
+    try { v = JSON.parse(readFileSync(f, "utf8")); } catch { return []; }
+    return words.flatMap((w) => scanJson(v, w).map((h) => ({ file: relative(repo, f), line: `${relative(repo, f)} ${h.path}  [${w}] ${h.text.slice(0, 90)}` })));
+  });
+  const rendererHits = (words: readonly string[]) => rendererSources.flatMap((f) => words.flatMap((w) => scanSource(readFileSync(f, "utf8"), w).map((h) => ({ file: relative(repo, f), line: `${relative(repo, f)}:${h.line}  [${w}] ${h.text.slice(0, 90)}` }))));
+
+  // "demo" has no pending list: it was cleaned on 7 Nov.
+  it('no visible "demo" in the dashboard, its fixtures, the desktop renderer or the page', () => {
+    for (const hits of [sourceHits(["demo"]), fixtureHits(["demo"]), rendererHits(["demo"])]) expect(hits.map((h) => h.line)).toEqual([]);
+    const html = readFileSync(join(dashboard, "index.html"), "utf8").replace(/<!--[\s\S]*?-->/g, "");
+    expect(/\bdemo\b/i.test(html)).toBe(false);
   });
 
-  it("in the desktop renderer (the panel, the dock, the overlay)", () => {
-    const bad: string[] = [];
-    for (const f of rendererSources) for (const h of scanSource(readFileSync(f, "utf8"))) bad.push(`${relative(repo, f)}:${h.line}  ${h.text.slice(0, 90)}`);
-    expect(bad).toEqual([]);
+  it('no visible "synthetic" or "simulated" in the dashboard\'s screens and components', () => {
+    expect(judge(sourceHits(D57_WORDS), inDashboardSource)).toEqual({ unexpected: [], stale: [] });
+  });
+  it('no visible "synthetic" or "simulated" in the dashboard\'s fixtures (what the example data says on screen)', () => {
+    expect(judge(fixtureHits(D57_WORDS), inFixtures)).toEqual({ unexpected: [], stale: [] });
+  });
+  it('no visible "synthetic" or "simulated" in the desktop renderer (the panel, the dock, the overlay)', () => {
+    expect(judge(rendererHits(D57_WORDS), inRenderer)).toEqual({ unexpected: [], stale: [] });
+  });
+  it('no visible "synthetic" or "simulated" in the page itself', () => {
+    const html = readFileSync(join(dashboard, "index.html"), "utf8").replace(/<!--[\s\S]*?-->/g, "");
+    for (const w of D57_WORDS) expect(new RegExp(`\\b${w}\\b`, "i").test(html), w).toBe(false);
   });
 
-  it("in the page itself", () => {
-    const html = readFileSync(join(dashboard, "index.html"), "utf8");
-    expect(/\bdemo\b/i.test(html.replace(/<!--[\s\S]*?-->/g, ""))).toBe(false);
+  it("finds the new words the way it finds demo, and leaves the data enum alone", () => {
+    expect(scanSource('t = "Synthetic firm";', "synthetic").length).toBe(1);
+    expect(scanSource('t = "a simulated worker";', "simulated").length).toBe(1);
+    expect(scanSource('o = { origin: "synthetic" }; p = "ana-synthetic-origin";', "synthetic")).toEqual([]);
+    expect(scanJson({ meta: { origin: "synthetic", note: "Generated people." } }, "synthetic")).toEqual([]);
+    expect(scanJson({ meta: { origin: "synthetic", note: "Synthetic personas." } }, "synthetic").map((h) => h.path)).toEqual(["$.meta.note"]);
   });
 });

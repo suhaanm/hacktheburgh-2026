@@ -82,11 +82,11 @@ def write_report(sec: dict[str, Any]) -> str:
     add = L.append
     add("# Realism and generator-mismatch evaluation (REALISM track)")
     add("")
-    add(f"*origin: **synthetic, realism-calibrated** · fast mode: {'yes (small n)' if cfg['fast'] else 'no'} · v1 included: {'yes' if cfg['with_v1'] else 'no'} · "
+    add(f"*origin: **generated, realism-calibrated** · fast mode: {'yes (small n)' if cfg['fast'] else 'no'} · v1 included: {'yes' if cfg['with_v1'] else 'no'} · "
         f"intervals: 95% person-cluster bootstrap, B = {cfg['bootstrap_B']}*")
     add("")
     add("Written by `python -m understudy_engine.personas_v2.evaluate` under the pre-registration in `evals/realism/PLAN.md` (frozen before any analytic ran on v2 data). "
-        "No number is typed by hand. **These data are synthetic. Marginals sit inside cited ranges where a constant was found; that does not show the data match real people, "
+        "No number is typed by hand. **These data are generated. Marginals sit inside cited ranges where a constant was found; that does not show the data match real people, "
         "and the generators were written by the same team as the analytics.**")
     add("")
     add(f"Generator: params SHA-256 `{gen['params_sha256']}`, generator SHA-256 `{gen['generator_sha256']}` (the values in PLAN.md are "

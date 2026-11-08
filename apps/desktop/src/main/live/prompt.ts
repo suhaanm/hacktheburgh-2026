@@ -29,3 +29,8 @@ export const WAKE_SYSTEM_INSTRUCTION = [
   'The context block says first_run=yes while the worker is new: then be extra brief, use plain words and offer one next step at a time.',
   'When the worker says they are done, say a brief goodbye and call end_session.',
 ].join(' ')
+
+// Added to a conversation's instruction only when `start_task` exists. The words are ours; the tool itself never starts anything.
+export const TASK_GUIDANCE =
+  'If the worker asks you to do a job, or asks something you cannot answer by pointing, call start_task with their request in plain words. It asks them first on a card; you never start anything. ' +
+  'Never say a job has started: say what the answer tells you, for example "tap Allow on the card". Never put a password or a key into a request.'

@@ -9,10 +9,10 @@ from __future__ import annotations
 def analytics_limitations() -> list[dict]:
     return [
         {"id": "ana-synthetic-origin", "severity": "high",
-         "text": "Hazard, skills, policy, routing and agent-claim results come from synthetic personas, scripted apprentices "
+         "text": "Hazard, skills, policy, routing and agent-claim results come from generated personas, scripted apprentices "
                  "or simulators we wrote. They show that the methods recover structure we planted, not that real workers behave this way."},
         {"id": "ana-hazard-people", "severity": "high",
-         "text": "The stuck hazard is evaluated on four synthetic personas, so 'held-out person' means one of four. Intervals resample "
+         "text": "The stuck hazard is evaluated on four generated personas, so 'held-out person' means one of four. Intervals resample "
                  "episodes, not people; the per-person spread is the honest uncertainty."},
         {"id": "ana-hazard-alerts", "severity": "medium",
          "text": "Probabilities are better than the baselines and calibrated, but alert quality is modest: about a third of stuck events "
@@ -25,7 +25,7 @@ def analytics_limitations() -> list[dict]:
          "text": "The apprentice traces follow a fixed task script, so part of the hazard model's large gain on them is learning the script, "
                  "not predicting stuck. The four-persona result is the headline."},
         {"id": "ana-skills-saturate", "severity": "medium",
-         "text": "Skill tracing saturates on synthetic personas (about 35 tasks a day): mastery reaches its ceiling on day one and cannot "
+         "text": "Skill tracing saturates on generated personas (about 35 tasks a day): mastery reaches its ceiling on day one and cannot "
                  "follow the planted learning curve. Decay with absence is shown in unit tests only."},
         {"id": "ana-skills-learners-n", "severity": "medium",
          "text": "On the learner trajectories (three learners, thirty cases each, one with a three-day absence) the help level does lighten as "
@@ -36,7 +36,7 @@ def analytics_limitations() -> list[dict]:
                  "reference rather than law. The router finding those quirks shows it recovers our planted structure, not that real calculators "
                  "or real agents fail this way; the task is nearly deterministic, and the plain spread of calculator answers does almost as well."},
         {"id": "ana-pooling-people", "severity": "medium",
-         "text": "Cold-start priors are built from four synthetic personas (or 24 scripted apprentices with two cases each); with so few and such "
+         "text": "Cold-start priors are built from four generated personas (or 24 scripted apprentices with two cases each); with so few and such "
                  "alike people, partial pooling is hard to tell from complete pooling, and learning-curve drift is not modelled."},
         {"id": "ana-study-power", "severity": "high",
          "text": "The study power analysis only shows what the planned design could detect under assumptions we made up (how much people differ, how big "

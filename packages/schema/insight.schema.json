@@ -67,8 +67,11 @@
     "badge": {
       "enum": [
         "live",
+        "firm",
         "synthetic",
         "synthetic firm",
+        "made-up firm",
+        "firm",
         "simulated"
       ]
     },

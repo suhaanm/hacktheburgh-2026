@@ -29,7 +29,7 @@ def test_report_is_json_ready_with_meta_and_honest_labels(report):
     json.dumps(report)
     m = report["meta"]
     assert m["origin"] == "synthetic" and m["n_unit"] == "tokens" and m["n"] == report["headline"]["planted"] > 100
-    assert m["interval_level"] == 0.95 and "Synthetic" in m["note"] and "seeds per flow" in m["note"]
+    assert m["interval_level"] == 0.95 and "Generated fixtures" in m["note"] and "seeds per flow" in m["note"]
     assert {l["severity"] for l in report["limitations"]} <= {"low", "medium", "high"} and len(report["limitations"]) >= 6
 
 

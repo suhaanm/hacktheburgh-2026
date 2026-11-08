@@ -211,7 +211,7 @@ def test_a_live_user_id_with_a_coach_decision_and_routines_gets_a_checked_explan
     from understudy_engine.evidence.sources import build_packet
 
     def no_cohort(person, case):
-        raise ValueError(f"person {person!r} is not in the synthetic cohort")
+        raise ValueError(f"person {person!r} is not in the generated cohort")
 
     src = Sources(inputs=no_cohort, genome=lambda p, c: None,
                   coach=lambda p: {"action": "nudge", "level": "L2", "trigger": "stuck", "reason_codes": ["stuck_signal", "gate_act"], "gate": {"consecutive": 2},
