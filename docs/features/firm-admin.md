@@ -28,7 +28,7 @@ Account menu, View as Admin; sidebar Firm, Roles, Onboarding; More, Firm rows (P
 
 ### Demo moment
 
-Only once the people exist on the engine you are showing (owner request 4.4 is landing; on a device with only its own history the screens hold no people). Switch to Admin: Firm lists three rows with n and interval; open Roles: experts and juniors on a shared 0 to 100% scale, one row per role (the seeded firm shows, for example, benefits-processor experts at 94% and juniors at 63%, n = 7 and 22, synthetic); open Onboarding ('Half reach the target by step 82'); show the origin line on screen (since D57 it is in plain words, for the Firm views 'made-up firm'; the screen owners were still finishing the wording at 01:50 UTC) and say the names are made up and the firm is made for this build.
+Only once the people exist on the engine you are showing (owner request 4.4 is landing; on a device with only its own history the screens hold no people). Switch to Admin: Firm lists three rows with n and interval; open Roles: experts and juniors on a shared 0 to 100% scale, one row per role (the seeded firm shows, for example, benefits-processor experts at 94% and juniors at 63%, n = 7 and 22, synthetic); open Onboarding ('Half reach the target by step 82'); note that since D57 the Firm head draws no origin tag for generated data, so say aloud that the names are made up and the firm is made for this build and the firm is made for this build.
 
 ### Evidence and its label
 

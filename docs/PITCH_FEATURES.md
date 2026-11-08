@@ -1,6 +1,6 @@
 # Knack: the features, for the pitch and the launch video
 
-Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sun 08 Nov 2026, 01:48 UTC, checked against main at 5238a48. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
+Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sun 08 Nov 2026, 01:50 UTC, checked against main at 7e9562e. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
 
 This is the master document. It lists 68 entries (64 features and 4 write-ups of results that did not hold up) on 35 pages, grouped by capability. One page per feature (with a 30-second spoken script and slide bullets) is in `docs/features/`; the index with status is `docs/features/index.md`; the 20 video claims are in `docs/features/video-beats.md`; the 25 hardest judge questions are in `docs/features/faq.md`.
 
@@ -1717,7 +1717,7 @@ Account menu, View as Admin; sidebar Firm, Roles, Onboarding; More, Firm rows (P
 
 #### Demo moment
 
-Only once the people exist on the engine you are showing (owner request 4.4 is landing; on a device with only its own history the screens hold no people). Switch to Admin: Firm lists three rows with n and interval; open Roles: experts and juniors on a shared 0 to 100% scale, one row per role (the seeded firm shows, for example, benefits-processor experts at 94% and juniors at 63%, n = 7 and 22, synthetic); open Onboarding ('Half reach the target by step 82'); show the origin line on screen (since D57 it is in plain words, for the Firm views 'made-up firm'; the screen owners were still finishing the wording at 01:50 UTC) and say the names are made up and the firm is made for this build.
+Only once the people exist on the engine you are showing (owner request 4.4 is landing; on a device with only its own history the screens hold no people). Switch to Admin: Firm lists three rows with n and interval; open Roles: experts and juniors on a shared 0 to 100% scale, one row per role (the seeded firm shows, for example, benefits-processor experts at 94% and juniors at 63%, n = 7 and 22, synthetic); open Onboarding ('Half reach the target by step 82'); note that since D57 the Firm head draws no origin tag for generated data, so say aloud that the names are made up and the firm is made for this build and the firm is made for this build.
 
 #### Evidence and its label
 
