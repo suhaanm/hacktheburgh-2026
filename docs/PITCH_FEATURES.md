@@ -1479,7 +1479,7 @@ Short spoken prompts come from a fixed set of lines, not from a model. A voice r
 
 #### How it works
 
-Knack sends a line id, never free text, and the call is listed in the ledger. The draft submission text says cached audio supports the offline demo (the author did not confirm this in code). Cue speaks only when asked (decision D36). A developer escape hatch that lifts the fixed-lines rule exists and is off.
+Knack sends a line id and typed slots, never free text, and the call is listed in the ledger. The line families are coach (short fixed coach lines), briefing (the morning briefing and the overnight-run report, with counts), question (the spoken form of Cue's fixed questions), whisper ('Next' and the step's short pack label) and four wake lines ('I will show you instead.', 'Done.', 'That did not work. I stopped.', 'Stopped.'). A slot is a bounded number or an id from a closed set, so a name, an address or a case figure cannot be spoken; a personal-data filter on the finished sentence is a second layer. The draft submission text says cached audio supports the offline demo (the author did not confirm this in code). Cue speaks only when asked (decision D36). A developer escape hatch that lifts the fixed-lines rule exists and is off.
 
 **What is different.** Speech is a fixed vocabulary read by id, so no model can say anything unplanned (inside a started Live conversation the model's audio is free-form).
 
