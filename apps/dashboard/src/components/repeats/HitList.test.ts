@@ -39,7 +39,7 @@ describe("worker list", () => {
   it("puts a chip only on rows where something is already happening", () => {
     mount();
     const chips = rows().map((r) => r.querySelector(".hl-chip")?.textContent ?? null);
-    expect(chips.filter(Boolean).sort()).toEqual(["learning", "proposed", "running"]);
+    expect(chips.filter(Boolean).sort()).toEqual(["Asks first", "Watch first"]);
     expect(rows().filter((r) => !r.querySelector(".hl-chip"))).not.toHaveLength(0);
   });
 
@@ -112,7 +112,7 @@ describe("worker list", () => {
     expect(fold.querySelector("summary")?.textContent).toContain("Already automated");
     expect(fold.querySelectorAll("li.hitrow")).toHaveLength(1);
     expect(fold.querySelectorAll("button.btn")).toHaveLength(0);
-    expect(fold.querySelector(".hl-chip")?.textContent).toBe("automated");
+    expect(fold.querySelector(".hl-chip")?.textContent).toBe("Away runs");
   });
 
   it("says in plain words what overlaps", () => {

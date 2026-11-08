@@ -17,7 +17,7 @@ import { clip } from "../../lib/safeText";
 import { refreshNeedsBadge } from "../NeedsYou/count";
 import { plainWords } from "../NeedsYou/model";
 import { exampleKind, hideRow, loadRepeats, resetCounts, runNow, unhideRow } from "./data";
-import { TABS, routinesHeadline, runningRoutines, tabOf, turnedDown, type Tab } from "./model";
+import { TABS, defaultTab, routinesHeadline, runningRoutines, turnedDown, type Tab } from "./model";
 import { Peek } from "./Peek";
 import { trackRoutineRun } from "../../lib/wakeContext";
 import "../../components/kc.css";
@@ -42,7 +42,7 @@ const EMPTY_TITLE: Record<Exclude<HitState, "ok">, string> = {
  */
 export default function Routines() {
   const route = useRoute();
-  const tab = tabOf(route.query.get("tab"));
+  const asked = route.query.get("tab");
   const rt = useLoad(() => api.routines(), []);
   const [win, setWin] = useState<Win>(savedWindow);
   const kind = exampleKind(route.query.get("example"));
@@ -53,9 +53,11 @@ export default function Routines() {
   // The tasks list and the routines refresh together, by themselves (every 2 s while a task runs, 15 s otherwise, on focus, on the run's own stream).
   const tasks = useTasks({ alsoReload: rt.reload });
 
-  const setTab = (t: Tab) => navigate(`/routines${t === "could-automate" ? "?tab=could-automate" : ""}`);
+  const setTab = (t: Tab) => navigate(`/routines?tab=${t}`);      // always explicit: a worker who chose a tab keeps it
   const running = runningRoutines(rt.data);
   const could = rep.data?.state === "ok" ? rep.data.rows.length : 0;
+  // With no tab asked for, open where there is something: Could automate when Your routines is empty and that list is not.
+  const tab: Tab = defaultTab(asked, running.length, could);
 
   // The tab strip is a real tab list: arrow keys move between the two tabs.
   const onTabKey = (e: React.KeyboardEvent<HTMLDivElement>) => {

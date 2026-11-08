@@ -137,3 +137,14 @@ describe("role pack depth", () => {
     expect(depthWords(undefined)).toBe("Starter");
   });
 });
+
+describe("the live line says what is true (QA)", () => {
+  it("'because a key is set' only when the engine says a key is set; otherwise just 'On.'", () => {
+    const base = { canSwitch: true, running: false, changing: false };
+    expect(liveModels({ ...base, health: { mock: false, key_present: true } }).line).toBe("On, because a key is set. Every call is listed under Advanced.");
+    expect(liveModels({ ...base, health: { mock: false, key_present: false } }).line).toBe("On. Every call is listed under Advanced.");
+    expect(liveModels({ ...base, health: { mock: false } }).line).toBe("On. Every call is listed under Advanced.");
+    expect(liveModels({ ...base, health: { mock: true, key_present: true } }).line).not.toMatch(/because a key/);
+  });
+});
+

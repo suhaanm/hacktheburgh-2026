@@ -161,4 +161,13 @@ describe("Settings", () => {
     expect(h).toMatch(/<option value="0.5">US\$0.50<\/option>/);
     expect(text(html({ skills: { use_claude_skills: true, off: [], max_budget_usd: 2, skills: [] } }))).toContain("Default: US$2.");
   });
+  it("the two limits on a task are inside Advanced (closed), not among the worker's rows (QA Q1-11)", () => {
+    const h = html({ skills: { use_claude_skills: true, off: [], max_minutes: 30, max_budget_usd: 2, skills: [] } });
+    const adv = h.indexOf(">Advanced<");
+    expect(adv).toBeGreaterThan(-1);
+    expect(h.indexOf("Longest a task runs")).toBeGreaterThan(adv);
+    expect(h.indexOf("Most a task may spend")).toBeGreaterThan(adv);
+    expect(h.indexOf("Use my skills")).toBeLessThan(adv);
+    expect(h).not.toMatch(/<details[^>]*open/);
+  });
 });

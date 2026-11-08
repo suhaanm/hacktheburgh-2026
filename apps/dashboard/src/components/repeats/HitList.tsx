@@ -32,8 +32,9 @@ export interface HitListProps {
   label?: string;
 }
 
-const CHIP_MODE: Record<string, string> = { proposed: "none", learning: "shadow", running: "approval", automated: "unattended" };
-const CHIP_TEXT: Record<string, string> = { proposed: "proposed", learning: "learning", running: "running", automated: "automated" };
+// A row that is only a suggestion needs no chip. The others say how the routine is set (not that it is executing now).
+const CHIP_MODE: Record<string, string> = { learning: "shadow", running: "approval", automated: "unattended" };
+const CHIP_TEXT: Record<string, string> = { learning: "Watch first", running: "Asks first", automated: "Away runs" };
 
 function Chip({ status }: { status: string }) {
   if (!CHIP_TEXT[status]) return null;

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { fmtTime } from "../../lib/format";
-import { plainWords } from "../../screens/NeedsYou/model";
+import { plainDuration, plainWords, routineName } from "../../screens/NeedsYou/model";
 import type { AuditLine, OffhoursReport } from "../../types";
 import { Details } from "../ui";
 import { Glyph } from "./Glyph";
@@ -24,9 +24,9 @@ export function AwayDetails({ rep, audit, line }: { rep: OffhoursReport; audit: 
         <div className="kc-panel" id="away-details" style={{ marginTop: "var(--space-3)" }}>
           <p data-testid="away-line"><b>{line}</b></p>
           <KV label="While you were away" rows={[
-            ...ran.slice(0, 5).map((r, i): [string, string] => [`Ran ${i + 1}`, `${clip(r.routine, 60)}, ${clip(r.outcome, 40)}${typeof r.minutes === "number" ? `, ${Math.max(0, r.minutes)} min` : ""}`]),
-            ...failed.slice(0, 5).map((r, i): [string, string] => [`Failed ${i + 1}`, `${clip(r.routine, 60)}, ${clip(r.reason, 80)}`]),
-            ...yielded.slice(0, 5).map((r, i): [string, string] => [`Stepped aside ${i + 1}`, `${clip(r.routine, 60)}, when you came back at ${fmtTime(r.at)}`]),
+            ...ran.slice(0, 5).map((r, i): [string, string] => [ran.length > 1 ? `Ran ${i + 1}` : "Ran", [clip(routineName(r.routine), 60), clip(r.outcome, 40), plainDuration(r.minutes)].filter(Boolean).join(", ")]),
+            ...failed.slice(0, 5).map((r, i): [string, string] => [failed.length > 1 ? `Failed ${i + 1}` : "Failed", `${clip(routineName(r.routine), 60)}, ${clip(r.reason, 80)}`]),
+            ...yielded.slice(0, 5).map((r, i): [string, string] => [yielded.length > 1 ? `Paused to let you work ${i + 1}` : "Paused to let you work", `${clip(routineName(r.routine), 60)}, when you came back at ${fmtTime(r.at)}`]),
             ["Waiting for you", queued.length ? String(queued.length) : null],
           ]} />
           {log.length > 0 && (

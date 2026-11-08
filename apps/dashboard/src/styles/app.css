@@ -531,3 +531,6 @@ tr[data-gap="true"] td { color: var(--fg); }
 /* The example-data line and, under it, the closed "Details" with the engine's own sentence. */
 .sourcenote { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-1); }
 .sourcenote .note { max-width: 70ch; }
+
+/* A disclosure's summary is a touch target: at least 24 px tall. */
+.details > summary { min-height: 24px; }

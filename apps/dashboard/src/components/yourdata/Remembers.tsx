@@ -58,7 +58,7 @@ export function Remembers({ memory: m, proposals, onChanged }: { memory: Memory;
   const parts = [items.length > SHOWN ? `${items.length - SHOWN} more ${items.length - SHOWN === 1 ? "line" : "lines"}` : "", waiting.length > 0 ? `${waiting.length} ${waiting.length === 1 ? "rule" : "rules"} waiting` : ""].filter(Boolean);
   const moreLabel = parts.length > 0 ? `More (${parts.join(", ")})` : "More";
   const renderLine = (it: (typeof items)[number]) => forget === it.id ? (
-            <ConfirmRow key={it.id} question="Forget this line?" consequence={it.text} confirmLabel={busy ? "Forgetting" : "Forget it"} busy={busy} onConfirm={() => void doForget(it)} onCancel={() => setForget(null)} />
+            <ConfirmRow key={it.id} question="Forget this line?" consequence={it.plain} confirmLabel={busy ? "Forgetting" : "Forget it"} busy={busy} onConfirm={() => void doForget(it)} onCancel={() => setForget(null)} />
           ) : edit?.id === it.id ? (
             <li key={it.id} className="yd-line yd-line--edit">
               <label className="u-sr-only" htmlFor={`ml-${it.id}`}>Edit this line</label>
@@ -68,10 +68,10 @@ export function Remembers({ memory: m, proposals, onChanged }: { memory: Memory;
             </li>
           ) : (
             <li key={it.id} className="yd-line" data-section={it.section} tabIndex={0}>
-              <span className="yd-line__text">{it.text}{it.note && <span className="yd-line__note"> {it.note}</span>}</span>
+              <span className="yd-line__text">{it.plain}{it.note && <span className="yd-line__note"> {it.note}</span>}</span>
               <span className="yd-line__actions">
-                <button type="button" className="btn btn--quiet btn--sm" aria-label={`Edit: ${it.text}`} onClick={() => { setForget(null); setEdit({ id: it.id, old: it.text, value: it.text }); }}>Edit</button>
-                <button type="button" className="btn btn--quiet btn--sm" aria-label={`Forget: ${it.text}`} onClick={() => { setEdit(null); setForget(it.id); }}>Forget</button>
+                <button type="button" className="btn btn--quiet btn--sm" aria-label={`Edit: ${it.plain}`} onClick={() => { setForget(null); setEdit({ id: it.id, old: it.text, value: it.text }); }}>Edit</button>
+                <button type="button" className="btn btn--quiet btn--sm" aria-label={`Forget: ${it.plain}`} onClick={() => { setEdit(null); setForget(it.id); }}>Forget</button>
               </span>
             </li>
           );

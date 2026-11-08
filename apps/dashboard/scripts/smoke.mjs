@@ -341,9 +341,8 @@ check("needs you: the edit to the prepared block is kept", (await page.locator("
 await page.locator("article[data-kind=prepared]").first().getByRole("button", { name: "Approve and run" }).click();
 await page.waitForTimeout(600);
 check("needs you: pressing Approve and run says which thing it created", /Created an item here for your approval/.test(await page.locator("[data-testid=fired]").first().innerText()));
+// (The third example action is the same routine as a proposal, so it is not a second row any more: two prepared actions are left.)
 await page.locator("article[data-kind=prepared]").first().getByRole("button", { name: "Not now" }).click();
-await page.waitForTimeout(500);
-await page.locator("article[data-kind=prepared]").first().getByRole("button", { name: "Never" }).click();
 await page.waitForTimeout(500);
 check("needs you: with nothing prepared left, none is shown", (await page.locator("article[data-kind=prepared]").count()) === 0);
 
@@ -401,7 +400,7 @@ await page.keyboard.press("Escape");   // close the Settings sheet before the ne
 await go("/your-data");
 await page.getByRole("button", { name: "Delete everything", exact: true }).click();
 const delText = await page.locator(".yd-delete").innerText();
-check("your data: Delete everything names every part it clears and what stays", /Delete everything Knack holds about you\?/.test(delText) && /lines of your memory file|line of your memory file/.test(delText) && /step count/.test(delText) && /records? of model calls/.test(delText) && /what Knack learned about how loud to speak/.test(delText) && /does not recall anything already sent/.test(delText) && /Your role, settings and routines stay\./.test(delText));
+check("your data: Delete everything names every part it clears and what stays", /Delete everything Knack holds about you\?/.test(delText) && /memory lines?/.test(delText) && /step counts?/.test(delText) && /call records?/.test(delText) && /what it learned about notices/.test(delText) && /not recalled/.test(delText) && /Your role, settings and routines stay\./.test(delText));
 await page.getByRole("button", { name: "Keep", exact: true }).click();
 check("your data: Keep leaves everything as it was", (await page.getByRole("button", { name: "Delete everything", exact: true }).count()) === 1);
 
@@ -773,6 +772,26 @@ check("routines: example data draws no background tasks (a sample is never a tas
   await page.keyboard.press("Escape");
   await page.unroute(ANY_SERVICE);
   await page.evaluate(() => { try { localStorage.removeItem("understudy-display-name"); } catch { /* */ } });
+}
+
+// 8i. Needs you while a task runs: only the tasks list is asked again every 2 s; the other sources wait for their 15 s (QA Q1-16)
+{
+  const reply = (route, body, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+  const counts = {};
+  const row = () => ({ task_id: "tk_poll", title: "Tidy the invoices folder", state: "running", started: new Date(Date.now() - 60000).toISOString(), latest: "Reading invoices.pdf" });
+  await page.route(/^https?:\/\/[^/]+\/(engine|agent)(\/|$)/, async (route) => {
+    const path = new URL(route.request().url()).pathname.replace(/^\/(engine|agent)/, "");
+    counts[path] = (counts[path] ?? 0) + 1;
+    if (path === "/tasks") return reply(route, [row()]);
+    if (path === "/tasks/events") return route.abort();
+    return reply(route, { error: { code: "not_found", message: "not mocked" } }, 404);
+  });
+  await go("/needs-you", 1500);
+  await page.waitForTimeout(8000);                 // past any back-off the earlier blocks left, so the tasks service answers and the fast pace starts
+  for (const k of Object.keys(counts)) delete counts[k];
+  await page.waitForTimeout(6500);
+  check("needs you: while a task runs only the tasks list is asked again every 2 s", (counts["/tasks"] ?? 0) >= 2 && ["/queue", "/routines", "/agents/runs", "/offhours/report"].every((k) => (counts[k] ?? 0) <= 1) && Object.keys(counts).filter((k) => k.startsWith("/briefing")).every((k) => counts[k] <= 1), JSON.stringify(counts));
+  await page.unroute(/^https?:\/\/[^/]+\/(engine|agent)(\/|$)/);
 }
 
 // 9. Kill switch
