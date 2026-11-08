@@ -22,7 +22,7 @@ On the real screen when stuck (ring and card); More, then Live coach; Growth sho
 
 ## Demo moment
 
-Pause on the case note page. Cue asks one question with three options; answer by click, key 1 to 4 or voice. The ring shows the step, one line gives the reason, then silence. Say that its numbers so far come from simulated workers.
+On the case-note page, stall without saving. After about 50 seconds Cue shows one cue, 'Read the note back', with one reason, 'Reading it back catches copy slips.'; the worker takes the step and saves a draft; then silence. When the next step is unclear Cue asks one multiple-choice question instead (answered by click, key 1 to 4 or voice). In the planned demo the teammate is played by a script on our sandbox, so say that, and that Cue's numbers come from simulated workers. Cue stays silent on a step where the worker is already at the last help level, by design, which is why the stall is on the note.
 
 ## Evidence and its label
 
@@ -35,7 +35,7 @@ Pause on the case note page. Cue asks one question with three options; answer by
 
 ## Honest limit
 
-Every Cue result comes from a simulator written by the team that wrote the policy: stalls, pauses and interruption costs are assumptions. One of two primary targets was met. Cue reaches about a quarter of stuck episodes by design. It has not been run on a real desktop or on a person.
+Every Cue result comes from a simulator written by the team that wrote the policy: stalls, pauses and interruption costs are assumptions. One of two primary targets was met. Cue reaches about a quarter of stuck episodes by design. It has not been run on a real desktop or on a person. On the desktop it grounds the target from the page's own elements only: the engine's vision-grounding input is not called outside test fixtures (gap G7 in docs/KNACK_DEMO.md).
 
 ## Hackathon target
 

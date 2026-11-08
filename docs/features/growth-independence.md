@@ -22,13 +22,14 @@ Growth in the sidebar: a one-sentence title, one chart with its band, skills as 
 
 ## Demo moment
 
-Open Growth: 'You need help less often than you did.' One chart, one band, and the printed line 'Measures help needed, not expertise.' Open About this data to show n, the interval and the window. Until a worker has a ledger of their own it shows an example learner, badged Example data (docs/drafts/DEMO_SCRIPT.md, beat 4; confirm before the demo).
+Open Growth. On the seeded example learner (90 steps of one simulated improving learner, labelled as such) the screen shows one chart with its band, 'Latest: 75% finished with no cue accepted' against a baseline of 1 of 5, the badge Example data, the printed line 'Measures help needed, not expertise.' and the title 'Cannot tell yet whether you need less help'. Keep that title: the engine refuses to overclaim on its own demo data. Open About this data to show n, the interval and the window.
 
 ## Evidence and its label
 
 | What | Label | Source |
 |---|---|---|
 | The composite overstates mastery for learners who do not improve and rises 10 points or more in about a third of them; independence and the trend are the evidence, and the trend has low power | synthetic, 240 simulated learners with planted curves | `evals/report.md (Limitations register, cue-score-composite, and Cue analysis)` |
+| The seeded demo learner is 90 occurrences of one simulated improving learner (labelled synthetic_learner); unaided steps rise from 1 of 5 at the baseline to 75% at the latest point, and the engine's own title still says it cannot tell yet | simulated learner, not people; a demo seed, not a result | `docs/KNACK_DEMO.md (M9; branch, landing)` |
 | A planted independence rise was selected as a pointer in 47 of 100 worlds (target 0.8: missed); false celebration when errors rise 14 of 100 (target 0) | synthetic, 100 planted worlds per effect | `evals/insights/results/heldout.json` |
 
 ## Honest limit
@@ -42,7 +43,7 @@ No person has used it. The claim is 'needs less help', never 'became an expert'.
 
 ## 30-second spoken script
 
-> Growth answers one question: do you need less help than you did? It counts the steps you finished with no accepted cue and draws one curve with its uncertainty. It measures help needed, not expertise, and it says so on the screen. Work an agent did for you overnight never changes the score. The screen shows example data until you have ten steps of your own, and no person has used it yet.
+> Growth answers one question: do you need less help than you did? It counts the steps you finished with no accepted cue and draws one curve with its uncertainty. It measures help needed, not expertise, and it says so on the screen. Work an agent did for you overnight never changes the score. The screen shows example data until you have ten steps of your own, and even on our simulated learner it says cannot tell yet. No person has used it.
 
 ## Slide bullets
 

@@ -32,7 +32,7 @@ Open Needs you with one approval and one routine proposal: 'Submit case note CN-
 
 ## Honest limit
 
-Measured as a prototype and checked in hidden runs, not by a person. Approvals in the demo are sandbox only. The default row count was cut to three after the first draft.
+Measured as a prototype and checked in hidden runs, not by a person. Approvals in the demo are sandbox only. The default row count was cut to three after the first draft. Two gaps found by the demo run (docs/KNACK_DEMO.md, G11 and G6): approving marks the queue item approved but nothing in the dashboard or the desktop calls the route that presses the real submit button, so the sandbox note stays Draft until it is called; and the corner approval card names no item, so Review opens Needs you with the newest item on top.
 
 ## Hackathon target
 

@@ -36,7 +36,7 @@ Open Knack: the date, one sentence with its origin badge ('Synthetic data' for a
 
 ### Honest limit
 
-The 47 words are the prototype's headline content; real screens land a little above it. The example sentence comes from the synthetic firm and carries its origin badge (Example data or Synthetic data). These are measurements of the interface, not of people.
+The 47 words are the prototype's headline content; real screens land a little above it. Only three of the engine's pointer shapes match the hero template, so another pointer kind would show its raw headline (gap G4 in docs/KNACK_DEMO.md); the seeded kind is fine. The example sentence comes from the synthetic firm and carries its origin badge (Example data or Synthetic data). These are measurements of the interface, not of people.
 
 ### Hackathon target
 

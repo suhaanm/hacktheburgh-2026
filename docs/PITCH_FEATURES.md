@@ -1,6 +1,6 @@
 # Knack: the features, for the pitch and the launch video
 
-Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sun 08 Nov 2026, 00:09 UTC, checked against main at 7e74ab2. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
+Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sun 08 Nov 2026, 00:17 UTC, checked against main at 7e74ab2. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
 
 This is the master document. It lists 61 entries (57 features and 4 write-ups of results that did not hold up) on 33 pages, grouped by capability. One page per feature (with a 30-second spoken script and slide bullets) is in `docs/features/`; the index with status is `docs/features/index.md`; the 20 video claims are in `docs/features/video-beats.md`; the 25 hardest judge questions are in `docs/features/faq.md`.
 
@@ -600,7 +600,7 @@ On the real screen when stuck (ring and card); More, then Live coach; Growth sho
 
 #### Demo moment
 
-Pause on the case note page. Cue asks one question with three options; answer by click, key 1 to 4 or voice. The ring shows the step, one line gives the reason, then silence. Say that its numbers so far come from simulated workers.
+On the case-note page, stall without saving. After about 50 seconds Cue shows one cue, 'Read the note back', with one reason, 'Reading it back catches copy slips.'; the worker takes the step and saves a draft; then silence. When the next step is unclear Cue asks one multiple-choice question instead (answered by click, key 1 to 4 or voice). In the planned demo the teammate is played by a script on our sandbox, so say that, and that Cue's numbers come from simulated workers. Cue stays silent on a step where the worker is already at the last help level, by design, which is why the stall is on the note.
 
 #### Evidence and its label
 
@@ -613,7 +613,7 @@ Pause on the case note page. Cue asks one question with three options; answer by
 
 #### Honest limit
 
-Every Cue result comes from a simulator written by the team that wrote the policy: stalls, pauses and interruption costs are assumptions. One of two primary targets was met. Cue reaches about a quarter of stuck episodes by design. It has not been run on a real desktop or on a person.
+Every Cue result comes from a simulator written by the team that wrote the policy: stalls, pauses and interruption costs are assumptions. One of two primary targets was met. Cue reaches about a quarter of stuck episodes by design. It has not been run on a real desktop or on a person. On the desktop it grounds the target from the page's own elements only: the engine's vision-grounding input is not called outside test fixtures (gap G7 in docs/KNACK_DEMO.md).
 
 #### Hackathon target
 
@@ -644,7 +644,7 @@ Routines, then Run now (the window minimises and the corner pill shows what is h
 
 #### Demo moment
 
-Start the benefits routine from Routines. The pill says what it is doing in about five words (the window minimises if the run counts as using the real screen; rehearse, because a pure sandbox job leaves the window where it is), and the finished case note arrives in Needs you with its evidence and one irreversible step waiting for a click. Do not press Approve in front of an audience; it saves a sandbox note and nothing real.
+Start the benefits routine from Routines. The pill says what it is doing in about five words (a run in the agent's own browser shows the pill and does not minimise the window by itself: press Command-M right after Run now if the window should get out of the way, which is gap G3 in docs/KNACK_DEMO.md; the agent's three browser windows appear on screen only if the stack was started headed), and the finished case note arrives in Needs you with its evidence and one irreversible step waiting for a click. Do not press Approve in front of an audience; it saves a sandbox note and nothing real. At the time of the demo run, approving only marked the item approved and the sandbox note stayed Draft until the run's finalize route was called (gap G11, docs/KNACK_DEMO.md): end on the approved item, or have the lead call finalize.
 
 #### Evidence and its label
 
@@ -1152,7 +1152,7 @@ Open Needs you with one approval and one routine proposal: 'Submit case note CN-
 
 #### Honest limit
 
-Measured as a prototype and checked in hidden runs, not by a person. Approvals in the demo are sandbox only. The default row count was cut to three after the first draft.
+Measured as a prototype and checked in hidden runs, not by a person. Approvals in the demo are sandbox only. The default row count was cut to three after the first draft. Two gaps found by the demo run (docs/KNACK_DEMO.md, G11 and G6): approving marks the queue item approved but nothing in the dashboard or the desktop calls the route that presses the real submit button, so the sandbox note stays Draft until it is called; and the corner approval card names no item, so Review opens Needs you with the newest item on top.
 
 #### Hackathon target
 
@@ -1380,7 +1380,7 @@ Ask: 'Where do I see what needs me?' A ring and a ghost cursor show Needs you; K
 
 #### Honest limit
 
-Not run with a microphone, a Live session or a real click. The 'do it for me' path stays off until the first real-click rung is reported with the owner present, and the agent-service route it needs (POST /desktop/click) is not built (decision D56): the desktop answers 'route missing' and clicks nothing, and Knack says it will show you instead. The model's speech inside a conversation is free-form audio; every other spoken line in Knack is fixed. Voice quality and latency are not measured.
+Not run with a microphone, a Live session or a real click. The 'do it for me' path stays off until the first real-click rung is reported with the owner present, and the agent-service route it needs (POST /desktop/click) is not built (decision D56): the desktop answers 'route missing' and clicks nothing, and Knack says it will show you instead. The model's speech inside a conversation is free-form audio; every other spoken line in Knack is fixed. Voice quality and latency are not measured. The context packet does not yet carry the week's top Home insight (no screen reports it, gap G1), so the voice cannot say what the insight is; the routine is reported only for a run started with Run now; and the help level and the Needs-you item kinds are not in the packet.
 
 #### Hackathon target
 
@@ -1575,7 +1575,7 @@ Open Knack: the date, one sentence with its origin badge ('Synthetic data' for a
 
 #### Honest limit
 
-The 47 words are the prototype's headline content; real screens land a little above it. The example sentence comes from the synthetic firm and carries its origin badge (Example data or Synthetic data). These are measurements of the interface, not of people.
+The 47 words are the prototype's headline content; real screens land a little above it. Only three of the engine's pointer shapes match the hero template, so another pointer kind would show its raw headline (gap G4 in docs/KNACK_DEMO.md); the seeded kind is fine. The example sentence comes from the synthetic firm and carries its origin badge (Example data or Synthetic data). These are measurements of the interface, not of people.
 
 #### Hackathon target
 
@@ -1641,7 +1641,7 @@ Account menu, View as Admin; sidebar Firm, Roles, Onboarding; More, Firm rows (P
 
 #### Demo moment
 
-Switch to Admin: Firm lists three rows with n and interval; open Roles: experts and juniors on a shared 0 to 100% scale, one row per role; show the Synthetic firm badge and say names are made up.
+Switch to Admin: Firm lists three rows with n and interval; open Roles: experts and juniors on a shared 0 to 100% scale, one row per role (the seeded firm shows, for example, benefits-processor experts at 94% and juniors at 63%, n = 7 and 22, synthetic); open Onboarding ('Half reach the target by step 82'); show the Synthetic firm badge and say names are made up.
 
 #### Evidence and its label
 
@@ -1719,13 +1719,14 @@ Growth in the sidebar: a one-sentence title, one chart with its band, skills as 
 
 #### Demo moment
 
-Open Growth: 'You need help less often than you did.' One chart, one band, and the printed line 'Measures help needed, not expertise.' Open About this data to show n, the interval and the window. Until a worker has a ledger of their own it shows an example learner, badged Example data (docs/drafts/DEMO_SCRIPT.md, beat 4; confirm before the demo).
+Open Growth. On the seeded example learner (90 steps of one simulated improving learner, labelled as such) the screen shows one chart with its band, 'Latest: 75% finished with no cue accepted' against a baseline of 1 of 5, the badge Example data, the printed line 'Measures help needed, not expertise.' and the title 'Cannot tell yet whether you need less help'. Keep that title: the engine refuses to overclaim on its own demo data. Open About this data to show n, the interval and the window.
 
 #### Evidence and its label
 
 | What | Label | Source |
 |---|---|---|
 | The composite overstates mastery for learners who do not improve and rises 10 points or more in about a third of them; independence and the trend are the evidence, and the trend has low power | synthetic, 240 simulated learners with planted curves | `evals/report.md (Limitations register, cue-score-composite, and Cue analysis)` |
+| The seeded demo learner is 90 occurrences of one simulated improving learner (labelled synthetic_learner); unaided steps rise from 1 of 5 at the baseline to 75% at the latest point, and the engine's own title still says it cannot tell yet | simulated learner, not people; a demo seed, not a result | `docs/KNACK_DEMO.md (M9; branch, landing)` |
 | A planted independence rise was selected as a pointer in 47 of 100 worlds (target 0.8: missed); false celebration when errors rise 14 of 100 (target 0) | synthetic, 100 planted worlds per effect | `evals/insights/results/heldout.json` |
 
 #### Honest limit
@@ -1825,7 +1826,7 @@ Token counts are estimates (characters divided by 3.6) beside the provider's usa
 
 #### What it does
 
-Knack.app is the dashboard in its own window with a Dock icon and a menu-bar item. When a run that uses the worker's real screen starts from the window, the window minimises itself and a 32-pixel pill in the bottom-right corner says what is happening and offers Stop. It never pops the window back on its own. (The state table says a pure sandbox job started elsewhere, for example from Background runs, shows the pill and leaves the window where it is; Routines, Run now is specified to minimise it. Rehearse to see which happens on the demo laptop.)
+Knack.app is the dashboard in its own window with a Dock icon and a menu-bar item. When a run that uses the worker's real screen starts from the window, the window minimises itself and a 32-pixel pill in the bottom-right corner says what is happening and offers Stop. It never pops the window back on its own. (The state table says a pure sandbox job leaves the window where it is. Routines, Run now is specified to minimise it, but the demo run found that a run in the agent's own browser shows the pill and does not move the window, because the shell treats only the desktop's own acting as 'real screen' (gap G3 in docs/KNACK_DEMO.md); until that is decided, Command-M does it by hand.)
 
 #### How it works
 
@@ -1850,7 +1851,7 @@ Start a routine from Routines: the window minimises to the Dock after 0.4 s, the
 
 #### Honest limit
 
-Not yet seen by the owner on a real desktop with real windows behind it; per-display overlays for the ring are a known limit; multi-display pill placement is a spec, not a tested behaviour. The app is unsigned.
+Not yet seen by the owner on a real desktop with real windows behind it; the corner approval card carries fixed words only and names no item (gap G6); per-display overlays for the ring are a known limit; multi-display pill placement is a spec, not a tested behaviour. The app is unsigned.
 
 #### Hackathon target
 
@@ -2111,7 +2112,7 @@ Edit a line (for example a Never line) and show the next run respecting it; dele
 
 #### Honest limit
 
-Mechanism tested offline; no worker has built a memory file by use. The precedent rule is an idea re-implemented from a hackathon project, with our own decay.
+Mechanism tested offline; no worker has built a memory file by use. The precedent rule is an idea re-implemented from a hackathon project, with our own decay. The file is read by rules and the coach and is in no model prompt (gap G8 in docs/KNACK_DEMO.md): say 'rules', not 'the model remembers'.
 
 #### Hackathon target
 
@@ -2510,6 +2511,8 @@ Found while writing. Each row names both files; the third column says which one 
 | Reviewer reproducers | docs/FIRST_LAUNCH.md (23:50): 185 on the agent branch, not yet merged; docs/MVP_STATUS.md and evals/agentic/ITERATIONS_8.md (branch): 183 of 183 | README.md and docs/FIX_LEDGER.md: 172 of 172 | 183 of 183, the last figure on a merged tree |
 | Simulated-study power at n = 16 | evals/report.md (Study power): false positives 4.9%; power 10.2%, 27.3%, 74.8% for small, medium, large | evals/study_sim/REPORT.md and the register entry sim-power: about 6% false positives and 12%, 29%, 76% | the Study power table |
 | Always-listening microphone | docs/DECISIONS.md D52 and docs/knack-ux/09-wake-voice.md (branch): 'hey knack' listening is on by default, on-device | docs/FLAGS.md and docs/FEATURE_CATALOGUE.md: hold to talk only, no always-listening microphone | D52 (later); the other two are stale |
+| Whether a routine run minimises the window | docs/KNACK_DEMO.md (M7, gap G3): a run in the agent's browser shows the pill and does not move the window | docs/knack-ux/03-routines.md and docs/FIRST_LAUNCH.md (step 6): Run now minimises the window | docs/KNACK_DEMO.md, the later and tested reading |
+| Gemini numbers in the report | evals/modelbench/REPORT.md (18:10 UTC) and evals/report.json (modelbench section): the bake-off figures exist | docs/drafts/DEMO_SCRIPT.md and docs/KNACK_DEMO.md section 8: 'any Gemini speed or accuracy number (not in the report)' | quoted here with the label 'synthetic sandbox screenshots'; the shot-list rule is more cautious and the lead may keep it |
 | Rung definitions | evals/agentic/REAL_CLICKS.md: R2 a model proposes one step in TextEdit; R3 and R4 are attended sandbox rungs; unattended real-desktop runs are not on the ladder | docs/FLAGS.md and docs/DECISIONS.md D48: the reviewer's no-go for 'model-driven (R2) and unattended (R3, R4)' runs; docs/REQ7_PLAN.md: R2 a click and a typed field on a sandbox page, R3 a full household, R4 a long-horizon run | evals/agentic/REAL_CLICKS.md |
 | Cloud wording for 'explain this' | docs/FLAGS.md: the cloud attempt is on by default (D48), routed to Gemini, always behind the number check with a template fallback | README.md and docs/FEATURE_CATALOGUE.md: cloud wording off by default | docs/FLAGS.md (later) |
 | Computer-use 'false claims' | docs/reference-notes/cu-failure-diagnosis.md and evals/agentic/ITERATIONS.md (correction): the harness accepted wrong calculator inputs; independent recomputation caught them | evals/report.md (Agentic evaluation): '2 false claim(s)' | the corrected wording; the generated report has not been re-worded |
@@ -2525,10 +2528,11 @@ Found while writing. Each row names both files; the third column says which one 
 | Connections: curated MCP plugins and role presets (CONNECTIONS, Track E) | `docs/CONNECTIONS.md` | built overnight per docs/FIRST_LAUNCH.md; the engine side is committed on branch worktree-agent-a2c1788e3e4c0c876 (00:03 UTC); not on main; the panel slots exist |
 | Deeper programmer and data-analyst roles (ROLE-DEPTH, Track F) | `docs/roles/*.md` | built overnight per docs/FIRST_LAUNCH.md; not on main |
 | Demo shot list and spoken lines (DEMO-DIRECTOR) | `docs/KNACK_DEMO.md` | not on main |
+| Demo shot list, spoken lines, the context audit and the headless checks (DEMO-DIRECTOR) | `docs/KNACK_DEMO.md, docs/knack-demo/context-audit.md` | written, on branch worktree-agent-ab26657c3d23ea392; not on main yet |
 | Computer use on Gemini, development results (AGENTIC-3) | `evals/agentic/ITERATIONS_8.md` | on branch worktree-agent-acf889b730112335b; merges after its full suite is green (docs/FIRST_LAUNCH.md) |
 
 When one of these lands, update its page in `docs/features/` and the status in `docs/features/index.md`.
 
 ## Sources read
 
-`docs/FEATURE_CATALOGUE.md`, `README.md`, `docs/KNACK_UX.md`, `docs/knack-ux/*`, `docs/FLAGS.md`, `docs/DECISIONS.md` (D41 to D55), `docs/MVP_STATUS.md`, `docs/FIX_LEDGER.md`, `evals/report.md`, `evals/report.json`, `evals/report.facts.json`, `evals/realism/INTERPRETATION.md`, `evals/mlv2/PLAN.md` and `evals/mlv2/results/`, `evals/attention/report_held_out.json`, `evals/insights/results/heldout.json`, `evals/cue/held_out.json`, `evals/agentic/ITERATIONS.md`, `evals/study_sim/REPORT.md`, `evals/modelbench/REPORT.md`, `evals/cases/skip_consequences.json`, `docs/reference-notes/*.md`, `docs/REFERENCES.md`, `docs/INSIGHTS_DESIGN.md`, `docs/ATTENTION_DESIGN.md`, `docs/CONTEXT_ENGINEERING.md`, `docs/REQ5_PLAN.md`, `docs/REQ7_PLAN.md`, `docs/IMPLEMENTATION_SPEC.md`, `docs/SPIKES.md`, `docs/FIRST_LAUNCH.md`, `docs/drafts/*.md`, and a few code headers under `apps/desktop/src/main/wake/` and `apps/dashboard/src/components/home/navModel.ts`.
+`docs/FEATURE_CATALOGUE.md`, `README.md`, `docs/KNACK_UX.md`, `docs/knack-ux/*`, `docs/FLAGS.md`, `docs/DECISIONS.md` (D41 to D55), `docs/MVP_STATUS.md`, `docs/FIX_LEDGER.md`, `evals/report.md`, `evals/report.json`, `evals/report.facts.json`, `evals/realism/INTERPRETATION.md`, `evals/mlv2/PLAN.md` and `evals/mlv2/results/`, `evals/attention/report_held_out.json`, `evals/insights/results/heldout.json`, `evals/cue/held_out.json`, `evals/agentic/ITERATIONS.md`, `evals/study_sim/REPORT.md`, `evals/modelbench/REPORT.md`, `evals/cases/skip_consequences.json`, `docs/reference-notes/*.md`, `docs/REFERENCES.md`, `docs/KNACK_DEMO.md` and `docs/knack-ux/09-wake-voice.md` (from their branches), the CONNECTIONS branch's engine code and presets, `docs/INSIGHTS_DESIGN.md`, `docs/ATTENTION_DESIGN.md`, `docs/CONTEXT_ENGINEERING.md`, `docs/REQ5_PLAN.md`, `docs/REQ7_PLAN.md`, `docs/IMPLEMENTATION_SPEC.md`, `docs/SPIKES.md`, `docs/FIRST_LAUNCH.md`, `docs/drafts/*.md`, and a few code headers under `apps/desktop/src/main/wake/` and `apps/dashboard/src/components/home/navModel.ts`.

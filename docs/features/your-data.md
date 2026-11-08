@@ -72,7 +72,7 @@ Edit a line (for example a Never line) and show the next run respecting it; dele
 
 ### Honest limit
 
-Mechanism tested offline; no worker has built a memory file by use. The precedent rule is an idea re-implemented from a hackathon project, with our own decay.
+Mechanism tested offline; no worker has built a memory file by use. The precedent rule is an idea re-implemented from a hackathon project, with our own decay. The file is read by rules and the coach and is in no model prompt (gap G8 in docs/KNACK_DEMO.md): say 'rules', not 'the model remembers'.
 
 ### Hackathon target
 

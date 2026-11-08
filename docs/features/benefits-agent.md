@@ -28,7 +28,7 @@ Routines, then Run now (the window minimises and the corner pill shows what is h
 
 ### Demo moment
 
-Start the benefits routine from Routines. The pill says what it is doing in about five words (the window minimises if the run counts as using the real screen; rehearse, because a pure sandbox job leaves the window where it is), and the finished case note arrives in Needs you with its evidence and one irreversible step waiting for a click. Do not press Approve in front of an audience; it saves a sandbox note and nothing real.
+Start the benefits routine from Routines. The pill says what it is doing in about five words (a run in the agent's own browser shows the pill and does not minimise the window by itself: press Command-M right after Run now if the window should get out of the way, which is gap G3 in docs/KNACK_DEMO.md; the agent's three browser windows appear on screen only if the stack was started headed), and the finished case note arrives in Needs you with its evidence and one irreversible step waiting for a click. Do not press Approve in front of an audience; it saves a sandbox note and nothing real. At the time of the demo run, approving only marked the item approved and the sandbox note stayed Draft until the run's finalize route was called (gap G11, docs/KNACK_DEMO.md): end on the approved item, or have the lead call finalize.
 
 ### Evidence and its label
 

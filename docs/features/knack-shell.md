@@ -12,7 +12,7 @@ This page covers One app, one window, one corner pill, First run in three clicks
 
 ### What it does
 
-Knack.app is the dashboard in its own window with a Dock icon and a menu-bar item. When a run that uses the worker's real screen starts from the window, the window minimises itself and a 32-pixel pill in the bottom-right corner says what is happening and offers Stop. It never pops the window back on its own. (The state table says a pure sandbox job started elsewhere, for example from Background runs, shows the pill and leaves the window where it is; Routines, Run now is specified to minimise it. Rehearse to see which happens on the demo laptop.)
+Knack.app is the dashboard in its own window with a Dock icon and a menu-bar item. When a run that uses the worker's real screen starts from the window, the window minimises itself and a 32-pixel pill in the bottom-right corner says what is happening and offers Stop. It never pops the window back on its own. (The state table says a pure sandbox job leaves the window where it is. Routines, Run now is specified to minimise it, but the demo run found that a run in the agent's own browser shows the pill and does not move the window, because the shell treats only the desktop's own acting as 'real screen' (gap G3 in docs/KNACK_DEMO.md); until that is decided, Command-M does it by hand.)
 
 ### How it works
 
@@ -37,7 +37,7 @@ Start a routine from Routines: the window minimises to the Dock after 0.4 s, the
 
 ### Honest limit
 
-Not yet seen by the owner on a real desktop with real windows behind it; per-display overlays for the ring are a known limit; multi-display pill placement is a spec, not a tested behaviour. The app is unsigned.
+Not yet seen by the owner on a real desktop with real windows behind it; the corner approval card carries fixed words only and names no item (gap G6); per-display overlays for the ring are a known limit; multi-display pill placement is a spec, not a tested behaviour. The app is unsigned.
 
 ### Hackathon target
 
