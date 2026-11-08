@@ -70,7 +70,10 @@
 /* The details panel */
 .gpanel { position: absolute; z-index: var(--z-panel); top: var(--space-3); right: var(--space-3); bottom: var(--space-3); width: min(340px, calc(100% - 24px)); display: flex; animation: u-slide-in var(--dur-arrive) var(--ease-out) both; }
 .gpanel .sidepanel { width: 100%; box-shadow: var(--elev-2); min-height: 0; }
-.gpanel__who { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.gpanel__who { display: flex; align-items: flex-start; gap: var(--space-3); min-width: 0; }
+.gpanel .sidepanel__title, .gpanel__what, .gpanel .sidepanel__body p { overflow-wrap: anywhere; }
+/* A very long name stops at four lines in the title; the whole of it is in The numbers and in the accessible name. */
+.gpanel .sidepanel__title { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 .gpanel__what { color: var(--fg); }
 .gpanel__nums { display: grid; gap: var(--space-2); margin: 0; }
 .gpanel__nums dt { font: 400 var(--text-xs)/1.2 var(--font-mono); color: var(--muted); }
