@@ -22,7 +22,7 @@ A pack is a validated folder (id, onboarding questions for tools, risky actions,
 
 ### Where to see it
 
-First run (the role cards), Settings, Set up again, and the Admin Roles view.
+First run (the role cards and 'Not sure yet'), the account menu (Change profile changes the name and the role; Set up again reruns first run), and the Admin Roles view.
 
 ### Demo moment
 
