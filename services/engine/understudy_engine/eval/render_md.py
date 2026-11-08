@@ -571,7 +571,7 @@ def evidence_map_text(emap: list[dict[str, Any]]) -> str:
         origin = origin_words(e["origin"]) if e["status"] in ("ok", "not_run") else "n/a"
         rows.append([e["title"], origin, n, st, e.get("label") or ""])
     head = (f"{len(emap)} sections: {ok} with numbers, {sum(1 for e in emap if e['status'] == 'pending')} pending, {sum(1 for e in emap if e['status'] == 'not_run')} not run, "
-            f"{sum(1 for e in emap if e['status'] == 'failed')} failed. Measured on: generators we wrote are people and data we generated and planted, real people are people, real and generated is both. "
+            f"{sum(1 for e in emap if e['status'] == 'failed')} failed. Measured on: \"generators we wrote\" means people and data we generated and planted, \"real people\" means people, \"real and generated\" means both. "
             "A section without numbers says why instead of showing a made-up value.")
     return head + "\n\n" + table(["Section", "Measured on", "n", "Status", "Label"], rows)
 
