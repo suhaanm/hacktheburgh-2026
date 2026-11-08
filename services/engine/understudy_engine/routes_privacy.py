@@ -94,7 +94,7 @@ def get_ledger(limit: int = Query(100, ge=1, le=1000)):
         return r
     rows = ledger.read(limit)
     note = ("Newest first. Each line is one call to a remote model with exactly the content sent. Lines marked mock were made "
-            "in mock mode or with a test port and reached no model.")
+            "while models were off and reached no model.")
     return {"meta": _meta(rows, note), "data": rows}
 
 
