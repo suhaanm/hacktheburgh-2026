@@ -8,6 +8,9 @@ What it writes, for the worker ``PERSON`` under ``role`` (programmer or data ana
   capture) nor into the shared ``synthetic`` dataset; ``PersonSource`` merges the folder in (additive, ``routines/sources.py``).
 * for the programmer only, ``<data>/git/<person>/repo``: a real git repository with twelve weeks of commits (``gitanalysis.synth.make_repo``), which ``/git/habits`` finds as the
   worker's own learner repository (additive, ``gitanalysis/service.py``).
+* ``<data>/roles/<role>/cohort/{events.jsonl,roster.json}``: the role's main task done by 14 people (experienced and learning, twelve cases each, ``personas_v2.generate_cohort``), the
+  fastest learner being the worker. ``/genome/<role id or the pack's task id>`` answers from it in person scope: the worker's own cases against the nearest experienced worker's, naming
+  nobody (``genome/service.py``). Kept out of ``history/``, so it never counts as hours or routines.
 
 How it is made, all from existing generators and the role pack's own files: ``personas_v2.generate_workweeks`` (circadian windows, days off, interruptions, background activity, routines
 that emerge, a novice's practice curve) with the role's frozen spec EXTENDED by the pack: every cog of the pack's ``mapping.yaml`` gets its event rule as its emission, its dwell time
@@ -19,7 +22,6 @@ Idempotent through ``<data>/.seed-events-<role>`` (written last). Only a demo da
 from __future__ import annotations
 
 import dataclasses
-import hashlib
 import json
 from collections import defaultdict
 from collections.abc import Callable
