@@ -122,7 +122,7 @@ function Run({ run: r, elapsed, onChanged }: { run: AgentRun; elapsed: number; o
       <div className="run__head">
         <div className="stack" style={{ gap: "var(--space-1)" }}>
           <h2 className="run__title" id={`run-${r.run_id}`}>{kindLabel(r.kind)}</h2>
-          <span className="t-data u-muted">{r.mode === "nightly" ? "Nightly" : "Foreground"} · {r.run_id} · started {fmtDateTime(r.started)}</span>
+          <span className="t-data u-muted">{r.mode === "nightly" ? "Nightly" : "Foreground"} · started {fmtDateTime(r.started)}</span>
         </div>
         <div className="row">
           <span className="run__state" data-tone={stateTone(r.state)}>{r.state}</span>
@@ -248,7 +248,7 @@ function Spawn({ onStarted, example }: { onStarted: () => void; example: boolean
   const [err, setErr] = useState<string | null>(null);
   const go = async () => {
     setBusy(true); setErr(null);
-    try { const r = await api.agentsSpawn(kind, mode); toast({ tone: "success", text: "Started in the background.", detail: `${kindLabel(kind)} · ${r.run_id}` }); onStarted(); }
+    try { await api.agentsSpawn(kind, mode); toast({ tone: "success", text: "Started in the background.", detail: kindLabel(kind) }); onStarted(); }
     catch (e) { setErr(e instanceof ApiError ? e.message : "Could not start it. Try again."); }
     finally { setBusy(false); }
   };
