@@ -33,6 +33,9 @@ export function approvalClass(q: Pick<QueueItem, "kind" | "risk_class">): NeedsC
 }
 
 const PAUSED = new Set(["paused", "needs_human", "blocked"]);
+/** True once every source has answered at least once (data, or a failure): a list built before that is partial. A reload keeps the old data, so it stays true. */
+export const firstLoadDone = (sources: ReadonlyArray<{ data: unknown; status: string }>): boolean => sources.every((x) => x.data !== null && x.data !== undefined ? true : x.status !== "loading");
+
 /** A field key from a run as a person reads it: `case_ref` is "Case ref". */
 export const fieldName = (k: string): string => { const t = String(k ?? "").replace(/[_-]+/g, " ").trim(); return t ? t.charAt(0).toUpperCase() + t.slice(1) : String(k ?? ""); };
 export const isPausedRun = (r: AgentRun): boolean => PAUSED.has(r?.state) || PAUSED.has(r?.parent?.state);

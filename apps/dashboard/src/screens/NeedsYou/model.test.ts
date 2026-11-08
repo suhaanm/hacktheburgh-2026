@@ -4,7 +4,7 @@ import routinesFx from "../../fixtures/routines.json";
 import briefingFx from "../../fixtures/briefing.json";
 import agentsFx from "../../fixtures/agents-runs.json";
 import type { AgentRun, BriefingCard, QueueItem, Routine } from "../../types";
-import { fieldName, approvalClass, approvalLabels, awayLine, buildItems, consequence, isPausedRun, leadAndRest, neverLine, plainWords, saveHint, saveLine, seenLine, touchesLead, visible, visibleItems } from "./model";
+import { firstLoadDone, fieldName, approvalClass, approvalLabels, awayLine, buildItems, consequence, isPausedRun, leadAndRest, neverLine, plainWords, saveHint, saveLine, seenLine, touchesLead, visible, visibleItems } from "./model";
 
 const queue = (queueFx as unknown as { data: QueueItem[] }).data;
 const routines = (routinesFx as unknown as { data: Routine[] }).data;
@@ -197,5 +197,17 @@ describe("field names in the evidence read as words", () => {
     expect(fieldName("note-fields")).toBe("Note fields");
     expect(fieldName("")).toBe("");
     expect(fieldName(undefined as unknown as string)).toBe("");
+  });
+});
+
+describe("the list is drawn only after every source has answered once", () => {
+  it("waits while any source is still on its first load", () => {
+    expect(firstLoadDone([{ data: [], status: "ready" }, { data: null, status: "loading" }])).toBe(false);
+  });
+  it("is done when every source has data, or has failed", () => {
+    expect(firstLoadDone([{ data: [], status: "ready" }, { data: null, status: "error" }])).toBe(true);
+  });
+  it("stays done during a reload (the old data is kept)", () => {
+    expect(firstLoadDone([{ data: [1], status: "loading" }])).toBe(true);
   });
 });
