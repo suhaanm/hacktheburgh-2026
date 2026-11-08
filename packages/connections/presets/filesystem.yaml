@@ -10,6 +10,7 @@ connection:
   group: dev
   app: Files
   reads: Files and folder names inside the one folder you pick.
+  short: One folder of files
   standin:
     label: Example folder
     script: packages/connections/standins/filesystem_server.py

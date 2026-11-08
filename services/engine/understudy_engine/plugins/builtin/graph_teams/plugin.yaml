@@ -17,6 +17,7 @@ connection:
   group: benefits
   app: Teams meetings
   reads: Meeting times, length and attendance counts only.
+  short: Meeting times and counts
   standin:
     label: Example calendar
     source: jsoncal

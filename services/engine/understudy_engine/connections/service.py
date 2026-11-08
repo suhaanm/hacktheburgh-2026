@@ -29,7 +29,8 @@ def view(preset: Preset, *, detail: bool = False) -> dict[str, Any]:
         modes["real"] = real
     reads = ledger.reads_summary(preset.id)
     out: dict[str, Any] = {
-        "id": preset.id, "app": preset.app, "group": preset.group, "kind": preset.kind, "reads": preset.reads, "caution": preset.caution,
+        "id": preset.id, "app": preset.app, "group": preset.group, "kind": preset.kind, "reads": preset.reads, "short": preset.short or preset.reads,
+        "caution": preset.caution,
         "state": st["state"], "mode": st["mode"], "reason": st["reason"], "example": st["mode"] == "example", "modes": modes,
         "tools": preset.tools.counts(), "usage": {k: reads[k] for k in ("calls", "reads", "changes_asked", "refused", "needed_click", "last_call")},
         "probe": (rec or {}).get("probe"), "consented_at": (rec or {}).get("consented_at"), "roles": registry.roles_for(preset.id),

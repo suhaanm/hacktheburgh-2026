@@ -10,6 +10,7 @@ connection:
   group: data
   app: SQLite
   reads: Tables and rows in the one database file you pick.
+  short: One database file
   standin:
     label: Example dataset
     script: packages/connections/standins/sqlite_server.py

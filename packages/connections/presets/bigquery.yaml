@@ -10,6 +10,7 @@ connection:
   group: data
   app: BigQuery
   reads: Datasets, tables and query results in one Google Cloud project.
+  short: Datasets and tables
   standin:
     label: Example dataset
     script: packages/connections/standins/sqlite_server.py

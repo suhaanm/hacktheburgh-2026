@@ -10,6 +10,7 @@ connection:
   group: data
   app: Postgres
   reads: Tables, rows and statistics in the one database you name.
+  short: One Postgres database
   standin:
     label: Example dataset
     script: packages/connections/standins/sqlite_server.py

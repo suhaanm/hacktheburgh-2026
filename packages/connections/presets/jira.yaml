@@ -11,6 +11,7 @@ connection:
   group: dev
   app: Jira
   reads: Issues, boards and sprints you can already see in Jira.
+  short: Issues, boards, sprints
   caution: Community server
   standin:
     label: Example Jira

@@ -10,6 +10,7 @@ connection:
   group: data
   app: Jupyter
   reads: Notebooks and cells in your own JupyterLab.
+  short: Notebooks and cells
   caution: Community server
   standin:
     label: Example notebook

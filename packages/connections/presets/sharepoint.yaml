@@ -12,6 +12,7 @@ connection:
   group: benefits
   app: SharePoint
   reads: Sites, lists and document libraries you can already open.
+  short: Sites, lists, libraries
   caution: Community server
   standin:
     label: Example SharePoint

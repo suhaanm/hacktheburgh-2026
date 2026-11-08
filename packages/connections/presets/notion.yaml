@@ -11,6 +11,7 @@ connection:
   group: data
   app: Notion
   reads: Pages and databases you shared with your Notion integration.
+  short: Pages and databases
   caution: Vendor says unmaintained
   standin:
     label: Example Notion

@@ -10,6 +10,7 @@ connection:
   group: dev
   app: Git
   reads: Commits, diffs and branches of one repository on this Mac.
+  short: Commits and diffs
   standin:
     label: Example repository
     script: packages/connections/standins/fixture_server.py

@@ -11,6 +11,7 @@ connection:
   group: dev
   app: Slack
   reads: Channels, threads and people you can already see in Slack.
+  short: Channels and threads
   caution: Community server
   standin:
     label: Example Slack

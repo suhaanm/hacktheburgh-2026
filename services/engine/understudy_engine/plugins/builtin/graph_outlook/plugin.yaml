@@ -18,6 +18,7 @@ connection:
   group: benefits
   app: Outlook calendar
   reads: Meeting times and counts only. No titles, no people.
+  short: Meeting times and counts
   standin:
     label: Example calendar
     source: jsoncal

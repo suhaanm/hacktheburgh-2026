@@ -30,7 +30,6 @@ LAUNCHERS = ("npx", "uvx", "docker")
 _PLACEHOLDER = re.compile(r"\{([a-z][a-z0-9_]{1,30})\}")
 _SAFE_BUILTIN_PLACEHOLDERS = frozenset({"sandbox", "synthetic"})
 _SHELL_META = re.compile(r"[;&|`$<>\\\n\r]")
-_PUBLISHER_KIND = {"vendor": "the app's own maker", "mcp_project": "the MCP project", "community": "a community author"}
 _REGISTRY_LABEL = {"npm": "npm", "pypi": "PyPI", "oci": "container image", "release": "release", "plugin": "built in"}
 
 
@@ -170,6 +169,7 @@ class Preset:
     tools: ToolTable
     limitations: tuple[str, ...] = ()
     path: str | None = None
+    short: str = ""                 # what it reads in at most six words, for a row of the list
 
     # ---- what is available
     @property
@@ -209,7 +209,7 @@ class Preset:
         return cls(id=m.id, app=c["app"], group=c["group"], kind=m.kind, version=m.version, description=m.description, reads=c["reads"],
                    caution=c.get("caution", ""), standin=dict(c["standin"]), real=dict(c["real"]) if c.get("real") else None,
                    tools=ToolTable(classes, dict(c["tools"].get("classifiers", {})), c["tools"].get("unlisted", "verbs")),
-                   limitations=tuple(c.get("limitations", ())), path=m.path)
+                   limitations=tuple(c.get("limitations", ())), path=m.path, short=c.get("short", ""))
 
 
 # --------------------------------------------------------------------------------------------------------- the hash
@@ -253,32 +253,36 @@ def command_hash(preset: Preset, mode: str) -> str:
 
 
 # --------------------------------------------------------------------------------------------------------- the words
+def _reads_line(preset: Preset) -> str:
+    r = preset.reads.strip().rstrip(".")
+    return f"Reads {r[0].lower() + r[1:]}."
+
+
 def consent(preset: Preset, mode: str, params: dict[str, str] | None = None) -> dict[str, Any]:
-    """What the worker is agreeing to, in plain words: ``summary`` (one sentence), ``lines`` (the same, short, for the chip) and the facts
+    """What the worker is agreeing to, in plain words: ``summary`` (the sentences joined), ``lines`` (the same, short, for the chip) and the facts
     behind it. For a real connection it names the publisher, the package, the pinned version, the hosts, and says "with your token"."""
     if mode not in MODES:
         raise ValueError("mode must be example or real")
     if mode == "example":
-        lines = [f"Example data: invented, kept on this Mac. Reads {preset.reads[0].lower() + preset.reads[1:]}".rstrip("."),
-                 "No account is used and nothing leaves this Mac.", "Any change needs your click. Revoke any time."]
+        lines = ["Example data: invented and kept on this Mac.", _reads_line(preset), "No account is used and nothing leaves this Mac.",
+                 "Any change needs your click. Revoke any time."]
         return {"mode": mode, "summary": " ".join(lines), "lines": lines, "example": True, "publisher": "Knack", "package": preset.standin.get("script") or
                 preset.standin.get("source"), "version": preset.version, "hosts": [], "needs_token": False, "caution": ""}
     if preset.real is None:
         raise ValueError(f"{preset.id} has no real mode")
     r = preset.real
     hosts = preset.hosts(params)
-    pkg = f"{_REGISTRY_LABEL[r.get('registry', 'plugin')]} {r['package']}" if r.get("package") else r["publisher"]
-    who = f"{r['publisher']}, {_PUBLISHER_KIND[r['publisher_kind']]}"
+    pkg = f"{_REGISTRY_LABEL[r.get('registry', 'plugin')]} {r['package']}" if r.get("package") else ""
     needs_token = bool(preset.credential_envs)
     if r["transport"] == "plugin":
-        start = f"Knack's own read-only {preset.app} reader ({r['package']} {r['version']}) reads it"
+        start = f"Knack's own read-only {preset.app} reader ({r['package']} {r['version']}) reads it through Microsoft Graph"
     else:
-        start = f"Knack starts {preset.app} server {r['version']} ({pkg}) by {who}"
+        start = f"Knack starts {preset.app} server {r['version']} ({pkg}) by {r['publisher']}"
     if hosts:
         reach = f"It talks to {', '.join(hosts)} " + ("with your token." if needs_token else "with your own sign-in on this Mac.")
     else:
         reach = "It stays on this Mac."
-    lines = [f"{start}.", reach, f"Reads {preset.reads[0].lower() + preset.reads[1:]}".rstrip(".") + ". Any change needs your click.", "Revoke any time."]
+    lines = [f"{start}.", reach, _reads_line(preset) + " Any change needs your click.", "Revoke any time."]
     if preset.caution:
         lines.insert(2, f"{preset.caution}.")
     return {"mode": mode, "summary": " ".join(lines), "lines": lines, "example": False, "publisher": r["publisher"], "publisher_kind": r["publisher_kind"],

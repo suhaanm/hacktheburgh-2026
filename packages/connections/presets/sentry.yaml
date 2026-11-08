@@ -10,6 +10,7 @@ connection:
   group: dev
   app: Sentry
   reads: Errors, traces and releases in your Sentry projects.
+  short: Errors and traces
   caution: Source-available licence
   standin:
     label: Example Sentry

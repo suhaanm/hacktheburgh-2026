@@ -10,6 +10,7 @@ connection:
   group: dev
   app: GitHub
   reads: Issues, pull requests, commits and code you can already see on GitHub.
+  short: Issues, pull requests, code
   standin:
     label: Example GitHub
     script: packages/connections/standins/github_server.py
