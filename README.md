@@ -2,9 +2,11 @@
 
 *Built at Hack the Burgh XIII, Edinburgh, 7 to 8 November 2026. Formerly called Understudy. Tracks: Metaview, HRT, G-Research, Wordsmith, JetBrains.*
 
-**Knack watches how people do the same task, shows where a novice loses time against an expert, coaches on the real screen with help that fades, and lets an agent take repetitive work only when the worker says yes.**
+**Every team has one person who just knows.** Their skill lives in their head, so it never spreads, and when they leave it leaves with them. **Knack is AI enablement that learns from your best people and puts their instincts on everyone else's screen:** it shows where a worker loses time against an expert, coaches on the real screen with help that fades as they improve, and lets an agent take repetitive work only when the worker says yes.
 
-Say "Hey Knack" in any app. Knack sees your screen (only after you say yes), rings the thing to click next, talks you through it, and, when you ask it to do the click, does it behind one card that only your real mouse click can answer.
+Say "Hey Knack" in any app. Knack sees your screen (only after you say yes), rings the thing to click next, talks you through it, and, when you ask it to do the click, does it behind one card that only your real mouse click can answer. Managers get a firm view of where time is lost, in aggregate, never anyone's screen.
+
+Knack is built to close the gap between good and best. It measures that gap and shows where it cannot; it has not yet been shown on real workers (see Evidence, and what it does not show).
 
 ## What it does
 
