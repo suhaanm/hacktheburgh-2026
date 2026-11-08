@@ -10,12 +10,10 @@ export function AwayDetails({ rep, audit, line }: { rep: OffhoursReport; audit: 
   const [open, setOpen] = useState(false);
   return (
     <section className="kc-foot" aria-label="Since you were away">
-      <p style={{ margin: 0 }}>
-        {line}{" "}
-        <button type="button" className="kc-link" style={{ display: "inline-flex", padding: "0 var(--space-1)" }} aria-expanded={open} aria-controls="away-details" onClick={() => setOpen((v) => !v)}>Details<Glyph name="chevron" /></button>
-      </p>
+      <button type="button" className="kc-link" style={{ padding: "0 var(--space-1)" }} aria-expanded={open} aria-controls="away-details" onClick={() => setOpen((v) => !v)}>Since you left<Glyph name="chevron" /></button>
       {open && (
         <div className="kc-panel" id="away-details" style={{ marginTop: "var(--space-3)" }}>
+          <p data-testid="away-line"><b>{line}</b></p>
           <p>{plural(rep.ran.length, "run")} finished, {rep.queued.length} waiting for you, {plural(rep.failed.length, "failure")}, {rep.yielded.length} stepped aside when you came back.</p>
           {rep.ran.length > 0 && (
             <div><p className="kc-label">Ran</p>

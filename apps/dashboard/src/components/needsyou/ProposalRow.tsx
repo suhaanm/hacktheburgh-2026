@@ -59,7 +59,6 @@ export function ProposalRow({ routine: p, onDecide }: { routine: Routine; onDeci
       <h3 className="kc-row__title" id={`ny-${p.id}`}>
         <Glyph name="routine" />
         <span>{plainWords(p.title)}</span>
-        <span className="kc-row__when">new routine</span>
       </h3>
       <p className="kc-row__body">{seenLine(p.proposal.how_often)} {saveLine(p)}<Hint label="About the hours saved">{saveHint(p)}</Hint></p>
       {neverItems.length > 1 ? (

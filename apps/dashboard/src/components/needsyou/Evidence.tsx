@@ -15,13 +15,13 @@ function Shot({ runId, path }: { runId: string; path: string }) {
 }
 
 /** What the run found against what was expected, the steps and the screenshots: opened on demand, printed in full once opened. */
-export function Evidence({ item: it, rest }: { item: QueueItem; rest?: string }) {
+export function Evidence({ item: it, rest, since }: { item: QueueItem; rest?: string; since?: string }) {
   const diff = (it.evidence.diff ?? []) as { field: string; expected: string; got: string }[];
   const keys = Array.from(new Set([...Object.keys(it.evidence.extracted ?? {}), ...Object.keys(it.evidence.expected ?? {})]));
   return (
     <div className="kc-panel" data-testid="evidence">
       {rest && <p>{rest}</p>}
-      <p className="kc-sub">Run {it.run_id}{it.routine_id ? ` · ${it.routine_id}` : ""}</p>
+      <p className="kc-sub">{since ? `Waiting since ${since}. ` : ""}Run {it.run_id}{it.routine_id ? ` · ${it.routine_id}` : ""}</p>
       {it.evidence.screenshots.length > 0 && (
         <div className="shots" aria-label="Screenshots">
           {it.evidence.screenshots.map((s, i) => <Shot key={`${s}-${i}`} runId={it.run_id} path={s} />)}

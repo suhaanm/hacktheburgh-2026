@@ -2,7 +2,9 @@
 // the badge itself is the printed fact, and an engine error is printed as a line because an error is never only in a Hint).
 import type { Fallback } from "../../lib/fallback";
 import type { AnalyticMeta } from "../../types";
-import { SourceNote } from "../common";
+import { EXAMPLE_LINE } from "../../lib/fallback";
+import { Note, SourceNote } from "../common";
+import { Details } from "../ui";
 
 export interface Source { meta?: AnalyticMeta | null; why?: Fallback | null }
 export interface OriginInfo { text: string; data: "example" | "synthetic" | "mixed"; why: Fallback | null }
@@ -36,8 +38,18 @@ export function OriginBadge({ sources }: { sources: Source[] }) {
  * warning look so it is read. Nothing when the data is the engine's own.
  */
 export function OriginDetails({ sources }: { sources: Source[] }) {
-  const whys = distinctWhys(sources);
-  return <>{whys.map((w) => <SourceNote key={w.message} why={w} />)}</>;
+  const byKind = new Map<string, Fallback[]>();
+  for (const w of distinctWhys(sources)) byKind.set(w.kind, [...(byKind.get(w.kind) ?? []), w]);
+  return (
+    <>
+      {[...byKind.values()].map((ws) => (
+        <div key={ws[0].kind} className="sourcenote" data-kind={ws[0].kind}>
+          <Note tone={ws[0].kind === "error" ? "warn" : "plain"}>{EXAMPLE_LINE[ws[0].kind]}</Note>
+          <Details summary="Details">{ws.map((w) => <p key={w.message} className="note" data-testid="source-detail">{w.message}</p>)}</Details>
+        </div>
+      ))}
+    </>
+  );
 }
 
 /** Each different reason once (at most three), in the order the sources are given: two sources that fell back for the same reason say it once. */

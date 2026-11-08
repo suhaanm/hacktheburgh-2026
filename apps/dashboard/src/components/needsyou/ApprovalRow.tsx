@@ -22,7 +22,7 @@ export function ApprovalRow({ item: it, primary, cls, onDone }: { item: QueueIte
   const L = approvalLabels(it.kind);
   const stepUp = auth.enabled && needsStepUp(it.risk_class);
   const cons = consequence(it.risk_class);
-  const { lead, rest } = leadAndRest(it.summary, it.kind === "injection_pause" ? 30 : 16)   // a pause for safety prints what it did and what it did not change, whole;
+  const { lead, rest } = leadAndRest(it.summary, it.kind === "injection_pause" ? 20 : 16)   // a pause for safety prints what it did and what it did not change, whole;
   const title = plainWords(it.title);
 
   const decide = async (a: "approve" | "reject") => {
@@ -49,7 +49,6 @@ export function ApprovalRow({ item: it, primary, cls, onDone }: { item: QueueIte
       <h3 className="kc-row__title" id={`ny-${it.id}`}>
         <Glyph name={cls === 0 ? "alert" : "decision"} />
         <span>{title}</span>
-        <time className="kc-row__when" dateTime={it.created_at}>{fmtTime(it.created_at)}</time>
       </h3>
       {lead.split(/(?<=[.!?])\s+/).map((sentence, i) => <p key={i} className="kc-row__body">{sentence}</p>)}
       {cons && <p className="kc-row__cons" data-testid="consequence">{cons}</p>}
@@ -60,7 +59,7 @@ export function ApprovalRow({ item: it, primary, cls, onDone }: { item: QueueIte
         <button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => void decide("reject")}>{busy === "reject" ? "Working" : L.no}</button>
         <button type="button" className="kc-link" data-toggle aria-expanded={open} aria-controls={`ev-${it.id}`} onClick={() => setOpen((v) => !v)}>Evidence<Glyph name="chevron" /></button>
       </div>
-      {open && <div id={`ev-${it.id}`}><Evidence item={it} rest={rest} /></div>}
+      {open && <div id={`ev-${it.id}`}><Evidence item={it} rest={rest} since={fmtTime(it.created_at)} /></div>}
     </article>
   );
 }
