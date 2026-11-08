@@ -72,7 +72,7 @@ Status words: **verified** means the lead saw it work end to end; **built** mean
 | Proactive layers | Briefing, calendar, git habits, local model, background agents, attention router, insights for workers and admins | built, synthetic |
 | Cue and Growth | Stuck rescue and the independence score | building; simulated evaluation only |
 | Models | Gemini, OpenAI, local and ElevenLabs routing; independent verifier; live voice | building or flagged off |
-| Computer use on the sandbox calculators | A model clicks and types through the same safety layers | **not reliable**: 3 of 3 on development households, 1 of 4 held-out; the safety properties held, completion did not generalise |
+| Computer use on the sandbox calculators | A model clicks and types through the same safety layers | **mostly reliable, bar not met**: Gemini, held-out clean 18 of 20 completed with correct inputs (Wilson 95% 0.70 to 0.97; pre-registered bar of 0.80 on the lower bound not met), 0 false claims, nothing submitted; the earlier OpenAI configuration was 1 of 4 (different configuration, not pooled) |
 | Computer use on a real desktop | Click and type through the same safety layers | not run: only the read-only rung R0 ran once |
 
 The three-minute walkthrough script is [docs/drafts/DEMO_SCRIPT.md](docs/drafts/DEMO_SCRIPT.md). Architecture and contracts: [docs/IMPLEMENTATION_SPEC.md](docs/IMPLEMENTATION_SPEC.md), [docs/API_CONTRACT.md](docs/API_CONTRACT.md).
