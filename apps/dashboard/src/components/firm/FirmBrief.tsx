@@ -37,7 +37,7 @@ export function FirmBrief() {
         {brief.insights.length > 0 && (
           <ul className="plain-list brief-top" aria-label="Things to know">
             {brief.insights.slice(0, 3).map((i) => (
-              <li key={i.headline}><span className="brief-top__head">{i.headline}</span> <span className="u-muted">{i.effect ? `${i.effect}, ` : ""}n = {i.n}</span></li>
+              <li key={i.headline}><span className="brief-top__head">{i.headline}</span> <span className="u-muted">{i.effect ? `${i.effect}, ` : ""}<span className="nobr">n = {i.n}</span></span></li>
             ))}
           </ul>
         )}
@@ -74,7 +74,7 @@ export function FirmBrief() {
           <h3 className="brief-sec__title">Things to know</h3>
           <ol className="brief-list">
             {brief.insights.map((i) => (
-              <li key={i.headline}><span className="brief-list__head">{i.headline}</span><span className="brief-list__meta">{i.effect ? `${i.effect}. ` : ""}n = {i.n}.</span></li>
+              <li key={i.headline}><span className="brief-list__head">{i.headline}</span><span className="brief-list__meta">{i.effect ? `${i.effect}. ` : ""}<span className="nobr">n = {i.n}</span>.</span></li>
             ))}
           </ol>
         </section>

@@ -43,6 +43,7 @@ export default function Models() {
             ))}
           </div>
         )}
+        {s.roles.some((r) => r.steps.some((st) => !st.model)) && <p className="note">With no keys set, model ids are not shown. They appear here once the keys are in place.</p>}
       </section>
 
       <div className="stack">
@@ -88,7 +89,7 @@ function Chain({ r }: { r: ModelRole }) {
           <li key={i} className="chain__step" data-when={st.when}>
             <span className="chain__when t-label">{WHEN_LABEL[st.when] ?? st.when}</span>
             <b>{providerName(st.provider)}{st.tier ? ` · ${st.tier}` : ""}</b>
-            {st.model ? <code>{st.model}</code> : <span className="u-muted">model id not resolved</span>}
+            {st.model ? <code>{st.model}</code> : null}
           </li>
         ))}
       </ol>

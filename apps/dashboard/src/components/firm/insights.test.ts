@@ -100,10 +100,10 @@ describe("freshness: numbers that are old, or dated after today", () => {
 
 describe("headlines from the example firm", () => {
   it("the firm overview counts what needs a look", () => {
-    expect(firmHeadline(overview)).toBe("5 things need a look this week across 60 people in 3 roles.");
+    expect(firmHeadline(overview)).toBe("7 things this week, 5 of them need a look across 60 people in 3 roles.");
   });
   it("roles names the widest readable gap", () => {
-    expect(rolesHeadline(roles)).toBe("Juniors in Data analyst finish 37 points fewer of their steps without help than experts, the widest gap of 2.");
+    expect(rolesHeadline(roles)).toBe("Junior data analysts finish 37 points fewer of their steps without help than experts, the widest gap across 2 roles.");
   });
   it("people counts who needs less help and who could use a conversation", () => {
     const h = peopleHeadline(firm);
@@ -122,11 +122,11 @@ describe("headlines from the example firm", () => {
     expect(shortName("Reconcile with the control figure before release", 30)).toBe("Reconcile with the control…");
   });
   it("risk lists what is waiting and what stopped", () => {
-    expect(riskHeadline(overview)).toBe("3 approvals are waiting, the oldest for 72 hours; 2 more things need a look.");
+    expect(riskHeadline(overview)).toBe("3 approvals are waiting, the oldest for 72 hours; also 2 paused runs and 1 full stop.");
     const one = normaliseOverview({ risk: { open_approvals: 0, injection_pauses_30d: 1, kill_events_30d: 0, approval_backlog_age_h: null } });
-    expect(riskHeadline(one)).toBe("1 run was paused by an injected page.");
+    expect(riskHeadline(one)).toBe("1 run was paused after a page tried to instruct it.");
     const two = normaliseOverview({ risk: { open_approvals: 1, injection_pauses_30d: 0, kill_events_30d: 4, approval_backlog_age_h: { median: 5, max: 5 } } });
-    expect(riskHeadline(two)).toBe("1 approval is waiting, the oldest for 5 hours; 1 more thing needs a look.");
+    expect(riskHeadline(two)).toBe("1 approval is waiting, the oldest for 5 hours; also 4 full stops.");
   });
   it("the brief says how many people have enough data", () => {
     expect(briefHeadline(overview)).toBe("60 people in 3 roles; 57 have enough data for a trend.");
@@ -175,7 +175,7 @@ describe("headlines never break on thin data", () => {
   });
   it("a negative gain reads as 'more', not as a minus sign", () => {
     const r = normaliseRoles({ roles: [{ role: "p", name: "Programmer", n_expert: 6, n_junior: 9, enough: true, measures: [{ key: "independence", gap: { value: 0.12, ci: [0.05, 0.2] }, verdict: "gap" }] }] });
-    expect(rolesHeadline(r)).toBe("Juniors in Programmer finish 12 points more of their steps without help than experts.");
+    expect(rolesHeadline(r)).toBe("Junior programmers finish 12 points more of their steps without help than experts.");
   });
   it("a very long role name and a unicode name stay one short phrase", () => {
     const r = normaliseRoles({ roles: [{ role: "p", name: "Senior Customer Experience Escalations Programme Delivery Lead", n_expert: 6, n_junior: 9, enough: true, measures: [{ key: "independence", gap: { value: -0.3, ci: [-0.4, -0.2] }, verdict: "gap" }] }] });

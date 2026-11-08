@@ -1,4 +1,4 @@
-"""Playwright fixtures for the role-sandbox tests: one headless Chromium per session, a fresh page per test. Skips cleanly if
+"""Playwright fixtures for the role-sandbox tests: one headless Chromium per test module, a fresh page per test. Skips cleanly if
 Playwright or its Chromium is missing. Pages are created through ``new_page(color_scheme=..., width=..., height=...)``."""
 from __future__ import annotations
 
@@ -7,7 +7,10 @@ import pytest
 pw_sync = pytest.importorskip("playwright.sync_api")
 
 
-@pytest.fixture(scope="session")
+# Module scope, not session: the sync API keeps an asyncio loop running in this thread for as long as it is open, and `asyncio.run()` raises
+# "cannot be called from a running event loop" in that thread. A session-scoped browser stayed open for the rest of the run and broke
+# every later test that calls `asyncio.run` (tests/tasks, which sorts after tests/roles). One Chromium per test module closes it in between.
+@pytest.fixture(scope="module")
 def browser():
     with pw_sync.sync_playwright() as p:
         try:

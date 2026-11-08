@@ -32,6 +32,19 @@ import { createScamAnalyst } from './scam-analyst'
 import { createVerifier } from './verifier'
 import { modelDeps } from './index'
 
+/** JPEG magic, then 4 KB of fixed pseudo-random bytes (a linear congruential sequence), then the end marker: stable across runs, unique enough that
+ * its first 200 base64 characters cannot appear in a log by accident. Not decodable as a picture, and nothing here decodes it. */
+function standInJpeg(): Buffer {
+  const head = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00])
+  const body = Buffer.alloc(4096)
+  let x = 0x2545f491
+  for (let i = 0; i < body.length; i++) {
+    x = (Math.imul(x, 1664525) + 1013904223) >>> 0
+    body[i] = x >>> 24
+  }
+  return Buffer.concat([head, body, Buffer.from([0xff, 0xd9])])
+}
+
 const RUN = process.env.RUN_LIVE === '1' && process.env.PRIVACY_E2E === '1'
 const STUB_KEY = ['sk', '-proj-', 'STUB'.repeat(8) + 'x1'].join('') // built at runtime: no key-shaped literal in the repo
 const STUB_ENV = { OPENAI_API_KEY: STUB_KEY, OPENAI_MODEL_PLANNER: 'plan-x', OPENAI_MODEL_FAST: 'fast-x', OPENAI_MODEL_COMPUTER_USE: 'cu-x' }
@@ -113,7 +126,10 @@ async function probe(stub: boolean) {
         modelPort: createModelPort(createOpenAiProvider({ env: process.env, log: (scope, ...args) => logs.push(util.format(`[${scope}]`, ...args)) })),
       }
 
-      const jpegBase64 = fs.readFileSync(path.join(root, 'spikes/grounding/shots/safety/scam-inject.jpg')).toString('base64')
+      // The screenshot can be any JPEG: the test only needs bytes that must never reach a log or a debug response. The real capture under
+      // spikes/grounding/shots is untracked (it exists only on the machine that took it), so a fresh checkout uses a deterministic stand-in.
+      const shotFile = path.join(root, 'spikes/grounding/shots/safety/scam-inject.jpg')
+      const jpegBase64 = (fs.existsSync(shotFile) ? fs.readFileSync(shotFile) : standInJpeg()).toString('base64')
       const shot = (): Shot => ({ id: 's', displayId: 1, widthPx: 1440, heightPx: 900, scaleFactor: 1, jpegBase64, takenAt: Date.now(), overlayHidden: true })
       const capture: Capture = { grab: async () => shot(), liveFrame: async () => ({ jpegBase64, changeScore: 0 }), watch: () => () => undefined }
 

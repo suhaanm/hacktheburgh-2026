@@ -56,7 +56,7 @@ export function ExampleBadge({ why }: { why: Fallback | null | undefined }) {
   return (
     <span className="pill pill--origin" data-origin="example">
       Example data
-      <span className="u-sr-only">{`. ${FALLBACK_LABEL[why.kind]}`}</span>
+      <span className="u-sr-only">{`. ${FALLBACK_LABEL[why.kind].charAt(0).toUpperCase()}${FALLBACK_LABEL[why.kind].slice(1)}.`}</span>
     </span>
   );
 }

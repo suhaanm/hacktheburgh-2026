@@ -63,7 +63,7 @@ describe("forecast insights from the example firm", () => {
   });
   it("the gap insight names the habit that explains most of the gap", () => {
     const g = buildForecastInsights({ ...none, roles }).find((i) => i.id === "gap");
-    expect(g?.expect).toBe("Expect juniors in Data analyst to finish 37 points fewer of their steps without help.");
+    expect(g?.expect).toBe("Expect junior data analysts to finish 37 points fewer of their steps without help than experts.");
     expect(g?.todo).toMatch(/^Practise “.+” first\.$/);
     expect(g?.detail).toMatch(/^Gap -37 points, mostly on “.+”\. Interval -40 to -35\.$/);
     expect(g?.chart).toMatchObject({ kind: "interval", unit: "share" });
@@ -72,7 +72,7 @@ describe("forecast insights from the example firm", () => {
     const r = buildForecastInsights({ ...none, hits }).find((i) => i.id === "repeated");
     expect(r?.expect).toBe("Expect about 14 hours a week to free up with routines.");
     expect(r?.todo).toBe("Offer routines for “Open the claim record” first.");
-    expect(r?.detail).toBe("Mostly “Open the claim record”, done by 9 people. Interval 11 to 17 hours.");
+    expect(r?.detail).toBe("The biggest piece is done by 9 people. Interval 11 to 17 hours.");
     expect(r?.chart.kind === "interval" && r.chart.rows.length).toBe(3);
   });
   it("the trend insight counts people by class", () => {
@@ -119,11 +119,11 @@ describe("forecast insights on thin data", () => {
     const r = normaliseRoles({ roles: [{ role: "p", name: "Programmer", n_expert: 6, n_junior: 9, enough: true, measures: [{ key: "independence", gap: { value: -0.05, ci: [-0.2, 0.1] }, verdict: "cannot_tell" }], habits: [] }] });
     const [i] = buildForecastInsights({ ...none, roles: r });
     expect(i.confidence).toBe("too_early");
-    expect(i.expect).toBe("Juniors in Programmer may finish fewer of their steps without help, but it is not clear yet.");
+    expect(i.expect).toBe("Junior programmers may finish fewer of their steps without help than experts, but it is not clear yet.");
   });
   it("a negative gain (juniors ahead of experts) says more, not fewer", () => {
     const r = normaliseRoles({ roles: [{ role: "p", name: "Programmer", n_expert: 6, n_junior: 20, enough: true, measures: [{ key: "independence", gap: { value: 0.12, ci: [0.05, 0.2] }, verdict: "gap" }], habits: [] }] });
-    expect(buildForecastInsights({ ...none, roles: r })[0].expect).toBe("Expect juniors in Programmer to finish 12 points more of their steps without help.");
+    expect(buildForecastInsights({ ...none, roles: r })[0].expect).toBe("Expect junior programmers to finish 12 points more of their steps without help than experts.");
   });
   it("a role with no habits still gets a do line", () => {
     const r = normaliseRoles({ roles: [{ role: "p", name: "Programmer", n_expert: 6, n_junior: 20, enough: true, measures: [{ key: "independence", gap: { value: -0.3, ci: [-0.4, -0.2] }, verdict: "gap" }] }] });

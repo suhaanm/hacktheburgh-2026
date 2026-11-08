@@ -176,7 +176,8 @@ describe("ConnectionsPanel (Settings)", () => {
     const form = host.querySelector("form") as HTMLElement;
     expect(form.textContent).toContain("Knack starts Slack server 1.3.0 (npm slack-mcp-server) by korotovsky");
     expect(form.textContent).toContain("It talks to slack.com with your token.");
-    expect(form.textContent).toContain("Community server");
+    expect(form.textContent).toContain("(community author)");
+    expect(form.textContent).not.toContain("Community server");
     const input = form.querySelector('input[type="password"]') as HTMLInputElement;
     expect(input.autocomplete).toBe("off");
     await click(form.querySelector('button[type="submit"]'));
