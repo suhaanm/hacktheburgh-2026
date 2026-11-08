@@ -8,6 +8,7 @@ Cross-cutting rules, each tested where it is drawn: no "undefined", "NaN" or "nu
 
 | State | What is shown | Test |
 |---|---|---|
+| Safety pause in the hero | the first sentence of what happened, then the fixed line "Paused for safety. Nothing more happens until you choose."; the engine's rest sits behind Evidence; no primary button | `ApprovalHero`, check-copy (no long paragraph at 390) |
 | Loading, under 600 ms | the hero area holds its height, nothing else | check-copy `home` and the visual audit |
 | Loading, over 600 ms | "Reading your week" in muted 12 px; while the engine is starting, "Starting Knack, about 20 seconds." | `Reading` (visual audit) |
 | Could not load | "Could not read your week." / "Nothing was changed." / Try again | `the quiet and error states: every state has a title, a body, no blame...`; `only a stale week and a load failure offer Try again` [edge.test.ts] |
@@ -51,7 +52,8 @@ Cross-cutting rules, each tested where it is drawn: no "undefined", "NaN" or "nu
 | The write fails | the consent screen stays, with the engine's message and "Nothing was changed."; no answer is recorded | `a failed write stays on the consent screen` |
 | Not now | asked again once after exactly a week; never for Never or Yes; a stored value that is not ours is ignored | `Not now asks again after exactly a week`, `asks again once` |
 | Last screen, desktop app | four plain lines from what was written, and the Hey Knack switch with what listening is and is not, plus the shell's own line when permission is refused | `the Hey Knack row` [firstRun.model.test.ts] |
-| Last screen, browser tab | no Hey Knack row | `is absent in a browser tab` |
+| Last screen, browser tab | "You are set", then two rows, Permissions and Show me where Knack points, each saying "Available in the Knack app." and neither with a button; no Hey Knack row | `the last screen in a browser tab` [firstRun.model.test.ts], smoke (first run) |
+| Last screen, app without one of the bridges (permissions, the ring) | that row is simply not drawn; nothing is a dead button | `FirstRun` (visual audit) |
 | Pack with no tools, no risky actions, no hours days | still four lines, never "undefined" | `the ready lines cope with a pack...` [edge.test.ts] |
 | Opening by itself | only when the engine answered, knows nobody, set-up was never finished here, and the address names Home or nothing and carries no query | `when first run opens by itself`, `never opens...` |
 | Connection chips slot | filled by `components/connections/ConnectionChips.tsx` when it exists (one prop, `role`); then a role click opens the chips and a Continue button (4 clicks) | check-clicks "first run" |
