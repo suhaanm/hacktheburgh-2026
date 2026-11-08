@@ -10,6 +10,9 @@ const path = require('node:path')
 
 /** Usage strings Electron's Info.plist has by default and Knack does not use. */
 const GENERIC_USAGE_KEYS = ['NSCameraUsageDescription', 'NSBluetoothAlwaysUsageDescription', 'NSBluetoothPeripheralUsageDescription', 'NSAudioCaptureUsageDescription']
+/** The designated requirement every build is sealed with (see afterPack): the bundle identifier only, so macOS keeps its permission grants across builds. */
+const STABLE_REQUIREMENT = '=designated => identifier "app.knack.desktop"'
+
 /** What Knack asks macOS for, with its own words (mac.extendInfo in electron-builder.config.cjs): never removed. */
 const NEEDED_USAGE_KEYS = ['NSMicrophoneUsageDescription', 'NSSpeechRecognitionUsageDescription', 'NSAppleEventsUsageDescription']
 
@@ -44,10 +47,20 @@ async function afterPack(context) {
     execFileSync('codesign', ['--force', '--deep', '--sign', '-', app], { stdio: 'inherit' })
   } catch (err) {
     console.warn(`ad-hoc seal skipped: ${err instanceof Error ? err.message : String(err)}`)
+    return
+  }
+  // A STABLE identity for macOS privacy permissions. An ad-hoc signature's designated requirement is the exact build hash (`cdhash H"..."`), so macOS treated every rebuild as a
+  // new app and dropped the Microphone, Speech Recognition, Screen Recording and Accessibility grants each time. Re-sealing the app itself (not the nested helpers) with a
+  // requirement that names only the bundle identifier makes the grants given to one build count for every later build. No certificate, no keychain, no Apple account.
+  try {
+    execFileSync('codesign', ['--force', '--sign', '-', '--requirements', STABLE_REQUIREMENT, app], { stdio: 'inherit' })
+  } catch (err) {
+    console.warn(`stable identity skipped (permissions will be asked again after each build): ${err instanceof Error ? err.message : String(err)}`)
   }
 }
 
 module.exports = afterPack
 module.exports.stripGenericUsage = stripGenericUsage
 module.exports.GENERIC_USAGE_KEYS = GENERIC_USAGE_KEYS
+module.exports.STABLE_REQUIREMENT = STABLE_REQUIREMENT
 module.exports.NEEDED_USAGE_KEYS = NEEDED_USAGE_KEYS

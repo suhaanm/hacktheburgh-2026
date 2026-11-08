@@ -66,6 +66,8 @@ REASONS: dict[str, str] = {
     "not_installed": "The browser agent isn't installed here.",
     "crashed": "The browser stopped unexpectedly.",
 }
+VAGUE_ENDINGS = frozenset({"repeating", "stalled", "budget", "no_action", "other", "tier"})
+BLOCKED_STATUSES = frozenset({403, 418, 429, 503})
 STOPPED_REASONS: dict[str, str] = {
     "needs_you": "Knack stopped before something it can't undo. It is waiting in Needs you.",
     "unreadable": "Knack couldn't tell what that control does, so it stopped. It is waiting in Needs you.",
@@ -137,6 +139,19 @@ class BrowserTaskRunner:
             if verb and ev.ok:
                 progress(verb)
 
+        seen_status: dict[str, int | None] = {"last": None}
+
+        def fail(why: str) -> dict[str, Any]:
+            """A vague ending (repeating, no progress, out of steps, an answer with no verdict) says what trusted code saw when the last
+            page came back: the browser's own HTTP status for it. 401 is a login, and 403, 418, 429 and 503 are a page that refuses the
+            browser. The page cannot choose this, and the model's words are not used."""
+            status = seen_status["last"]
+            if why in VAGUE_ENDINGS and status == 401:
+                why = "login"
+            elif why in VAGUE_ENDINGS and status in BLOCKED_STATUSES:
+                why = "blocked"
+            return _failed(why)
+
         host_cls = self.host_factory or BrowserHost
         async with AsyncExitStack() as stack:
             try:
@@ -148,6 +163,15 @@ class BrowserTaskRunner:
                 return _failed("browser_start")
             ctx = await host.new_context()
             page = await ctx.new_page()
+
+            def on_response(resp: Any) -> None:
+                try:
+                    if resp.request.resource_type == "document" and resp.frame == page.main_frame:
+                        seen_status["last"] = int(resp.status)
+                except Exception:  # noqa: BLE001 - a status that cannot be read is no status
+                    pass
+
+            page.on("response", on_response)
             progress("Opening the browser")
             try:
                 await page.goto(url, wait_until="domcontentloaded", timeout=self.step_timeout_ms)
@@ -181,11 +205,11 @@ class BrowserTaskRunner:
             except InjectionStop:
                 return _stopped("injection")
             except StuckLoop:
-                return _failed("repeating")
+                return fail("repeating")
             except StepBudgetExceeded:
-                return _failed("budget")
+                return fail("budget")
             except TierError:
-                return _failed("tier")
+                return fail("tier")
         outcome = res.outcome
         if outcome == "stopped" or should_stop():
             return _stopped("you")
@@ -193,7 +217,7 @@ class BrowserTaskRunner:
             said = one_line(res.last_summary, 110)
             return {"state": "done", "result": one_line("Reported, not checked: " + said if said else "Reported finished, not checked.", 140)}
         if outcome == "stalled":
-            return _failed("stalled")
+            return fail("stalled")
         if outcome == "gave_up":
-            return _failed(res.why or "other")
-        return _failed("budget")
+            return fail(res.why or "other")
+        return fail("budget")

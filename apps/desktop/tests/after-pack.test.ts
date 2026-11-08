@@ -54,3 +54,11 @@ describe('the afterPack step of the unsigned Knack.app', () => {
     await expect(afterPack({ electronPlatformName: 'win32', appOutDir: '/nowhere', packager: { appInfo: { productFilename: 'Knack' } } })).resolves.toBeUndefined()
   })
 })
+
+describe('the stable identity for macOS permissions', () => {
+  it('seals every build with a requirement that names only the bundle identifier, never a build hash', async () => {
+    const mod = (await import('../scripts/after-pack.cjs')) as { STABLE_REQUIREMENT: string }
+    expect(mod.STABLE_REQUIREMENT).toBe('=designated => identifier "app.knack.desktop"')
+    expect(mod.STABLE_REQUIREMENT).not.toMatch(/cdhash/i)
+  })
+})

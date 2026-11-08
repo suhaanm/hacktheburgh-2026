@@ -121,3 +121,28 @@ export async function checkLiveModel(model: string | null, o: MinterOptions = {}
     clearTimeout(timer)
   }
 }
+
+/**
+ * The boot check for the app's models: the Gemini key is present and the service answers for a configured model (the accurate one, else the fast one, else
+ * the live one). Only the key travels, in one header; nothing else is sent. The app used to run the old OpenAI check here, which can never pass with a Gemini
+ * key, so every launch started with models off.
+ */
+export async function checkGeminiKey(o: MinterOptions = {}): Promise<{ ok: boolean; reason: 'ok' | 'no_key' | 'no_model' | 'unknown_model' | 'unreachable' }> {
+  const env = o.env ?? process.env
+  const key = (env.GEMINI_API_KEY ?? '').trim()
+  if (!key) return { ok: false, reason: 'no_key' }
+  const model = [env.GEMINI_MODEL_ACCURATE, env.GEMINI_MODEL_FAST, env.GEMINI_MODEL_LIVE, env.MODEL_LIVE].map((v) => (v ?? '').trim()).find((v) => v && /^[A-Za-z0-9._:-]+$/.test(v))
+  if (!model) return { ok: false, reason: 'no_model' }
+  const doFetch = o.fetchImpl ?? ((i, init) => fetch(i, init))
+  const ctl = new AbortController()
+  const timer = setTimeout(() => ctl.abort(), o.timeoutMs ?? 8000)
+  try {
+    const res = await doFetch(`${o.url ?? MODELS_URL}/${encodeURIComponent(model)}`, { headers: { 'x-goog-api-key': key }, signal: ctl.signal })
+    if (res.status === 404) return { ok: false, reason: 'unknown_model' }
+    return res.ok ? { ok: true, reason: 'ok' } : { ok: false, reason: 'unreachable' }
+  } catch {
+    return { ok: false, reason: 'unreachable' }
+  } finally {
+    clearTimeout(timer)
+  }
+}
