@@ -40,7 +40,7 @@ import { GateMonitor, createGateReader } from './gates'
 import { checkLiveModel, createTokenMinter } from './token'
 import { liveModelId } from './flags'
 import type { OverlayController } from '../../shared/contracts'
-import type { DoItAnswer, DoItRequest, GroundPort, LiveCuePort } from './ports'
+import type { DoItAnswer, DoItRequest, GroundPort, LiveCuePort, TaskAnswer } from './ports'
 import type { Bus } from '../bus'
 
 export interface RegisterLiveOptions {
@@ -53,6 +53,8 @@ export interface RegisterLiveOptions {
   cue: LiveCuePort
   // Hey Knack's `do_it_for_me` (wake sessions only). Late-bound by the caller; absent: the tool answers "not available".
   doIt?: (req: DoItRequest) => Promise<DoItAnswer>
+  // `start_task`: the worker's request to the task service (talk-key and wake sessions). Late-bound by the caller.
+  startTask?: (text: string) => Promise<TaskAnswer>
   // Screen Recording status ('granted' or not) and what to do when a find-it-anywhere request is turned away for want of it. Absent: no gate (tests).
   screenStatus?: () => string
   onScreenMissing?: () => void
@@ -116,6 +118,7 @@ export function registerLive(o: RegisterLiveOptions): LiveRegistration {
     ground: createCompositeGround(o.domGround ?? null, o.screenStatus ? createScreenGate(vision, { status: o.screenStatus, onMissing: o.onScreenMissing ?? (() => undefined) }) : vision),
     ring: createRingPort(o.overlay),
     doIt: o.doIt,
+    startTask: o.startTask,
     context: o.context,
     opening: o.opening,
     usage: createUsageLog(dir),

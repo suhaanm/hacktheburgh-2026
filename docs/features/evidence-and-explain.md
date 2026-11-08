@@ -4,6 +4,8 @@
 
 **Capability:** Evidence and honesty · **Status:** verified · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
+**Navigation note (landing).** The lead's views rule (`docs/knack-ux/views.md`, from owner requests 4.1, 4.2, 4.11, 4.12 and 4.17 at about 00:50 UTC) is reorganising where screens live. Where this page says 'More, <screen>', check `apps/dashboard/src/components/home/navModel.ts` on main for the final place. The Evidence page is not shown to a worker under the rule; it sits in the Admin view (More, For reviewers), which is where reviewers and judges are shown it.
+
 This page covers Evidence page, make eval and the limitations register, Plain-English explainer with a number check.
 
 ## Evidence page, make eval and the limitations register
@@ -37,7 +39,7 @@ Open Evidence: the map of sections with their origin badges, the findings, then 
 
 ### Honest limit
 
-Almost everything in the report is synthetic or simulated. The register is long on purpose. The report is regenerated at the freeze; quote the last full run, not a fast run.
+Almost everything in the report is synthetic or simulated. The register is long on purpose. The report is regenerated at the freeze; quote the last full run, not a fast run. Under decision D57 the app's own wording avoids the word 'synthetic'; how the Evidence page words the report's origin labels after the wording track is not verified here.
 
 ### Hackathon target
 

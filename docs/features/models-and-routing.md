@@ -4,6 +4,8 @@
 
 **Capability:** Models and modes · **Status:** built · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
+**Navigation note (landing).** The lead's views rule (`docs/knack-ux/views.md`, from owner requests 4.1, 4.2, 4.11, 4.12 and 4.17 at about 00:50 UTC) is reorganising where screens live. Where this page says 'More, <screen>', check `apps/dashboard/src/components/home/navModel.ts` on main for the final place. 'Models and cost' is an Admin 'More' row; a worker gets one trust line ('Nothing leaves this Mac without your say. Every call Knack makes is listed under Settings, Advanced.') and the call list one click inside Settings, Advanced.
+
 This page covers Model routing: Gemini by default, checked at boot, Local model digests (a 7B model on this Mac), Spoken lines (ElevenLabs, fixed vocabulary), Mock mode: the whole product offline.
 
 ## Model routing: Gemini by default, checked at boot

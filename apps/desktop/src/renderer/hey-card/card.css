@@ -57,6 +57,9 @@ p {
   display: flex;
   gap: 8px;
 }
+.buttons.stack {
+  flex-direction: column;
+}
 button {
   flex: 1 1 0;
   min-height: 32px;

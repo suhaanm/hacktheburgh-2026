@@ -112,12 +112,13 @@ for _id, _text in {
     _add(_fixed(_id, "nudge", _text))
 
 # ---------------------------------------------------------------------------------------------------- Hey Knack lines
-# The four fixed lines the desktop's wake controller speaks by id (apps/desktop/src/main/wake/texts.ts SPOKEN_LINES). The wording is the same text on both sides.
+# The fixed lines the desktop's wake controller speaks by id (apps/desktop/src/main/wake/texts.ts SPOKEN_LINES). The wording is the same text on both sides.
 for _id, _text in {
     "wake.show_instead": "I will show you instead.",
     "wake.done": "Done.",
     "wake.did_not_work": "That did not work. I stopped.",
     "wake.stopped": "Stopped.",
+    "wake.started": "Started. I will tell you when it is done.",
 }.items():
     _add(_fixed(_id, "nudge", _text))
 

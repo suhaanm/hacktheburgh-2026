@@ -32,6 +32,8 @@ function show(v: WakeCardView): void {
       return el
     }),
   )
+  // Long button labels (a task's "Allow for this task") stack in a column so equal buttons stay readable in a narrow card.
+  buttons.classList.toggle('stack', v.buttons.length > 3 || v.buttons.some((b) => b.label.length > 14))
   card.hidden = false
   measure()
 }

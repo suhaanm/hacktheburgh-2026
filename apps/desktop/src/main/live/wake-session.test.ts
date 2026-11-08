@@ -144,7 +144,7 @@ describe('how a hands-free conversation ends', () => {
     const m = h.make()
     m.start()
     m.startFromWake()
-    await wf(() => h.server.received.setup !== null && h.audio.micOpen)
+    await opened(m)
     h.clock.advance(29_000)
     expect(m.status().phase).not.toBe('idle')
     h.clock.advance(2_500)
@@ -156,7 +156,7 @@ describe('how a hands-free conversation ends', () => {
     const m = h.make()
     m.start()
     m.startFromWake()
-    await wf(() => h.server.received.setup !== null && h.audio.micOpen)
+    await opened(m)
     for (let i = 0; i < 12; i++) {
       h.audio.feed('AAAA', 0.3) // sound keeps the idle clock fresh
       h.clock.advance(25_000)
@@ -168,7 +168,7 @@ describe('how a hands-free conversation ends', () => {
     const m = h.make()
     m.start()
     m.startFromWake()
-    await wf(() => h.server.received.setup !== null && h.audio.micOpen)
+    await opened(m)
     h.server.send({ serverContent: { modelTurn: { parts: [{ inlineData: { mimeType: 'audio/pcm;rate=24000', data: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' } }] } } })
     await wf(() => h.audio.played.length > 0)
     h.clock.advance(45_000) // longer than the idle limit, but the model has not finished its turn
@@ -188,7 +188,7 @@ describe('the first conversation', () => {
     q.start()
     const before = h.server.received.text.length
     q.startFromWake()
-    await wf(() => h.server.received.setup !== null)
+    await opened(m)
     await new Promise((r) => setTimeout(r, 100))
     expect(h.server.received.text.length).toBe(before)
   })

@@ -5,7 +5,7 @@
 // entries: the description under a code-made id, then decoys from the pack's own step labels and a fixed "something else" entry), asks the
 // grounder (the page's DOM first, a vision model elsewhere; both answer in the same shape), and accepts the answer only when it chose the
 // description's id with enough confidence and a sane box. The model hears only {found: true|false}; it never sees a coordinate.
-import type { DoItAnswer, DoItRequest, GroundMenuItem, GroundPort, LiveCuePort, RingPort, ToolHost } from './ports'
+import type { DoItAnswer, DoItRequest, GroundMenuItem, GroundPort, LiveCuePort, RingPort, TaskAnswer, ToolHost } from './ports'
 import type { CandidateList } from './tools'
 
 export const POINT_ID = 't0'
@@ -52,6 +52,8 @@ export interface ToolHostDeps {
   ringMs?: number
   // Wake sessions: the ghost cursor glides to the ring, and `clear` and `do_it_for_me` exist. `doIt` is the wake controller's decision (it never clicks here).
   wake?: { doIt: (req: DoItRequest) => Promise<DoItAnswer> }
+  // Talk-key and wake sessions: `start_task` reaches the task service through this (the text is already cleaned and capped).
+  startTask?: (text: string) => Promise<TaskAnswer>
 }
 
 export function createToolHost(d: ToolHostDeps): ToolHost & { dispose(): void } {
@@ -87,6 +89,17 @@ export function createToolHost(d: ToolHostDeps): ToolHost & { dispose(): void } 
     async point(description) {
       return { found: (await locate(description)) !== null }
     },
+    ...(d.startTask
+      ? {
+          async startTask(text: string): Promise<TaskAnswer> {
+            try {
+              return await (d.startTask as NonNullable<ToolHostDeps['startTask']>)(text)
+            } catch {
+              return { ok: false, reason: 'unavailable' }
+            }
+          },
+        }
+      : {}),
     ...(d.wake
       ? {
           clear: () => clearRing(),
