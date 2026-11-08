@@ -74,12 +74,16 @@ def child_env(parent: dict[str, str] | None = None) -> dict[str, str]:
     return out
 
 
-def protected_deny_rules(data: Path, repo: Path | None = None) -> list[str]:
-    """Deny rules (Claude Code permission syntax; `//` marks an absolute path) for the files that hold Knack's safety state."""
+def protected_deny_rules(data: Path, repo: Path | None = None, state_dirs: list[Path] | None = None) -> list[str]:
+    """Deny rules (Claude Code permission syntax; `//` marks an absolute path) for the files that hold Knack's safety state. `state_dirs`
+    are the folders that hold the worker's memory and other private state (`~/.understudy`, or `UNDERSTUDY_HOME`): neither read nor changed."""
     def a(p: Path) -> str:
         return "//" + str(p).lstrip("/")
 
     rules: list[str] = []
+    for d in state_dirs or []:
+        rules.append(f"Edit({a(d)}/**)")
+        rules.append(f"Read({a(d)}/**)")
     for name in ("KILL", "denylist.json", "audit.jsonl", "owner_tokens.json", "rung_cleared.json", ".token", ".queue_key",
                  "task_settings.json"):
         rules.append(f"Edit({a(data / name)})")
@@ -191,6 +195,7 @@ class StreamState:
     session_id: str | None = None
     written: list[str] = field(default_factory=list)
     turns: int = 0
+    refused: int = 0                   # tool calls the permission settings refused (the deny rules for Knack's protected files)
     cost_usd: float | None = None      # `total_cost_usd` from the result event, as the CLI reports it (a number, kept in the ledger row)
 
 
@@ -224,6 +229,20 @@ def parse_line(raw: bytes, st: StreamState) -> list[str]:
                         if len(st.written) < 50:
                             st.written.append(inp["file_path"])
             st.turns += 1
+    elif t == "user":
+        # A tool call the permission settings refused (seen in the second real run: "File is in a directory that is denied by your
+        # permission settings."). One plain line, no file name and no text from the result.
+        msg = obj.get("message")
+        content = msg.get("content") if isinstance(msg, dict) else None
+        if isinstance(content, list):
+            for block in content:
+                if isinstance(block, dict) and block.get("type") == "tool_result" and block.get("is_error"):
+                    body = block.get("content")
+                    text = body if isinstance(body, str) else " ".join(x.get("text", "") for x in body if isinstance(x, dict)) \
+                        if isinstance(body, list) else ""
+                    if "denied by your permission" in text:
+                        st.refused += 1
+                        out.append("A step was refused by the protected-files rules")
     elif t == "result":
         r = obj.get("result")
         st.result_text = r if isinstance(r, str) else ""

@@ -73,6 +73,15 @@ class TaskError(Exception):
         self.status, self.code, self.message = status, code, message
 
 
+def state_dirs() -> list[Path]:
+    """Where the worker's memory and private state live: the default `~/.understudy` and, when set, `UNDERSTUDY_HOME` (as security/settings.py)."""
+    dirs = [Path.home() / ".understudy"]
+    home = os.environ.get("UNDERSTUDY_HOME", "").strip()
+    if home:
+        dirs.append(Path(home).expanduser())
+    return dirs
+
+
 def _display(path: str) -> str:
     home = str(Path.home())
     return "~" + path[len(home):] if path == home or path.startswith(home + "/") else path
@@ -366,7 +375,7 @@ class TaskManager:
         prompt = cc.build_prompt(task.text, task.folder or "", task.skills)
         cfg = task.skills_cfg or {"use": True, "off": []}
         return cc.build_argv(binary, prompt, scope=scope, session_id=task.session_id or "",
-                             deny_rules=cc.protected_deny_rules(data_dir(), repo_root()),
+                             deny_rules=cc.protected_deny_rules(data_dir(), repo_root(), state_dirs()),
                              skills_enabled=bool(cfg.get("use", True)), skills_off=list(cfg.get("off") or []),
                              max_budget_usd=task.max_budget_usd)
 
