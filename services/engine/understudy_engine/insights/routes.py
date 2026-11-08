@@ -107,6 +107,11 @@ def _admin_gate(request: Request) -> JSONResponse | None:
     return _actor_refused(request)
 
 
+#: The one admin gate of the engine (role header + per-boot token + a person, never an agent). Every route that returns firm data uses it: the Admin insights here, and the
+#: firm's repeated work in ``hitlist.routes``.
+admin_gate = _admin_gate
+
+
 def _acts_as_admin(request: Request) -> JSONResponse | None:
     """For the routes that serve either audience: a request that claims the admin role with the token but a non-worker actor is refused, not quietly served as a worker."""
     if (request.headers.get(ROLE_HEADER) or "").strip().lower() == "admin" and http_guard.token_ok(request.headers.get(http_guard.TOKEN_HEADER)):
@@ -136,10 +141,23 @@ def get_service(request: Request) -> InsightsService:
     return svc
 
 
-def _source(source: str | None) -> str:
-    if source in ("firm", "local"):
-        return source
-    return "firm" if P.is_mock() else "local"
+def _source(source: str | None, audience: str = "worker") -> str:
+    """Which data a request reads.
+
+    * Admin routes: ``?source=`` wins; otherwise the firm, when the data directory holds a built firm (the seed writes ``<data>/firm/``) or under ``UNDERSTUDY_MOCK=1``;
+      otherwise this device's own ledger (``local``: one person, so the comparisons say they have nothing to compare).
+    * Worker routes (the worker's own page): the worker's own ledger. Outside mock mode the firm is never served here, whatever ``?source=`` says, so a worker view cannot be
+      pointed at the firm's people. Under mock mode the example firm answers (and stands in for a profile it does not hold), as before.
+    """
+    if audience == "admin":
+        if source in ("firm", "local"):
+            return source
+        from . import firmstore as FS
+
+        return "firm" if (P.is_mock() or FS.has_firm(P.data_dir())) else "local"
+    if P.is_mock():
+        return source if source in ("firm", "local") else "firm"
+    return "local"
 
 
 def _person(person: str | None) -> str | None:
@@ -232,7 +250,7 @@ def get_overview(request: Request, source: str | None = Query(None)):
         return r
     if (r := _admin_gate(request)) is not None:
         return r
-    svc, src = get_service(request), _source(source)
+    svc, src = get_service(request), _source(source, "admin")
     with _lock:
         data = svc.overview(src)
     return {"meta": _meta(svc, src, n=data["firm"]["users"], note=NOTE_ADMIN), "data": data}
@@ -244,7 +262,7 @@ def get_roles(request: Request, source: str | None = Query(None)):
         return r
     if (r := _admin_gate(request)) is not None:
         return r
-    svc, src = get_service(request), _source(source)
+    svc, src = get_service(request), _source(source, "admin")
     with _lock:
         data = svc.roles(src)
     return {"meta": _meta(svc, src, n=sum(x["n_expert"] + x["n_junior"] for x in data["roles"]), note=NOTE_ADMIN), "data": data}
@@ -256,7 +274,7 @@ def get_firm(request: Request, source: str | None = Query(None)):
         return r
     if (r := _admin_gate(request)) is not None:
         return r
-    svc, src = get_service(request), _source(source)
+    svc, src = get_service(request), _source(source, "admin")
     with _lock:
         data = svc.firm(src)
     return {"meta": _meta(svc, src, n=data["totals"]["users"], note=NOTE_ADMIN), "data": data}
@@ -268,7 +286,7 @@ def get_onboarding(request: Request, source: str | None = Query(None)):
         return r
     if (r := _admin_gate(request)) is not None:
         return r
-    svc, src = get_service(request), _source(source)
+    svc, src = get_service(request), _source(source, "admin")
     with _lock:
         data = svc.onboarding(src)
     return {"meta": _meta(svc, src, n=sum(x["n"] for x in data["roles"]), note="The target line is a design target the firm sets, not a measured standard. " + NOTE_ADMIN), "data": data}
@@ -280,7 +298,7 @@ def get_drill(request: Request, insight: str = Query(...), source: str | None = 
         return r
     if (r := _admin_gate(request)) is not None:
         return r
-    svc, src = get_service(request), _source(source)
+    svc, src = get_service(request), _source(source, "admin")
     with _lock:
         data = svc.drill(src, insight)
     if data is None:
@@ -295,8 +313,9 @@ def get_why(request: Request, insight: str = Query(...), person: str | None = Qu
         return r
     if (r := _acts_as_admin(request)) is not None:
         return r
-    svc, src = get_service(request), _source(source)
+    svc = get_service(request)
     audience = "admin" if is_admin(request) else "worker"
+    src = _source(source, audience)
     pid = _person(person) if audience == "worker" else None
     if audience == "worker" and not pid:
         return _error(404, "unknown_person", "No person is set up yet. Pass ?person=.")
@@ -326,8 +345,9 @@ def post_feedback(request: Request, body: dict[str, Any] = Body(...), person: st
     insight, event = str(body.get("insight", "")), str(body.get("event", ""))
     if event not in V.FEEDBACK_EVENTS:
         return _error(422, "invalid_event", f"event must be one of {', '.join(V.FEEDBACK_EVENTS)}.")
-    svc, src = get_service(request), _source(source or body.get("source"))
+    svc = get_service(request)
     audience = "admin" if is_admin(request) else "worker"
+    src = _source(source or body.get("source"), audience)
     pid = _person(person or body.get("person")) if audience == "worker" else None
     if audience == "worker" and not pid:
         return _error(404, "unknown_person", "No person is set up yet. Pass ?person=.")

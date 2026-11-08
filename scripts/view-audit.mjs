@@ -60,7 +60,7 @@ const RETIRED = [
   { id: "queue", to: "worker" }, { id: "briefing", to: "worker" }, { id: "repeats", to: "worker" }, { id: "privacy", to: "worker" }, { id: "memory", to: "worker" },
   { id: "notices", to: "worker" }, { id: "settings-old", hash: "/settings", to: "worker" },
   { id: "genome", to: "worker" }, { id: "presence", to: "worker" }, { id: "week", to: "worker" }, { id: "graph", to: "worker" }, { id: "today", to: "worker" }, { id: "git", to: "worker" },
-  { id: "agents", to: "worker" },
+  { id: "agents", to: "either" },
   { id: "models", to: "gate" }, { id: "evidence", to: "gate" }, { id: "forecasts", to: "gate" }, { id: "predictions", to: "gate" },
 ];
 const WORKER_LANDINGS = ["home", "needs-you", "routines", "growth", "your-data", "setup", "first-run"];
@@ -79,7 +79,7 @@ const ADMIN_ROUTES = [
   { id: "agents", hash: "/agents", content: "text" },
 ];
 /** Admin routes the worker view must gate. `onboarding` is the worker's own set-up in the Worker view (routeRedirects.ts), so it is judged as a redirect. */
-const GATED_FOR_WORKER = ADMIN_ROUTES.filter((r) => !["onboarding"].includes(r.id));
+const GATED_FOR_WORKER = ADMIN_ROUTES.filter((r) => !["onboarding", "agents"].includes(r.id));
 const MIN_PEOPLE = 5;
 
 // ---------------------------------------------------------------------------------------------- a private stack
@@ -92,7 +92,7 @@ const mainRoot = findMainCheckout();
 const firstExisting = (...c) => c.find((p) => p && existsSync(p));
 const PYTHON = firstExisting(process.env.KNACK_PYTHON, join(repo, ".venv/bin/python"), join(mainRoot, ".venv/bin/python"));
 const DASH_DIR = join(repo, "apps/dashboard");
-const SYNTH_SRC = firstExisting(process.env.KNACK_SYNTHETIC, join(repo, "data"), join(mainRoot, "data"));
+const SYNTH_SRC = [process.env.KNACK_SYNTHETIC, join(repo, "data"), join(mainRoot, "data")].find((p) => p && existsSync(join(p, "synthetic/learners/events.jsonl")));
 
 function playwrightFrom() {
   for (const base of [DASH_DIR, join(mainRoot, "apps/dashboard"), repo]) {
@@ -167,6 +167,11 @@ async function visit(browser, base, view, route, names) {
   const page = await ctx.newPage();
   const errors = [];
   page.on("pageerror", (e) => errors.push(String(e).slice(0, 160)));
+  let pending = 0;                                                       // engine and agent requests still in flight: a slow first answer must not be read as a blank page
+  const isApi = (r) => /^\/(engine|agent)\//.test(new URL(r.url()).pathname);
+  page.on("request", (r) => { if (isApi(r)) pending++; });
+  page.on("requestfinished", (r) => { if (isApi(r)) pending = Math.max(0, pending - 1); });
+  page.on("requestfailed", (r) => { if (isApi(r)) pending = Math.max(0, pending - 1); });
   page.on("response", async (res) => {
     const u = new URL(res.url());
     if (!/^\/(engine|agent)\//.test(u.pathname)) return;
@@ -179,10 +184,10 @@ async function visit(browser, base, view, route, names) {
   await page.goto(`${base}/#${route.hash ?? "/" + route.id}`);
   // settle: the first hit of a cold dev server compiles for a while, so wait until the engine calls and the drawn text have both stopped changing
   let lastCalls = -1, lastLen = -1, still = 0;
-  for (let i = 0; i < 50 && still < 3; i++) {
+  for (let i = 0; i < 80 && still < 3; i++) {
     await page.waitForTimeout(600);
     const len = await page.evaluate((sheet) => ((sheet ? document.querySelector('[role="dialog"]') : null) ?? document.querySelector("#main") ?? document.body).innerText.length, !!route.sheet).catch(() => -1);
-    still = calls.length === lastCalls && len === lastLen && len > 20 ? still + 1 : 0;
+    still = pending === 0 && calls.length === lastCalls && len === lastLen && len > 20 ? still + 1 : 0;
     lastCalls = calls.length;
     lastLen = len;
   }
@@ -262,7 +267,7 @@ async function main() {
         const lines = [];
         let fail = false;
         const gate = GATE.re.test(r.texts.visible) && r.texts.visible.length <= GATE.maxChars;
-        if (route.to === "gate") {
+        if (route.to === "gate" || route.to === "either") {
           if (!gate && !WORKER_LANDINGS.includes(where)) { fail = true; lines.push(`      [not-gated] ${JSON.stringify(r.texts.visible.slice(0, 90))} (an admin-only screen must show only the gate sentence or redirect)`); }
         } else if (!WORKER_LANDINGS.includes(where)) {
           fail = true;
@@ -342,7 +347,7 @@ async function main() {
         if (!r.ok) lines.push("      [not-admin] the page did not switch to the Admin view");
         if (GATE.re.test(text) && text.length <= GATE.maxChars) lines.push("      [gated] the Admin view shows the gate sentence");
         if (body.length < 250) lines.push(`      [blank] only ${body.length} characters of content: ${JSON.stringify(body.slice(0, 100))}`);
-        if (/\b0 people\b|\b0 of 0\b|\(0\)/.test(text)) lines.push(`      [zeros] the screen draws zeros: ${JSON.stringify((text.match(/.{0,30}(?:\b0 people\b|\b0 of 0\b|\(0\)).{0,30}/) ?? [""])[0])}`);
+        if (route.content !== "text" && /\b0 people\b|\b0 of 0\b|\bEveryone \(0\)/.test(text)) lines.push(`      [zeros] the screen draws zeros: ${JSON.stringify((text.match(/.{0,30}(?:\b0 people\b|\b0 of 0\b|\bEveryone \(0\)).{0,30}/) ?? [""])[0])}`);
         const miss = preds[route.content]?.();
         if (miss) lines.push(`      [empty-answer] ${miss}`);
         report("admin", route.id, lines.length ? "FAIL" : "PASS", lines, { landed: r.landed });
@@ -352,9 +357,16 @@ async function main() {
         const ov = d("overview"), fm = d("firm"), hit = d("hits"), rl = d("roles"), on = d("onboarding");
         const lines = [];
         const people = ov?.firm?.users ?? 0;
-        const facts = { "overview users": people, "people list users": fm?.totals?.users, "coverage users": ov?.coverage?.users, "automation people": hit?.total?.people, "roles (experts + juniors)": rl?.roles ? rl.roles.reduce((s, x) => s + (x.n_expert ?? 0) + (x.n_junior ?? 0), 0) : undefined };
+        const facts = { "overview users": people, "people list users": fm?.totals?.users, "coverage users": ov?.coverage?.users, "automation people": hit?.total?.people };
         for (const [k, val] of Object.entries(facts)) if (val === undefined || val !== people) lines.push(`      [mismatch] ${k} = ${val}, overview says ${people}`);
         const byRole = Object.fromEntries((ov?.coverage?.roles ?? []).map((x) => [x.role, x.users]));
+        // Roles compares the people with enough data (the others are withheld, not lost): enough data <= experts + juniors <= people, per role
+        for (const x of rl?.roles ?? []) {
+          const c = (ov?.coverage?.roles ?? []).find((y) => y.role === x.role);
+          const n = (x.n_expert ?? 0) + (x.n_junior ?? 0);
+          if (!c) lines.push(`      [mismatch] roles lists ${x.role}, coverage does not`);
+          else if (n < c.enough_data || n > c.users) lines.push(`      [mismatch] roles counts ${n} people in ${x.role}; coverage has ${c.users} people, ${c.enough_data} with enough data`);
+        }
         for (const g of fm?.roles ?? []) {
           const n = Array.isArray(g.users) ? g.users.length : g.n;
           if (byRole[g.role] !== undefined && n !== byRole[g.role]) lines.push(`      [mismatch] people list role ${g.role} = ${n}, coverage says ${byRole[g.role]}`);

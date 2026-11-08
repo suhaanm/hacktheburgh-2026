@@ -215,7 +215,7 @@ class AdminView:
     def __init__(self, snap: FirmSnapshot, p: Params = DEFAULT) -> None:
         self.snap, self.p, self.now = snap, p, snap.now
         self._cache: dict[Any, Any] = {}
-        names = firm_names(snap)
+        names = firm_names(snap) or {(pr.label or pr.id): pr.name for pr in snap.people if pr.name}      # a built firm carries its own display names
         self.sums: dict[str, PersonSummary] = {pr.id: summarise(pr, snap, p, names) for pr in snap.people}
 
     # ----- groups

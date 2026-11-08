@@ -67,7 +67,7 @@ def test_get_hitlist_answers_meta_and_data(client):
 def test_bad_arguments_are_plain_422s(client):
     assert client.get("/hitlist?window=14").status_code == 422
     assert client.get("/hitlist?window=7&now=tomorrow").status_code == 422
-    assert client.get("/hitlist/firm?window=3").json()["error"]["code"] == "bad_window"
+    assert client.get("/hitlist/firm?window=3", headers=admin()).json()["error"]["code"] == "bad_window"
 
 
 def test_now_can_be_replayed(client):
@@ -198,8 +198,33 @@ def test_denylist_file_is_read_but_never_written(client, world):
 
 
 # ------------------------------------------------------------------------------------------------ firm
+def admin():
+    from understudy_engine import http_guard
+
+    http_guard.ensure_token()
+    return {"x-understudy-role": "admin", "x-understudy-token": http_guard.read_token()}
+
+
+def test_the_firm_endpoint_is_admin_only(client):
+    """The firm's repeated work is Admin data: no header, a worker header, an admin header without the token, a bad token and a non-worker actor are all refused (it used to be open to any caller)."""
+    from understudy_engine import http_guard
+
+    http_guard.ensure_token()
+    token = http_guard.read_token()
+    url = "/hitlist/firm?window=7"
+    assert client.get(url).status_code == 403 and client.get(url).json()["error"]["code"] == "admin_only"
+    assert client.get(url, headers={"x-understudy-role": "worker", "x-understudy-token": token}).json()["error"]["code"] == "admin_only"
+    r = client.get(url, headers={"x-understudy-role": "admin"})
+    assert r.status_code == 403 and r.json()["error"]["code"] == "admin_token_required"
+    assert client.get(url, headers={"x-understudy-role": "admin", "x-understudy-token": "0" * 64}).json()["error"]["code"] == "admin_token_required"
+    r = client.get(url, headers={**admin(), "x-understudy-actor": "agent"})
+    assert r.status_code == 403 and r.json()["error"]["code"] == "admin_actor_refused"
+    assert "p_" not in json.dumps(client.get(url).json())                                           # a refusal carries no data at all
+    assert client.get(url, headers=admin()).status_code == 200
+
+
 def test_the_firm_endpoint_is_an_aggregate_badged_synthetic(client):
-    r = client.get("/hitlist/firm?window=30")
+    r = client.get("/hitlist/firm?window=30", headers=admin())
     assert r.status_code == 200
     body = r.json()
     assert body["meta"]["origin"] == "synthetic" and body["meta"]["n_unit"] == "people" and body["meta"]["n"] == 60
@@ -207,7 +232,7 @@ def test_the_firm_endpoint_is_an_aggregate_badged_synthetic(client):
     d = body["data"]
     assert d["min_group"] == 5 and d["rows"] and all(x["people"] >= 5 for x in d["rows"]) and d["total"]["hours_per_week"]["point"] > 0
     assert not re.search(r"f_(ben|dat|pro)_\d", json.dumps(body))                                  # no person id anywhere
-    only = client.get("/hitlist/firm?window=7&role=programmer").json()["data"]
+    only = client.get("/hitlist/firm?window=7&role=programmer", headers=admin()).json()["data"]
     assert {x["role"] for x in only["rows"]} <= {"programmer"} and only["people"] == 12
 
 

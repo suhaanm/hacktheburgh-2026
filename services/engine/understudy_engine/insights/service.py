@@ -108,10 +108,21 @@ class InsightsService:
         if self.snapshot_provider is not None:
             return self.snapshot_provider(source)
         if source == "firm":
+            built = self._built_firm()
+            if built is not None:
+                return built
             if self._firm is None:
                 self._firm = build_firm(self.firm_seed).snapshot
             return self._firm
         return self._local_snapshot()
+
+    def _built_firm(self) -> FirmSnapshot | None:
+        """The firm the seed wrote into the data directory (``<data>/firm/``), when there is one. Checked by a stat on every call, so a firm added, refreshed or removed
+        while the engine runs is picked up without a restart; an unreadable or inconsistent firm is treated as absent (``firmstore.load_firm``)."""
+        from . import firmstore as FS
+        from .paths import data_dir
+
+        return FS.load_cached(data_dir())
 
     def _local_snapshot(self) -> FirmSnapshot:
         now = self.clock()
@@ -129,7 +140,9 @@ class InsightsService:
                 first_t = min(row_t(r) for r in rows)
                 o = "real" if all(r.get("origin") == "real" for r in rows) else "synthetic"
                 origin = "synthetic" if o == "synthetic" else origin
-                people.append(PersonRecord(id=pid, role=last.get("role", "unknown"), level="junior", unit="local", tenure_weeks=int(max(0.0, now - first_t) // (7 * DAY)), label=pid, origin=o, rows=rows))
+                role, since = _profile_role(pid)           # the role the worker chose on this device wins over the role of their newest row: after a role change the new role starts clean
+                people.append(PersonRecord(id=pid, role=role or last.get("role", "unknown"), level="junior", unit="local", tenure_weeks=int(max(0.0, now - first_t) // (7 * DAY)),
+                                           label=pid, origin=o, rows=rows, role_since_t=since))
         except Exception:
             pass
         return FirmSnapshot(now=now, people=tuple(people), origin=origin, badge="live" if origin == "real" else "synthetic", source="local", feed_t={"ledger": now, "risk_feed": now})
@@ -390,6 +403,26 @@ class InsightsService:
         with self._lock:
             self._admin = {}
             return self.store.delete_person(person)
+
+
+def _profile_role(person: str) -> tuple[str | None, float | None]:
+    """``(role, since)`` the worker chose on this device: the profile's role, and the time of the latest role change (None when the role never changed, so history from
+    before the set-up is kept). ``(None, None)`` for anyone else, or when the profile cannot be read."""
+    try:
+        from datetime import datetime
+
+        from .. import routes_handoff as rh
+        from ..memory.onboarding import load_profile
+
+        prof = load_profile(rh._mem()) or {}
+        if prof.get("person") != person or not prof.get("role"):
+            return None, None
+        since = None
+        if prof.get("history") and prof.get("role_since"):
+            since = datetime.fromisoformat(str(prof["role_since"]).replace("Z", "+00:00")).timestamp()
+        return str(prof["role"]), since
+    except Exception:
+        return None, None
 
 
 def _hitlist_rows(person: str) -> list[dict[str, Any]]:

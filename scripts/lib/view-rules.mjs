@@ -9,7 +9,8 @@
 // A rule may name routes where it does not apply, with the reason: the audit prints the reasons, so an exemption is never silent.
 
 /** "p_learn01" style person ids; a firm member's id. The worker's own id is passed in and never flagged. */
-const PERSON_ID = /\bp_[a-z][a-z0-9]*(?:_[a-z0-9]+)*\b/gi;
+// A person id has a number in it (p_learn01, p_nov13, p_exp06, p_f_bp03, p_git_learner_1) or is one of the four named personas. Field names such as p_stuck are not ids.
+const PERSON_ID = /\bp_(?:irregular|nightowl|ninetofive|shiftwkr)\b|\bp_(?:[a-z]+_)*[a-z]*\d+[a-z0-9_]*\b/gi;
 
 export const FIRM_RULES = [
   { id: "person-label", re: /\b(?:BP|DA|PR|PG)-\d{2}\b/g, why: "a firm member's label (BP-07)" },
