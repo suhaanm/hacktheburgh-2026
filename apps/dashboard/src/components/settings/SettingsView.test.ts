@@ -76,7 +76,8 @@ describe("Settings", () => {
       expect(text(h)).toContain(`Default: ${d.shown}.`);
     }
     for (const w of ["Use live models", "Interruptions", "Coaching", "Help level", "Hey Knack", "Move aside while Knack works", "Open at login", "Use my skills", "Longest a task runs", "Most a task may spend"]) expect(doc).toContain(w);
-    expect(DEFAULTS.interruptions.value).toBe("rarely");
+    expect(DEFAULTS.interruptions.value).toBe("balanced");
+    expect(text(html())).toContain("Default: Balanced.");   // the engine's own, evaluated policy; the row must agree with what the engine answers
   });
   it("the defaults never switch on a consent, an approval or an unattended run", () => {
     expect(Object.keys(DEFAULTS).join(" ")).not.toMatch(/consent|approv|unattended|away|irreversible|frame|glance/i);
