@@ -6,10 +6,13 @@ Nothing here calls a model. The write is the worker's own action (``actor="worke
 """
 from __future__ import annotations
 
+import re
+import unicodedata
+from datetime import datetime, timezone
 from typing import Any
 
 from . import doc as D
-from .packinfo import PackView, load_pack
+from .packinfo import PackView, list_pack_ids, load_pack
 from .store import MemoryStore, today_iso
 
 DAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
@@ -26,7 +29,52 @@ def new_person_id(store: MemoryStore) -> str:
 
 
 class OnboardingError(ValueError):
-    pass
+    code = "bad_onboarding"
+
+
+class UnknownRole(OnboardingError):
+    """The role id is not one of the packs. ``valid`` is the closed list, so the screen can say what is available."""
+    code = "unknown_role"
+
+    def __init__(self, role: Any) -> None:
+        self.valid = list_pack_ids()
+        super().__init__(f"There is no role {str(role)[:40]!r}. Choose one of: {', '.join(self.valid)}.")
+
+
+class NotOnboarded(OnboardingError):
+    code = "not_onboarded"
+
+
+#: "leave it as it is" for the optional name (None and "" both mean "clear it")
+_KEEP: Any = object()
+NAME_PREFIX = "Name: "
+NAME_ID = "l_name"
+NAME_MAX = 60
+
+
+def clean_name(value: Any) -> str:
+    """The worker's own name, as one short line: letters (any script), spaces, hyphens, apostrophes and full stops. ``""`` clears it."""
+    if value is None:
+        return ""
+    if not isinstance(value, str):
+        raise OnboardingError("name must be text")
+    t = re.sub(r"\s+", " ", unicodedata.normalize("NFC", value)).strip()
+    if not t:
+        return ""
+    if len(t) > NAME_MAX:
+        raise OnboardingError(f"name must be {NAME_MAX} characters or fewer")
+    if unicodedata.category(t[0])[0] != "L" or any(not (unicodedata.category(c)[0] in "LM" or c in " -'’.") for c in t):
+        raise OnboardingError("name can use letters, spaces, hyphens, apostrophes and full stops")
+    return t
+
+
+def profile_name(doc: D.MemoryDoc) -> str | None:
+    """The name line in Preferences, if there is one. Deleting the line removes the name (the worker owns the file)."""
+    sec = doc.section("Preferences", create=False)
+    for ln in (sec.lines() if sec else []):
+        if ln.text.startswith(NAME_PREFIX) and len(ln.text) > len(NAME_PREFIX):
+            return ln.text[len(NAME_PREFIX):]
+    return None
 
 
 def questions_payload(role: str) -> dict[str, Any]:
@@ -179,7 +227,7 @@ def build_profile(pack: PackView, answers: dict[str, Any]) -> dict[str, Any]:
 
 CAPTURE_LINE = "Capture: times only"
 CAPTURE_ID = "l_capture"
-KEEP_IDS = ("l_quiet_hours",)
+KEEP_IDS = ("l_quiet_hours", NAME_ID)           # the worker's own, whatever the role: they survive a re-run and a role change
 
 
 def capture_enabled(doc: D.MemoryDoc) -> bool:
@@ -188,33 +236,40 @@ def capture_enabled(doc: D.MemoryDoc) -> bool:
     return any(ln.text.strip().lower().startswith("capture: times only") for ln in (sec.lines() if sec else []))
 
 
-def _seed(doc: D.MemoryDoc, pack: PackView, profile: dict[str, Any], today: str, keep_skills: bool, same_role: bool = False) -> None:
-    """Replace the seeded sections. The worker's own Routines, Corrections and extra sections are left alone, and on
-    a same-role re-run so are approved rules and the quiet-hours line."""
+def _seed(doc: D.MemoryDoc, pack: PackView, profile: dict[str, Any], today: str, keep_skills: bool, same_role: bool = False,
+          notes: dict[tuple[str, str], str] | None = None) -> None:
+    """Replace the seeded sections. The worker's own Routines, Corrections and extra sections are left alone. Lines that are the worker's own whatever
+    the role (quiet hours, the name) are kept and put after the seeded ones, and on a same-role re-run so are approved rules; that keeps a repeated run
+    byte-for-byte the same file. ``notes`` maps (section, text) to the note an unchanged line already had, so the date on it does not move."""
+    kept: dict[str, list[D.Line]] = {}
     for name in ("Preferences", "Procedure", "Never"):
         sec = doc.section(name)
-        sec.items = [i for i in sec.items if not isinstance(i, D.Line)
-                     or (same_role and (i.note.startswith("rule:") or i.id in KEEP_IDS))]
+        kept[name] = [i for i in sec.items if isinstance(i, D.Line) and (i.id in KEEP_IDS or (same_role and i.note.startswith("rule:")))]
+        sec.items = [i for i in sec.items if not isinstance(i, D.Line)]
     skills = doc.section("Skill state")
     old_skill = {ln.text.split(":", 1)[0]: ln for ln in skills.lines()} if keep_skills else {}
     skills.items = [ln for ln in skills.lines() if ln.text.split(":", 1)[0] in old_skill]
+    old_notes = notes or {}
+
+    def add(section: str, text: str, note: str, line_id: str | None = None) -> None:
+        doc.add(section, text, note=old_notes.get((section, D.clean_text(text)), note), line_id=line_id)
 
     tone = profile["tone"]
-    doc.add("Preferences", f"Summaries: {tone['length']}. Voice: {tone['voice']}.", note=f"onboarding {today}")
-    doc.add("Preferences", f"Help fades {_PACE_WORDS.get(profile['pace'], profile['pace'])}.", note=f"onboarding {today}")
+    add("Preferences", f"Summaries: {tone['length']}. Voice: {tone['voice']}.", f"onboarding {today}")
+    add("Preferences", f"Help fades {_PACE_WORDS.get(profile['pace'], profile['pace'])}.", f"onboarding {today}")
     h = profile["hours"]
-    doc.add("Preferences", f"Usual hours: {h['start']} to {h['end']}, {_fmt_days(h['days'])}.", note=f"onboarding {today}")
+    add("Preferences", f"Usual hours: {h['start']} to {h['end']}, {_fmt_days(h['days'])}.", f"onboarding {today}")
     if profile["tool_labels"]:
-        doc.add("Preferences", "Tools: " + ", ".join(profile["tool_labels"]) + ".", note=f"onboarding {today}")
+        add("Preferences", "Tools: " + ", ".join(profile["tool_labels"]) + ".", f"onboarding {today}")
     if profile.get("capture"):
-        doc.add("Preferences", CAPTURE_LINE, note=f"you agreed {today}", line_id=CAPTURE_ID)
+        add("Preferences", CAPTURE_LINE, f"you agreed {today}", CAPTURE_ID)
 
     checklist = _checklist_text(pack)
     if checklist:
-        doc.add("Procedure", checklist, note=f"from the {pack.name} pack")
+        add("Procedure", checklist, f"from the {pack.name} pack")
     crit = [c["id"] for c in pack.expert_checks if c.get("critical")]
     if crit:
-        doc.add("Procedure", "Never skipped: " + ", ".join(crit) + ".", note=f"from the {pack.name} pack")
+        add("Procedure", "Never skipped: " + ", ".join(crit) + ".", f"from the {pack.name} pack")
 
     for sk in pack.skills:
         sid = str(sk["id"])
@@ -224,50 +279,184 @@ def _seed(doc: D.MemoryDoc, pack: PackView, profile: dict[str, Any], today: str,
 
     irr = profile["risk_classes"]["irreversible"]
     if irr:
-        doc.add("Never", "Run without my click: " + ", ".join(irr) + ".", note="role default plus your answers")
+        add("Never", "Run without my click: " + ", ".join(irr) + ".", "role default plus your answers")
     out = profile["risk_classes"]["outward"]
     if out:
-        doc.add("Never", "Send outward without asking: " + ", ".join(out) + ".", note="role default")
+        add("Never", "Send outward without asking: " + ", ".join(out) + ".", "role default")
     for lab in profile["risky_labels"]:
-        doc.add("Never", f"Never without me: {lab}.", note=f"you said so {today}")
+        add("Never", f"Never without me: {lab}.", f"you said so {today}")
+    for name, lines in kept.items():
+        sec = doc.section(name)
+        have = doc.all_ids()
+        sec.items.extend(ln for ln in lines if ln.id not in have)
 
 
-def onboard(store: MemoryStore, role: str, answers: dict[str, Any] | None, person: str | None = None,
-            *, now=None) -> dict[str, Any]:
-    """POST /onboarding. Writes the memory file and the profile sidecar. Returns the response body."""
-    try:
-        pack = load_pack(role)
-    except KeyError as e:
-        raise OnboardingError(f"unknown role {role!r}") from e
-    profile = build_profile(pack, answers or {})
-    today = today_iso(now)
-    if person is not None and not PERSON_RE.match(str(person)):
-        raise OnboardingError("person must look like p_ followed by 2 to 16 lower-case letters or digits")
-    person = person or (store.load_state().get("profile") or {}).get("person") or new_person_id(store)
+def _carry(prev: dict[str, Any], pack: PackView, answers: dict[str, Any]) -> dict[str, Any]:
+    """A role change keeps what is the worker's own and not the role's: the capture choice, usual hours, and tone or pace when the new pack offers the same
+    option. The role's own questions (tools, risky) start from the new pack's defaults. Whatever the caller sends explicitly wins."""
+    before = prev.get("answers") or {}
+    out: dict[str, Any] = {}
+    if isinstance(before.get("capture"), bool):
+        out["capture"] = before["capture"]
+    if before.get("hours"):
+        out["hours"] = before["hours"]
+    for k in ("tone", "pace"):
+        opts = _option_values(pack, k)
+        if before.get(k) and (not opts or before[k] in opts):
+            out[k] = before[k]
+    out.update(answers)
+    return out
 
-    def mutate(doc: D.MemoryDoc) -> None:
-        same_role = doc.front.get("role") == pack.id
-        if not same_role:
-            for sec in doc.sections:
-                if sec.known:
-                    sec.items = []
-        doc.role = pack.id
-        _seed(doc, pack, profile, today, keep_skills=same_role, same_role=same_role)
 
-    doc, _ = store.mutate("worker", mutate)
-    state = store.load_state()
-    state["profile"] = {"person": person, **{k: profile[k] for k in ("role", "answers", "tone", "pace", "hours", "risk_classes", "capture")}}
-    store.save_state(state, actor="worker")
-    return {
+def _now_iso(now: datetime | None) -> str:
+    return (now or datetime.now(timezone.utc)).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _set_name(doc: D.MemoryDoc, name: str, today: str) -> None:
+    """Put the name line in Preferences (or take it out when ``name`` is empty)."""
+    found = doc.find(NAME_ID)
+    if not name:
+        if found is not None:
+            doc.remove(NAME_ID)
+        return
+    text = D.clean_text(NAME_PREFIX + name)
+    if found is not None:
+        if found[1].text != text:
+            found[1].text = text
+            found[1].note = f"you said so {today}"
+        return
+    doc.add("Preferences", text, note=f"you said so {today}", line_id=NAME_ID)
+
+
+def _response(store: MemoryStore, doc: D.MemoryDoc, profile: dict[str, Any], person: str, **extra: Any) -> dict[str, Any]:
+    state = store.load_state().get("profile") or {}
+    out = {
         "person": person,
-        "role": pack.id,
+        "role": doc.role,
         "revision": doc.revision,
         "memory_markdown": D.render(doc),
         "risk_classes": profile["risk_classes"],
         "tone": profile["tone"],
         "pace": profile["pace"],
         "capture": capture_enabled(doc),
+        "since": state.get("role_since"),
+        **extra,
     }
+    nm = profile_name(doc)
+    if nm:
+        out["name"] = nm
+    return out
+
+
+def onboard(store: MemoryStore, role: str, answers: dict[str, Any] | None, person: str | None = None,
+            *, now=None, name: Any = _KEEP, carry: bool = False) -> dict[str, Any]:
+    """POST /onboarding. Writes the memory file and the profile sidecar. Returns the response body.
+
+    Safe to repeat and to use on an existing worker. The same request twice leaves the memory file and the sidecar exactly as they were (no new revision, no
+    duplicate lines). A different role starts the new pack clean (skills at L1, no rules) but keeps the person id, the name, the quiet hours and, with
+    ``carry=True``, the capture choice and usual hours; the sidecar remembers the earlier role and when it ended (``history``), nothing else about it.
+    ``name``: leave out to keep it, ``""`` or None to clear it."""
+    try:
+        pack = load_pack(role)
+    except KeyError as e:
+        raise UnknownRole(role) from e
+    state0 = store.load_state()
+    prev = state0.get("profile") or {}
+    answers = _carry(prev, pack, dict(answers or {})) if (carry and prev) else (answers or {})
+    profile = build_profile(pack, answers)
+    new_name = None if name is _KEEP else clean_name(name)
+    today = today_iso(now)
+    if person is not None and not PERSON_RE.match(str(person)):
+        raise OnboardingError("person must look like p_ followed by 2 to 16 lower-case letters or digits")
+    person = person or prev.get("person") or new_person_id(store)
+    before = store.read()
+    prev_role = prev.get("role") or (before.role if before.role != "unknown" else None)
+    changed_role = bool(prev_role) and prev_role != pack.id
+    stamp = _now_iso(now)
+
+    def mutate(doc: D.MemoryDoc) -> None:
+        same_role = doc.front.get("role") == pack.id
+        notes = {(sec.name, ln.text): ln.note for sec in doc.sections if sec.known for ln in sec.lines()} if same_role else {}
+        if not same_role:
+            for sec in doc.sections:
+                if sec.known:
+                    sec.items = [i for i in sec.items if isinstance(i, D.Line) and i.id in KEEP_IDS]
+        doc.role = pack.id
+        _seed(doc, pack, profile, today, keep_skills=same_role, same_role=same_role, notes=notes)
+        if new_name is not None:
+            _set_name(doc, new_name, today)
+
+    doc, _ = store.mutate("worker", mutate, idempotent=True)
+    history = list(prev.get("history") or [])
+    since = prev.get("role_since")
+    if changed_role:
+        history.append({"role": prev_role, "since": since, "until": stamp})
+        since = stamp
+    elif not since:
+        since = stamp
+    profile_state = {"person": person, **{k: profile[k] for k in ("role", "answers", "tone", "pace", "hours", "risk_classes", "capture")},
+                     "role_since": since, "history": history[-20:]}
+    if profile_state != prev:
+        state = store.load_state()
+        state["profile"] = profile_state
+        store.save_state(state, actor="worker")
+    return _response(store, doc, profile, person, role_changed=changed_role, previous_role=prev_role if changed_role else None)
+
+
+def change_profile(store: MemoryStore, *, role: str | None = None, name: Any = _KEEP, answers: dict[str, Any] | None = None,
+                   person: str | None = None, now=None) -> dict[str, Any]:
+    """POST /profile: change an existing worker's role and/or name (also the first call, when a role comes with it).
+
+    * a new role switches the pack (``onboard`` with ``carry=True``);
+    * the same role again with no answers touches nothing but what was asked (a name change writes the one name line, so the worker's own edits to
+      the seeded lines survive);
+    * a name alone never re-seeds anything.
+    Repeating a request changes nothing."""
+    prev = load_profile(store)
+    if role is None and name is _KEEP and not answers:
+        raise OnboardingError("Nothing to change: send a role, a name, or both.")
+    if not prev or not prev.get("person"):
+        if role is None:
+            raise NotOnboarded("Choose a role first. Nothing has been set up yet.")
+        return {**onboard(store, role, answers, person, now=now, name=name), "created": True}
+    if role is not None:
+        try:
+            load_pack(role)
+        except KeyError as e:
+            raise UnknownRole(role) from e
+    if role is not None and (role != prev.get("role") or answers):
+        return {**onboard(store, role, answers, person or prev["person"], now=now, name=name, carry=True), "created": False}
+    new_name = None if name is _KEEP else clean_name(name)
+    today = today_iso(now)
+    if new_name is not None:
+        doc, _ = store.mutate("worker", lambda d: _set_name(d, new_name, today), idempotent=True)
+    else:
+        doc = store.read()
+    profile = {"tone": prev.get("tone") or {"length": "short", "voice": "plain"}, "pace": prev.get("pace", "steady"),
+               "risk_classes": prev.get("risk_classes") or {"irreversible": [], "outward": []}}
+    return {**_response(store, doc, profile, prev["person"], role_changed=False, previous_role=None), "created": False}
+
+
+def profile_view(store: MemoryStore) -> dict[str, Any] | None:
+    """GET /profile: who the worker is on this device, the roles they can switch to, and the roles they have had. The name is a line in the memory file
+    the worker can read and delete; it is never written to a log."""
+    prev = load_profile(store)
+    if not prev or not prev.get("person"):
+        return None
+    doc = store.read()
+    roles = []
+    for rid in list_pack_ids():
+        try:
+            p = load_pack(rid)
+            roles.append({"id": rid, "name": p.name, "summary": p.summary, "depth": p.depth})
+        except KeyError:
+            continue
+    out: dict[str, Any] = {"person": prev["person"], "role": prev.get("role") or doc.role, "since": prev.get("role_since"),
+                           "history": [dict(h) for h in (prev.get("history") or [])], "roles": roles}
+    nm = profile_name(doc)
+    if nm:
+        out["name"] = nm
+    return out
 
 
 def load_profile(store: MemoryStore) -> dict[str, Any] | None:
