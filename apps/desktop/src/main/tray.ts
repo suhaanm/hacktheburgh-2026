@@ -322,6 +322,8 @@ export interface TrayDeps {
   openSettings?: () => void
   openNeedsYou?: () => void
   ask?: () => void
+  /** KNACK: "Set up again…" opens the Knack window on its first run (there is no second onboarding: the old panel's flow never shows in the app). */
+  openSetup?: () => void
   // Understudy: a glance (a screen look) is in flight right now. The AWARENESS track wires this; absent means never.
   glanceInFlight?: () => boolean
   // The awareness module's view and switches (its own awareness.json store). Absent: no awareness items in the menu.
@@ -453,7 +455,13 @@ export function registerTray(deps: TrayDeps): ShellTray {
     applyPanel(visible)
     refresh()
   }
-  const togglePanel = (): void => setPanel(!deps.windows.isDockVisible())
+  // In the Knack app the old side panel is never drawn: Option-Command-P pauses or resumes (the same as the menu's Pause row), it does not open a panel.
+  const togglePause = (): void => {
+    const paused = (deps.settings.get().pausedUntil ?? 0) > nowMs()
+    deps.settings.patch({ pausedUntil: paused ? null : nowMs() + 60 * 60_000 })
+    refresh()
+  }
+  const togglePanel = (): void => (deps.knack ? togglePause() : setPanel(!deps.windows.isDockVisible()))
 
   const entriesNow = (): MenuEntry[] => {
     const m = model()
@@ -504,10 +512,19 @@ export function registerTray(deps: TrayDeps): ShellTray {
         deps.bus.emit('showtime:request', deps.showtimeRunning?.() ? { source: 'tray', stop: true } : { source: 'tray' })
         return true
       case 'setup':
+        // The app has one set-up: the Knack window's first run. The old panel's eight steps are only for the older, non-Knack build.
+        if (deps.openSetup) {
+          deps.openSetup()
+          return true
+        }
         deps.settings.patch({ onboardingDone: false })
         showDockWith({ type: 'view', view: 'onboarding' })
         return true
       case 'permissions':
+        if (deps.openSetup) {
+          deps.openSetup()
+          return true
+        }
         showDockWith({ type: 'view', view: 'permissions' })
         return true
       case 'pause':
@@ -535,7 +552,10 @@ export function registerTray(deps: TrayDeps): ShellTray {
         const name = id === 'awareness' ? 'enabled' : id === 'glance_trigger' ? 'trigger' : 'periodic'
         const on = !(name === 'enabled' ? v.enabled : name === 'trigger' ? v.onTrigger : v.periodic)
         // Turning glances up goes through the awareness module, which wants the consent card first; the tray then opens it.
-        if (aw.setSwitch(name, on).needsConsent) showDockWith({ type: 'view', view: 'settings' })
+        if (aw.setSwitch(name, on).needsConsent) {
+          if (deps.openSettings) deps.openSettings() // the app: Settings in the Knack window
+          else showDockWith({ type: 'view', view: 'settings' })
+        }
         refresh()
         return true
       }
@@ -552,7 +572,7 @@ export function registerTray(deps: TrayDeps): ShellTray {
         return true
       case 'ask':
         if (deps.ask) deps.ask()
-        else showDockWith({ type: 'view', view: 'chat' }) // until the Ask bar exists: the panel's typed chat
+        else showDockWith({ type: 'view', view: 'chat' }) // the older build: the panel's typed chat (the app has the Ask bar)
         return true
       case 'settings':
         if (!deps.openSettings) return false
