@@ -134,7 +134,7 @@ def classify_step(kind: str, args: dict[str, Any], target: TargetInfo | None = N
     """Classes a step belongs to. Always includes a base class (read, navigate or fill)."""
     target = target or TargetInfo()
     classes: set[ActionClass] = set()
-    if kind in ("screenshot", "wait", "move", "scroll", "scroll_page", "wait_for", "extract", "back"):
+    if kind in ("screenshot", "wait", "move", "scroll", "scroll_page", "wait_for", "extract", "back", "forward"):
         classes.add(ActionClass.READ)
     elif kind == "goto":
         classes.add(ActionClass.NAVIGATE)
