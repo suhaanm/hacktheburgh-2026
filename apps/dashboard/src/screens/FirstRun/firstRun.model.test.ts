@@ -4,7 +4,7 @@ import packsFx from "../../fixtures/packs.json";
 import { depthLabel } from "../../lib/profile";
 import type { OnboardingQuestions, Pack } from "../../types";
 import {
-  ASK_AGAIN_AFTER_DAYS, CAPTURE_CARD, CHOICES, GLANCE_CARD, NO_ROLE, VOICE_CARD, START, STEPS, captureRecord, cardLine, clicksToHome, defaultAnswers, heyKnackRow, kindsFor, mayAskAgain, nextUnanswered, parseProgress, permsToShow,
+  ASK_AGAIN_AFTER_DAYS, BROWSER_ROWS, CAPTURE_CARD, CHOICES, GLANCE_CARD, NEEDS_APP, NO_ROLE, VOICE_CARD, START, STEPS, captureRecord, cardLine, clicksToHome, defaultAnswers, heyKnackRow, kindsFor, mayAskAgain, nextUnanswered, parseProgress, permsToShow,
   progressRecord, readyLines, reduce, roleCards, shouldStartFirstRun, type FirstRunAction, type FirstRunState,
 } from "./model";
 
@@ -88,6 +88,14 @@ describe("clicks to Home, nothing skipped", () => {
     expect(clicksToHome(desktop)).toBe(5);
     expect(clicksToHome(desktop, true)).toBe(6);
     expect(clicksToHome({ glance: true, voice: false })).toBe(4);
+  });
+});
+
+describe("the last screen in a browser tab", () => {
+  it("says Available in the Knack app for the two things only the app can do, and offers no button for them", () => {
+    expect(NEEDS_APP).toBe("Available in the Knack app.");
+    expect(BROWSER_ROWS.map((r) => r.title)).toEqual(["Permissions", "Show me where Knack points"]);
+    for (const r of BROWSER_ROWS) expect(r.title).not.toMatch(/allow|open system settings/i);
   });
 });
 

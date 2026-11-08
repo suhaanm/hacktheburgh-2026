@@ -78,6 +78,7 @@ for (const [role, pack] of [["UK benefits processor", "benefits-processor"], ["D
   check(`first run ${pack}: nothing is written before the worker answers`, onboarded.length === before);
   await cards.first().getByRole("button", { name: pack === "benefits-processor" ? "Yes" : "Not now" }).click();
   await page.getByRole("button", { name: "Show my week" }).waitFor();
+  if (pack === "benefits-processor") check("first run (a browser tab): Permissions and Show me say \"Available in the Knack app.\" and have no button", ((await page.locator("[data-testid=needs-app]").innerText()).match(/Available in the Knack app\./g) ?? []).length === 2 && (await page.getByRole("button", { name: /^(Allow|Show me|Open System Settings)/ }).count()) === 0);
   const secs = (Date.now() - t0) / 1000;
   const sent = onboarded[onboarded.length - 1];
   check(`first run ${pack}: written once, in under 60 s`, onboarded.length === before + 1 && secs < 60, `${secs.toFixed(1)} s, ${onboarded.length - before} write(s)`);

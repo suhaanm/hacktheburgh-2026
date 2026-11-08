@@ -178,6 +178,10 @@ export function heyKnackRow(status: { switchOn: boolean; listening: boolean; lin
   return { title: "Hey Knack", line: status.switchOn && !status.listening && status.line ? `${note} ${status.line}` : note, on: status.switchOn };
 }
 
+/** In a browser tab there is no desktop app to ask macOS or to draw the ring: those rows say so, in these words, and have no button. */
+export const NEEDS_APP = "Available in the Knack app.";
+export const BROWSER_ROWS: { key: string; title: string }[] = [{ key: "permissions", title: "Permissions" }, { key: "tryit", title: "Show me where Knack points" }];
+
 export const RING_SENTENCE = "Knack points; it never clicks unless you allow it.";
 
 /* -- Progress that survives a closed window ------------------------------------------------------------------------------------------ */

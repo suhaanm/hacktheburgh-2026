@@ -41,8 +41,8 @@
     "home": {
       "path": "/home",
       "audience": "worker",
-      "wordsAbove": 50,
-      "controls": 5
+      "wordsAbove": 70,
+      "controls": 6
     },
     "needs-you": {
       "path": "/needs-you",

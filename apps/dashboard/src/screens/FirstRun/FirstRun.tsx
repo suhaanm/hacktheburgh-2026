@@ -11,7 +11,7 @@ import { awarenessBridge } from "../YourData/awareness";
 import { liveModelsBridge, wakeBridge, type LiveModelsState, type WakeStatus } from "../Settings/bridge";
 import type { OnboardingQuestions } from "../../types";
 import {
-  CAPTURE_CARD, CAPTURE_CHOICE_KEY, CHOICES, FIRST_RUN_KEY, GLANCE_CARD, GLANCE_CHOICE_KEY, NO_ROLE, PERM_COPY, PROGRESS_KEY, RING_SENTENCE, SEEN_KEY, START, STEPS, VOICE_CARD, VOICE_CHOICE_KEY,
+  BROWSER_ROWS, CAPTURE_CARD, CAPTURE_CHOICE_KEY, CHOICES, FIRST_RUN_KEY, GLANCE_CARD, GLANCE_CHOICE_KEY, NEEDS_APP, NO_ROLE, PERM_COPY, PROGRESS_KEY, RING_SENTENCE, SEEN_KEY, START, STEPS, VOICE_CARD, VOICE_CHOICE_KEY,
   captureRecord, defaultAnswers, heyKnackRow, kindsFor, nextUnanswered, parseProgress, permsToShow, progressRecord, reduce, roleCards, type Choice, type ConsentKind,
 } from "./model";
 import "./firstrun.css";
@@ -244,6 +244,11 @@ function CheckStep({ answers, heading, onBack, onFinish, writing, slow, wakeApi 
     <section className="firstrun__step" aria-labelledby="fr-h">
       <h1 id="fr-h" className="firstrun__q" ref={heading} tabIndex={-1}>{desktop ? "Check that it works" : "You are set"}</h1>
       {!desktop && <p className="firstrun__lede">Knack starts counting now. You can change any choice in Your data.</p>}
+      {!desktop && (
+        <ul className="perms" aria-label="Needs the Knack app" data-testid="needs-app">
+          {BROWSER_ROWS.map((r) => <li key={r.key} className="perm"><span className="perm__text"><b>{r.title}</b><span className="perm__state">{NEEDS_APP}</span></span></li>)}
+        </ul>
+      )}
 
       {desktop && show.length > 0 && (
         <ul className="perms" aria-label="Permissions">
