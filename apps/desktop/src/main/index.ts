@@ -74,6 +74,12 @@ const knackConfig = knackWanted ? prepareKnackEnv({ env: process.env, appPath: a
 applyDesktopDefaultFlags() // D48: voice and the REQ-5 layers are on unless a variable says '0'
 
 const flag = (name: string) => process.env[name] === '1'
+// System Settings panes the Hey Knack cards open (macOS deep links).
+const PANE_URLS = {
+  speech: 'x-apple.systempreferences:com.apple.preference.security?Privacy_SpeechRecognition',
+  accessibility: 'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility',
+  dictation: 'x-apple.systempreferences:com.apple.Keyboard-Settings.extension',
+} as const
 
 // KNACK: one app, a dashboard window plus a menu-bar item plus a corner pill, which starts the engine and the agent itself (src/main/knack). On by default; off
 // for headless runs and with KNACK_SHELL=0. The scheme must be declared before ready; a second launch hands over to the first instead of starting another.
@@ -401,6 +407,7 @@ void app.whenReady().then(async () => {
         cue: cue?.livePort ?? noCuePort,
         doIt: (req) => (wakeBox.ctl ? wakeBox.ctl.doIt(req) : Promise.resolve({ ok: false, reason: 'not_available' })),
         context: (o) => contextHub.build(o),
+        opening: () => wakeBox.ctl?.openingText() ?? null,
         domGround: chainGround(knackGround, extGround),
         screenStatus: () => (process.platform === 'darwin' && !flag('UNDERSTUDY_MOCK') && !flag('ALONGSIDE_MOCK') ? systemPreferences.getMediaAccessStatus('screen') : 'granted'),
         onScreenMissing: () => wakeBox.ctl?.explainRefusal('screen_recording'),
@@ -451,6 +458,7 @@ void app.whenReady().then(async () => {
         openSettings: () => knack?.openSettings(),
         openMicrophoneSettings: () => permissions.openSettings('microphone'),
         openScreenSettings: () => permissions.openSettings('screen'),
+        openPane: (pane) => void shell.openExternal(PANE_URLS[pane]).catch(() => undefined),
         context: contextHub,
         log: ctx.log,
       })

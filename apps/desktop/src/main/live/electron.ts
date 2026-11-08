@@ -58,6 +58,7 @@ export interface RegisterLiveOptions {
   onScreenMissing?: () => void
   // The code-built context packet for a conversation (wake/context-packet.ts); late-bound by the caller.
   context?: (o: { tools: import('./wire').FunctionDeclaration[]; trigger: 'key' | 'wake' }) => string
+  opening?: () => string | null
   killed: () => boolean
   agentActing: () => boolean
   cueVoiceOn?: () => boolean
@@ -116,6 +117,7 @@ export function registerLive(o: RegisterLiveOptions): LiveRegistration {
     ring: createRingPort(o.overlay),
     doIt: o.doIt,
     context: o.context,
+    opening: o.opening,
     usage: createUsageLog(dir),
     // Reads the status only. The prompt is the owner's to accept in System Settings; this code never calls askForMediaAccess.
     micStatus: () => (process.platform === 'darwin' ? systemPreferences.getMediaAccessStatus('microphone') : 'granted'),

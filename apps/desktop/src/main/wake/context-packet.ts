@@ -45,6 +45,8 @@ export interface PacketInputs {
   /** The task in progress (its id and step n of m; the task's name is free text and is never used). */
   task?: Reading<{ id: string; step: number; of: number } | null>
   cue?: Reading<string>
+  /** The worker is in first-run set-up or has not finished it: the model answers in character for someone new. */
+  firstRun?: boolean
   consent: { voice: string; screen: string; frames: boolean }
   /** Whether `do_it_for_me` can ever click: the persisted rung record. */
   click: 'cleared' | 'pending'
@@ -122,6 +124,7 @@ export function buildPacket(i: PacketInputs): Packet {
   lines.push(`data=${i.mode === 'live' ? 'live_models' : 'example_data'}`)
   const screen = take('screen', i.screen, (v) => oneOf(SCREEN_IDS, v))
   if (screen) lines.push(`screen=${screen}`)
+  lines.push(`first_run=${i.firstRun === true || screen === 'first_run' ? 'yes' : 'no'}`)
   const ins = take('insight', i.insight, (v) => (v === null ? 'none' : id(v.id) && id(v.template) ? `${v.id}|${v.template}` : null))
   if (ins) lines.push(`home_insight=${ins}`)
   const ap = take('approvals', i.approvals, (v) => (v === null ? null : count(v)))

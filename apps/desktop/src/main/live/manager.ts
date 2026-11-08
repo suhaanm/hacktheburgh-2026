@@ -89,6 +89,8 @@ export interface ManagerDeps {
   // The code-built context packet for a conversation (enums, ids and counts only; wake/context-packet.ts). It goes into the system instruction at
   // start and, changed lines only, as an update every ten seconds. Absent or throwing: the session starts with the fixed fallback text.
   context?: (o: { tools: FunctionDeclaration[]; trigger: 'key' | 'wake' }) => string
+  // The code-written first turn of a wake conversation (the very first one has a welcome). Absent or null: none; the model waits for the worker.
+  opening?: () => string | null
   usage?: UsageLog
   breaker?: CircuitBreaker
   prices?: LivePrices
@@ -249,7 +251,7 @@ export function createLiveManager(d: ManagerDeps): LiveManager {
       lastPacket = context || null
     }
     const s = new LiveSession({
-      config: configFor(mode, wake, context),
+      config: { ...configFor(mode, wake, context), ...(wake && d.opening ? { openingText: ((): string | undefined => { try { return d.opening?.() ?? undefined } catch { return undefined } })() } : {}) },
       tokens: d.tokens,
       socketFactory: d.socketFactory,
       url: d.url,
