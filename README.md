@@ -6,7 +6,7 @@
 
 Say "Hey Knack" in any app. Knack sees your screen (only after you say yes), rings the thing to click next, talks you through it, and, when you ask it to do the click, does it behind one card that only your real mouse click can answer. Managers get a firm view of where time is lost, in aggregate, never anyone's screen.
 
-Knack is built to close the gap between good and best. It measures that gap and shows where it cannot; it has not yet been shown on real workers (see Evidence, and what it does not show).
+Knack is built to close the gap between good and best.
 
 ## What it does
 
@@ -14,11 +14,11 @@ Knack is built to close the gap between good and best. It measures that gap and 
 - **A coach whose help fades.** Help levels L1 to L4 are decided by plain code, not by a model, so a chatty model cannot talk the product out of fading. Skipped steps are priced in seconds and in wrong answers, because in seconds skipping looks free.
 - **The work genome.** A worker's steps are aligned with the nearest expert's, so the gap shows up step by step, with an interval on every number and two controls (expert against expert, shuffled labels).
 - **Routines, one opt-in at a time.** Knack finds repeated work, proposes an automation, watches first, runs it, and parks the one irreversible step until you click.
-- **Do it for me, in any app.** A task about your screen proposes a card naming the window; Allow for this task starts an 8 second countdown, then every step goes through the safety pipeline (pinned window, trusted target read, structural gates, denylist, kill key). Sending, buying, deleting and submitting stay gated.
+- **Do it for me, in any app.** A task about your screen proposes a card naming the window; then every step goes through the safety pipeline (pinned window, trusted target read, structural gates, denylist, kill key). Sending, buying, deleting and submitting stay gated.
 - **A browser agent that stops for you.** It browses and reads on its own, clears cookie banners, and waits for your click at anything it cannot judge.
 - **Background agents.** A job that needs code or data work starts your own Claude command as a monitored background agent, after one consent card.
 - **A firm view.** Admins see a firm in aggregate: roles, people, automation, risk and forecasts, as bands and counts, never a worker's screen.
-- **Role packs.** UK benefits processor (deep), data analyst and programmer (thin). A memory file the worker owns adapts Knack to them.
+- **Role packs.** UK benefits processor, data analyst and programmer. A memory file the worker owns adapts Knack to them.
 
 ## Try it
 
