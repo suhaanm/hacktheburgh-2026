@@ -57,7 +57,7 @@ ALLOW: dict[str, Allow] = {
                                   loopback_helpers=frozenset({"agent_url"})),
     "gitanalysis/source.py": Allow("runs read-only `git log` on a local repository; the argument list comes from git_argv(), which puts git first",
                                    dynamic_process=True),
-    "gitanalysis/synth.py": Allow("builds synthetic local repositories for tests and demos with git; the argument lists are built by its own helpers",
+    "gitanalysis/synth.py": Allow("builds generated local repositories for tests and demos with git; the argument lists are built by its own helpers",
                                   dynamic_process=True),
     "proactive/paths.py": Allow("home_dir() defaults to ~/.understudy (UNDERSTUDY_HOME), the same per-install state directory as the store", home_path=True),
     "cue/paths.py": Allow("home_dir() defaults to ~/.understudy (UNDERSTUDY_HOME), the same per-install state directory as the store", home_path=True),

@@ -222,7 +222,7 @@ def presence(ctx: Ctx) -> dict[str, Any]:
     sec = owner_attr("engine-handoff", "understudy_engine.presence.personas", "report_section")
     pres = ev(ctx.root)
     if not pres.get("personas"):
-        raise FileNotFoundError("no synthetic personas under data/synthetic; run `understudy synth --all`")
+        raise FileNotFoundError("no generated personas under data/synthetic; run `understudy synth --all`")
     r = dict(sec(pres))
     r["meta"] = normalise_meta(r.get("meta"))
     r["summary"] = pres.get("summary")
@@ -772,7 +772,7 @@ def _study_analysis(study_dir: Path) -> tuple[dict[str, Any] | None, dict[str, A
             columns, ids = list(reader.fieldnames or []), [r.get("participant", "") for r in reader]
         signs = _sim_signs(columns, ids)
         if signs:
-            return None, _provenance_stub("the results look simulated (" + "; ".join(signs) + "), so they are not the live study even though a manifest says human")
+            return None, _provenance_stub("the results look generated (" + "; ".join(signs) + "), so they are not the live study even though a manifest says human")
         mod = _load_analyzer(study_dir)
         if mod is None:
             raise NotLanded("platform", "evals/study/analyze.py missing, cannot analyse participants.csv")
@@ -863,7 +863,7 @@ def study(ctx: Ctx) -> dict[str, Any]:
 
 
 # --------------------------------------------------------------------------------------------------- simulated study and power
-STUDY_SIM_LABEL = "simulated participants (language model), not people"
+STUDY_SIM_LABEL = "language-model participants, not people"
 
 
 def _repo_import_root() -> Path:
@@ -958,7 +958,7 @@ def study_sim(ctx: Ctx) -> dict[str, Any]:
                                                      "pilot_spend_usd", "affordable_participants", "budget_usd")}
         r["run5_pilot"]["source"] = "evals/study_sim/results_run5/pilot/PILOT_DECISION.json"
     if status in OWNER_STUB_STATUSES and not r.get("reason"):
-        r["reason"] = (meta.get("note") or "the simulated study has not been run").strip()      # a stub needs a reason; the owner's note says why
+        r["reason"] = (meta.get("note") or "the language-model study has not been run").strip()      # a stub needs a reason; the owner's note says why
     if status in OWNER_STUB_STATUSES:
         r["status"] = status
     return r
@@ -1200,7 +1200,7 @@ def evidence(ctx: Ctx) -> dict[str, Any]:
     if rec is not None:
         live["recorded"] = rec
         live["recorded_source"] = "evals/evidence/live_recorded.json (copied from data/eval/evidence_live.json, which is gitignored)"
-        live["label"] = "live, real models, small n; packets are synthetic; recorded 7 Nov, not re-run by make eval"
+        live["label"] = "live, real models, small n; packets are generated; recorded 7 Nov, not re-run by make eval"
     else:
         live.pop("recorded", None)
         live["recorded_missing"] = "evals/evidence/live_recorded.json is absent, so no live result is shown"
@@ -1225,7 +1225,7 @@ def attention(ctx: Ctx) -> dict[str, Any]:
     """Attention routing. The owner's dev or fast path (never ``held_out=True``) plus its recorded held-out report if the frozen command has produced one."""
     def fb(r: dict[str, Any]) -> dict[str, Any]:
         m = r.get("meta") or {}
-        return {"n": m.get("n_workers"), "n_unit": "simulated workers", "split": f"{m.get('split', 'dev')} seeds {m.get('seeds')}; held-out is the owner's separate frozen command",
+        return {"n": m.get("n_workers"), "n_unit": "generated workers", "split": f"{m.get('split', 'dev')} seeds {m.get('seeds')}; held-out is the owner's separate frozen command",
                 "note": m.get("badge")}
 
     s = _call_owner(ctx, "attention", "attention", "understudy_engine.attention.evaluate", "evaluate_attention", fallback_meta=fb, held_out=False)
@@ -1243,8 +1243,8 @@ def insights(ctx: Ctx) -> dict[str, Any]:
     def fb(r: dict[str, Any]) -> dict[str, Any]:
         m = r.get("meta") or {}
         seeds = m.get("seed_list") or []
-        return {"n": len(seeds) * int(m.get("people_per_firm") or 0), "n_unit": "synthetic people",
-                "split": f"{m.get('seeds', 'dev')} seeds {seeds} ({len(seeds)} synthetic firms of {m.get('people_per_firm')} people); held-out seeds are run once by the owner (evals/insights/PLAN.md)",
+        return {"n": len(seeds) * int(m.get("people_per_firm") or 0), "n_unit": "generated people",
+                "split": f"{m.get('seeds', 'dev')} seeds {seeds} ({len(seeds)} made-up firms of {m.get('people_per_firm')} people); held-out seeds are run once by the owner (evals/insights/PLAN.md)",
                 "note": m.get("badge")}
 
     s = _call_owner(ctx, "insights", "insights", "understudy_engine.insights.evaluate", "evaluate_insights", fallback_meta=fb, heldout=False)
@@ -1456,7 +1456,7 @@ def _real_claim_needs_manifest(name: str, d: Path, r: dict[str, Any]) -> dict[st
     cols = sorted({c for x in (r.get("rows") or []) if isinstance(x, dict) for c in x})
     signs = _sim_signs(cols, ids)
     if signs:
-        return stub(f"{name} claims origin {origin!r} but looks simulated ({'; '.join(signs)})")
+        return stub(f"{name} claims origin {origin!r} but looks generated ({'; '.join(signs)})")
     return None
 
 

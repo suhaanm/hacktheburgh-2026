@@ -9,7 +9,7 @@ import sys
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="understudy_engine.calendar")
     sub = ap.add_subparsers(dest="cmd", required=True)
-    s = sub.add_parser("synth", help="write the synthetic calendars (deterministic) under data/synthetic/calendars")
+    s = sub.add_parser("synth", help="write the generated calendars (deterministic) under data/synthetic/calendars")
     s.add_argument("--canary", action="store_true", help="write the canary-seeded variants instead")
     s.add_argument("--out", help="data root (default: UNDERSTUDY_DATA_DIR or <repo>/data)")
     e = sub.add_parser("evaluate", help="run the calendar evaluation and print it as JSON")

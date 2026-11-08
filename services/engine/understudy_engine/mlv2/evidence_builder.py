@@ -116,7 +116,7 @@ def build_for(person: str, case: str | None = None, *, root=None, model_version:
     bundle = GenomeService(EventStore(root)).bundle(TASK, "synthetic")
     cohort = bundle.cohort
     if person not in {e.person for e in cohort.episodes}:
-        raise ValueError(f"person {person!r} is not in the synthetic cohort")
+        raise ValueError(f"person {person!r} is not in the generated cohort")
     accepted = None if model_version == "v1" else _heldout_accepted("E1")
     x = build_evidence_inputs(cohort, person, model_version=model_version, accepted=accepted, hazard=hazard, seed=seed, n_boot=n_boot,
                               pool="heldout" if accepted else "none")

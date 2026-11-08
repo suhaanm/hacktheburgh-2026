@@ -124,7 +124,7 @@ def get_summary(person: str = Query(...), origin: str = Query("real"), since: st
         return _error(422, "bad_time", "since and until must be ISO-8601 times such as 2026-11-07T09:30:00Z.")
     data = _store().summary(person, origin, since=s, until=u)
     note = ("Counts and means of on-device features and the closed answers of screen glances. No coordinates, titles, text or pixels are stored. "
-            + ("Synthetic events." if origin == "synthetic" else "Live events from this Mac."))
+            + ("Generated events." if origin == "synthetic" else "Live events from this Mac."))
     return {"meta": _meta(origin, data["windows"], note), "data": data}
 
 

@@ -31,7 +31,7 @@ def person(pid: str, rows, *, role: str = ROLE, level: str = "junior", unit: str
 
 def snap(people, *, now: float = NOW, routines=(), approvals=(), events=(), feed=None) -> FirmSnapshot:
     return FirmSnapshot(now=now, people=tuple(people), routines=tuple(routines), approvals=tuple(approvals), risk_events=tuple(events),
-                        feed_t=feed if feed is not None else {"ledger": now, "risk_feed": now}, origin="synthetic", badge="synthetic firm", source="firm")
+                        feed_t=feed if feed is not None else {"ledger": now, "risk_feed": now}, origin="synthetic", badge="made-up firm", source="firm")
 
 
 def habit_rows(pid: str, *, weeks: int = 3, per_week: int = 4, lost: float = 30.0, outcome: str = "clean", skill: str = SKILL, start_days: float = 1.0,

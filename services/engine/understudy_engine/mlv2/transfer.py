@@ -25,7 +25,7 @@ from understudy_engine.mlv2.stats import (
     Clusters, EventCounts, boot_multiplicities, event_draws, event_points, interval, metric_draws, metric_points, score_parts,
 )
 
-BADGE = "simulated participants (language model), not people"
+BADGE = "language-model participants, not people"
 ORIGIN = "simulated_participants"
 
 
@@ -120,8 +120,8 @@ def evaluate_transfer(train_tab: BinTable, sim: SimData, *, primary_spec_id: str
         "badge": BADGE, "origin": ORIGIN, "test_only": True, "n_participants_finished": len(sim.finished), "participants_skipped": sim.skipped,
         "n_events": sim.n_events, "n_progress_events": sim.n_progress, "n_coach_events": sim.n_coach_events, "timing": sim.timing,
         "arms": {a: sorted(p for p, x in sim.arm.items() if x == a) for a in sorted(set(sim.arm.values()))},
-        "genome_comparison": "not applicable: the simulated participants are all novices; there is no expert reference in these data",
-        "train": {"pool": "synthetic personas only", "n_people": len(train_tab.people), "n_bins": int(train_tab.n)},
+        "genome_comparison": "not applicable: the language-model participants are all novices; there is no expert reference in these data",
+        "train": {"pool": "generated personas only", "n_people": len(train_tab.people), "n_bins": int(train_tab.n)},
     }
     if not sim.episodes:
         out["status"] = "no_finished_participants"
@@ -135,7 +135,7 @@ def evaluate_transfer(train_tab: BinTable, sim: SimData, *, primary_spec_id: str
     out.update({
         "n_unit": "participants", "n": cl.C, "n_cases": len(tab.ep_person), "n_bins": int(tab.n), "label_rate": float(y.mean()),
         "bins_per_participant": {"min": int(cl.counts().min()), "median": float(np.median(cl.counts())), "max": int(cl.counts().max())},
-        "interval_level": 0.95, "split": "train on synthetic personas, test on simulated participants (no tuning)",
+        "interval_level": 0.95, "split": "train on generated personas, test on language-model participants (no tuning)",
     })
     rows_tr = np.arange(train_tab.n)
     models = {
@@ -192,7 +192,7 @@ def evaluate_transfer(train_tab: BinTable, sim: SimData, *, primary_spec_id: str
         "Progress events are sparse in these traces, so the label ('no progress in the next 60 s') is almost always 1: log loss against the base rate "
         "says little, and a model can look good or bad for that reason alone.",
         "Cases are short (about a minute or two), so each participant contributes a handful of 30 s bins.",
-        "Nothing was tuned on these traces; the models and alarm rules were fitted on synthetic personas before any of these numbers existed.",
+        "Nothing was tuned on these traces; the models and alarm rules were fitted on generated personas before any of these numbers existed.",
         "Participants are language models acting in a sandbox we built, under a coach we built; this tests transfer to a different behaviour generator, not to real work.",
     ]
     out["status"] = "ok"

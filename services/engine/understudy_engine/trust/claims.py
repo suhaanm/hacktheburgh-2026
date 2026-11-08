@@ -118,7 +118,7 @@ def evaluate_claims(runs: ClaimRuns | None = None, *, k_folds: int = 5, l2: floa
         # --- keys the Evidence page reads
         "reliability": reliability_bins(y, p_model), "brier": brier(y, p_model), "base_rate": float(y.mean()),
         "meta": analytic_meta(runs.origin, int(n), "runs", f"grouped {k_folds}-fold (by household)",
-                              note="How well a claimed success that code has not yet checked can be trusted. Synthetic runs."),
+                              note="How well a claimed success that code has not yet checked can be trusted. Generated runs."),
         "model": pack(p_model, True),
         "baselines": {"base_rate": pack(p_base), "stated_confidence_platt": pack(p_conf)},
         "calibration": reliability_bins(y, p_model),
@@ -130,7 +130,7 @@ def evaluate_claims(runs: ClaimRuns | None = None, *, k_folds: int = 5, l2: floa
         },
         "limitations": limitations_for("agent_claims"),
         "caveats": [
-            "Synthetic runs generated from a known mechanism; real agent traces will differ and this has not been validated on them.",
+            "Runs generated from a known mechanism; real agent traces will differ and this has not been validated on them.",
             "Features are trace summaries, not content; claims about page text cannot be assessed here.",
             "Code still decides success. A low predicted risk never replaces the completion check.",
         ],

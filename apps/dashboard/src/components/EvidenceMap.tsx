@@ -9,10 +9,13 @@ type Obj = Record<string, unknown>;
 const isObj = (v: unknown): v is Obj => !!v && typeof v === "object" && !Array.isArray(v);
 const isNum = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 
-/** The origin badge for one section: dashed for anything that is not a real person, a plain "live" for the study. */
+/**
+ * What one section was measured on. A pill for the two things a reader must not miss: the live study ("live") and a section that has not run ("not run").
+ * Everything else is plain words with no tag (D57): "generators we wrote", "language-model participants", "real and generated".
+ */
 export function OriginPill({ row }: { row: Pick<MapRow, "kind" | "originLabel"> }) {
-  const data = row.kind === "live" ? "real" : row.kind === "simulated" ? "simulated" : row.kind === "mixed" ? "mixed" : row.kind === "not_run" ? "not_run" : "synthetic";
-  return <span className="pill pill--origin" data-origin={data}>{row.originLabel}</span>;
+  if (row.kind === "live" || row.kind === "not_run") return <span className="pill pill--origin" data-origin={row.kind === "live" ? "real" : "not_run"}>{row.originLabel}</span>;
+  return <span className="ev-map__on" data-origin={row.kind === "simulated" ? "participants" : row.kind === "mixed" ? "mixed" : "generated"}>{row.originLabel}</span>;
 }
 
 function StatusPill({ status }: { status: MapStatus }) {
@@ -36,17 +39,17 @@ export function EvidenceMap({ rows, onGo }: { rows: MapRow[]; onGo: (id: string)
       <Details summary={open ? "Hide the map" : "Show the map"} defaultOpen wide onToggle={setOpen}>
         <div className="table-wrap">
           <table className="table ev-map__table">
-            <thead><tr><th>Section</th><th>Origin</th><th className="num">n</th><th className="hide-narrow">95% intervals</th><th>Status</th></tr></thead>
+            <thead><tr><th>Section</th><th>Measured on</th><th className="num">n</th><th className="hide-narrow">95% intervals</th><th>Status</th></tr></thead>
             <tbody>
               {[...ok, ...waiting].map((r) => <MapLine key={r.section} r={r} onGo={onGo} />)}
             </tbody>
           </table>
         </div>
       </Details>
-      {anySim && <p className="note" data-testid="ev-sim-note">Simulated participants are language models playing workers. They are not people.</p>}
-      <Details summary="What synthetic and live mean">
+      {anySim && <p className="note" data-testid="ev-sim-note">Language-model participants are language models playing workers. They are not people.</p>}
+      <Details summary="What the labels mean">
         <ul className="plain-list">
-          <li className="note"><b>Synthetic.</b> {ORIGIN_NOTE.synthetic}</li>
+          <li className="note"><b>Generators we wrote.</b> {ORIGIN_NOTE.synthetic}</li>
           <li className="note"><b>Live.</b> {ORIGIN_NOTE.live} Read its n: the live study is small.</li>
           {rows.some((r) => r.kind === "not_run") && <li className="note"><b>Not run.</b> {ORIGIN_NOTE.not_run}</li>}
         </ul>

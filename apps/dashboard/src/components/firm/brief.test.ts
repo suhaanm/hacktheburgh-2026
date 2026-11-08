@@ -11,9 +11,9 @@ const w = normaliseOnboarding(onboardingFx);
 
 describe("buildBrief", () => {
   const b = buildBrief(o, r, w, "2026-11-09");
-  it("carries the coaching statement and names the synthetic firm", () => {
+  it("carries the coaching statement and names the made-up firm", () => {
     expect(b.statement).toBe(BRIEF_STATEMENT);
-    expect(b.label).toBe("synthetic firm");
+    expect(b.label).toBe("made-up firm");
   });
   it("shows at most seven insights, each with its n", () => {
     expect(b.insights.length).toBeLessThanOrEqual(7);

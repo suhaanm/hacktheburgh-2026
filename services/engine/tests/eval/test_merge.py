@@ -12,7 +12,7 @@ from understudy_engine.eval.render_md import render
 NOW = "2026-11-07T21:00:00Z"
 LATER = "2026-11-07T21:30:00Z"
 GATE = "35e964049fd0"
-SIM = "simulated participants (language model), not people"
+SIM = "language-model participants, not people"
 
 
 def put(path, d):
@@ -118,7 +118,7 @@ def study_roles_dir(tmp_path, with_pilots=True):
     d = tmp_path / "evals" / "study_roles"
     (d / "results" / "programmer").mkdir(parents=True)
     put(d / "__init__.py", "def study_roles_section():\n    import json, pathlib\n    p = pathlib.Path(__file__).parent / 'results' / 'programmer'\n    pilots = {f'programmer/{f.stem}': json.loads(f.read_text()) for f in sorted(p.glob('PILOT_*.json'))}\n"
-                           "    return {'status': 'not_run', 'reason': 'The simulated role studies have not been run.', 'label': 'simulated participants (language model), not people', 'roles': {}, 'pilots': pilots,\n"
+                           "    return {'status': 'not_run', 'reason': 'The language-model role studies have not been run.', 'label': 'language-model participants, not people', 'roles': {}, 'pilots': pilots,\n"
                            "            'meta': {'origin': 'simulated_llm', 'n': 0, 'n_unit': 'silicon participants', 'split': None, 'interval_level': 0.95, 'note': 'Never feeds the live study; not people.'}}\n")
     put(d / "PLAN.md", "**Amendment 3 (2026-11-07 21:07 UTC): programmer pilot on `fast-low` is USABLE; the study is NOT started.**\n")
     base = {"role": "programmer", "model": "gpt-5.4-mini", "n_unassisted_cases": 12, "participants_run": 3, "criteria": {"max_share_zero": 0.5, "max_share_full": 0.8, "max_share_cap_bound": 0.25},
@@ -138,7 +138,7 @@ def test_study_roles_says_the_study_has_not_run_and_shows_the_three_pilots_and_t
     rep = build_report(sections=["study_roles"], now=NOW, regenerate=False, log=lambda m: None)
     s = rep["sections"]["study_roles"]
     assert s["status"] == "not_run" and s["study_run"] is False and set(s["pilots"]) == {"programmer/PILOT_aborted_1", "programmer/PILOT_fast", "programmer/PILOT_fast-low"}
-    assert s["reason"].startswith("Simulated participants (language model), not people.") and "role studies themselves have not been run" in s["reason"] and "3 feasibility pilots" in s["reason"]
+    assert s["reason"].startswith("Language-model participants, not people.") and "role studies themselves have not been run" in s["reason"] and "3 feasibility pilots" in s["reason"]
     assert "not usable by code (floor: 75%" in s["reason"] and "cap: 58%" in s["reason"] and "fast-low (fast-low, gpt-5.4-mini): usable by code (floor 8.3%, limit 50%; ceiling 50%, limit 80%; cap-binding 8.3%, limit 25%" in s["reason"]
     assert s["go_ahead"]["where"] == "evals/study_roles/PLAN.md, Amendment 3 (2026-11-07 21:07 UTC)" and "GO" in s["go_ahead"]["needs"]
     e = {x["id"]: x for x in s["limitations"]}["study-roles-pilots-only"]

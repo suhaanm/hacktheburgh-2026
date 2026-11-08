@@ -372,10 +372,10 @@ def _criterion_7b(s4: dict[str, Any] | None) -> str:
 
 
 LIMITATIONS = [
-    {"id": "att_sim_not_people", "severity": "high", "text": "Every number is simulated: workers, schedules, event streams, reactions and attention costs are my assumptions (simulate.py). This shows the policy behaves as designed under them. It does not show that real people find Knack natural. The live check with four teammates (n = 4) is the real test and was not run."},
+    {"id": "att_sim_not_people", "severity": "high", "text": "Every number comes from a generator: workers, schedules, event streams, reactions and attention costs are my assumptions (simulate.py). This shows the policy behaves as designed under them. It does not show that real people find Knack natural. The live check with four teammates (n = 4) is the real test and was not run."},
     {"id": "att_costs_assumed", "severity": "medium", "text": "The attention-cost model (seconds of focus lost per interruption by context) is an assumption. The sensitivity run halves and doubles it and reports whether the ordering of conditions changes; the magnitudes stay assumptions."},
     {"id": "att_rates_assumed", "severity": "medium", "text": "Producer rates are stated approximations of Cue, the briefing, the approval queue, the agent runtime, the calendar layer and health checks. The sensitivity run scales them by 0.5 and 2."},
-    {"id": "att_labels_proxy", "severity": "medium", "text": "Implicit labels (followed within 10 s, dismissed within 4 s, ignored, never) are noisy proxies for welcome: a dismissal can mean already knew. The simulated worker's labels come from the same reaction model, so learning is validated for its direction, not for its calibration against people."},
+    {"id": "att_labels_proxy", "severity": "medium", "text": "Implicit labels (followed within 10 s, dismissed within 4 s, ignored, never) are noisy proxies for welcome: a dismissal can mean already knew. The generated worker's labels come from the same reaction model, so learning is validated for its direction, not for its calibration against people."},
     {"id": "att_probes_exact", "severity": "medium", "text": "Meeting, call, screen-share and quiet-hotkey states are known exactly here. In the product they come from probes that can be wrong or missing; an unknown worker is held, never interrupted, except for safety. The sensitivity run makes 10% of polls unknown to show the cost."},
     {"id": "att_b1_b2_strawmen", "severity": "low", "text": "B1 and B2 are deliberately simple baselines (everything at once, one digest a day). They show the two failure modes the layer is designed to avoid; they are not what any real notifier does."},
 ]
@@ -423,7 +423,7 @@ def evaluate_attention(fast: bool = False, *, held_out: bool = False, root: Path
     summary = summarise(pooled, n_boot, 11)
     scenarios = SC.run_all(sc_seed, params=params, settings=settings, fast=fast, root=root)
     out: dict[str, Any] = {
-        "meta": {"origin": ORIGIN, "badge": "synthetic: simulated workers, schedules, events and reactions; not people", "split": "held_out" if held_out else "dev",
+        "meta": {"origin": ORIGIN, "badge": "generated: workers, schedules, events and reactions; not people", "split": "held_out" if held_out else "dev",
                  "seeds": list(seeds), "workers_per_archetype": per_arch, "archetypes": list(ARCHETYPES), "working_days_per_worker": days, "n_workers": summary["n_workers"],
                  "n_worker_days": summary["n_worker_days"], "schedule_source": source, "fast": fast, "interval": f"{int(LEVEL * 100)}% person-level bootstrap, {n_boot} draws",
                  "params": {k: getattr(params, k) for k in asdict(params)}, "budget_per_day": (settings.budget_per_day if settings else DEFAULT.budget_per_day),
@@ -495,7 +495,7 @@ def _headline(o: dict[str, Any]) -> dict[str, Any]:
             "R_minus_B1_flow_non_safety": p["R_minus_B1"]["interruptions_per_flow_hour_non_safety"], "R_minus_B1_duplicate_rate": p["R_minus_B1"]["duplicate_rate"],
             "scenarios_passed": {k: v["passed"] for k, v in o["scenarios"].items()},
             "acceptance": {k: v for k, v in o["acceptance"].items() if k in ("met", "not_met", "inconclusive")},
-            "caveat": "simulated workers and an assumed reaction and cost model; shows the policy behaves as designed, not that people find it natural"}
+            "caveat": "generated workers and an assumed reaction and cost model; shows the policy behaves as designed, not that people find it natural"}
 
 
 def main(argv: list[str] | None = None) -> int:

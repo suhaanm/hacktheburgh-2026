@@ -16,7 +16,7 @@ def firm():
 
 def test_sixty_users_across_three_roles_with_experts_and_juniors(firm):
     s = firm.snapshot
-    assert len(s.people) == 60 and s.badge == "synthetic firm" and s.origin == "synthetic" and s.source == "firm"
+    assert len(s.people) == 60 and s.badge == "made-up firm" and s.origin == "synthetic" and s.source == "firm"
     c = collections.Counter((p.role, p.level) for p in s.people)
     assert c[("benefits-processor", "expert")] == 7 and c[("benefits-processor", "junior")] == 23
     assert c[("data-analyst", "expert")] == 5 and c[("programmer", "expert")] == 3

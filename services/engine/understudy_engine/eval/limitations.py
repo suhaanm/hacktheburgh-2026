@@ -19,7 +19,7 @@ from .adapters import SECTIONS
 
 OWNER = {s.name: s.owner for s in SECTIONS}
 SEV_RANK = {"high": 0, "medium": 1, "low": 2}
-SIM_PHRASE = "simulated participants (language model), not people"
+SIM_PHRASE = "language-model participants, not people"
 UMBRELLA = "eval-synthetic"
 FOLD_INTO_UMBRELLA = {"ana-synthetic-origin", "presence-synthetic", "routines-synthetic"}
 # a statement the register must contain: ours is added only when no owner entry already says it (all keywords present in one entry's text)
@@ -69,8 +69,8 @@ def static_entries(sections: dict[str, Any] | None = None) -> list[dict[str, str
     live_n = ((ac.get("live") or {}).get("n") if isinstance(ac, dict) and "status" not in ac and isinstance(ac.get("live"), dict) else None)
     return [
         {"id": UMBRELLA, "severity": "high", "source": "engine-eval",
-         "text": ("Almost every result in this report comes from synthetic apprentices, synthetic personas or simulators we wrote; each section "
-                  "carries a synthetic badge. They show that the methods recover the structure we planted, not that real workers behave this way.")},
+         "text": ("Almost every result in this report comes from scripted apprentices, generated personas or simulators we wrote; each section "
+                  "says what it was measured on. They show that the methods recover the structure we planted, not that real workers behave this way.")},
         {"id": "eval-study-n4", "severity": "high", "source": "engine-eval",
          "text": (f"The live study has n = {n}, all teammates, none of them benefits processors" + ("" if ran else " (planned; it has not been run)") +
                   ". Intervals are wide and the result is a case study. The headline measure is unassisted performance on a later matched "
@@ -83,14 +83,14 @@ def static_entries(sections: dict[str, Any] | None = None) -> list[dict[str, str
          "text": ("The three calculators are sandbox sites we built, each with planted quirks, and each computes one Universal-Credit-shaped "
                   "entitlement. They say nothing about how real calculators behave or what their terms and bot protection allow.")},
         {"id": "eval-claims-simulated", "severity": "medium", "source": "engine-analytics",
-         "text": (("Agent-claim calibration is mostly on simulated runs. The real-model result covers only " + str(live_n) + " claimed successes from one family of failure "
+         "text": (("Agent-claim calibration is mostly on generated runs. The real-model result covers only " + str(live_n) + " claimed successes from one family of failure "
                    "(see agent_claims.live), so it cannot show that claim risk can be predicted in general. " if live_n else
-                   "Agent-claim calibration uses simulated runs until real agent runs exist. ")
+                   "Agent-claim calibration uses generated runs until real agent runs exist. ")
                   + "A low predicted risk of a false claim never replaces the code check, which decides success.")},
         {"id": "eval-offhours-s2", "severity": "medium", "source": "agent-core: docs/SPIKES.md S2",
          "text": ("The off-hours live run depends on the conditions spike S2 passed under: macOS Accessibility and Screen Recording granted, an "
                   "unlocked screen, a harmless app, the owner present. The presence forecast and the start-or-wait rule are evaluated on "
-                  "synthetic personas; the live run may fall back to a simulated clock.")},
+                  "generated personas; the live run may fall back to a stand-in clock.")},
     ]
 
 
@@ -234,7 +234,7 @@ def computed_entries(sections: dict[str, Any]) -> list[dict[str, str]]:
                                   + ". It does not show the fix generalises.", "high", "engine-eval:agent_runs"))
             t3 = live.get("tier3") or {}
             out.append(_entry("eval-agent-live-tier3",
-                              f"Tier 3 (computer use) is not demonstrated on the benefits task: {_nz(t3.get('runs'))} runs against a simulated actuator on real screenshots made "
+                              f"Tier 3 (computer use) is not demonstrated on the benefits task: {_nz(t3.get('runs'))} runs against a stand-in actuator on real screenshots made "
                               f"{_nz(t3.get('pointer_actions'))} pointer actions and landed on an interactive element {_nz(t3.get('landed_on_interactive'))} times. "
                               "Nothing is clicked in that setting, so a claim of done there is a false claim by construction.", "high", "engine-eval:agent_runs"))
             cs = live.get("cost") or {}
@@ -276,7 +276,7 @@ def computed_entries(sections: dict[str, Any]) -> list[dict[str, str]]:
             _entry("eval-study-sim-planted-by-us", f"{sim}. The coach prompts and the sandbox calculators were written by us, so the simulation checks that the "
                    "pipeline runs end to end under our own assumptions. It does not show that coaching works on anyone.", "high", src),
             _entry("eval-study-sim-learning-proxy", f"{sim}. Learning between blocks is a note carried in the model's prompt, a proxy. It is not memory, practice or "
-                   "skill, so a simulated 'improvement' says little about a human one.", "high", src),
+                   "skill, so a language-model 'improvement' says little about a human one.", "high", src),
             _entry("eval-study-sim-timing", f"{sim}. Times in this section are model response times or scripted numbers, not human reading, thinking or typing, "
                    "so no timing result here is a human timing.", "high", src),
         ]
@@ -347,7 +347,7 @@ def _recorded_result_entries(sections: dict[str, Any], ok) -> list[dict[str, str
                           "check runs afterwards. Nothing here shows that a worker understands the numbers better or decides better.", "high", "engine-eval:evidence"))
         out.append(_entry("eval-evidence-traceability-not-truth",
                           "The model check proves traceability, not truth: a sentence passes when every number in it traces to the evidence packet and it makes no causal or "
-                          "expert claim. A sentence can still mislead with numbers that all trace, and the packets are from synthetic apprentices.", "high", "engine-eval:evidence"))
+                          "expert claim. A sentence can still mislead with numbers that all trace, and the packets are from scripted apprentices.", "high", "engine-eval:evidence"))
         rec = ((ev.get("live") or {}).get("recorded") or {}).get("local_qwen25_7b") or {}
         first, final = rec.get("reword_n30_before_fix") or {}, rec.get("reword_final") or {}
         if first.get("rate") is not None and final.get("rate") is not None:
@@ -355,13 +355,13 @@ def _recorded_result_entries(sections: dict[str, Any], ok) -> list[dict[str, str
                 "eval-evidence-local-model-first-run",
                 f"The local model's reword pass rate on the number check was {_pct(first['rate'])} ({first.get('pass')} of {first.get('n')}) on its first n = {first.get('n')} run, "
                 f"and {_pct(final['rate'])} ({final.get('pass')} of {final.get('n')}, interval {_ce(final.get('ci'))}) after the hedge handling and the consequence wording were fixed. "
-                "The second figure is on the same kind of packets after fixing what the first run showed, so it is in-sample. Small n, one model, synthetic packets, "
+                "The second figure is on the same kind of packets after fixing what the first run showed, so it is in-sample. Small n, one model, generated packets, "
                 "recorded 7 Nov and not re-run by make eval.", "high", "engine-eval:evidence"))
     # cue: the composite score
     cu = ok("cue")
     if cu:
         out.append(_entry("eval-cue-composite-experimental",
-                          "The composite independence score is experimental: on simulated learners it overstates mastery when nobody improves and can rise for flat learners. "
+                          "The composite independence score is experimental: on generated learners it overstates mastery when nobody improves and can rise for flat learners. "
                           "Read the trend with its interval and the four components; do not read the composite alone.", "high", "engine-eval:cue"))
     # agent runs: the injected condition
     ar = ok("agent_runs")

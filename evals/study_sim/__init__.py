@@ -5,7 +5,7 @@ Everything produced here is labelled LABEL. It never touches the ``study`` secti
 """
 from __future__ import annotations
 
-LABEL = "simulated participants (language model), not people"
+LABEL = "language-model participants, not people"
 
 
 def study_sim_section() -> dict:
