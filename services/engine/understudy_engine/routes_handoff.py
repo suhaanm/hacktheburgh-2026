@@ -166,7 +166,9 @@ def _resolve(person: str | None) -> tuple[str | None, PersonData | None]:
     if person:
         return person, _as_current(src.load(person))
     prof = load_profile(_mem())
-    if prof and prof.get("person") and src.load(prof["person"]):
+    if prof and prof.get("person"):
+        # The caller is someone: every route that defaults its person answers for THEM, even before any of their work is captured (then pd is None and the route says so calmly).
+        # It never falls back to another person's data or id (the engine's default persona is for a stack nobody has set up).
         return prof["person"], _as_current(src.load(prof["person"]))
     p = src.default_person()
     return p, _as_current(src.load(p) if p else None)
@@ -177,8 +179,8 @@ def _meta(origin: str, n: int, n_unit: str, split: str | None = None, note: str 
 
 
 def _unknown_person(person: str | None) -> JSONResponse:
-    known = sorted(_src().persons())
-    return _error(404, "unknown_person", f"No events for {person!r}. Known people: {', '.join(known) or 'none (is data/synthetic generated?)'}.")
+    # Calm and without any other person's id: a worker's page never learns who else the engine knows.
+    return _error(404, "unknown_person", "Nothing has been captured for this person yet, so there is nothing to show. It fills in as work is captured.")
 
 
 def _demo(mem: MemoryStore) -> dict[str, Any]:
