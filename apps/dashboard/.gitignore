@@ -8,3 +8,5 @@ qa/knack/*
 !qa/knack/home-quiet-live-dark-m390.png
 !qa/knack/first-run-2-light-win.png
 !qa/knack/menu-account-light-win.png
+!qa/knack/home-quiet-light-win.png
+!qa/knack/home-quiet-dark-m390.png
