@@ -494,10 +494,14 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
 }
 
 // 9. Kill switch
-await go("/genome");
+await go("/growth");
+// One red square, once: exactly one Stop button is visible, it holds the word and nothing else, and its only square is the design system's ::before.
+const stopFace = await page.evaluate(() => [...document.querySelectorAll(".stop-button")].filter((b) => b.offsetParent !== null).map((b) => ({ kids: b.children.length, svg: b.querySelectorAll("svg").length, text: b.textContent.trim(), before: getComputedStyle(b, "::before").content, after: getComputedStyle(b, "::after").content })));
+check("kill switch: one visible Stop button with one red square (the word, no icon of its own)", stopFace.length === 1 && stopFace[0].kids === 1 && stopFace[0].svg === 0 && stopFace[0].text === "Stop" && stopFace[0].before === '""' && stopFace[0].after === "none", JSON.stringify(stopFace));
 await page.getByRole("button", { name: "Stop everything now" }).click();
 await page.waitForTimeout(600);
 check("kill switch: says everything is stopped", await page.getByText("Everything is stopped.").isVisible());
+check("kill switch: stopped, the button says Resume in words and the banner carries one alert icon, not a stop square", (await page.locator(".stopped-banner svg").count()) === 1 && (await page.locator(".stop-button:visible").first().innerText()).trim() === "Resume");
 await page.screenshot({ path: join(qa, "killed-1440.png") });
 await page.getByRole("button", { name: "Resume" }).first().click();
 await page.waitForTimeout(500);

@@ -70,9 +70,10 @@ describe("the status line", () => {
 
 describe("the sidebar and the menus", () => {
   it("a screen id nobody knows has the app's own name as its label and can be viewed (the shell then lands on Home)", () => { expect(labelOf("unknown")).toBe("Knack"); expect(labelOf("nope" as never)).toBe("Knack"); expect(canView("unknown", "worker")).toBe(true); });
-  it("More never has more than ten rows, in either view, with or without pinned views, and has no empty label", () => {
-    for (const v of ["worker", "admin"] as const) for (const p of [false, true]) {
-      const rows = moreFor(v, p);
+  it("More never has more than ten rows, in either view, and has no empty label (a worker has none at all)", () => {
+    expect(moreFor("worker")).toEqual([]);
+    for (const v of ["worker", "admin"] as const) {
+      const rows = moreFor(v);
       expect(rows.length).toBeLessThanOrEqual(10);
       for (const r of rows) { expect(r.label.trim().length).toBeGreaterThan(0); expect(r.path.startsWith("/")).toBe(true); }
     }
@@ -80,9 +81,10 @@ describe("the sidebar and the menus", () => {
   it("every sidebar row is one click from Home and the deepest screen is two", () => {
     for (const v of ["worker", "admin"] as const) {
       const s = sidebarFor(v);
-      for (const e of [...s.primary, ...s.admin]) expect(clicksFromHome(e.id, v), e.id).toBeLessThanOrEqual(1);
+      for (const e of s.main) expect(clicksFromHome(e.id, v), e.id).toBeLessThanOrEqual(1);
     }
     for (const e of NAV_ENTRIES.filter((x) => x.group !== "hidden" && !x.admin)) expect(clicksFromHome(e.id, "worker"), e.id).toBeLessThanOrEqual(2);
+    for (const e of NAV_ENTRIES.filter((x) => x.group !== "hidden" && x.admin)) expect(clicksFromHome(e.id, "admin"), e.id).toBeLessThanOrEqual(2);
   });
   it("a worker can never reach an admin screen through the menu, the More sheet or the palette", () => {
     const admin = NAV_ENTRIES.filter((e) => e.admin).map((e) => `/${e.id}`);
@@ -134,9 +136,10 @@ describe("the palette", () => {
   });
   it("unicode and right-to-left queries are split into words and do not throw", () => { for (const bad of ["استحقاق", "审核", "🧮", "Éligibilité"]) expect(tokensOf(bad).length).toBe(1); expect(() => searchItems(items, "استحقاق")).not.toThrow(); });
   it("a screen can be found by the name it had before Knack", () => {
-    for (const [word, id] of [["queue", "screen:needs-you"], ["briefing", "screen:needs-you"], ["repeats", "screen:routines"], ["memory", "screen:your-data"], ["privacy", "screen:your-data"], ["predictions", "screen:forecasts"], ["genome", "screen:genome"]] as const) {
+    for (const [word, id] of [["queue", "screen:needs-you"], ["briefing", "screen:needs-you"], ["repeats", "screen:routines"], ["memory", "screen:your-data"], ["privacy", "screen:your-data"], ["genome", "growth:steps"], ["presence", "growth:time"], ["graph", "growth:map"], ["git", "growth:commits"]] as const) {
       expect(searchItems(items, word).map((s) => s.item.id), word).toContain(id);
     }
+    expect(searchItems(buildItems("admin"), "predictions").map((s) => s.item.id)).toContain("screen:forecasts");
   });
   it("thousands of extra rows (pointers) are capped at seven until asked", () => {
     const pointers = Array.from({ length: 3000 }, (_, i) => ({ id: `p${i}`, kind: "k", headline: `Pointer ${i}`, detail: null, numbers: {}, origin: "synthetic", n: null, n_unit: null, polarity: "note", polarity_label: null, glyph: null, a11y_label: null, badge: null, details_available: false, action: null })) as never;

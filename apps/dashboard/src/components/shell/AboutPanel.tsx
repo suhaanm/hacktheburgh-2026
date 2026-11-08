@@ -3,9 +3,9 @@
 import { useEffect, useRef } from "react";
 import { screenOf, useRoute } from "../../router";
 import { dataMode, useAppState } from "../../store";
-import { labelOf } from "../home/navModel";
+import { GROWTH_SECTION_LABEL, growthSectionOf, labelOf } from "../home/navModel";
 import { closeAbout, useOverlay } from "../home/overlayStore";
-import { ABOUT } from "./about";
+import { aboutFor } from "./about";
 import { Icon } from "./icons";
 import { useStatus } from "./StatusLine";
 
@@ -28,8 +28,9 @@ function Panel() {
     document.addEventListener("keydown", key);
     return () => { document.removeEventListener("keydown", key); if (back && document.contains(back)) back.focus(); };
   }, []);
-  const a = current === "unknown" ? null : ABOUT[current];
-  const title = labelOf(current);
+  const section = current === "growth" ? growthSectionOf(route.query.get("section")) : null;
+  const a = current === "unknown" ? null : aboutFor(current, section);
+  const title = section && section !== "progress" ? GROWTH_SECTION_LABEL[section] : labelOf(current);
   return (
     <div className="drawer drawer--about" data-testid="about-panel">
       <div className="drawer__scrim drawer__scrim--clear" onClick={closeAbout} aria-hidden="true" />

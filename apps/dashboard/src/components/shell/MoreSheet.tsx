@@ -1,12 +1,11 @@
-// More: a sheet of at most ten one-line rows (docs/KNACK_UX.md section 3). No hints here (they live in the palette). On a narrow window the first
-// row is Search, because the sidebar no longer has a button for it. The rows are links, so Cmd-click and the keyboard work as on any link.
+// More: a sheet of one-line rows, Admin view only (a worker has five rows and no More). No hints here (they live in the palette). On a narrow window the first
+// row is Search, because the sidebar has no button for it, and the Admin rows that do not fit the bottom bar come first. The rows are links, so Cmd-click and the keyboard work as on any link.
 import { useId } from "react";
-import { groupOf, moreFor, type MoreRow } from "../home/navModel";
+import { compactFor, moreFor, type MoreRow } from "../home/navModel";
 import { openPalette } from "../home/overlayStore";
 import { isApple, shortcutLabel } from "../home/Overlays";
 import { useViewRole } from "../home/viewAs";
 import { Icon } from "./icons";
-import { usePinnedViews } from "./pinned";
 import { usePopover } from "./usePopover";
 
 /** Consecutive rows under the same heading. */
@@ -19,14 +18,10 @@ function sections(rows: MoreRow[]): { title: string; rows: MoreRow[] }[] {
   return out;
 }
 
-/** On a narrow window the Admin destinations have no sidebar, so the sheet leads with them (Admin view only). */
-const adminRows = (view: "worker" | "admin"): MoreRow[] => groupOf(view, "admin").map((e) => ({ id: e.id, label: e.label, path: `/${e.id}`, section: "Admin" }));
-
 export function MoreSheet({ current, placement = "side" }: { current: string; placement?: "side" | "bottom" }) {
   const { open, btn, pop, close, toggle } = usePopover();
   const view = useViewRole();
-  const [pinned] = usePinnedViews();
-  const rows = placement === "bottom" ? [...adminRows(view), ...moreFor(view, pinned)] : moreFor(view, pinned);
+  const rows = placement === "bottom" ? [...compactFor(view).overflow, ...moreFor(view)] : moreFor(view);
   const uid = useId();
   const here = rows.some((r) => r.id === current);
   return (

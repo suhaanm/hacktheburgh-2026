@@ -1,7 +1,7 @@
-// The shell's keyboard map, pure (docs/KNACK_UX.md section 9): Cmd-1 to Cmd-5 go to the five destinations, Cmd-comma opens Settings,
+// The shell's keyboard map, pure (docs/KNACK_UX.md section 9): Cmd-1 to Cmd-5 go to a worker's five destinations (Cmd-1 to Cmd-8 to an admin's eight), Cmd-comma opens Settings,
 // Cmd-slash opens "About this screen", Shift-Cmd-K stops everything (inside Knack; the global key is the desktop's). Control stands in for
 // Command off the Mac. NO KEYSTROKE EVER APPROVES anything: nothing here reaches a queue item, and a test says so.
-import { groupOf } from "../home/navModel";
+import { sidebarFor } from "../home/navModel";
 import type { ViewRole } from "../home/viewAs";
 
 export interface KeyLike { key: string; metaKey: boolean; ctrlKey: boolean; altKey: boolean; shiftKey: boolean }
@@ -13,8 +13,8 @@ export function shellKeyAction(e: KeyLike, view: ViewRole): ShellAction | null {
   if (e.shiftKey) return k === "k" ? { type: "stop" } : null;
   if (k === ",") return { type: "settings" };
   if (k === "/") return { type: "about" };
-  if (/^[1-5]$/.test(k)) {
-    const entry = groupOf(view, "primary")[Number(k) - 1];
+  if (/^[1-9]$/.test(k)) {
+    const entry = sidebarFor(view).main[Number(k) - 1];
     return entry ? { type: "go", path: `/${entry.id}` } : null;
   }
   return null;

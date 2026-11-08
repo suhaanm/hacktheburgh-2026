@@ -1,10 +1,10 @@
 // Command palette logic, pure: the items, the fuzzy match, the rows (capped at seven), and the keyboard index maths.
 // No React, no network, no router here, so it is tested without a browser. The view (Palette.tsx) only draws what this returns.
 import type { AdminInsight, WirePointer } from "../firm/wire";
-import { FIRM_TABS, entriesFor, type NavGroup } from "./navModel";
+import { GROWTH_SECTIONS, GROWTH_SECTION_ALSO, GROWTH_SECTION_LABEL, entriesFor, growthPath, type NavGroup } from "./navModel";
 import type { ViewRole } from "./viewAs";
 
-export type ItemKind = "screen" | "firm_tab" | "pointer" | "insight" | "action";
+export type ItemKind = "screen" | "section" | "firm_tab" | "pointer" | "insight" | "action";
 export type ActionId = "tour" | "view_admin" | "view_worker" | "stop" | "monday" | "about" | "settings" | "ask" | "pause" | "accessibility";
 export type PaletteTarget = { type: "route"; path: string } | { type: "action"; action: ActionId; phrase?: string };
 
@@ -24,8 +24,9 @@ export interface PaletteItem {
   target: PaletteTarget;
 }
 
-export const KIND_LABEL: Record<ItemKind, string> = { screen: "Screen", firm_tab: "Firm view", pointer: "Pointer", insight: "Insight", action: "Action" };
-export const GROUP_LABEL: Record<NavGroup, string> = { primary: "Go to", admin: "Admin", understand: "Understand your work", behind: "Behind the scenes", reviewers: "For reviewers", hidden: "" };
+export const KIND_LABEL: Record<ItemKind, string> = { screen: "Screen", section: "Growth section", firm_tab: "Firm view", pointer: "Pointer", insight: "Insight", action: "Action" };
+export const GROUP_LABEL: Record<NavGroup, string> = { primary: "Go to", admin: "Admin", more: "More", hidden: "" };
+export const GROUP_GROWTH = "Growth";
 export const GROUP_POINTERS = "This week";
 export const GROUP_INSIGHTS = "Firm insights";
 export const GROUP_FIRM = "Firm";
@@ -55,15 +56,15 @@ export function buildItems(view: ViewRole, extra: ExtraItems = {}, caps: Palette
     items.push({ id: `screen:${e.id}`, kind: "screen", label: e.label, hint: e.hint, also: e.also ?? "", group: GROUP_LABEL[e.group], target: { type: "route", path: `/${e.id}` } });
   }
   if (view === "admin") {
-    // "Overview" is the Firm screen itself and "Firm brief" has its own action, so neither is listed twice.
-    for (const t of FIRM_TABS) {
-      if (t.id === "overview" || t.id === "brief") continue;
-      items.push({ id: `tab:${t.id}`, kind: "firm_tab", label: `Firm: ${t.label}`, hint: t.hint, also: "admin", group: GROUP_FIRM, target: { type: "route", path: t.path } });
-    }
     for (const i of extra.insights ?? []) {
       items.push({ id: `insight:${i.id}`, kind: "insight", label: i.headline, hint: i.polarity_label ?? "Firm insight", also: `${i.kind ?? ""} ${i.role === "all" ? "" : i.role}`.trim(), group: GROUP_INSIGHTS, target: { type: "route", path: insightPath(i.id) } });
     }
   } else {
+    // The sections of Growth are rows of their own: a worker who remembers "Genome" or "Week" types the old word and lands on the section.
+    for (const s of GROWTH_SECTIONS) {
+      if (s === "progress") continue;
+      items.push({ id: `growth:${s}`, kind: "section", label: GROWTH_SECTION_LABEL[s], hint: "A section of Growth", also: GROWTH_SECTION_ALSO[s], group: GROUP_GROWTH, target: { type: "route", path: growthPath(s) } });
+    }
     for (const p of extra.pointers ?? []) {
       items.push({ id: `pointer:${p.id}`, kind: "pointer", label: p.headline, hint: p.polarity_label ?? p.action?.label ?? "Pointer", also: p.kind, group: GROUP_POINTERS, target: { type: "route", path: pointerPath(p) } });
     }
@@ -81,7 +82,7 @@ export function buildItems(view: ViewRole, extra: ExtraItems = {}, caps: Palette
   if (view === "worker") {
     items.push({ id: "action:view_admin", kind: "action", label: "Switch to the Admin view", hint: "Shows the Firm screen. A view switch, not a permission", also: "role admin firm", group: GROUP_ACTIONS, target: { type: "action", action: "view_admin" } });
   } else {
-    items.push({ id: "action:brief", kind: "action", label: "Print the firm brief", hint: "A one-page summary for the firm", also: "export pdf one-pager", group: GROUP_ACTIONS, target: { type: "route", path: "/firm/brief" } });
+    items.push({ id: "action:brief", kind: "action", label: "Print the firm brief", hint: "A one-page summary for the firm", also: "export pdf one-pager", group: GROUP_ACTIONS, target: { type: "route", path: "/brief" } });
     items.push({ id: "action:view_worker", kind: "action", label: "Switch to Worker view", hint: "Leaves the Firm screens", also: "role worker", group: GROUP_ACTIONS, target: { type: "action", action: "view_worker" } });
   }
   return items;

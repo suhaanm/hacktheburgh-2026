@@ -6,7 +6,6 @@ import { pick } from "../../screenRegistry";
 import { closeSettings, useOverlay } from "../home/overlayStore";
 import { VIEW_LABEL, setViewRole, useViewRole, type ViewRole } from "../home/viewAs";
 import { Icon } from "./icons";
-import { usePinnedViews } from "./pinned";
 import { THEMES, THEME_LABEL, useTheme } from "./theme";
 
 export interface SettingsProps { section: string | null; onClose: () => void }
@@ -17,7 +16,6 @@ const Contents = lazy(pick(FILES, ["../../screens/Settings/index.tsx"]) ?? (asyn
 function Fallback({ section }: SettingsProps) {
   const [theme, setTheme] = useTheme();
   const view = useViewRole();
-  const [pinned, setPinned] = usePinnedViews();
   return (
     <div className="settings__fallback" data-section={section ?? undefined}>
       <section aria-labelledby="set-look">
@@ -31,7 +29,6 @@ function Fallback({ section }: SettingsProps) {
         <div className="segmented" role="group" aria-label="View as">
           {(["worker", "admin"] as ViewRole[]).map((r) => <button key={r} type="button" aria-pressed={view === r} onClick={() => setViewRole(r)}>{VIEW_LABEL[r]}</button>)}
         </div>
-        <label className="settings__check"><input type="checkbox" checked={pinned} onChange={(e) => setPinned(e.target.checked)} /> Show Genome, Graph and Presence in the sidebar</label>
       </section>
       <p><a href="#/setup" onClick={() => closeSettings()}>Set up again</a></p>
     </div>

@@ -6,6 +6,7 @@ import { Loading } from "./components/common";
 import { ToastHost } from "./components/Toasts";
 import { AuthContextProvider, createAuth } from "./auth";
 import { extensionsFrom } from "./lib/ext";
+import { adoptEngineName } from "./lib/profile";
 import { refreshNeedsBadge } from "./screens/NeedsYou/count";
 import { ScreenFrame } from "./components/home/ScreenFrame";
 import { Overlays } from "./components/home/Overlays";
@@ -68,7 +69,12 @@ function Shell() {
   useEffect(() => {
     // One look at both services and the identity, then every optional screen knows whether to ask for its own data or show an example.
     const health = () => Promise.all([api.health(), api.agentHealth(), api.identity()])
-      .then(([r, agent, who]) => setState({ mock: r.data?.mock ?? null, engineUp: r.source === "live", ext: extensionsFrom(r.data, r.source, agent), agentUp: agent !== null, person: who?.person ?? null, role: who?.role ?? null, extReady: true }))
+      .then(([r, agent, who]) => {
+        setState({ mock: r.data?.mock ?? null, engineUp: r.source === "live", ext: extensionsFrom(r.data, r.source, agent), agentUp: agent !== null, person: who?.person ?? null, role: who?.role ?? null, extReady: true });
+        // A name the engine sends wins over the device's own copy. An engine that sends none may simply not know names, so the device's copy stays here;
+        // the Account menu asks GET /profile, which does know, and then follows the engine whichever way it answers.
+        if (typeof who?.name === "string") adoptEngineName(who.name);
+      })
       .catch(() => setState({ engineUp: false, ext: extensionsFrom(null, "demo"), extReady: true }));
     void health();
     void refreshNeedsBadge();

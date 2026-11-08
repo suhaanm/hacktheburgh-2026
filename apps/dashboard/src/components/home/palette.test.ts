@@ -65,10 +65,11 @@ describe("searchItems", () => {
     expect(searchItems(items, "priv")[0].item.id).toBe("screen:your-data"); // the old name still finds it
   });
   it("finds a screen by letters in order", () => {
-    expect(searchItems(items, "ghb").map((s) => s.item.id)).toContain("screen:git");
+    expect(searchItems(items, "gro").map((s) => s.item.id)).toContain("screen:growth");
+    expect(searchItems(items, "cmts").map((s) => s.item.id)).toContain("growth:commits"); // letters in order: c-m-t-s in "commits"
   });
   it("matches words in the hint and in the extra keywords, and needs every word to match", () => {
-    expect(searchItems(items, "stuck forecast").map((s) => s.item.id)).toContain("screen:forecasts");
+    expect(searchItems(buildItems("admin"), "stuck forecast").map((s) => s.item.id)).toContain("screen:forecasts");
     expect(searchItems(items, "stuck zzzzqq")).toEqual([]);
     expect(searchItems(items, "hit list").map((s) => s.item.id)).toContain("screen:routines");
   });
@@ -99,24 +100,42 @@ describe("buildItems is role-aware", () => {
   const ids = (v: "worker" | "admin", extra = {}) => buildItems(v, extra).map((i) => i.id);
   it("never lists an admin screen, Firm view or the brief in the Worker view", () => {
     const w = ids("worker");
-    expect(w).not.toContain("screen:firm");
+    for (const id of ["firm", "brief", "forecasts", "roles", "people", "onboarding", "automation", "risk", "models", "evidence", "agents"]) expect(w, id).not.toContain(`screen:${id}`);
     expect(w.some((i) => i.startsWith("tab:"))).toBe(false);
     expect(w).not.toContain("action:brief");
     expect(w).toContain("action:view_admin");
     expect(w).not.toContain("action:view_worker");
     expect(w).toContain("action:tour");
   });
-  it("lists the Firm screen, its views and the brief in the Admin view", () => {
+  it("lists the eight Admin destinations, the three behind More and the brief in the Admin view, and none of the worker's five", () => {
     const a = ids("admin");
-    expect(a).toContain("screen:firm");
-    for (const t of FIRM_TABS.filter((t) => t.id !== "overview" && t.id !== "brief")) expect(a).toContain(`tab:${t.id}`);
+    for (const t of FIRM_TABS) expect(a, t.id).toContain(`screen:${t.id === "overview" ? "firm" : t.id}`);
+    for (const id of ["models", "evidence", "agents"]) expect(a, id).toContain(`screen:${id}`);
+    for (const id of ["home", "needs-you", "routines", "growth", "your-data"]) expect(a, id).not.toContain(`screen:${id}`);
+    expect(a.some((i) => i.startsWith("growth:"))).toBe(false);
     expect(a).toContain("action:brief");
     expect(a).toContain("action:view_worker");
     expect(a).not.toContain("action:view_admin");
   });
   it("lists every screen the menu lists, in menu order", () => {
-    const screens = buildItems("admin").filter((i) => i.kind === "screen").map((i) => i.id);
-    expect(screens).toEqual(NAV_ENTRIES.filter((e) => e.group !== "hidden").map((e) => `screen:${e.id}`));
+    for (const view of ["worker", "admin"] as const) {
+      const screens = buildItems(view).filter((i) => i.kind === "screen").map((i) => i.id);
+      expect(screens).toEqual(NAV_ENTRIES.filter((e) => e.group !== "hidden" && (view === "admin" ? e.admin : !e.admin)).map((e) => `screen:${e.id}`));
+    }
+  });
+  it("lists the four sections of Growth for a worker, each at its own address, and never for an admin", () => {
+    const sections = buildItems("worker").filter((i) => i.kind === "section");
+    expect(sections.map((i) => i.target)).toEqual([
+      { type: "route", path: "/growth?section=time" }, { type: "route", path: "/growth?section=steps" },
+      { type: "route", path: "/growth?section=map" }, { type: "route", path: "/growth?section=commits" },
+    ]);
+    // The old names find them: Week, Presence, Genome, Graph and Git.
+    const hit = (q: string) => searchItems(buildItems("worker"), q).map((s) => s.item.id);
+    expect(hit("genome")).toContain("growth:steps");
+    expect(hit("presence")).toContain("growth:time");
+    expect(hit("week")).toContain("growth:time");
+    expect(hit("graph")).toContain("growth:map");
+    expect(hit("git")).toContain("growth:commits");
   });
   it("lists worker pointers only in the Worker view and admin insights only in the Admin view", () => {
     const extra = { pointers: [pointer("w1", "You repeated one step nine times")], insights: [insight("a1", "New starters reach independence later")] };
@@ -142,15 +161,24 @@ describe("buildItems is role-aware", () => {
 
 describe("rowsFor", () => {
   const items = buildItems("worker", { pointers: [pointer("w1", "P1"), pointer("w2", "P2")] });
-  it("an empty query lists at most seven screens in menu order, then a Show all row", () => {
+  it("an empty query lists the five screens of a worker (not the Growth sections), then a Show all row", () => {
     const r = rowsFor(items, "", false);
-    expect(DEFAULT_CAP).toBe(7);
     const shown = r.rows.filter((x) => x.type === "item");
-    expect(shown.length).toBe(7);
+    expect(shown.length).toBe(5);
     expect(shown.every((x) => x.type === "item" && x.item.kind === "screen")).toBe(true);
     expect(r.rows[r.rows.length - 1]).toEqual({ type: "more", count: items.length });
     expect(r.capped).toBe(true);
     expect(r.total).toBe(items.length);
+    expect(r.rows.length).toBe(6);
+  });
+  it("an empty query lists at most seven screens in menu order for an admin, who has eleven, then a Show all row", () => {
+    const admin = buildItems("admin");
+    const r = rowsFor(admin, "", false);
+    expect(DEFAULT_CAP).toBe(7);
+    const shown = r.rows.filter((x) => x.type === "item");
+    expect(shown.length).toBe(7);
+    expect(shown.map((x) => (x.type === "item" ? x.item.id : ""))).toEqual(["screen:firm", "screen:brief", "screen:forecasts", "screen:roles", "screen:people", "screen:onboarding", "screen:automation"]);
+    expect(r.rows[r.rows.length - 1]).toEqual({ type: "more", count: admin.length });
     expect(r.rows.length).toBe(8);
   });
   it("Show all lists everything: screens, pointers and actions", () => {

@@ -60,17 +60,18 @@ export function StopProvider({ children }: { children: ReactNode }) {
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
-/** A red square and the word, 32 px high, on every screen: in the sidebar footer, and in the bar at the top of a narrow window. */
-export function StopButton({ compact = false }: { compact?: boolean }) {
-  const killed = useAppState().killed;
-  const { stop, resume, busy } = useStop();
+/**
+ * What the Stop button looks like, with no hooks so a test can draw it. The red square is drawn by CSS (the design system's `.stop-button::before`) and
+ * nowhere else: this markup carries the word only. A second square here (an icon, a glyph) is the double-icon bug, and stop.test.ts fails on it.
+ */
+export function StopFace({ killed, compact = false, busy = false, onClick }: { killed: boolean; compact?: boolean; busy?: boolean; onClick?: () => void }) {
   return (
     <button
       type="button"
       className="stop-button"
       data-compact={compact || undefined}
       aria-pressed={killed}
-      onClick={killed ? resume : stop}
+      onClick={onClick}
       disabled={busy}
       aria-label={killed ? "Resume after stop" : "Stop everything now"}
     >
@@ -79,20 +80,39 @@ export function StopButton({ compact = false }: { compact?: boolean }) {
   );
 }
 
-/** The in-window banner while everything is stopped. It names the state and offers the way back; it is not drawn when nothing is stopped. */
-export function StoppedBanner() {
-  const s = useAppState();
-  const { resume, busy } = useStop();
-  if (!s.killed) return null;
+/** A red square and the word, 32 px high, on every screen: in the sidebar footer, and in the bar at the top of a narrow window. */
+export function StopButton({ compact = false }: { compact?: boolean }) {
+  const killed = useAppState().killed;
+  const { stop, resume, busy } = useStop();
+  return <StopFace killed={killed} compact={compact} busy={busy} onClick={killed ? resume : stop} />;
+}
+
+/** The time a stop began, as the banner prints it ("since 14:05"); empty for no time or one that is not a date. */
+export function sinceText(killedAt: string | null): string {
+  if (!killedAt) return "";
+  const d = new Date(killedAt);
+  return Number.isFinite(d.getTime()) ? ` (since ${d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })})` : "";
+}
+
+/** The banner's markup, with no hooks. It names the state in words (never only a colour) and carries one alert icon, not a stop square. */
+export function StoppedBar({ killedAt, busy = false, onResume }: { killedAt: string | null; busy?: boolean; onResume?: () => void }) {
   return (
     <div className="banner-wrap stopped-banner">
       <div className="inline-banner" role="alert" data-tone="bad">
         <Icon name="alert" />
         <span className="inline-banner__text">
-          <b>Everything is stopped.</b> No agent will run and no routine will start{s.killedAt ? ` (since ${new Date(s.killedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })})` : ""}.
+          <b>Everything is stopped.</b> No agent will run and no routine will start{sinceText(killedAt)}.
         </span>
-        <button type="button" className="btn btn--secondary btn--sm" onClick={resume} disabled={busy}>Resume</button>
+        <button type="button" className="btn btn--secondary btn--sm" onClick={onResume} disabled={busy}>Resume</button>
       </div>
     </div>
   );
+}
+
+/** The in-window banner while everything is stopped. It names the state and offers the way back; it is not drawn when nothing is stopped. */
+export function StoppedBanner() {
+  const s = useAppState();
+  const { resume, busy } = useStop();
+  if (!s.killed) return null;
+  return <StoppedBar killedAt={s.killedAt} busy={busy} onResume={resume} />;
 }

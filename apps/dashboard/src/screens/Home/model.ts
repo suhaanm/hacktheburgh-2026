@@ -136,8 +136,8 @@ export function heroAction(p: Pick<WirePointer, "kind" | "action">): { label: st
     : p.kind === "habit_improved" ? "See how it changed"
     : p.kind === "independence_milestone" ? "See your progress"
     : wordCount(p.action.label) <= ACTION_MAX_WORDS ? p.action.label : "See more";
-  const to = p.kind === "time_loss_habit" ? "genome" : p.action.to;
-  return { label, href: `#/${to}${p.kind === "time_loss_habit" ? "" : q}` };
+  if (p.kind === "time_loss_habit") return { label, href: "#/growth?section=steps" };
+  return { label, href: `#/${p.action.to}${q}` };
 }
 
 /** What to try, from the engine's own "try" value: imperative, at most 12 words. Absent (null) when the engine has none. */

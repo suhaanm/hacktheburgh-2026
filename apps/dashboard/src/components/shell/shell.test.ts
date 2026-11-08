@@ -5,16 +5,17 @@ import { NAV_ENTRIES, groupOf, moreFor, sidebarFor } from "../home/navModel";
 import { capsOf, permState, permStates, permissionsAvailable, type KnackShellBridge } from "./bridge";
 
 describe("the breadcrumb", () => {
-  it("says where a screen under More sits, with the way back to Home", () => {
-    expect(breadcrumb("genome")).toEqual([{ label: "Home", href: "#/home" }, { label: "Where time goes" }]);
-    expect(breadcrumb("evidence")).toEqual([{ label: "Home", href: "#/home" }, { label: "Evidence" }]);
+  it("says where a screen behind the Admin More sits, with the way back to Firm", () => {
+    expect(breadcrumb("evidence")).toEqual([{ label: "Firm", href: "#/firm" }, { label: "Evidence" }]);
+    expect(breadcrumb("models")).toEqual([{ label: "Firm", href: "#/firm" }, { label: "Models and cost" }]);
+    expect(breadcrumb("agents")).toEqual([{ label: "Firm", href: "#/firm" }, { label: "Background runs" }]);
   });
-  it("is absent on the five destinations, the Admin screens and the bare screens", () => {
-    for (const id of ["home", "needs-you", "routines", "growth", "your-data", "firm", "roles", "onboarding", "first-run", "setup"] as const) expect(breadcrumb(id), id).toBeNull();
+  it("is absent on the five destinations, the eight Admin destinations and the bare screens", () => {
+    for (const id of ["home", "needs-you", "routines", "growth", "your-data", "firm", "brief", "forecasts", "roles", "people", "onboarding", "automation", "risk", "first-run", "setup"] as const) expect(breadcrumb(id), id).toBeNull();
     expect(breadcrumb("unknown")).toBeNull();
   });
   it("covers every screen of the More sheet", () => {
-    for (const r of moreFor("worker")) expect(breadcrumb(r.id as never), r.id).not.toBeNull();
+    for (const r of moreFor("admin")) expect(breadcrumb(r.id as never), r.id).not.toBeNull();
   });
 });
 
@@ -46,19 +47,19 @@ describe("macOS permissions as the first run reads them", () => {
 });
 
 describe("the sidebar contract", () => {
-  it("draws 6 rows for a worker and 9 for an admin, with no hint words and at most 16 words in all rows", () => {
+  it("draws 5 rows for a worker and 9 for an admin (eight and More), with no hint words and a small word count", () => {
     const worker = sidebarFor("worker");
     const admin = sidebarFor("admin");
-    expect(worker.rows).toBe(6);
+    expect(worker.rows).toBe(5);
     expect(admin.rows).toBe(9);
-    const words = (v: "worker" | "admin") => [...sidebarFor(v).primary, ...sidebarFor(v).admin].map((e) => e.label).join(" ").split(/\s+/).length;
+    const words = (v: "worker" | "admin") => sidebarFor(v).main.map((e) => e.label).join(" ").split(/\s+/).length;
     expect(words("worker")).toBeLessThanOrEqual(8);
-    expect(words("admin")).toBeLessThanOrEqual(11);
+    expect(words("admin")).toBeLessThanOrEqual(10);
   });
   it("has an icon for every sidebar row and none of them is a More screen", () => {
-    for (const v of ["worker", "admin"] as const) for (const e of [...sidebarFor(v).primary, ...sidebarFor(v).admin]) expect(e.icon, e.id).toBeTruthy();
-    const more = new Set(moreFor("worker").map((r) => r.id));
-    for (const e of groupOf("worker", "primary")) expect(more.has(e.id)).toBe(false);
+    for (const v of ["worker", "admin"] as const) for (const e of sidebarFor(v).main) expect(e.icon, e.id).toBeTruthy();
+    const more = new Set(moreFor("admin").map((r) => r.id));
+    for (const e of groupOf("admin", "admin")) expect(more.has(e.id)).toBe(false);
   });
   it("keeps the bottom bar to the five worker destinations", () => {
     expect(groupOf("worker", "primary")).toHaveLength(5);
