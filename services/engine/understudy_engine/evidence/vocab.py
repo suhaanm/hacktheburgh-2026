@@ -115,6 +115,14 @@ COG_NAME = {
     "REVERT": "undoing and redoing", "IDLE": "idle time", "READ": "reading", "SEARCH": "searching", "REFORMULATE": "rewording a search",
     "NAVIGATE": "navigating", "ENTER": "entering data", "COPY": "copying", "PASTE": "pasting", "COMPARE": "comparing",
     "CHECK": "checking", "DECIDE": "deciding", "ASK": "asking",
+    # role-depth cogs (RD)
+    "REPRODUCE_LOCALLY": "reproducing it locally", "BISECT_CHANGE": "bisecting the history", "WRITE_COMMIT_MSG": "writing the commit message",
+    "OPEN_PR": "opening the pull request", "READ_CI": "reading CI", "ANSWER_REVIEW": "answering review comments", "REVIEW_PEER": "reviewing a pull request",
+    "WATCH_PROD": "watching a release", "ROLL_BACK": "rolling back", "ADD_LOGGING": "adding logging", "PROFILE_HOTPATH": "profiling a hot path",
+    "WRITE_MIGRATION": "writing a migration", "TRACE_SOURCE": "tracing a source", "JOIN_TABLES": "joining tables", "SET_GRAIN": "setting the grain",
+    "CHECK_MAGNITUDE": "checking scale and units", "QUANTIFY_UNCERTAINTY": "stating the uncertainty", "WRITE_FINDING": "writing the finding",
+    "PEER_CHECK": "asking for a second check", "MAKE_REPRODUCIBLE": "making it reproducible", "PARAMETERISE_REPORT": "parameterising a report",
+    "SCHEDULE_REFRESH": "scheduling a refresh", "DOCUMENT_METRIC": "documenting the metric",
 }
 
 # ------------------------------------------------------------------------------------------------ consequences
@@ -150,14 +158,35 @@ REASON_NAME = {
 ACTION_PHRASE = {"silent": "stayed silent", "nudge": "showed a nudge", "annotate": "pointed at the screen", "takeover_offer": "offered to take over"}
 
 # routine templates in the packs (a drift test checks this list against packages/packs/*/routines.yaml)
-RoutineKind = Literal["calc-entry-3x", "case-note-copy", "cliff-recheck", "queue-sweep", "weekly-report", "weekly-metric-refresh",
-                      "rerun-failed-ci"]
+# the seven templates of 7 Nov 2026 first, then the 24 the role-depth track (RD) appended to the programmer and data-analyst packs
+_RD_ROUTINE_KINDS: tuple[str, ...] = (
+    "open-pr-from-branch", "ci-status-sweep", "review-queue-triage", "post-release-watch", "rollback-after-alert", "profile-and-note-hot-path",
+    "bisect-regression-range", "reply-to-review-comments", "migration-dry-run", "add-failure-log-line", "dependency-bump-pr", "docs-lookup-and-apply",
+    "reload-and-reprofile", "parameterised-weekly-query", "reconcile-and-note-gap", "join-check-and-count", "segment-breakdown-chart",
+    "magnitude-and-units-check", "interval-for-a-rate", "notebook-restart-and-run", "draft-metric-definition", "send-peer-check",
+    "schedule-refresh-with-alert", "send-weekly-extract",
+)
 ROUTINE_KINDS: tuple[str, ...] = ("calc-entry-3x", "case-note-copy", "cliff-recheck", "queue-sweep", "weekly-report",
-                                  "weekly-metric-refresh", "rerun-failed-ci")
+                                  "weekly-metric-refresh", "rerun-failed-ci") + _RD_ROUTINE_KINDS
+#: a ``Literal`` built from ROUTINE_KINDS (a Literal must be closed when the packet class is defined); the drift test keeps it equal to the packs
+RoutineKind = Literal[ROUTINE_KINDS]  # type: ignore[valid-type]
 ROUTINE_NAME = {
     "calc-entry-3x": "entering the household into each calculator", "case-note-copy": "copying results into the case note",
     "cliff-recheck": "re-checking cliff edges", "queue-sweep": "sweeping the case queue", "weekly-report": "the weekly report",
     "weekly-metric-refresh": "refreshing the weekly metrics", "rerun-failed-ci": "re-running a failed test run",
+    # role-depth templates (RD)
+    "open-pr-from-branch": "opening a pull request from a branch", "ci-status-sweep": "checking CI on your pull requests",
+    "review-queue-triage": "sorting the review requests", "post-release-watch": "watching the logs after a release",
+    "rollback-after-alert": "rolling back after an alert", "profile-and-note-hot-path": "profiling a slow endpoint",
+    "bisect-regression-range": "bisecting a regression", "reply-to-review-comments": "replying to review comments",
+    "migration-dry-run": "dry-running a migration", "add-failure-log-line": "adding a log line at a failure",
+    "dependency-bump-pr": "bumping a dependency", "docs-lookup-and-apply": "looking up the same API again",
+    "reload-and-reprofile": "reloading and re-profiling a dataset", "parameterised-weekly-query": "running the saved weekly query",
+    "reconcile-and-note-gap": "noting the gap to the control figure", "join-check-and-count": "joining tables and counting rows",
+    "segment-breakdown-chart": "breaking a metric down by segment", "magnitude-and-units-check": "checking scale and units",
+    "interval-for-a-rate": "adding an interval to a rate", "notebook-restart-and-run": "restarting and running a notebook",
+    "draft-metric-definition": "drafting a metric definition", "send-peer-check": "sending a finding for a second check",
+    "schedule-refresh-with-alert": "scheduling a refresh with an alert", "send-weekly-extract": "exporting the weekly extract",
 }
 STATUS_PHRASE = {"proposed": "proposed", "declined": "declined for now", "never": "turned off", "shadow": "in shadow mode",
                  "approval": "running with your approval", "unattended": "running while you are away"}

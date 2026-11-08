@@ -4,6 +4,8 @@
 
 **Capability:** Privacy and safety · **Status:** built · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
+**Navigation note (landing).** The lead's views rule (`docs/knack-ux/views.md`, from owner requests 4.1, 4.2, 4.11, 4.12 and 4.17 at about 00:50 UTC) is reorganising where screens live. Where this page says 'More, <screen>', check `apps/dashboard/src/components/home/navModel.ts` on main for the final place. For a worker the raw call list sits one click inside Settings, Advanced, and is the only place the ledger appears for a worker; Your data keeps what Knack remembers, measures and sent in plain words.
+
 **Status:** built (built, with a known gap: older desktop paths are gated off by default but not re-reviewed independently) · **Page:** `docs/features/privacy-ledger.md` · **Targets:** G-Research, Wordsmith
 
 ## What it does

@@ -4,6 +4,8 @@
 
 **Capability:** Coach on the screen · **Status:** verified · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
+**Navigation note (landing).** The lead's views rule (`docs/knack-ux/views.md`, from owner requests 4.1, 4.2, 4.11, 4.12 and 4.17 at about 00:50 UTC) is reorganising where screens live. Where this page says 'More, <screen>', check `apps/dashboard/src/components/home/navModel.ts` on main for the final place. 'Today' (Live coach) is retired as a worker destination; the coach itself is unchanged.
+
 This page covers Live coach: one decision at a time, with a dignity gate, Fading help: levels L1 to L4 decided by code.
 
 ## Live coach: one decision at a time, with a dignity gate

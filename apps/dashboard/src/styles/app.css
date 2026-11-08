@@ -87,19 +87,6 @@ button { cursor: pointer; }
 .dw-line { stroke: var(--fg); stroke-width: 1.5; }
 .dw-line--real { stroke: var(--bad); }
 
-.tgraph { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); }
-.tgraph__col { display: grid; gap: var(--space-2); min-width: 0; }
-.tg-node { fill: var(--panel); stroke: var(--line-strong); stroke-width: 1; }
-.tg-node--expert { stroke: var(--expert); stroke-width: 1.5; }
-.tg-node--novice { stroke: var(--novice); stroke-width: 1.5; }
-.tg-node--absent { stroke-dasharray: 3 3; stroke: var(--line-strong); }
-.tg-text { fill: var(--fg); font: 500 9.5px var(--font-mono); }
-.tg-text--absent { fill: var(--muted); }
-.tg-edge { fill: none; stroke: var(--muted); opacity: 0.7; }
-.tg-edge--expert { stroke: var(--expert); opacity: 0.85; }
-.tg-edge--novice { stroke: var(--novice); opacity: 0.85; }
-.tg-edge--missing { stroke: var(--bad); stroke-dasharray: 5 3; opacity: 1; }
-.tg-edge--extra { stroke: var(--novice); stroke-dasharray: 2 3; opacity: 0.8; }
 
 .details-lite > summary { cursor: pointer; font-size: var(--text-sm); color: var(--muted); }
 .details-lite > summary:hover { color: var(--fg); }
@@ -173,21 +160,7 @@ button { cursor: pointer; }
 .report li .t-data { color: var(--muted); }
 .tally { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-5); font: 500 var(--text-sm)/1.4 var(--font-mono); }
 
-/* -- Graph ------------------------------------------------------------------- */
-.gcanvas__stage { position: relative; border: var(--hair) solid var(--line); border-radius: var(--radius-3); background: var(--panel); overflow: hidden; min-height: 460px; }
-.gcanvas__stage svg { display: block; width: 100%; height: auto; }
-.gnode { cursor: pointer; transition: transform var(--dur-fade) var(--ease-in-out); }
-.gnode__body { transition: opacity var(--dur-fade) var(--ease-fade); }
-.gnode:focus-visible { outline: none; }
-.gnode:focus-visible .gnode__ring { stroke: var(--focus); stroke-width: 3; }
-.gnode__ring { fill: none; stroke: transparent; stroke-width: 2; }
-.gnode[data-sel="true"] .gnode__ring { stroke: var(--fg); stroke-width: 2; }
-.gnode__label { fill: var(--fg); font: 500 11px var(--font-body); paint-order: stroke; stroke: var(--panel); stroke-width: 3px; stroke-linejoin: round; pointer-events: none; transition: opacity var(--dur-fade) var(--ease-fade); }
-.glink { stroke: var(--line-strong); fill: none; transition: opacity var(--dur-fade) var(--ease-fade), stroke-width var(--dur-fade) var(--ease-fade); }
-.glink--combined { stroke: var(--accent); }
-.ghull { fill: var(--accent-soft); stroke: var(--accent); stroke-dasharray: 4 3; transition: opacity var(--dur-fade) var(--ease-fade); }
-.gpanel { position: absolute; top: var(--space-3); right: var(--space-3); bottom: var(--space-3); width: min(340px, calc(100% - 24px)); display: flex; animation: u-slide-in var(--dur-arrive) var(--ease-out) both; }
-.gpanel .sidepanel { width: 100%; box-shadow: var(--elev-2); min-height: 0; }
+/* -- Graph: moved to styles/graph.css (owner request 4.13) --------------------------- */
 .lock-note { font-size: var(--text-xs); color: var(--muted); }
 
 /* -- Onboarding --------------------------------------------------------------- */
@@ -277,13 +250,9 @@ button { cursor: pointer; }
   .ev-grid { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 880px) {
-  .gpanel { position: static; width: 100%; margin: 0; }
-  .gcanvas__stage { overflow: visible; border: 0; background: none; height: auto !important; min-height: 0; }
-  .gcanvas__stage > svg { border: var(--hair) solid var(--line); border-radius: var(--radius-3); background: var(--panel); }
   .page { padding-top: var(--space-6); gap: var(--space-7); }
   .choice { grid-template-columns: 1fr; }
   .ladder { grid-template-columns: 1fr 1fr; }
-  .tgraph { grid-template-columns: 1fr; }
   .kv { grid-template-columns: 1fr 1fr; }
   .kv .t-label:first-child { display: none; }
   .limit { grid-template-columns: 3ch minmax(0, 1fr); }
@@ -296,7 +265,6 @@ button { cursor: pointer; }
   .proposal { padding: var(--space-5) var(--space-4); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .gnode, .gnode__body, .glink, .ghull, .gnode__label { transition-duration: 0.01ms; }
   .ob__q, .ob-done { animation-duration: 0.01ms; }
 }
 .plain-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; }
