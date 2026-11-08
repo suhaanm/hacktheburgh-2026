@@ -82,7 +82,7 @@ export interface WakeControllerDeps {
   desktop: DesktopRunPort
   chime?: () => void
   /** The button on an information card: Knack's Settings, or the macOS microphone pane. */
-  openSettings?: (where: 'knack' | 'microphone') => void
+  openSettings?: (where: 'knack' | 'microphone' | 'screen') => void
   say?: (line: 'show_instead' | 'done' | 'did_not_work' | 'stopped') => void
   now?: () => number
   setTimer?: (fn: () => void, ms: number) => unknown
@@ -107,6 +107,8 @@ export interface WakeController {
   setKilled(killed: boolean): void
   /** Re-reads every guard now (screen lock, call, agent state changed). */
   refresh(): void
+  /** A capability that cannot work right now answers with a plain card and a button, never silence (the talk key, pointing without Screen Recording). Rate-limited per reason. */
+  explainRefusal(reason: string): void
   /** The helper said `heard`. Exposed for the supervisor and for tests. */
   onHeard(): Promise<void>
   /** The wake session's `do_it_for_me` (the Live tool host calls it). */
@@ -137,6 +139,7 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
   let currentCard: { id: string; box: [number, number, number, number] } | null = null
   let pendingBox: [number, number, number, number] | null = null
   let restartTimer: unknown = null
+  const lastExplained = new Map<string, number>()
   const listeners = new Set<(s: WakeStatus) => void>()
 
   const liveOpen = (): boolean => {
@@ -298,7 +301,7 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
     const id = `info-${++cardSeq}`
     void d.cards.ask({ id, title: card.title, body: card.body, buttons: card.buttons, expireMs: 20_000 }).then((a) => {
       // A button counts only as a real mouse click (the card window never answers otherwise).
-      if (a && a.via === 'mouse' && a.buttonId === card.buttons[0].id && card.action) d.openSettings?.(card.action === 'microphone' ? 'microphone' : 'knack')
+      if (a && a.via === 'mouse' && a.buttonId === card.buttons[0].id && card.action) d.openSettings?.(card.action === 'microphone' ? 'microphone' : card.action === 'screen' ? 'screen' : 'knack')
     })
   }
 
@@ -396,6 +399,18 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
       evaluate()
     },
     refresh: evaluate,
+    explainRefusal(reason) {
+      const t = now()
+      const last = lastExplained.get(reason) ?? -Infinity
+      if (t - last < (reason === 'screen_recording' ? 10 * 60_000 : 20_000)) return
+      lastExplained.set(reason, t)
+      // The talk key before the worker has agreed to talk: the same two cards as the first wake, then a line saying it is on.
+      if (reason === 'not_enabled' || reason === 'no_consent') {
+        void consent().then((ok) => ok && explain('ready'), () => undefined)
+        return
+      }
+      explain(reason)
+    },
     onHeard,
     doIt,
   }

@@ -481,3 +481,53 @@ describe('edge cases of the wake path', () => {
     }
   })
 })
+
+describe('every capability that cannot work answers with a card and a button', () => {
+  it('pointing at something anywhere on the screen without Screen Recording: one card that says why and opens System Settings, at most once in ten minutes', async () => {
+    const r = rig()
+    r.ctl.start()
+    r.answers.push({ buttonId: 'screen', via: 'mouse' })
+    r.ctl.explainRefusal('screen_recording')
+    await r.flush()
+    expect(r.cardsSeen[0]).toMatchObject({ title: 'To find it, Knack must see your screen.' })
+    expect(r.cardsSeen[0].body).toContain('works without this')
+    expect(r.cardsSeen[0].buttons.map((b) => b.label)).toEqual(['System Settings', 'Close'])
+    expect(r.opened).toEqual(['screen'])
+    r.ctl.explainRefusal('screen_recording')
+    await r.flush()
+    expect(r.cardsSeen).toHaveLength(1) // not again so soon
+    r.advance(10 * 60_000 + 1)
+    r.answers.push(null)
+    r.ctl.explainRefusal('screen_recording')
+    await r.flush()
+    expect(r.cardsSeen).toHaveLength(2)
+  })
+  it('the talk key before the worker agreed to talk: the same two cards as the first wake, then a line that talking is on', async () => {
+    const r = rig()
+    r.ctl.start()
+    r.answers.push({ buttonId: 'yes', via: 'mouse' }, { buttonId: 'not_now', via: 'mouse' }, null)
+    r.ctl.explainRefusal('not_enabled')
+    await r.flush()
+    await r.flush()
+    expect(r.cardsSeen.map((c) => c.title)).toEqual(['Talk with Knack?', 'Knack may look at your screen while we talk', 'Talking is on.'])
+    expect(r.liveSettings.get().liveEnabled).toBe(true)
+  })
+  it('the talk key refused for a missing key, the service, the microphone or a pause shows its plain card', async () => {
+    for (const reason of ['no_key', 'breaker_open', 'mic_permission', 'paused', 'day_cap']) {
+      const r = rig()
+      r.ctl.start()
+      r.answers.push(null)
+      r.ctl.explainRefusal(reason)
+      await r.flush()
+      expect(r.cardsSeen).toHaveLength(1)
+      expect(r.cardsSeen[0].title).toBe('Hey Knack heard you.')
+    }
+  })
+  it('a refusal the worker should not hear about (already talking) shows nothing', async () => {
+    const r = rig()
+    r.ctl.start()
+    r.ctl.explainRefusal('busy')
+    await r.flush()
+    expect(r.cardsSeen).toHaveLength(0)
+  })
+})

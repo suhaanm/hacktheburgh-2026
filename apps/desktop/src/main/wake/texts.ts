@@ -45,7 +45,7 @@ export const CARDS: Readonly<Record<'voice' | 'screen' | 'click', CardText>> = {
 // What Knack says, on a card, when the words were heard but a conversation cannot open: never silence. Plain reasons, one action at most. `settings` opens
 // Knack's Settings; `microphone` opens the macOS microphone pane. No card uses developer wording (a test pins this).
 export const HEARD_TITLE = 'Hey Knack heard you.'
-export type InfoAction = 'settings' | 'microphone'
+export type InfoAction = 'settings' | 'microphone' | 'screen'
 export interface InfoCard {
   title: string
   body: string
@@ -63,6 +63,9 @@ export const INFO_CARDS: Readonly<Record<string, InfoCard>> = {
   flag_off: NEEDS_LIVE,
   breaker_open: { title: HEARD_TITLE, body: 'The voice service is not answering. Try again soon.', buttons: [CLOSE], action: null },
   day_cap: { title: HEARD_TITLE, body: 'Today\u2019s talking limit is reached. You can raise it in Settings.', buttons: [{ id: 'settings', label: 'Open Settings' }, CLOSE], action: 'settings' },
+  // Pointing inside Knack, or inside a browser tab with the extension, never needs this: only "find it anywhere on my screen" does.
+  screen_recording: { title: 'To find it, Knack must see your screen.', body: 'Pointing in Knack or in your browser works without this. Finding things anywhere on your screen needs Screen Recording.', buttons: [{ id: 'screen', label: 'System Settings' }, CLOSE], action: 'screen' },
+  ready: { title: 'Talking is on.', body: 'Hold Option-Space and talk, or say Hey Knack.', buttons: [CLOSE], action: null },
   mic_permission: { title: HEARD_TITLE, body: 'Live voice needs the microphone. Turn it on in System Settings.', buttons: [{ id: 'microphone', label: 'System Settings' }, CLOSE], action: 'microphone' },
   paused: { title: HEARD_TITLE, body: 'Knack is paused. Resume it from the menu bar.', buttons: [CLOSE], action: null },
   killed: { title: HEARD_TITLE, body: 'Everything is stopped. Resume from the menu bar.', buttons: [CLOSE], action: null },

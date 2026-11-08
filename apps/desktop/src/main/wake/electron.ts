@@ -53,6 +53,7 @@ export interface RegisterWakeOptions {
   /** The buttons on the cards: Knack's Settings, and the macOS microphone pane. */
   openSettings?: () => void
   openMicrophoneSettings?: () => void
+  openScreenSettings?: () => void
   /** The context hub: the shell may report the top Home insight and the running routine (ids and counts) through `wake:context`. */
   context?: ContextHub | null
   env?: Record<string, string | undefined>
@@ -160,7 +161,7 @@ export function registerWake(o: RegisterWakeOptions): WakeRegistration {
       if (settings.get().wakeChime) void o.live.clips.play(makeChimeWav(), 'audio/wav').catch(() => undefined)
     },
     say: (line) => void o.live.speaker.say(`wake.${line}`),
-    openSettings: (where) => (where === 'microphone' ? o.openMicrophoneSettings?.() : o.openSettings?.()),
+    openSettings: (where) => (where === 'microphone' ? o.openMicrophoneSettings?.() : where === 'screen' ? o.openScreenSettings?.() : o.openSettings?.()),
     log,
   })
   controllerRef = controller

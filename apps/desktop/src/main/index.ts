@@ -1,7 +1,7 @@
 import { applyDesktopDefaultFlags } from './default-flags'
 import path from 'node:path'
 import dotenv from 'dotenv'
-import { app, nativeImage, powerMonitor, shell, systemPreferences, webContents } from 'electron'
+import { app, BrowserWindow, nativeImage, powerMonitor, screen, shell, systemPreferences, webContents } from 'electron'
 import { IPC } from '../shared/ipc'
 import type { EventArgs, EventChannel } from '../shared/ipc'
 import { Bus } from './bus'
@@ -23,6 +23,8 @@ import { liveFlagOn } from './live/flags'
 import { registerLive } from './live/electron'
 import { registerWake } from './wake/electron'
 import { createContextHub, screenIdFromUrl } from './wake/context-source'
+import { chainGround, COLLECT_KNACK_ELEMENTS_JS, createDomPointPort, createKnackWindowGround, parseKnackElements } from './live/point-ground'
+import { parseCalibration } from './dom-ground/rect-map'
 import { readRung } from './wake/rung'
 import { dataDirPath } from './kill-file'
 import { LIVE_CONSENT_VERSION } from './live/settings'
@@ -353,6 +355,39 @@ void app.whenReady().then(async () => {
     },
   })
 
+  // Pointing without Screen Recording: the Knack window first (its own page, read through its web contents), then a browser tab with the extension (DOM
+  // grounding); only "find it anywhere on my screen" needs the permission, and without it a card says why (see live/point-ground.ts).
+  const primaryDisplay = () => {
+    const d = screen.getPrimaryDisplay()
+    return { bounds: d.bounds, scaleFactor: d.scaleFactor }
+  }
+  const knackContents = () => {
+    const win = knack?.mainWindow.window()
+    if (!win || win.isDestroyed() || !win.isVisible() || win.isMinimized()) return null
+    const wc = webContents.fromId(win.webContentsId())
+    return wc && !wc.isDestroyed() ? wc : null
+  }
+  const knackGround = knack
+    ? createKnackWindowGround({
+        elements: async () => {
+          const wc = knackContents()
+          return wc ? parseKnackElements(await wc.executeJavaScript(COLLECT_KNACK_ELEMENTS_JS, true)) : null
+        },
+        content: () => {
+          const wc = knackContents()
+          const b = wc ? BrowserWindow.fromWebContents(wc)?.getContentBounds() : null
+          return wc && b ? { x: b.x, y: b.y, zoom: wc.getZoomFactor() } : null
+        },
+        display: primaryDisplay,
+      })
+    : null
+  const extGround = createDomPointPort({
+    grounder: understudy.domGrounder,
+    display: primaryDisplay,
+    calibration: parseCalibration(process.env.UNDERSTUDY_RING_OFFSET),
+    extensionPresent: () => (understudy.extServer()?.lastSeenAt() ?? 0) > Date.now() - 10_000,
+  })
+
   // Live voice (flags UNDERSTUDY_X_LIVE and UNDERSTUDY_FLAG_VOICE): the websocket lives in main; the dock only owns the microphone and speaker.
   const noCuePort: LiveCuePort = { candidates: () => [], showStep: () => ({ ok: false, chip: null }), askChoice: () => false, onAnswer: () => () => undefined }
   const live = liveFlagOn() && featureOn('voice')
@@ -366,6 +401,9 @@ void app.whenReady().then(async () => {
         cue: cue?.livePort ?? noCuePort,
         doIt: (req) => (wakeBox.ctl ? wakeBox.ctl.doIt(req) : Promise.resolve({ ok: false, reason: 'not_available' })),
         context: (o) => contextHub.build(o),
+        domGround: chainGround(knackGround, extGround),
+        screenStatus: () => (process.platform === 'darwin' && !flag('UNDERSTUDY_MOCK') && !flag('ALONGSIDE_MOCK') ? systemPreferences.getMediaAccessStatus('screen') : 'granted'),
+        onScreenMissing: () => wakeBox.ctl?.explainRefusal('screen_recording'),
         killed: isKilled,
         agentActing: () => understudy.hudModel.state().agentActing,
         cueVoiceOn: () => settings.get().cueVoice === true,
@@ -375,6 +413,14 @@ void app.whenReady().then(async () => {
     : null
   liveBox.reg = live
   live?.manager.start()
+  // The talk key never fails silently: when it cannot start a conversation (no consent yet, no key, the microphone not allowed ...) a card says why.
+  const offTalkExplain = live
+    ? bus.on('talk', (e) => {
+        if (e.phase !== 'press') return
+        const st = live.manager.status()
+        if (st.phase === 'idle' && st.refused) wakeBox.ctl?.explainRefusal(st.refused)
+      })
+    : null
   // The corner pill says what a voice conversation is doing (Listening, Thinking, Speaking) for both the talk key and Hey Knack, and leaves with it.
   let pillVoice: 'Listening' | 'Thinking' | 'Speaking' | null = null
   const offVoicePill = live && knack
@@ -404,6 +450,7 @@ void app.whenReady().then(async () => {
         owns: (id) => windows.owns(id) || knack?.mainWindow.owns(id) === true,
         openSettings: () => knack?.openSettings(),
         openMicrophoneSettings: () => permissions.openSettings('microphone'),
+        openScreenSettings: () => permissions.openSettings('screen'),
         context: contextHub,
         log: ctx.log,
       })
@@ -424,6 +471,7 @@ void app.whenReady().then(async () => {
     cueSignals.stop()
     offWakeKill?.()
     offVoicePill?.()
+    offTalkExplain?.()
     wake?.dispose()
     live?.dispose()
     attentionWiring?.dispose()
