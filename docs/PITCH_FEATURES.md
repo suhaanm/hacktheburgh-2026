@@ -1,6 +1,6 @@
 # Knack: the features, for the pitch and the launch video
 
-Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sun 08 Nov 2026, 01:29 UTC, checked against main at 97b633f. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
+Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sun 08 Nov 2026, 01:30 UTC, checked against main at 97b633f. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
 
 This is the master document. It lists 66 entries (62 features and 4 write-ups of results that did not hold up) on 35 pages, grouped by capability. One page per feature (with a 30-second spoken script and slide bullets) is in `docs/features/`; the index with status is `docs/features/index.md`; the 20 video claims are in `docs/features/video-beats.md`; the 25 hardest judge questions are in `docs/features/faq.md`.
 
@@ -323,7 +323,7 @@ A graph of routines, skills and remembered facts. Nodes link when related, merge
 
 #### How it works
 
-Size is weekly minutes or mastery, colour is the node type, opacity is strength, and fading uses the same decay as the help-level engine. Deleting a memory node edits the memory file, so the graph is a view of what Knack holds, not a second store. One of the product's three signature visuals.
+Size is weekly minutes or mastery, colour is the node type, opacity is strength in two bands that keep the icon readable, a dashed ring is lapsed, and fading uses the same decay as the help-level engine. Every node carries an icon (routine, skill, memory, automation) and no text is drawn on the canvas: a name opens in a small note card on hover, keyboard focus or a click, and a click keeps it until Escape or another click. The details panel leads with what the node is and why it exists, with the numbers behind a closed disclosure; the key is pictures only, behind 'What are these?'. The Genome transition graph follows the same rules with ten step icons. Layout is tested for empty, one-node, self-loop, repeated and thousand-node graphs. Deleting a memory node edits the memory file, so the graph is a view of what Knack holds, not a second store. One of the product's three signature visuals.
 
 **What is different.** Fading is literal: nodes decay with the same rule the help levels use, and deleting a node edits the file the worker owns, so the graph is a view and not a second store.
 
@@ -333,13 +333,13 @@ More, then How work connects (address #/graph). Settings, Views, Pinned views pu
 
 #### Demo moment
 
-Open the graph, click a routine node to see why it exists, then delete a memory node and show the line leaving the memory file in Your data.
+Open the graph, hover a node to see its name, click a routine node to see why it exists, then delete a memory node and show the line leaving the memory file in Your data.
 
 #### Evidence and its label
 
 | What | Label | Source |
 |---|---|---|
-| No measured result: this screen is a view of the engine's work graph and has no evaluation of its own | no evidence yet (built; not measured) | `docs/IMPLEMENTATION_SPEC.md (7.4)` |
+| No measured result: this screen is a view of the engine's work graph and has no evaluation of its own; the redesign (owner request 4.13) is covered by unit and page-structure tests of the layout, the panel and the colour contrast | no evidence yet (built; not measured) | `docs/IMPLEMENTATION_SPEC.md (7.4); apps/dashboard/src/components/graph/Graph.dom.test.ts; apps/dashboard/src/lib/graphContrast.test.ts` |
 
 #### Honest limit
 
