@@ -67,9 +67,32 @@ export function fmtDateTime(iso: string | null | undefined): string {
   return `${fmtDate(iso)}, ${fmtTime(iso)}`;
 }
 
-/** COPY_TO_NOTE -> "Copy to note". */
+/**
+ * Plain names for the actions whose id does not read as words once the underscores are gone ("OPEN_PR" is not "Open pr"). The programmer's and the data
+ * analyst's actions are here; the benefits processor's and the shared ones read well from their ids ("COPY_TO_NOTE" is "Copy to note").
+ */
+const COG_NAMES: Record<string, string> = {
+  // programmer
+  READ_TRACE: "Read the error log", READ_CODE: "Read the code", EDIT_CODE: "Edit the code", RUN_TESTS: "Run the tests", REVIEW_DIFF: "Read the diff",
+  INSPECT_INPUT: "Look at the real inputs", WRITE_TEST: "Write a test", PROBE_EDGE: "Try the edge cases", REPRODUCE_LOCALLY: "Reproduce it locally",
+  BISECT_CHANGE: "Bisect the change", ADD_LOGGING: "Add logging", WRITE_COMMIT_MSG: "Write the commit message", OPEN_PR: "Open a pull request",
+  READ_CI: "Read the CI result", ANSWER_REVIEW: "Answer review comments", REVIEW_PEER: "Review a colleague's change", WATCH_PROD: "Watch the release",
+  ROLL_BACK: "Roll back a release", PROFILE_HOTPATH: "Profile the slow path", WRITE_MIGRATION: "Write a migration", SEARCH_DOCS: "Search the docs",
+  // data analyst
+  LOAD_DATA: "Load the data", PROFILE_DATA: "Profile the data", WRITE_QUERY: "Write the query", RUN_QUERY: "Run the query", INSPECT_RESULT: "Inspect the result",
+  PLOT: "Plot it", EXPORT_RESULT: "Export the result", CLEAN_DATA: "Clean the data", RECONCILE_CONTROL: "Reconcile to a control total", GROUP_AGG: "Group and total",
+  TRACE_SOURCE: "Trace the source", JOIN_TABLES: "Join the tables", SET_GRAIN: "Set the grain", CHECK_MAGNITUDE: "Check the size looks right",
+  QUANTIFY_UNCERTAINTY: "Say how sure you are", WRITE_FINDING: "Write the finding", PEER_CHECK: "Ask for a second look", MAKE_REPRODUCIBLE: "Make it reproducible",
+  PARAMETERISE_REPORT: "Parameterise the report", SCHEDULE_REFRESH: "Schedule the refresh", DOCUMENT_METRIC: "Document the metric",
+};
+
+/** COPY_TO_NOTE -> "Copy to note"; OPEN_PR -> "Open a pull request". Never throws: an id the service did not send is an empty label. */
 export function cogLabel(cog: string): string {
-  const s = cog.toLowerCase().replace(/_/g, " ");
+  const id = typeof cog === "string" ? cog.trim() : "";
+  if (id === "") return "";
+  const known = COG_NAMES[id.toUpperCase()];
+  if (known) return known;
+  const s = id.toLowerCase().replace(/_/g, " ");
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
