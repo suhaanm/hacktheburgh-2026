@@ -225,7 +225,7 @@ def resolve(person: str | None, repo: str | None) -> Target:
     c = cohort()
     person = person or DEFAULT_PERSON
     if person not in c["learners"]:
-        raise GitServiceError("unknown_person", f"No learner repository for {person!r}. Known people: {', '.join(sorted(c['learners']))}.", 404)
+        raise GitServiceError("unknown_person", f"No learner repository for {person!r}.", 404)
     rid = repo_id_for(person)
     if repo and repo != rid:
         raise GitServiceError("unknown_repo", f"No repository {repo!r} for {person!r}. Known repositories: {rid}"

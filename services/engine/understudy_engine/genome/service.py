@@ -164,6 +164,18 @@ def _truth_levels(truth: dict) -> dict[str, str]:
     return {p["person"]: p["level"] for p in truth["people"]}
 
 
+def _caller() -> str | None:
+    """The person set up on this device (the profile's), or None when nobody is. Every worker-scope answer is about them."""
+    try:
+        from .. import routes_handoff as rh
+        from ..memory.onboarding import load_profile
+
+        pid = (load_profile(rh._mem()) or {}).get("person")
+        return str(pid) if pid else None
+    except Exception:
+        return None
+
+
 class GenomeService:
     def __init__(self, store: EventStore | None = None):
         self.store = store or EventStore()
@@ -226,6 +238,39 @@ class GenomeService:
             self._bundles[f"role:{role}"] = b
             return b
 
+    # ---------------------------------------------------------------- the benefits worker's own page
+    def _worker_bundle(self, who: str) -> Bundle:
+        """The worker's own cases of the benefits task against the experienced workers' way of doing it, for the person set up on this device: their learner trajectory (the learners
+        data holds it under the worker's id) beside the experienced workers of the apprentices' study. Scope ``person``: the answers carry the worker's cases and the nearest experienced
+        worker, never another person's id and never the study's cohort figures."""
+        tp = self.store.root.joinpath(*APPRENTICE_TRUTH)
+        if not tp.exists():
+            raise GenomeError("unknown_person", "There are no cases of this task for you yet. They appear as your work is captured.")
+        stamp = self._stamp("synthetic")
+        with self._lock:
+            b = self._bundles.get(f"worker:{who}")
+            if b is not None and b.key == stamp:
+                return b
+            levels = {p: "expert" for p, lv in _truth_levels(json.loads(tp.read_text())).items() if lv == "expert"}
+            levels[who] = "novice"
+            events = [e for e in self.store.read("synthetic") if e.person in levels]
+            if not any(e.person == who for e in events):
+                raise GenomeError("unknown_person", "There are no cases of this task for you yet. They appear as your work is captured.")
+            co = Cohort(segment_episodes(events), levels)
+            if len({e.person for e in co.experts}) < 2 or not co.novices:
+                raise GenomeError("unknown_person", "There are too few cases of this task to compare yet.")
+            b = Bundle(co, "synthetic", None, stamp, {}, task=TASK, scope="person")
+            self._bundles[f"worker:{who}"] = b
+            return b
+
+    def _scoped(self, task: str, partition: str | None, person: str | None) -> Bundle:
+        """The bundle a request reads. For the benefits task, when someone is set up on this device and the request is theirs (no person, or their id), the worker's own page; otherwise
+        exactly as before (the apprentices' study, for the evaluation and for a stack nobody has set up)."""
+        who = _caller()
+        if who and role_for_task(task) is None and (task in TASK_ALIASES or task.startswith("t_")) and (person is None or person == who):
+            return self._worker_bundle(who)
+        return self.bundle(task, partition)
+
     def bundle(self, task: str, partition: str | None = None) -> Bundle:
         role = role_for_task(task)
         if role is not None:
@@ -268,7 +313,7 @@ class GenomeService:
 
     def default_person_episode(self, task: str = TASK, partition: str | None = None) -> tuple[str, str]:
         """The median-gap novice and their first case: what the ribbon and the replay show when nobody is named."""
-        b = self.bundle(task, partition)
+        b = self._scoped(task, partition, None)
         if b.scope == "person":
             who = self._own(b, None)
             return who, sorted((e for e in b.cohort.episodes if e.person == who), key=lambda e: e.t0)[0].task_id
@@ -283,9 +328,13 @@ class GenomeService:
         from ..seedroles import PERSON
 
         learners = sorted({e.person for e in b.cohort.novices})
-        if person is not None and person != PERSON:             # the other learners of the cohort are not reachable by id: this page is the worker's own
-            raise GenomeError("unknown_person", f"No cases of this task for {person!r}.")
-        return PERSON if PERSON in learners else learners[0]
+        caller = _caller()
+        if person is not None and person not in (PERSON, caller):     # the other learners of the cohort are not reachable by id: this page is the worker's own
+            raise GenomeError("unknown_person", "There are no cases of this task for that person.")
+        for who in (person, caller, PERSON):
+            if who in learners:
+                return who
+        return learners[0]
 
     def _genome_person(self, b: Bundle, person: str | None, reference: str, episode: str | None) -> tuple[dict, AnalyticMeta]:
         """A worker's own cases of the role's main task against the nearest experienced worker's: their latest case aligned step by step, the seconds they lose by kind, and the gap of
@@ -336,8 +385,10 @@ class GenomeService:
     def genome(self, task: str, person: str | None = None, reference: str = "nearest_expert", partition: str | None = None, episode: str | None = None) -> tuple[dict, AnalyticMeta]:
         if reference not in ("nearest_expert", "consensus"):
             raise GenomeError("bad_reference", "reference must be nearest_expert or consensus", 422)
-        b = self.bundle(task, partition)
+        b = self._scoped(task, partition, person)
         if b.scope == "person":
+            if task.startswith("t_") and task not in TASK_ALIASES and task in b.cohort.by_task and not episode:
+                episode = task                      # the caller named one of their own cases
             return self._genome_person(b, person, reference, episode)
         co = b.cohort
         real = self._cached(b, f"real:{reference}", lambda: co.real_gap(reference))
@@ -409,7 +460,7 @@ class GenomeService:
         return data, self.meta(b, note)
 
     def transitions(self, task: str, person: str | None = None, partition: str | None = None) -> tuple[dict, AnalyticMeta]:
-        b = self.bundle(task, partition)
+        b = self._scoped(task, partition, person)
         co = b.cohort
         if b.scope == "person":
             person = self._own(b, person)                    # the worker's own steps against the experienced workers' way, never the other learners'
