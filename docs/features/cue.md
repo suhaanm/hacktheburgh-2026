@@ -18,7 +18,7 @@ Candidates come from the expert transition graph: the top three next steps with 
 
 ## Where to see it
 
-On the real screen when stuck (ring and card); More, then Live coach; Growth shows the effect over time.
+On the real screen when stuck (ring and card); Growth shows the effect over time.
 
 ## Demo moment
 

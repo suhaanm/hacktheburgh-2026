@@ -1,28 +1,28 @@
 # Role packs
 
-> One deep role (UK benefits processor) and two thin ones (data analyst, programmer), so Knack is not a benefits tool with the name changed.
+> One deep role (UK benefits processor) and two that started thin and are now at standard depth (data analyst, programmer), so Knack is not a benefits tool with the name changed.
 
 **Capability:** Roles · **Status:** built · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
-This page covers Role packs: benefits processor deep, analyst and programmer thin, Programmer pack at standard depth, Data analyst pack at standard depth.
+This page covers Role packs: the format, and the deep benefits processor pack, Programmer pack at standard depth, Data analyst pack at standard depth.
 
-## Role packs: benefits processor deep, analyst and programmer thin
+## Role packs: the format, and the deep benefits processor pack
 
 **Status:** built · **Page:** `docs/features/role-packs.md` · **Targets:** G-Research, Wordsmith
 
 ### What it does
 
-A role pack turns raw events into steps, says what an expert does, which actions need a click, what tone to use, which routines to look for and what to teach in what order. The benefits processor pack is deep; the data analyst and programmer packs are thin starting points.
+A role pack turns raw events into steps, says what an expert does, which actions need a click, what tone to use, which routines to look for and what to teach in what order. The benefits processor pack is deep; the data analyst and programmer packs started as thin starting points and were raised to standard depth (the next two entries).
 
 ### How it works
 
-A pack is a validated folder (id, onboarding questions for tools, risky actions, tone, pace and hours; extra step types and their mapping from events; expert steps with allowed reorderings; risk classes with label patterns; routine templates; a curriculum; persona parameters; priors for pooling). The benefits pack also has an oracle, task configuration and sandbox sites. The thin packs fill every key but the oracle, tasks and the full expert policy, and differ visibly in questions, steps, risk classes and tone: the programmer's risky actions are force-push, deleting a branch, merging to main and publishing; the benefits processor's are submitting a case, issuing a payment and sending a letter. A loader checks packs against a JSON Schema and the pack format reserves a slot for plugin references.
+A pack is a validated folder (id, onboarding questions for tools, risky actions, tone, pace and hours; extra step types and their mapping from events; expert steps with allowed reorderings; risk classes with label patterns; routine templates; a curriculum; persona parameters; priors for pooling). The benefits pack also has an oracle, task configuration and sandbox sites. The data analyst and programmer packs fill every key but the oracle, tasks and the full expert policy of the benefits pack, and differ visibly in questions, steps, risk classes and tone: the programmer's risky actions are force-push, deleting a branch, merging to main and publishing; the benefits processor's are submitting a case, issuing a payment and sending a letter. A loader checks packs against a JSON Schema and the pack format reserves a slot for plugin references.
 
 **What is different.** A role is a validated folder of data (steps, expert policy, risk classes, tone, routines, curriculum), so adding a job is adding data, and the thin packs differ visibly in their risky actions.
 
 ### Where to see it
 
-First run (the role cards), Settings, Set up again, and the Admin Roles view.
+First run (the role cards and 'Not sure yet'), the account menu (Change profile changes the name and the role; Set up again reruns first run), and the Admin Roles view.
 
 ### Demo moment
 
@@ -38,7 +38,7 @@ At first run, choose each of the three cards; show how the four lines on the 'wh
 
 ### Honest limit
 
-The thin packs are starting points and have not been validated on real work. Genome recovery was not evaluated for them because the named-deficit labels belong to the benefits pack. Even the deep pack has no real benefits-processor data behind it. The two thin packs are being raised to standard depth (next two entries, landing).
+The data analyst and programmer packs are written from the job and have not been validated on real work. Genome recovery was not evaluated for them because the named-deficit labels belong to the benefits pack. Even the deep pack has no real benefits-processor data behind it. Both were raised to standard depth, which is on main since 01:15 UTC (next two entries).
 
 ### Hackathon target
 
@@ -47,7 +47,7 @@ The thin packs are starting points and have not been validated on real work. Gen
 
 ## Programmer pack at standard depth
 
-**Status:** landing (ROLE-DEPTH (Track F); docs/roles/programmer.md is on branch worktree-agent-aef8c35334df68596, not on main; additive only (D55, D56 item 6)) · **Page:** `docs/features/role-packs.md` · **Targets:** G-Research, Wordsmith
+**Status:** built (ROLE-DEPTH (Track F), merged to main at 01:15 UTC (08b9908); docs/roles/programmer.md and packages/packs/programmer are on main; no study and no real traces; not seen end to end by the lead; additive only (D55, D56 item 6)) · **Page:** `docs/features/role-packs.md` · **Targets:** G-Research, Wordsmith
 
 ### What it does
 
@@ -61,7 +61,7 @@ Each skill has a hint at L1 (a question), L2 (a few words) and L3 (a nudge); L4 
 
 ### Where to see it
 
-Not on main yet. First run (the Programmer role card), Routines (the repeat list), Git habits and the coach in the sandbox; the pack's own page is docs/roles/programmer.md.
+First run (the Programmer role card), Routines (the repeat list), Growth 'My commits' and the coach in the sandbox; the pack's own page is docs/roles/programmer.md.
 
 ### Demo moment
 
@@ -71,11 +71,11 @@ The edge you did not try (sandbox task 'Wrong number of pages'): the fix passes 
 
 | What | Label | Source |
 |---|---|---|
-| Only three skills have been run, in a sandbox with simulated participants; the twelve new step types, their hints, the new templates and follow-up mappings have no synthetic traces and no study, so screens show 'not enough data' for them, never a number | simulated participants (language model), not people; the rest not run | `docs/roles/programmer.md (branch worktree-agent-aef8c35334df68596)` |
+| Only three skills have been run, in a sandbox with simulated participants; the twelve new step types, their hints, the new templates and follow-up mappings have no synthetic traces and no study, so screens show 'not enough data' for them, never a number | simulated participants (language model), not people; the rest not run | `docs/roles/programmer.md` |
 
 ### Honest limit
 
-Written from the job, not validated with people. The selectors for real tools (GitHub and GitLab pull requests, CI dashboards, logs, release consoles) are best-effort and not tested against live sites. Dwell priors are expert medians written into the pack, not measured. Minutes, cost and risk on a routine are illustrations (a flat 15 pounds an hour is a placeholder). Judgement shares come from an authored list. The pack suggests connection presets by id, including linear, which is not among the 13 preset files on the CONNECTIONS branch (it has jira).
+Written from the job, not validated with people. The selectors for real tools (GitHub and GitLab pull requests, CI dashboards, logs, release consoles) are best-effort and not tested against live sites. Dwell priors are expert medians written into the pack, not measured. Minutes, cost and risk on a routine are illustrations (a flat 15 pounds an hour is a placeholder). Judgement shares come from an authored list. The pack suggests connection presets by id, including linear, which is not among the 13 preset files on main (it has jira).
 
 ### Hackathon target
 
@@ -84,7 +84,7 @@ Written from the job, not validated with people. The selectors for real tools (G
 
 ## Data analyst pack at standard depth
 
-**Status:** landing (ROLE-DEPTH (Track F); docs/roles/data-analyst.md is on branch worktree-agent-aef8c35334df68596, not on main; additive only (D55, D56 item 6)) · **Page:** `docs/features/role-packs.md` · **Targets:** G-Research, Wordsmith
+**Status:** built (ROLE-DEPTH (Track F), merged to main at 01:15 UTC (08b9908); docs/roles/data-analyst.md and packages/packs/data-analyst are on main; no study and no real traces; not seen end to end by the lead; additive only (D55, D56 item 6)) · **Page:** `docs/features/role-packs.md` · **Targets:** G-Research, Wordsmith
 
 ### What it does
 
@@ -98,7 +98,7 @@ Hints state the assumption and the check ('Is the key unique on both sides, and 
 
 ### Where to see it
 
-Not on main yet. First run (the Data analyst role card), Routines (the repeat list) and the coach in the sandbox; the pack's own page is docs/roles/data-analyst.md.
+First run (the Data analyst role card), Routines (the repeat list) and the coach in the sandbox; the pack's own page is docs/roles/data-analyst.md.
 
 ### Demo moment
 
@@ -108,11 +108,11 @@ The total that does not match (sandbox task 'Net sales against the ledger'): the
 
 | What | Label | Source |
 |---|---|---|
-| Only three skills have been run, in a sandbox with simulated participants; the eleven new step types, their hints, the new templates and follow-up mappings have no synthetic traces and no study, so screens show 'not enough data' for them | simulated participants (language model), not people; the rest not run | `docs/roles/data-analyst.md (branch worktree-agent-aef8c35334df68596)` |
+| Only three skills have been run, in a sandbox with simulated participants; the eleven new step types, their hints, the new templates and follow-up mappings have no synthetic traces and no study, so screens show 'not enough data' for them | simulated participants (language model), not people; the rest not run | `docs/roles/data-analyst.md` |
 
 ### Honest limit
 
-Written from the job, not validated with people. Selectors for real warehouse consoles, notebooks, spreadsheets and BI tools are best-effort and not tested against live sites. Dwell priors, routine minutes and costs and judgement shares are authored, not measured. The pack suggests connection presets by id, including sheets and linear, which are not among the 13 preset files on the CONNECTIONS branch (it has google_workspace and jira). No stuck-model variant qualified for this role.
+Written from the job, not validated with people. Selectors for real warehouse consoles, notebooks, spreadsheets and BI tools are best-effort and not tested against live sites. Dwell priors, routine minutes and costs and judgement shares are authored, not measured. The pack suggests connection presets by id, including sheets and linear, which are not among the 13 preset files on main (it has google_workspace and jira). No stuck-model variant qualified for this role.
 
 ### Hackathon target
 
@@ -121,14 +121,14 @@ Written from the job, not validated with people. Selectors for real warehouse co
 
 ## 30-second spoken script
 
-> Knack is not just a benefits tool. A role pack tells it what an expert does in a job, which actions always need a click, and what to teach in what order. We built one deep pack, a UK benefits processor, and two thin ones, a data analyst and a programmer, which differ visibly in their questions and risky actions. Both thin packs are now being filled out: the programmer with twenty-two steps and four gates, the analyst with twenty-one and six. They are written from the job, not validated with people, and the new steps say not enough data until there is data.
+> Knack is not just a benefits tool. A role pack tells it what an expert does in a job, which actions always need a click, and what to teach in what order. We built one deep pack, a UK benefits processor, and two thin ones, a data analyst and a programmer, which differ visibly in their questions and risky actions. Both thin packs have now been filled out to standard depth: the programmer with twenty-two steps and four gates, the analyst with twenty-one and six. They are written from the job, not validated with people, and the new steps say not enough data until there is data.
 
 ## Slide bullets
 
 - A pack: steps, expert policy, risky actions, tone, routines, curriculum.
-- Deep: UK benefits processor. Thin: data analyst, programmer, now being raised to standard depth.
+- Deep: UK benefits processor. Data analyst and programmer started thin and are now at standard depth.
 - Different risky actions per role: force-push and merge for programmers, submit and pay for benefits.
-- Programmer: 22 step types, 18 skills, 4 gates, 13 routines (landing); analyst: 21, 16, 6, 13.
+- Programmer: 22 step types, 18 skills, 4 gates, 13 routines; analyst: 21, 16, 6, 13.
 - Written from the job, not validated with people; new steps have no traces and say not enough data.
 
 ## Sources
@@ -139,7 +139,9 @@ Written from the job, not validated with people. Selectors for real warehouse co
 - `docs/SPEC_LIST.md (D4)`
 - `docs/DECISIONS.md (D55, D56 item 6)`
 - `evals/report.md`
-- `docs/roles/programmer.md and docs/roles/data-analyst.md (on branch worktree-agent-aef8c35334df68596, landing)`
+- `docs/roles/programmer.md`
+- `docs/roles/data-analyst.md`
+- `packages/packs/data-analyst/pack.yaml`
 
 ## Related pages
 

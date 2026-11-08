@@ -4,7 +4,7 @@
 
 **Capability:** See the work · **Status:** verified · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
-**Navigation note (landing).** The lead's views rule (`docs/knack-ux/views.md`, from owner requests 4.1, 4.2, 4.11, 4.12 and 4.17 at about 00:50 UTC) is reorganising where screens live. Where this page says 'More, <screen>', check `apps/dashboard/src/components/home/navModel.ts` on main for the final place. For a worker, 'Where time goes' becomes a section of Growth ('my steps against an experienced worker's'), compared with one unnamed experienced worker and never with other learners.
+**Navigation note (on main since 02:05 UTC).** The lead's views rule (`docs/knack-ux/views.md`) is implemented: a worker has five sidebar rows (Home, Needs you, Routines, Growth, Your data); Growth is one page with the sections My progress, Where my time goes, My steps, How my routines connect and My commits; the Admin view has Firm, Brief, Forecasts, Roles, People, Onboarding, Automation and Risk, then More: Models and cost, Evidence, Background runs. Old addresses redirect (`apps/dashboard/src/routeRedirects.ts`). The final list is `apps/dashboard/src/components/home/navModel.ts`. For a worker, the old Where time goes screen is now the Growth section 'My steps against an experienced worker's' (the old address redirects), compared with one unnamed experienced worker and never with other learners. The habit waterfall, the answers view and the transition graph are not drawn on any screen on main; the three-interval controls are on the Evidence page in the Admin view.
 
 This page covers Work genome: aligned traces priced in seconds, Controls: placebo and shuffled-label null, What skipping costs in answers.
 
@@ -24,11 +24,11 @@ Events become steps through the role pack's mapping. A sequence alignment (Needl
 
 ### Where to see it
 
-More, then Where time goes (address #/genome). The Home hero's action, See where the time goes, opens it on that step. Settings, Views, Pinned views puts it in the sidebar.
+Growth, section 'My steps against an experienced worker's' (address #/growth?section=steps; the old #/genome, #/week, #/presence, #/graph and #/git addresses redirect into Growth). It shows the worker's own case beside one unnamed experienced worker's, the steps that lost the most time, a closed 'Explain this case' and a closed 'Key and more'. The Home hero's action, See where the time goes, leads to it. The habit waterfall and the transition graph exist as components but no screen on main draws them.
 
 ### Demo moment
 
-Open Where time goes. Point at the provenance line (what the data are), the ribbon (expert above, novice below, gaps hatched), and the waterfall that splits the seconds by habit. Say: the interval on the real gap does not include zero, and say aloud that the data are synthetic.
+Open Growth and the section 'My steps against an experienced worker's'. Point at the ribbon (the worker's own case above, one experienced worker's below, gaps hatched, seconds lost per step) and the short list of steps that lost the most time; open 'Explain this case'. Since D57 there is no 'synthetic' tag, so say aloud that the data are synthetic. The three-interval evidence that the gap is real is in the Admin view (More, Evidence), not on this page.
 
 ### Evidence and its label
 
@@ -62,11 +62,11 @@ The placebo aligns each expert to the nearest other expert. The null shuffles th
 
 ### Where to see it
 
-Where time goes (the controls under the ribbon) and Evidence (More, For reviewers).
+Evidence (Admin view, More, Evidence). The worker's Growth page shows one case, not the controls; the old screen that drew them under the ribbon is gone from the dashboard.
 
 ### Demo moment
 
-On Where time goes, read the three numbers aloud: 229.6 seconds a case for the real gap, 7.1 for expert against expert, 46.2 for the shuffled null. The first interval excludes zero; the other two include it.
+In the Admin view, More, Evidence, read the three numbers aloud: 229.6 seconds a case for the real gap, 7.1 for expert against expert, 46.2 for the shuffled null. The first interval excludes zero; the other two include it.
 
 ### Evidence and its label
 
@@ -98,7 +98,7 @@ On 200 synthetic households scored by the sandbox oracle, skipping reconcile mea
 
 ### Where to see it
 
-Where time goes (the answers view beside the seconds) and Evidence.
+Not drawn by a screen on main: the answers view that sat beside the seconds on the old Where time goes screen is gone from the dashboard. The result is in evals/cases/skip_consequences.json and in the report that the Evidence page (Admin view, More) renders.
 
 ### Demo moment
 
@@ -122,7 +122,7 @@ The calculators' quirks and the oracle are ours. The oracle is a simplified rule
 
 ## 30-second spoken script
 
-> Two people do the same job. One is slower and gets a different answer, and nobody can see where. Knack aligns the novice's steps to the nearest expert's and prices each gap in seconds. Then it checks itself: expert against expert, and shuffled labels, both near zero. On our synthetic data the real gap is about 230 seconds a case. The badge says synthetic, because it is.
+> Two people do the same job. One is slower and gets a different answer, and nobody can see where. Knack aligns the novice's steps to the nearest expert's and prices each gap in seconds. Then it checks itself: expert against expert, and shuffled labels, both near zero. On our synthetic data the real gap is about 230 seconds a case. The closed 'About this data' line says the numbers come from example people made for this build, because they do.
 
 ## Slide bullets
 
@@ -130,7 +130,7 @@ The calculators' quirks and the oracle are ours. The oracle is a simplified rule
 - Two controls: expert against expert 7.1 s, shuffled labels 46.2 s, real gap 229.6 s (synthetic, n = 24).
 - Skipping a check is free in seconds and costly in answers: 107 of 200 households unwarned.
 - Precision 92% on our generator, 48 to 71% on harder ones: both shown.
-- Everything is synthetic and badged; plain code, no language model.
+- Everything is generated and the screen says so in plain words; plain code, no language model.
 
 ## Sources
 

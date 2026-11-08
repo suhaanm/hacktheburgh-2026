@@ -53,7 +53,7 @@ def test_the_demo_person_borrows_a_stand_in_and_says_so(cal_env):
     rd = read_calendar(Ctx("p_learn01", NOW))
     assert rd.available and rd.meta["stand_in"] == "p_ninetofive" and rd.items
     c = next(x for x in calendar_candidates(Ctx("p_learn01", NOW), rd) if x.subject == "cal:auto_hold_scheduling")
-    assert "stand-in" in c.why and c.meta["stand_in"] is True
+    assert "example calendar" in c.why and c.meta["stand_in"] is True
 
 
 def test_the_seed_uses_the_live_calendar_card_and_survives_the_first_read(cal_env):
@@ -70,6 +70,6 @@ def test_the_seed_uses_the_live_calendar_card_and_survives_the_first_read(cal_en
     assert sorted(out["kinds"]) == ["automate", "focus_block", "practice"]
     store = BriefingStore(cal_env.data / "briefing.json")
     cal = next(c for c in store.cards(S.DEMO_PERSON) if c.kind == "focus_block")
-    assert cal.subject == "cal:auto_hold_scheduling" and cal.fire_type == "draft" and "stand-in" in cal.why
+    assert cal.subject == "cal:auto_hold_scheduling" and cal.fire_type == "draft" and "example calendar" in cal.why
     b = B.build(S.DEMO_PERSON, store=store, readers=readers, now=NOW)
     assert b.dropped == [] and sorted(c.kind for c in b.cards) == ["automate", "focus_block", "practice"]

@@ -24,7 +24,7 @@ An orchestrator turns a case into a task graph. Navigators run in parallel, each
 
 ### Where to see it
 
-Routines, then Run now (the window minimises and the corner pill shows what is happening); the result arrives in Needs you. More, then Background runs shows runs.
+Routines, then Run now (the window minimises and the corner pill shows what is happening); the result arrives in Needs you. The worker's background tasks are listed on Routines; the admin's Background runs (Admin view, More) shows runs.
 
 ### Demo moment
 
@@ -100,7 +100,7 @@ A closed question with yes, no or unsure; unsure is never accepted; code require
 
 ### Where to see it
 
-Behind the scenes: More, then Models and cost lists the route; agent runs show a verified chip per step where wired.
+Behind the scenes: the Admin view, More, Models and cost lists the route; agent runs show a verified chip per step where wired.
 
 ### Demo moment
 

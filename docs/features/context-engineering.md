@@ -18,7 +18,7 @@ An audit listed every model-facing call site and its prompt sections. A shared l
 
 ## Where to see it
 
-Not visible on a screen. It is behind every agent run and shows up as cost and latency in Models and cost.
+Not visible on a screen. It is behind every agent run and shows up as cost and latency in Models and cost (Admin view, More).
 
 ## Demo moment
 
