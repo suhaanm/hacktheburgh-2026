@@ -140,6 +140,7 @@ suggest_connections:
   "review_habit:always": [slack]
   "reporting_cadence:weekly": [sheets]
   "reporting_cadence:daily": [sheets]
+
 routines: routines.yaml
 tone_defaults: { length: detailed, voice: precise, pace: gentle }
 curriculum: curriculum.yaml

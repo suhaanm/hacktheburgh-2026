@@ -142,6 +142,7 @@ suggest_connections:
   "on_call:rota": [sentry, slack]
   "on_call:always": [sentry, slack]
   "release_cadence:daily": [sentry]
+
 routines: routines.yaml
 tone_defaults: { length: short, voice: terse, pace: quick }
 curriculum: curriculum.yaml
