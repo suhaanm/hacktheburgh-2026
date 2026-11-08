@@ -58,10 +58,13 @@ export function RunningRow({ routine: r, open, onToggle, onDecide, onRun, canRun
           <span className="rt-row__state">{stateLine(r)}</span>
         </span>
         <span className="rt-row__trust">{trustWord(r)}</span>
+        {canRun && onRun && <button type="button" className="btn btn--secondary btn--sm rt-row__run" disabled={!!busy} onClick={() => void run()}>{busy === "run" ? "Starting" : "Run now"}</button>}
         <Glyph name="chevron" className="kc-glyph rt-row__chev" />
         {/* The whole line opens the row. The control has no words of its own: its name is the routine's. */}
         <button type="button" className="rt-row__open" aria-expanded={open} aria-controls={`rt-${r.id}`} aria-label={`${plainWords(r.title)}: ${open ? "close" : "open"}`} onClick={onToggle} />
       </div>
+      {!open && err && <p className="kc-error rt-row__msg" role="alert">{err}</p>}
+      {ran !== null && <p className="note rt-row__msg" role="status" data-testid="ran">{ran}</p>}
       {open && (
         <div className="kc-panel rt-panel" id={`rt-${r.id}`}>
           <p>{plainWords(touchesSentence(r))} {never}</p>
@@ -77,7 +80,6 @@ export function RunningRow({ routine: r, open, onToggle, onDecide, onRun, canRun
           </div>
           {gate && <SkillGate gate={gate} busy={!!busy} onOverride={() => void choose(STEPS.find((s) => CAP_MODE[s] === gate.mode) ?? "watching", true)} onDismiss={() => setGate(null)} />}
           {err && <p className="kc-error" role="alert">{err}</p>}
-          {ran !== null && <p className="note" role="status" data-testid="ran">{ran}</p>}
           {stopping ? (
             <div className="kc-confirm" data-tone="danger" role="group" aria-label="Stop for good">
               <p>Stop for good? It stops now and goes back to Not now. Nothing it already did is undone.</p>
@@ -88,7 +90,6 @@ export function RunningRow({ routine: r, open, onToggle, onDecide, onRun, canRun
             </div>
           ) : (
             <div className="row">
-              {canRun && onRun && <button type="button" className="btn btn--secondary btn--sm" disabled={!!busy} onClick={() => void run()}>{busy === "run" ? "Starting" : "Run now"}</button>}
               <button type="button" className="btn btn--secondary btn--sm" disabled={!!busy} onClick={() => setStopping(true)}>Stop for good</button>
             </div>
           )}

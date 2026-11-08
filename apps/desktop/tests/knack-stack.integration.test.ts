@@ -46,11 +46,12 @@ describe.skipIf(!ON)('the services lifecycle with the real services (example dat
         preferDevServer: false,
         dirs: { demo: { home: 'data/demo-home', data: 'data/demo-data' }, live: { home: 'data/live-home', data: 'data/live-data' } },
         mode: 'demo',
+        // The sandbox sites bind 7801 to 7803 whatever the environment says, and those ports are not ours: this test never starts them.
+        startSites: false,
         timeouts: { engineMs: 240_000, agentMs: 240_000, dashboardMs: 5000, seedMs: 480_000, pollMs: 500, stopMs: 8000 },
       }
       const base = realStackDeps(config)
-      // The sandbox sites bind 7801 to 7803 whatever the environment says, and those ports are not ours: this test never starts them.
-      const stack = createStack({ ...base, exists: (p) => !p.endsWith(path.join('sandbox_sites', '__main__.py')) && base.exists(p) })
+      const stack = createStack(base)
       const states: string[] = []
       stack.subscribe((s) => states.push(s.phase === 'starting' ? s.step : s.phase))
       try {
@@ -75,7 +76,7 @@ describe.skipIf(!ON)('the services lifecycle with the real services (example dat
         expect(fs.existsSync(path.join(repo, 'data/logs/knack-agent.log'))).toBe(true)
 
         // Starting again while it is up attaches to what is there and starts nothing more.
-        const again = createStack({ ...base, exists: (p) => !p.endsWith(path.join('sandbox_sites', '__main__.py')) && base.exists(p) })
+        const again = createStack(base)
         const attached = await again.start()
         expect(attached).toMatchObject({ phase: 'ready', started: [] })
         await again.stop() // holds nothing: the first stack's services are left running

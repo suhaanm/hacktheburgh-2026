@@ -55,6 +55,8 @@ export interface StackConfig {
   dirs: { demo: { home: string; data: string }; live: { home: string; data: string } }
   /** The mode to start in until setMode says otherwise. */
   mode: StackMode
+  /** Start the sandbox calculator sites with the agent (default true). KNACK_SITES=0 turns it off: the sites bind fixed ports (7801 to 7803) that a check or a second checkout may not take. */
+  startSites?: boolean
   timeouts: { engineMs: number; agentMs: number; dashboardMs: number; seedMs: number; pollMs: number; stopMs: number }
 }
 
@@ -270,7 +272,7 @@ export function createStack(deps: StackDeps): Stack {
     if (!agent.ok) {
       set({ phase: 'starting', step: 'agent' })
       // The sandbox calculator sites the agent works on in the demo (dev.sh starts them too); they are not waited for.
-      if (deps.exists(path.join(root, 'services/agent/understudy_agent/sandbox_sites/__main__.py')) && !(await healthy(cfg.ports.sites)).ok) {
+      if (cfg.startSites !== false && deps.exists(path.join(root, 'services/agent/understudy_agent/sandbox_sites/__main__.py')) && !(await healthy(cfg.ports.sites)).ok) {
         launch('sites', uv as string, ['run', '--package', 'understudy-agent', 'python', '-m', 'understudy_agent.sandbox_sites'], root)
       }
       const c = launch('agent', uv as string, ['run', '--package', 'understudy-agent', 'python', '-m', 'understudy_agent.server'], root)

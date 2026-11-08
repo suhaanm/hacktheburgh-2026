@@ -83,6 +83,12 @@ afterEach(async () => {
   await h.server.close()
 })
 
+// The session sends nothing back until its outgoing channel exists, which is after the microphone has started: a tool call that arrives earlier is dropped.
+// So a test waits for the setup to reach the server AND for the session to be open (its phase is past 'connecting') before the fake model speaks.
+const opened = async (m: LiveManager): Promise<void> => {
+  await wf(() => h.server.received.setup !== null)
+  await wf(() => ['listening', 'thinking', 'speaking', 'waiting'].includes(m.status().phase))
+}
 const setup = (): Record<string, any> => h.server.received.setup as Record<string, any>
 const declared = (): string[] => (setup().tools[0].functionDeclarations as Array<{ name: string }>).map((t) => t.name).sort()
 const call = (name: string, args: Record<string, unknown>, id = `c-${name}`): void => h.server.send({ toolCall: { functionCalls: [{ id, name, args }] } })
@@ -92,7 +98,7 @@ describe('startFromWake', () => {
     const m = h.make({ context: (o) => `KNACK CONTEXT v1 test trigger=${o.trigger}` })
     m.start()
     expect(m.startFromWake()).toBe(true)
-    await wf(() => h.server.received.setup !== null)
+    await opened(m)
     expect(m.status()).toMatchObject({ trigger: 'wake', mode: 'converse' })
     expect(m.workerUsedVoice()).toBe(true)
     const text = setup().systemInstruction.parts[0].text as string
@@ -104,7 +110,7 @@ describe('startFromWake', () => {
     const m = h.make()
     m.start()
     m.startFromWake()
-    await wf(() => h.server.received.setup !== null)
+    await opened(m)
     expect(declared()).toEqual(['ask_choice', 'clear', 'do_it_for_me', 'end_session', 'point_at', 'show_step'])
   })
   it('refuses to start while another conversation is open or the gates say no', async () => {
@@ -128,7 +134,7 @@ describe('startFromWake', () => {
     })
     m.start()
     expect(m.startFromWake()).toBe(true)
-    await wf(() => h.server.received.setup !== null)
+    await opened(m)
     expect(setup().systemInstruction.parts[0].text).toContain(FALLBACK_PACKET)
   })
 })
@@ -138,7 +144,7 @@ describe('the wake tools', () => {
     const m = h.make()
     m.start()
     m.startFromWake()
-    await wf(() => h.server.received.setup !== null)
+    await opened(m)
     h.ground = { available: ['t0'], chosen: 't0', box_2d: [100, 200, 160, 360], confidence: 0.9, source: 'dom' }
     call('point_at', { description: 'the green Submit button' })
     await wf(() => h.server.received.toolResponses.length === 1)
@@ -149,7 +155,7 @@ describe('the wake tools', () => {
     const m = h.make()
     m.start()
     m.startFromWake()
-    await wf(() => h.server.received.setup !== null)
+    await opened(m)
     call('clear', {})
     await wf(() => h.server.received.toolResponses.length === 1)
     expect(h.cleared).toBeGreaterThan(0)
@@ -161,7 +167,7 @@ describe('the wake tools', () => {
     const m = h.make()
     m.start()
     m.startFromWake()
-    await wf(() => h.server.received.setup !== null)
+    await opened(m)
     h.ground = { available: ['t0'], chosen: 't0', box_2d: [100, 200, 160, 360], confidence: 0.9, source: 'dom' }
     call('do_it_for_me', { description: 'the Save button' })
     await wf(() => h.server.received.toolResponses.length === 1)
@@ -175,7 +181,7 @@ describe('the wake tools', () => {
     const m = h.make()
     m.start()
     m.startFromWake()
-    await wf(() => h.server.received.setup !== null)
+    await opened(m)
     call('do_it_for_me', { description: 'the Save button' })
     await wf(() => h.server.received.toolResponses.length === 1)
     expect(h.doIt[0].box).toBeNull()
@@ -188,7 +194,7 @@ describe('the wake tools', () => {
     const m = h.make({ doIt: undefined })
     m.start()
     m.startFromWake()
-    await wf(() => h.server.received.setup !== null)
+    await opened(m)
     expect(declared()).not.toContain('do_it_for_me')
     call('do_it_for_me', { description: 'the Save button' })
     await wf(() => h.server.received.toolResponses.length === 1)

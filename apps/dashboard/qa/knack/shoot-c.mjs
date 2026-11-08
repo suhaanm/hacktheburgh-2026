@@ -10,13 +10,16 @@ const only = process.argv[4];
 fs.mkdirSync(out, { recursive: true });
 const SHOTS = [
   ["needs-you", "/needs-you"],
-  ["needs-you-more", "/needs-you", async (p) => { await p.getByRole("button", { name: "More ways to say yes" }).first().click(); await p.getByRole("button", { name: "Evidence" }).first().click(); }],
+  ["needs-you-more", "/needs-you", async (p) => { await p.locator("article[data-kind=proposal]").first().getByRole("button", { name: "Details" }).click(); await p.getByRole("button", { name: "Evidence" }).first().click(); }],
   ["routines", "/routines"],
   ["routines-open", "/routines", async (p) => { await p.locator(".rt-row__open").first().click(); }],
   ["routines-could", "/routines?tab=could-automate"],
   ["your-data", "/your-data"],
   ["your-data-sent", "/your-data?section=sent"],
   ["your-data-delete", "/your-data?section=switches", async (p) => { await p.getByRole("button", { name: "Delete everything" }).click(); }],
+  ["agents", "/agents"],
+  ["agents-open", "/agents", async (p) => { await p.locator("summary", { hasText: "Helpers and result" }).first().click(); }],
+  ["models", "/models"],
   ["settings", "/home?settings=live-models"],
   ["settings-interruptions", "/home?settings=interruptions"],
 ];
