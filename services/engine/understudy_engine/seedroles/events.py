@@ -46,7 +46,7 @@ WEEKS = 12
 #: the generator's own knobs for this worker (drawn ranges are in personas_v2/params.py): a calm event rate (a thin L0 capture), a worker whose routines are a large and steady share of
 #: the day (so the finder sees them often enough to be worth proposing) and a pace a little above the pack's mean tasks per hour
 HYPER = {"expert_share": 0.25, "event_rate_per_s": 0.06, "wk_routine_share": 0.6, "wk_routine_drift": 0.04, "wk_split_p": 0.0, "wk_interleave_p": 0.02}
-PACE_FACTOR = {"programmer": 2.4, "data-analyst": 4.5}      # the analyst's routines are shorter, so they must come round more often before one is worth proposing
+PACE_FACTOR = {"programmer": 3.4, "data-analyst": 4.5}      # the analyst's routines are shorter, so they must come round more often before one is worth proposing
 #: cogs that change something (the progress report of a step is a commit); everything else the pack adds is reading or looking
 _COMMIT_PREFIX = ("WRITE_", "OPEN_", "ADD_", "ROLL_", "SCHEDULE_", "PARAMETERISE_", "DOCUMENT_", "MAKE_", "SET_", "JOIN_", "GROUP_")
 

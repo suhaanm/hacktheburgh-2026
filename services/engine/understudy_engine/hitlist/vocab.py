@@ -138,8 +138,24 @@ def derive_key(title: str) -> str | None:
     return key if key and key.lower() in title.lower() else None
 
 
+#: Plain phrases for the steps a worker repeats, used to spell a routine the pack has no title for. A step not listed here is its own name in lower case.
+PHRASES: dict[str, str] = {
+    "WATCH_PROD": "watch production", "NAVIGATE": "switch pages", "READ_TRACE": "read the trace", "READ_CODE": "read the code",
+    "READ_CI": "read the CI result", "EDIT_CODE": "edit the code", "RUN_TESTS": "run the tests", "WRITE_TEST": "write a test", "REVIEW_DIFF": "review the diff",
+    "REVIEW_PEER": "review a teammate's change", "ANSWER_REVIEW": "answer review comments", "OPEN_PR": "open a pull request", "COMMIT": "commit",
+    "WRITE_COMMIT_MSG": "write the commit message", "REPRODUCE_LOCALLY": "reproduce it locally", "BISECT_CHANGE": "bisect the change", "ADD_LOGGING": "add a log line",
+    "INSPECT_INPUT": "inspect the input", "PROBE_EDGE": "probe an edge case", "ROLL_BACK": "roll back", "REVERT": "revert", "PROFILE_HOTPATH": "profile the hot path",
+    "WRITE_MIGRATION": "write a migration", "SEARCH_DOCS": "look up the docs", "REFORMULATE": "rephrase the search", 
+    "RUN_QUERY": "run the query", "WRITE_QUERY": "write the query", "LOAD_DATA": "load the data", "CLEAN_DATA": "clean the data", "PROFILE_DATA": "profile the data",
+    "JOIN_TABLES": "join the tables", "GROUP_AGG": "group and total", "PLOT": "plot it", "EXPORT_RESULT": "export the result", "INSPECT_RESULT": "inspect the result",
+    "SCHEDULE_REFRESH": "schedule the refresh", "PARAMETERISE_REPORT": "parameterise the report", "DOCUMENT_METRIC": "document the metric", "WRITE_FINDING": "write the finding",
+    "CHECK_MAGNITUDE": "check the size", "QUANTIFY_UNCERTAINTY": "work out the uncertainty", "RECONCILE_CONTROL": "reconcile to a control total", "TRACE_SOURCE": "trace the source",
+    "MAKE_REPRODUCIBLE": "make it reproducible", "SET_GRAIN": "set the grain", "PEER_CHECK": "ask for a second look",
+}
+
+
 def _words(cog: str) -> str:
-    return cog.replace("_", " ").lower()
+    return PHRASES.get(cog.upper(), cog.replace("_", " ").lower())
 
 
 def label_for(template: dict | None, signature: Sequence[str]) -> tuple[str, str | None, str]:

@@ -105,7 +105,8 @@ def compute(person: str | None, window_days: int, *, now: float | None = None, c
     src_pd, only = pd, None
     if demo.get("person") == pd.person and demo.get("routine_source"):
         other = rh._src().load(demo["routine_source"])
-        if other is not None:
+        # Only another persona of the SAME role (as the Routines screen does): a programmer never reads a benefits processor's traces.
+        if other is not None and other.role == pd.role:
             src_pd, only = other, (set(demo.get("routine_ids") or []) or None)
     at = now if now is not None else (src_pd.t_last if src_pd.origin == "synthetic" else time.time())
     pack = _pack(src_pd.role)
