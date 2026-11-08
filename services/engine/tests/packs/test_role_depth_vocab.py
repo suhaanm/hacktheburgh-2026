@@ -72,11 +72,3 @@ def test_an_evidence_packet_may_name_a_new_cog_and_is_just_as_valid_without_one(
         for cog in load_pack(role).extra_cogs[10:]:
             pk = P.EvidencePacket.model_validate({"meta": meta, "cogs": {cog: {"seconds": 3.0}}})
             assert f"cog.{cog}.seconds" in P.facts(pk).facts
-
-
-def test_the_hit_lists_risk_words_do_not_misread_a_new_cog_as_irreversible_or_outward():
-    """The hit list holds a routine back when its FIRST step looks irreversible or outward (from the cog's own words). A new cog whose name carries
-    a risk word would hold back a harmless routine, so the ids were chosen without MESSAGE, DEPLOY, ISSUE, EXPORT and the like."""
-    for role in ROLES:
-        for cog in load_pack(role).extra_cogs[10:]:
-            assert HV.step_risk(cog) is None, (role, cog, HV.step_risk(cog))

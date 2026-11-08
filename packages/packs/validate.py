@@ -439,6 +439,11 @@ def validate_pack(pack_dir: Path) -> list[str]:
 # hand-written from the job and a validator cannot tell good from thin, only absent from present.
 STANDARD_MINIMUM = {"cogs": 15, "checks": 15, "skills": 10, "templates": 8, "followups": 4, "habits": 8}
 
+# routines/finder.py FinderConfig.min_len: "skeletons shorter than this are never a routine". A template shorter than this (repeats merged, as the
+# finder merges them) could never be found or matched; a test in the engine keeps this number equal to the finder's.
+FINDER_MIN_LEN = 4
+FINDER_DROP = frozenset({"IDLE", "REVERT", "REFORMULATE"})      # routines/finder.py DROP_COGS: left out of a skeleton before it is measured
+
 
 def _check_families(name: str, checks: list[dict]) -> list[str]:
     """A check with a `family` is an addition to the policy of the pack's one task. It must not be able to touch what the policy already
@@ -461,11 +466,21 @@ def _check_families(name: str, checks: list[dict]) -> list[str]:
     return errs
 
 
+def _merged_len(cogs: list[str]) -> int:
+    """The length of a skeleton the way the finder measures it: some cogs dropped, then repeats merged."""
+    kept = [c for c in cogs if c not in FINDER_DROP]
+    return sum(1 for i, c in enumerate(kept) if i == 0 or c != kept[i - 1])
+
+
 def _check_template_extras(name: str, routines: dict) -> list[str]:
-    """irreversibility, judgement_share, steps and tools are optional; when given they must agree with the rest of the template."""
+    """irreversibility, judgement_share, steps and tools are optional; when given they must agree with the rest of the template.
+    Every template, old or new, must be long enough for the finder to ever report it."""
     errs: list[str] = []
     default_j = set((routines.get("defaults") or {}).get("judgement_cogs", []))
     for t in routines["templates"]:
+        if _merged_len(t["cogs"]) < FINDER_MIN_LEN:
+            errs.append(f"{name}: routine template {t['id']}: {_merged_len(t['cogs'])} steps once repeats are merged, but the routine finder never reports "
+                        f"fewer than {FINDER_MIN_LEN}, so it could never be found")
         if "judgement_share" in t:
             j = default_j | set(t.get("judgement_cogs", []))
             want = round(sum(1 for c in t["cogs"] if c in j) / len(t["cogs"]), 2)

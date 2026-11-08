@@ -298,6 +298,23 @@ def test_every_routine_template_is_complete_and_consistent(role):
     assert {"github", "slack", "postgres", "sheets"} & {x for t in new for x in t["tools"]}
 
 
+def test_every_template_is_long_enough_for_the_routine_finder_to_ever_report_it(role):
+    """The finder never reports a skeleton shorter than its min_len (repeats merged, IDLE, REVERT and REFORMULATE left out): a shorter template would be
+    dead data. The validator's copy of those numbers is kept equal to the finder's here."""
+    import importlib.util
+
+    from understudy_engine.routines.finder import DROP_COGS, FinderConfig
+
+    spec = importlib.util.spec_from_file_location("pack_validate_for_rd", REPO / "packages" / "packs" / "validate.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    assert mod.FINDER_MIN_LEN == FinderConfig().min_len and mod.FINDER_DROP == DROP_COGS
+    for t in docs(role)["routines"]["templates"]:
+        kept = [c for c in t["cogs"] if c not in DROP_COGS]
+        merged = [c for i, c in enumerate(kept) if i == 0 or c != kept[i - 1]]
+        assert len(merged) >= FinderConfig().min_len, t["id"]
+
+
 def test_every_cog_of_the_pack_is_used_somewhere(role):
     d = docs(role)
     used = {g for c in d["steps"]["checks"] for g in c["cogs"]} | {g for s in d["curriculum"]["skills"] for g in s["cogs"]} | {g for t in d["routines"]["templates"] for g in t["cogs"]}

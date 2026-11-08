@@ -21,7 +21,7 @@ STATES = ("ok", "new_user", "too_little_data", "nothing_repeats", "all_handled",
 _RISK_RULES: tuple[tuple[str, frozenset[str]], ...] = (
     ("payment", frozenset({"pay", "payment", "payments", "approve", "issue", "refund", "transfer"})),
     ("delete", frozenset({"delete", "overwrite", "remove", "erase", "drop", "truncate", "purge"})),
-    ("release", frozenset({"merge", "deploy", "release", "push"})),
+    ("release", frozenset({"merge", "deploy", "release", "push", "rollback", "roll"})),      # "roll" for ROLL_BACK and "roll back" (RD, 7 Nov 2026)
     ("submit", frozenset({"submit", "close", "sign", "finalise", "finalize"})),
     ("message", frozenset({"send", "email", "letter", "notify", "message", "reply", "comment"})),
     ("share", frozenset({"export", "share", "upload", "publish", "post", "print", "download"})),

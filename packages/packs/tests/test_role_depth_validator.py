@@ -130,6 +130,17 @@ def test_a_judgement_share_must_match_the_hit_lists_own_formula(tmp_path):
     assert any("review-queue-triage: judgement_share 0.1 but its cogs give 0.67" in e for e in errors(dst))
 
 
+def test_a_template_too_short_for_the_finder_is_refused(tmp_path):
+    dst = clone(tmp_path, "data-analyst")
+    edit(dst / "routines.yaml", lambda d: next(t for t in d["templates"] if t["id"] == "reload-and-reprofile").update(
+        cogs=["LOAD_DATA", "PROFILE_DATA", "INSPECT_RESULT"], steps=["a step", "another step"]))
+    assert any("reload-and-reprofile: 3 steps once repeats are merged, but the routine finder never reports fewer than 4" in e for e in errors(dst))
+    dst2 = clone(tmp_path / "b", "data-analyst")           # repeats merge: five cogs that collapse to three are three
+    edit(dst2 / "routines.yaml", lambda d: next(t for t in d["templates"] if t["id"] == "reload-and-reprofile").update(
+        cogs=["LOAD_DATA", "LOAD_DATA", "PROFILE_DATA", "PROFILE_DATA", "INSPECT_RESULT"]))
+    assert any("reload-and-reprofile: 3 steps once repeats are merged" in e for e in errors(dst2))
+
+
 def test_an_irreversible_routine_must_not_be_automatable(tmp_path):
     dst = clone(tmp_path, "programmer")
     edit(dst / "routines.yaml", lambda d: next(t for t in d["templates"] if t["id"] == "rollback-after-alert").update(automatable=True))

@@ -8,6 +8,8 @@
 #   tools            connection preset ids (strings only; the CONNECTIONS track resolves them). Nothing here connects to anything.
 # A routine is held back from the hit list when its first step is irreversible or outward, when `automatable` is false, or when its
 # judgement share is over 0.4 (hitlist/build.py). `never` is what an automation stops before, not what the routine is made of.
+# Every template has at least four steps once repeats are merged: the routine finder never reports a shorter skeleton, so a shorter template could
+# never be found (the validator refuses one, and a test keeps its number equal to the finder's).
 version: 1
 defaults:
   min_support: 3
@@ -29,14 +31,14 @@ templates:
 
   - id: reload-and-reprofile
     title: Reload the dataset and re-run the profile
-    cogs: [LOAD_DATA, PROFILE_DATA, INSPECT_RESULT]
+    cogs: [NAVIGATE, LOAD_DATA, PROFILE_DATA, INSPECT_RESULT]
     match_distance: 0.25
     automatable: true
     learning_relevant: true        # skill gate: mastery of PROFILE_DATA must reach L4 first
     skill_cogs: [PROFILE_DATA]
     irreversibility: none          # read only
     judgement_share: 0.0
-    steps: ["Open the dataset", "Run the profile: row counts, nulls, duplicates, ranges", "Read three raw rows"]
+    steps: ["Open the data browser", "Load the dataset", "Run the profile: row counts, nulls, duplicates, ranges", "Read three raw rows"]
     tools: [postgres]
     touches: ["warehouse console", "data browser"]
     never: ["overwrite", "drop"]
@@ -47,13 +49,13 @@ templates:
 
   - id: parameterised-weekly-query
     title: Run the saved query for a new week
-    cogs: [WRITE_QUERY, RUN_QUERY, INSPECT_RESULT]
+    cogs: [NAVIGATE, WRITE_QUERY, RUN_QUERY, INSPECT_RESULT]
     match_distance: 0.25
     automatable: true
     learning_relevant: false
     irreversibility: none
     judgement_share: 0.0
-    steps: ["Open the saved query", "Change the week in the filter", "Run it and read the first rows"]
+    steps: ["Open the saved query", "Change the week in the filter", "Run it", "Read the first rows"]
     tools: [postgres]
     touches: ["warehouse console"]
     never: ["drop", "delete from", "overwrite"]
@@ -64,14 +66,14 @@ templates:
 
   - id: reconcile-and-note-gap
     title: Compare the total with the control and note the gap
-    cogs: [RUN_QUERY, RECONCILE_CONTROL, WRITE_FINDING]
+    cogs: [RUN_QUERY, INSPECT_RESULT, RECONCILE_CONTROL, WRITE_FINDING]
     match_distance: 0.25
     automatable: true
     learning_relevant: true        # skill gate: mastery of RECONCILE_CONTROL must reach L4 first
     skill_cogs: [RECONCILE_CONTROL]
     irreversibility: reversible    # it drafts a note; the note is the worker's to keep or delete
-    judgement_share: 0.33
-    steps: ["Run the saved total", "Compare it with the control figure", "Draft one line that says the gap and what it is made of"]
+    judgement_share: 0.25
+    steps: ["Run the saved total", "Read the rows behind it", "Compare it with the control figure", "Draft one line that says the gap and what it is made of"]
     tools: [postgres, sheets]
     touches: ["warehouse console", "control sheet"]
     never: ["publish", "email"]
@@ -82,14 +84,14 @@ templates:
 
   - id: join-check-and-count
     title: Join the two tables and check the row counts
-    cogs: [JOIN_TABLES, PROFILE_DATA, INSPECT_RESULT]
+    cogs: [PROFILE_DATA, JOIN_TABLES, PROFILE_DATA, INSPECT_RESULT]
     match_distance: 0.20
     automatable: true
     learning_relevant: true        # skill gate: mastery of JOIN_TABLES must reach L4 first
     skill_cogs: [JOIN_TABLES]
     irreversibility: none
     judgement_share: 0.0
-    steps: ["Count the rows on each side", "Run the join", "Count the rows after and read three that joined"]
+    steps: ["Count the rows on each side", "Run the join", "Count the rows after", "Read three that joined"]
     tools: [postgres]
     touches: ["warehouse console"]
     never: ["create or replace", "overwrite"]
@@ -100,14 +102,14 @@ templates:
 
   - id: segment-breakdown-chart
     title: Break the metric down by segment and chart it
-    cogs: [SET_GRAIN, GROUP_AGG, PLOT]
+    cogs: [INSPECT_RESULT, SET_GRAIN, GROUP_AGG, PLOT]
     match_distance: 0.25
     automatable: true
     learning_relevant: true        # skill gate: mastery of GROUP_AGG must reach L4 first
     skill_cogs: [GROUP_AGG]
     irreversibility: none
-    judgement_share: 0.33
-    steps: ["Set the grain the question asks for", "Group by the segment", "Chart the groups next to the total"]
+    judgement_share: 0.25
+    steps: ["Read three raw rows", "Set the grain the question asks for", "Group by the segment", "Chart the groups next to the total"]
     tools: [sheets]
     touches: ["BI tool", "metrics sheet"]
     never: ["publish", "share dashboard"]
@@ -118,14 +120,14 @@ templates:
 
   - id: magnitude-and-units-check
     title: Check scale and units on the refreshed figures
-    cogs: [RUN_QUERY, CHECK_MAGNITUDE, COMPARE]
+    cogs: [RUN_QUERY, INSPECT_RESULT, CHECK_MAGNITUDE, COMPARE]
     match_distance: 0.30
     automatable: false             # a judgement on every figure: a decoy the finder should find and not propose
     learning_relevant: true
     skill_cogs: [CHECK_MAGNITUDE]
     irreversibility: none
-    judgement_share: 0.67
-    steps: ["Run the refresh", "Read each figure against one you already know", "Compare units with last period's"]
+    judgement_share: 0.5
+    steps: ["Run the refresh", "Read the figures", "Read each figure against one you already know", "Compare units with last period's"]
     tools: [sheets]
     touches: ["warehouse console", "metrics sheet"]
     never: ["publish", "email"]
@@ -135,14 +137,14 @@ templates:
 
   - id: interval-for-a-rate
     title: Add an interval to a rate before charting it
-    cogs: [RUN_QUERY, QUANTIFY_UNCERTAINTY, PLOT]
+    cogs: [RUN_QUERY, INSPECT_RESULT, QUANTIFY_UNCERTAINTY, PLOT]
     match_distance: 0.25
     automatable: true
     learning_relevant: true        # skill gate: mastery of QUANTIFY_UNCERTAINTY must reach L4 first
     skill_cogs: [QUANTIFY_UNCERTAINTY]
     irreversibility: none
     judgement_share: 0.0
-    steps: ["Run the count and the total", "Work out the rate and its interval with the chosen method", "Chart the rate with the interval"]
+    steps: ["Run the count and the total", "Read the rows", "Work out the rate and its interval with the chosen method", "Chart the rate with the interval"]
     tools: [sheets]
     touches: ["warehouse console", "metrics sheet"]
     never: ["publish"]
@@ -153,14 +155,14 @@ templates:
 
   - id: notebook-restart-and-run
     title: Restart the notebook and run it top to bottom
-    cogs: [MAKE_REPRODUCIBLE, INSPECT_RESULT, COMPARE]
+    cogs: [NAVIGATE, MAKE_REPRODUCIBLE, INSPECT_RESULT, COMPARE]
     match_distance: 0.25
     automatable: true
     learning_relevant: true        # skill gate: mastery of MAKE_REPRODUCIBLE must reach L4 first
     skill_cogs: [MAKE_REPRODUCIBLE]
     irreversibility: reversible    # it clears outputs; the code is untouched
-    judgement_share: 0.33
-    steps: ["Restart the kernel", "Run every cell in order", "Compare the final figure with the one before the restart"]
+    judgement_share: 0.25
+    steps: ["Open the notebook", "Restart the kernel and run every cell in order", "Read the final figure", "Compare it with the one before the restart"]
     tools: [github]
     touches: ["notebook"]
     never: ["publish", "overwrite"]
@@ -171,14 +173,14 @@ templates:
 
   - id: draft-metric-definition
     title: Draft the metric definition from the saved query
-    cogs: [TRACE_SOURCE, DOCUMENT_METRIC, COPY]
+    cogs: [TRACE_SOURCE, COPY, NAVIGATE, DOCUMENT_METRIC, PASTE]
     match_distance: 0.25
     automatable: true
     learning_relevant: true        # skill gate: mastery of DOCUMENT_METRIC must reach L4 first
     skill_cogs: [DOCUMENT_METRIC]
     irreversibility: reversible    # a draft page the worker reviews and can delete
     judgement_share: 0.0
-    steps: ["Read the source of each field in the query", "Open the metric's documentation page", "Paste a draft with the source and the filters"]
+    steps: ["Read the source of each field in the query", "Copy the source and the filters", "Open the metric's documentation page", "Read the current definition", "Paste a draft beside it"]
     tools: [notion]
     touches: ["data catalog", "documentation page"]
     never: ["publish", "overwrite"]
@@ -189,13 +191,13 @@ templates:
 
   - id: send-peer-check
     title: Send the finding for a second check
-    cogs: [WRITE_FINDING, PEER_CHECK, EXPORT_RESULT]
+    cogs: [WRITE_FINDING, PEER_CHECK, RUN_QUERY, EXPORT_RESULT]
     match_distance: 0.30
     automatable: false             # outward and a judgement: the person decides who sees it
     learning_relevant: false
     irreversibility: outward
-    judgement_share: 0.67
-    steps: ["Read the finding and its caveat once more", "Ask a colleague to check it", "Attach the extract they need"]
+    judgement_share: 0.5
+    steps: ["Read the finding and its caveat once more", "Ask a colleague to check it", "Run the extract they need", "Attach the extract"]
     tools: [slack, sheets]
     touches: ["finding document", "team chat"]
     never: ["email", "export", "share dashboard"]
@@ -205,14 +207,14 @@ templates:
 
   - id: schedule-refresh-with-alert
     title: Schedule the refresh and alert on failure
-    cogs: [MAKE_REPRODUCIBLE, PARAMETERISE_REPORT, SCHEDULE_REFRESH]
+    cogs: [MAKE_REPRODUCIBLE, INSPECT_RESULT, PARAMETERISE_REPORT, SCHEDULE_REFRESH]
     match_distance: 0.25
     automatable: false             # a standing rule: scheduling something to run unattended is always the worker's decision
     learning_relevant: true
     skill_cogs: [SCHEDULE_REFRESH]
     irreversibility: outward
     judgement_share: 0.0
-    steps: ["Check it runs clean from scratch", "Turn the week into a parameter", "Set the schedule and the failure alert"]
+    steps: ["Check it runs clean from scratch", "Read the result", "Turn the week into a parameter", "Set the schedule and the failure alert"]
     tools: [github, slack]
     touches: ["BI tool", "scheduler"]
     never: ["schedule", "run on production", "publish"]
@@ -223,13 +225,13 @@ templates:
 
   - id: send-weekly-extract
     title: Export the weekly extract for a stakeholder
-    cogs: [RUN_QUERY, EXPORT_RESULT]
+    cogs: [RUN_QUERY, INSPECT_RESULT, EXPORT_RESULT, PASTE]
     match_distance: 0.25
     automatable: true
     learning_relevant: false
     irreversibility: outward
     judgement_share: 0.0
-    steps: ["Run the saved extract query", "Export it to the agreed shared sheet"]
+    steps: ["Run the saved extract query", "Read the first rows", "Export it", "Paste it into the agreed shared sheet"]
     tools: [sheets]
     touches: ["warehouse console", "shared sheet"]
     never: ["email", "publish", "share dashboard"]
