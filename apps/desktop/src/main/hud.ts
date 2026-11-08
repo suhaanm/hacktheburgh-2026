@@ -97,6 +97,13 @@ export function registerHud(deps: HudDeps): HudHandle {
       })
       .catch(() => undefined)
   }
+  // A display unplugged, plugged in or changed while the column is up: put it back in the corner of a display that is there.
+  const refit = (): void => {
+    if (alive() && win.isVisible()) fit()
+  }
+  screen.on('display-added', refit)
+  screen.on('display-removed', refit)
+  screen.on('display-metrics-changed', refit)
   const push = (): void => {
     if (!alive()) return
     win.webContents.send(HUD_IPC.state, deps.model.state())
@@ -128,6 +135,9 @@ export function registerHud(deps: HudDeps): HudHandle {
       if (alive()) await win.webContents.executeJavaScript(`document.documentElement.dataset.preview = ${JSON.stringify(mode)}`, true)
     },
     dispose() {
+      screen.off('display-added', refit)
+      screen.off('display-removed', refit)
+      screen.off('display-metrics-changed', refit)
       ipcMain.removeHandler(HUD_IPC.get)
       ipcMain.removeAllListeners(HUD_IPC.action)
       if (!win.isDestroyed()) win.destroy()

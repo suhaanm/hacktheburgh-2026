@@ -14,6 +14,7 @@ from typing import Any
 import yaml
 
 from .base import Source
+from ..store.paths import repo_root
 from .manifest import ManifestError, PluginManifest, check_manifest, load_manifest, resolve_entry
 
 BUILTIN_DIR = Path(__file__).resolve().parent / "builtin"
@@ -49,6 +50,12 @@ def _dirs() -> list[Path]:
     return dirs
 
 
+def presets_dir() -> Path:
+    """Where the curated connection presets (kind mcp) live: flat ``<id>.yaml`` files (CONNECTIONS). ``UNDERSTUDY_PRESETS_DIR`` overrides it."""
+    env = os.environ.get("UNDERSTUDY_PRESETS_DIR", "").strip()
+    return Path(env).expanduser() if env else repo_root() / "packages" / "connections" / "presets"
+
+
 def manifest_paths() -> list[Path]:
     out: list[Path] = []
     for d in _dirs():
@@ -57,6 +64,9 @@ def manifest_paths() -> list[Path]:
         if (d / "plugin.yaml").is_file():
             out.append(d / "plugin.yaml")
         out.extend(sorted(p / "plugin.yaml" for p in d.iterdir() if (p / "plugin.yaml").is_file()))
+    pd = presets_dir()
+    if pd.is_dir():
+        out.extend(sorted(pd.glob("*.yaml")))
     return out
 
 
@@ -98,11 +108,13 @@ def validate_paths(paths: list[Path] | None = None) -> list[ValidationResult]:
         for m in _REGISTERED.values():
             if not any(r.id == m.id for r in results):
                 problems = check_manifest({"id": m.id, "version": m.version, "kind": m.kind, "description": m.description,
-                                           "permissions": list(m.permissions), "egress": m.egress, "entry": m.entry,
+                                           "permissions": list(m.permissions), "egress": m.egress,
+                                           **({"entry": m.entry} if m.entry else {}),
                                            **({"schema": m.schema} if m.schema else {}),
                                            "default_enabled": m.default_enabled, "network": m.network,
                                            "requires_token": m.requires_token,
-                                           **({"enable_flag": m.enable_flag} if m.enable_flag else {})})
+                                           **({"enable_flag": m.enable_flag} if m.enable_flag else {}),
+                                           **({"connection": m.connection} if m.connection else {})})
                 results.append(ValidationResult(m.path or "(registered)", m.id, not problems, tuple(problems), is_enabled(m)))
     return results
 
@@ -126,6 +138,8 @@ def load_source_class(plugin_id: str) -> type[Source]:
         raise KeyError(f"no plugin with id {plugin_id!r}")
     if not is_enabled(m):
         raise PluginDisabled(f"plugin {plugin_id!r} is off" + (f" (set {m.enable_flag}=1)" if m.enable_flag else ""))
+    if m.kind == "mcp":
+        raise PluginDisabled(f"plugin {plugin_id!r} is a connection preset (kind mcp), not a source; connect it from the Connections panel")
     return resolve_entry(m.entry)
 
 

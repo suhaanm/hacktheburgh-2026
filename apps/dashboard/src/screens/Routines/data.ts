@@ -3,6 +3,7 @@
 // off (404 extension_off) or the route is missing, the example week answers instead and the page says so ("example data").
 import { AGENT_URL, ApiError, ENGINE_URL, api, type Loaded } from "../../api";
 import { classify, type Fallback } from "../../lib/fallback";
+import { ROLE_HEADER } from "../../components/firm/net";
 import { requestBody, requestHeaders } from "../../lib/http";
 import { getState, noteSource } from "../../store";
 import type { AnalyticMeta } from "../../types";
@@ -14,11 +15,11 @@ const TIMEOUT_MS = 40_000;
 
 type Reached = { reached: true; status: number; body: unknown } | { reached: false };
 
-async function call(path: string, method: "GET" | "POST" = "GET", payload?: unknown): Promise<Reached> {
+async function call(path: string, method: "GET" | "POST" = "GET", payload?: unknown, extra?: Record<string, string>): Promise<Reached> {
   const ctl = new AbortController();
   const timer = window.setTimeout(() => ctl.abort(), TIMEOUT_MS);
   try {
-    const res = await fetch(`${ENGINE_URL}${path}`, { method, signal: ctl.signal, headers: requestHeaders(method), body: requestBody(method, payload) });
+    const res = await fetch(`${ENGINE_URL}${path}`, { method, signal: ctl.signal, headers: extra ? { ...(requestHeaders(method) ?? {}), ...extra } : requestHeaders(method), body: requestBody(method, payload) });
     let body: unknown = null;
     try { body = await res.json(); } catch { body = null; }
     return { reached: true, status: res.status, body };
@@ -75,11 +76,15 @@ export async function loadRepeats(windowDays: 7 | 30, kind: ExampleKind | null =
   return { ...envelope<HitlistWire>(r.reached ? r.body : null), source: "live", why: null };
 }
 
+/**
+ * The firm's repeated work: the ADMIN's read (Automation). The engine gates it with the admin role and the per-boot token (the dev proxy adds the token), so this
+ * is the one call here that sends the role header. A worker's screens (Routines, Needs you, Home) never call it: they read /hitlist, the person's own.
+ */
 export async function loadFirm(windowDays: 7 | 30): Promise<Loaded<FirmWire>> {
-  const r = await call(`/hitlist/firm?window=${windowDays}`);
+  const r = await call(`/hitlist/firm?window=${windowDays}`, "GET", undefined, { [ROLE_HEADER]: "admin" });
   if (isMissing(r)) {
     noteSource("demo");
-    return { data: exampleFirm(windowDays), meta: { ...EXAMPLE_META, n: 60, n_unit: "people", note: "A synthetic firm of about 60 people in three roles, not real people." }, source: "demo", why: whyFor(r) };
+    return { data: exampleFirm(windowDays), meta: { ...EXAMPLE_META, n: 60, n_unit: "people", note: "A made-up firm of about 60 people in three roles, not real people." }, source: "demo", why: whyFor(r) };
   }
   if (r.reached && r.status >= 400) throw errorOf(r);
   noteSource("live");

@@ -1,0 +1,50 @@
+# Preset: Jupyter (Data set), through Datalayer's jupyter-mcp-server. Verified 7 Nov 2026. Starts OFF.
+id: jupyter
+version: 0.1.0
+kind: mcp
+description: Read notebooks in a JupyterLab you run yourself, through the community Jupyter MCP server.
+permissions: [read]
+egress: local_only
+default_enabled: false
+connection:
+  group: data
+  app: Jupyter
+  reads: Notebooks and cells in your own JupyterLab.
+  short: Notebooks and cells
+  caution: Community server
+  standin:
+    label: Example notebook
+    script: packages/connections/standins/fixture_server.py
+    args: ["--fixture", "jupyter"]
+  real:
+    verified: true
+    publisher: Datalayer (community)
+    publisher_kind: community
+    license: BSD-3-Clause
+    registry: pypi
+    package: jupyter-mcp-server
+    version: "2.2.4"
+    transport: stdio
+    command: uvx
+    args: ["jupyter-mcp-server@2.2.4"]
+    credentials:
+      - { env: JUPYTER_TOKEN, label: JupyterLab token }
+    params:
+      - { name: server, label: JupyterLab address, kind: url, env: JUPYTER_URL }
+    hosts: ["{server}"]
+    read_only: "The server has no read-only switch. Running a cell or code is always a click, and a person decides it."
+    sources:
+      - https://pypi.org/pypi/jupyter-mcp-server/2.2.4/json
+      - https://github.com/datalayer/jupyter-mcp-server
+      - https://raw.githubusercontent.com/datalayer/jupyter-mcp-server/main/LICENSE
+    verified_on: "2026-11-07"
+  tools:
+    unlisted: verbs
+    classes:
+      read: [use_notebook, unuse_notebook, connect_jupyter, list_notebooks, list_kernels, list_files, read_notebook, read_cell]
+      write: [insert_cell, edit_cell_source, overwrite_cell_source, move_cell, clear_cell_output, restart_notebook]
+      destructive: [delete_cell]
+      execute: [execute_cell, execute_code]
+  limitations:
+    - Needs a JupyterLab you start yourself, with a token.
+    - Tool names come from the repository's file names, not a published list; others fall to verb rules.

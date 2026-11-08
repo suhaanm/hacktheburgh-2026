@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { Switches, APP_ONLY, MIC_TEXT } from "../../components/yourdata/Switches";
+import { Switches, APP_ONLY, APP_ONLY_ALL } from "../../components/yourdata/Switches";
 import { awarenessBridge, choiceFor, type AwarenessState } from "./awareness";
 import { CAPTURE_TEXT } from "./model";
 
@@ -34,11 +34,11 @@ describe("the switches print their consent whole", () => {
     expect(t).toContain(CAPTURE_TEXT);
     expect(html()).toMatch(/aria-label="Learn from when I am active"/);
   });
-  it("in a browser tab the glance, microphone and folder switches say they are in the app, and no switch is drawn for them", () => {
+  it("in a browser tab the glance and folder switches say so in one line, and no switch is drawn for them", () => {
     const h = html();
-    expect((text(h).match(/Available in the Knack app\./g) ?? []).length).toBe(3);
+    expect(text(h)).toContain(APP_ONLY_ALL);
     expect(h).not.toMatch(/aria-label="Look at my screen when I seem stuck"/);
-    expect(h).not.toMatch(/aria-label="Listen for its name"/);
+    expect(h).not.toMatch(/aria-label="Search my folders"/);
   });
   it("with the app the glance consent text is printed as the app wrote it, whole", () => {
     const g = state();
@@ -53,10 +53,12 @@ describe("the switches print their consent whole", () => {
   it("a build without the layer says nothing is looked at", () => {
     expect(text(html({ glance: state({ available: false }) }))).toContain("nothing is looked at");
   });
-  it("the microphone consent says audio goes to a cloud model and that it is off until turned on", () => {
-    expect(MIC_TEXT).toContain("sends audio to a cloud model");
-    expect(MIC_TEXT).toContain("off until you turn it on");
+  it("the old cloud wake word has no switch here (Hey Knack's own switch is in Settings)", () => {
+    expect(html({ desktop: { wakeEnabled: false, filesEnabled: false, fileFolders: ["a", "b"] } })).not.toMatch(/Listen for its name/);
     expect(APP_ONLY).toBe("Available in the Knack app.");
-    expect(text(html({ desktop: { wakeEnabled: false, filesEnabled: false, fileFolders: ["a", "b"] } }))).toContain("2 folders chosen");
+    expect(text(html({ desktop: { filesEnabled: false, fileFolders: ["a", "b"] } }))).toContain("2 folders chosen");
+  });
+  it("behind one closed More, so capture is the only switch in view", () => {
+    expect(html()).toMatch(/<summary>More<\/summary>/);
   });
 });

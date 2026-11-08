@@ -676,3 +676,24 @@ export interface AttentionWhy {
 export interface AttentionBadges { needs_you: number; waiting: number; marker: "none" | "needs_you" | "stopped" | string; stopped: boolean }
 export interface AttentionPeek { badges: AttentionBadges; digest_ready: boolean; active?: unknown; poll_after_s?: number }
 export interface AttentionPatch { modes?: Record<string, string>; budget_per_day?: number; level_glance?: boolean; reset_learned?: boolean | string[] }
+
+/* -- Open-ended tasks (Track T, contract v1: GET /agent/tasks and its event stream). Unknown fields are ignored; every field may be missing. -- */
+export type TaskRowState = "planning" | "waiting_consent" | "running" | "done" | "stopped" | "failed";
+export interface TaskConsent {
+  kind?: string; scope_text?: string; can?: string[]; cannot?: string[]; folder?: string | null; command_hash?: string | null; cost_note?: string | null; max_minutes?: number;
+  buttons?: { allow?: string; decline?: string; more?: { id: string; label: string }[] };
+}
+export interface TaskRow {
+  task_id: string; title: string; route?: string; source?: "typed" | "voice"; state: TaskRowState; attended?: boolean;
+  /** The current short step line while it runs. */
+  latest?: string | null; steps_done?: number;
+  /** ONE line, at most 140 characters, when it is done. */
+  result?: string | null; reason?: string | null;
+  started?: string; finished?: string | null;
+  open?: { kind: "folder" | "file"; path: string } | null;
+  needs_consent?: TaskConsent | null;
+  question?: { text: string; options: { id: string; label: string }[] } | null;
+}
+/** The detail of one task: its plain step lines and, for a task that answered a question, the answer in full (up to 1500 characters). */
+export interface TaskDetail extends TaskRow { steps?: string[]; answer?: string | null }
+export interface SkillsAnswer { use_claude_skills: boolean; off: string[]; /** The time cap a background task starts with, in minutes (1 to 120; the service's default is 30). Absent from an older service. */ max_minutes?: number; skills: { name: string; description?: string; source?: "claude" | "plugin" | "knack"; enabled?: boolean }[] }

@@ -55,8 +55,14 @@ export interface RectLike {
 }
 
 /** Bottom-right of the work area of the display that holds the pointer, inset 16 px, clamped so a card taller than the area stays on it. Pure. */
-export function cardBounds(workArea: RectLike, size: { w: number; h: number }, inset = CARD_INSET): RectLike {
+export function cardBounds(workArea: RectLike, size: { w: number; h: number }, inset = CARD_INSET, above: RectLike | null = null): RectLike {
   const width = Math.min(size.w, workArea.width - 2 * inset)
   const height = Math.min(size.h, workArea.height - 2 * inset)
-  return { x: workArea.x + workArea.width - width - inset, y: workArea.y + workArea.height - height - inset, width, height }
+  const home = workArea.y + workArea.height - height - inset
+  // With another window in the corner (the Knack corner pill column) the card stacks above it, 8 px clear, and never goes above the top of the work area.
+  const y = above ? Math.max(workArea.y, Math.min(home, above.y - STACK_GAP - height)) : home
+  return { x: workArea.x + workArea.width - width - inset, y, width, height }
 }
+
+/** The gap between stacked windows in the corner. */
+export const STACK_GAP = 8

@@ -1,0 +1,212 @@
+/* The background agent pills: small, quiet, top right. One idea (work going on), one accent, hairlines, the same tokens as the corner column. Light and dark with equal care. */
+:root {
+  color-scheme: light dark;
+  --panel: #ffffff;
+  --fg: #141922;
+  --muted: #566074;
+  --line: #d8dee8;
+  --accent: #0a7c78;
+  --bad: #b3261e;
+  --shadow: 0 1px 2px rgba(20, 25, 34, 0.16);
+  --dur-fast: 140ms;
+  --dur-base: 240ms;
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --panel: #161d26;
+    --fg: #e7ebf1;
+    --muted: #9aa6b8;
+    --line: #283341;
+    --accent: #4fd1c5;
+    --bad: #ff8a80;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  }
+}
+html,
+body {
+  margin: 0;
+  background: transparent;
+  overflow: clip;
+  font: 12.5px/1.4 'Source Sans 3', -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+  color: var(--fg);
+  -webkit-font-smoothing: antialiased;
+}
+.pills {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end; /* the column hugs the right edge; each pill is as wide as its words */
+  gap: 6px;
+  margin: 0;
+  padding: 3px; /* room for the shadow inside the window */
+  list-style: none;
+}
+.pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  height: 28px;
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  animation: arrive var(--dur-base) var(--ease-out);
+  transition: opacity var(--dur-base) ease;
+}
+.pill[data-leaving='true'] {
+  opacity: 0;
+}
+.pill[data-phase='failed'] {
+  border-color: var(--bad);
+}
+.open {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  height: 100%;
+  padding: 0 12px 0 8px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.open:hover,
+.open:focus-visible {
+  background: color-mix(in srgb, var(--fg) 6%, transparent);
+}
+.open:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.text {
+  min-width: 0;
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.pill[data-phase='done'] .text,
+.pill[data-phase='stopped'] .text {
+  color: var(--muted);
+}
+.icon {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: var(--fg);
+}
+.icon[data-phase='done'] {
+  color: var(--accent);
+}
+.icon[data-phase='failed'] {
+  color: var(--bad);
+}
+.icon[data-phase='stopped'] {
+  color: var(--muted);
+}
+/* Working: the ring breathes around the glyph. Calm: a slow fade and swell, not a spinner. Still when motion is reduced. */
+.ring {
+  position: absolute;
+  inset: -1px;
+  border: 1.5px solid var(--accent);
+  border-radius: 50%;
+  opacity: 0.55;
+  animation: breathe 1800ms ease-in-out infinite;
+}
+.icon[data-animated='false'] .ring {
+  animation: none;
+  opacity: 0.7;
+}
+.icon[data-phase='waiting'] .ring {
+  opacity: 0.9;
+}
+.faildot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--bad);
+}
+.dot {
+  position: absolute;
+  right: -3px;
+  top: -3px;
+  width: 7px;
+  height: 7px;
+  border: 1.5px solid var(--panel);
+  border-radius: 50%;
+  background: var(--accent);
+}
+.stop {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-right: 3px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.pill:hover .stop,
+.pill:focus-within .stop {
+  display: inline-flex;
+}
+.stop:hover,
+.stop:focus-visible {
+  background: color-mix(in srgb, var(--fg) 10%, transparent);
+  color: var(--fg);
+}
+.stop:focus-visible {
+  outline: 2px solid var(--accent);
+}
+.pill.more {
+  padding: 0 11px;
+  justify-content: center;
+  color: var(--muted);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(0.88);
+    opacity: 0.25;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 0.75;
+  }
+}
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ring {
+    animation: none;
+    opacity: 0.6;
+  }
+  .pill {
+    animation: none;
+    transition: none;
+  }
+}

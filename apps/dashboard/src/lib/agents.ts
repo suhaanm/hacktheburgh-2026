@@ -48,7 +48,7 @@ export const KIND_DOES: Record<string, string> = {
   "data.chart": "Builds a chart of a sample CSV in the same sandbox.",
   "creative.weekly_summary": "Drafts a weekly write-up from digests. It cites digest ids only.",
 };
-export const kindLabel = (k: string): string => KIND_LABEL[k] ?? k.replace(/[._]/g, " ");
+export const kindLabel = (k: string | null | undefined): string => (typeof k === "string" && k ? KIND_LABEL[k] ?? k.replace(/[._]/g, " ") : "Background run");
 
 /** Run counts by state, for the page header. */
 export function countStates(runs: AgentRun[]): { active: number; done: number; failed: number } {

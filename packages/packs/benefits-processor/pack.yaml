@@ -71,3 +71,7 @@ oracle_note: Simplified internal rule set, illustrative, not law.
 persona: persona.yaml
 priors: priors.yaml
 plugin_refs: []
+
+# Connections (CONNECTIONS): the curated presets offered in the first-run role card. Every one starts OFF, read-only, and needs the worker's click.
+
+connections: [graph_outlook, graph_teams, sharepoint]

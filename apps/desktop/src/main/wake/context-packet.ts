@@ -30,6 +30,7 @@ export const MAX_AGE_MS: Readonly<Record<string, number>> = {
   coach: 60_000,
   task: 60_000,
   cue: 20_000,
+  tasks: 30_000,
 }
 
 export interface PacketInputs {
@@ -45,6 +46,8 @@ export interface PacketInputs {
   /** The task in progress (its id and step n of m; the task's name is free text and is never used). */
   task?: Reading<{ id: string; step: number; of: number } | null>
   cue?: Reading<string>
+  /** How many tasks are planning or running: a count, never what they are. */
+  tasks?: Reading<number | null>
   /** The worker is in first-run set-up or has not finished it: the model answers in character for someone new. */
   firstRun?: boolean
   consent: { voice: string; screen: string; frames: boolean }
@@ -142,6 +145,8 @@ export function buildPacket(i: PacketInputs): Packet {
   if (coach) lines.push(`coach=${coach}`)
   const cue = take('cue', i.cue, (v) => oneOf(CUE_STATES, v))
   if (cue) lines.push(`cue=${cue}`)
+  const tk = take('tasks', i.tasks, (v) => (v === null ? null : count(v)))
+  if (tk !== null) lines.push(`tasks_running=${tk}`)
   const cv = oneOf(CONSENT_WORDS, i.consent.voice) ?? 'unset'
   const cs = oneOf(CONSENT_WORDS, i.consent.screen) ?? 'unset'
   lines.push(`consent_voice=${cv} consent_screen=${cs} frames=${i.consent.frames === true ? 'on' : 'off'}`)

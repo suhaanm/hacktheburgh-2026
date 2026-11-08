@@ -11,6 +11,14 @@ describe('actingFrom: what the agent service says', () => {
     expect(actingFrom(null, { data: [{ state: 'running' }] })).toBe(true)
     for (const state of ['queued', 'stopped', 'killed', 'failed']) expect(actingFrom({ supervisor: { state } }, [])).toBe(false)
   })
+  it('a run record that says running but began longer ago than any run can last is a ghost left by a dead process: not acting (it would hold back Cue and keep Hey Knack asleep for ever)', () => {
+    const now = Date.parse('2026-11-08T01:00:00Z')
+    const ghost = { state: 'running', started: '2026-11-05T09:00:00Z' }
+    const fresh = { state: 'running', started: '2026-11-08T00:58:00Z' }
+    expect(actingFrom({ supervisor: { state: 'idle' } }, [ghost], now)).toBe(false)
+    expect(actingFrom({ supervisor: { state: 'idle' } }, [ghost, fresh], now)).toBe(true)
+    expect(actingFrom({ supervisor: { state: 'idle' } }, [{ state: 'running' }], now)).toBe(true) // no start time given: believed
+  })
   it('cannot tell from nothing or junk', () => {
     expect(actingFrom(null, null)).toBeNull()
     expect(actingFrom({ ok: true }, 'x')).toBeNull()

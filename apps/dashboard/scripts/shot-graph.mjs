@@ -29,6 +29,14 @@ function bigGraph(n) {
   const rnd = () => ((s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 4294967296);
   const kinds = ["routine", "skill", "memory", "automation"];
   const nodes = Array.from({ length: n }, (_, i) => ({ id: `n${i}`, type: kinds[i % 4], label: `Node number ${i}`, size: kinds[i % 4] === "skill" ? rnd() : 4 + rnd() * 90, strength: rnd(), last_seen: "2026-11-07", why: "Seen often.", editable: false, memory_line_id: null }));
+  if (opt("labels", "") === "edge" && n >= 5) {
+    // The awkward labels: a very long one, an unbroken one, unicode with an emoji, and two with the same name.
+    nodes[0].label = `Reconcile the household totals against the case note before you copy anything into it, then check the cliff edge twice and write down what changed ${"and why ".repeat(12)}end`;
+    nodes[0].why = `${"Seen many times with almost the same steps each time and so on ".repeat(6)}. A second sentence that the one-line reason leaves out.`;
+    nodes[1].label = "Überprüfe die Kündigungsfrist 日本語のメモ 🙂";
+    nodes[2].label = "x".repeat(140);
+    nodes[3].label = "Same name"; nodes[4].label = "Same name";
+  }
   const links = [];
   for (let i = 1; i < n; i++) links.push({ a: `n${i}`, b: `n${Math.floor(rnd() * i)}`, kind: rnd() < 0.03 ? "combined" : "related", weight: rnd() });
   return { meta: { origin: "synthetic", n, n_unit: "nodes", split: null, interval_level: 0.95, note: "stress", generated_at: "2026-11-08T00:00:00Z" }, data: { nodes, links } };

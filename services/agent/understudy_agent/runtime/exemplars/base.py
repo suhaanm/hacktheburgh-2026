@@ -39,6 +39,7 @@ class Menu:
     files: Mapping[str, str]                   # file id -> relative path inside the workspace
     templates: Mapping[str, str] = field(default_factory=dict)   # template id -> script text
     max_commits: int = 300
+    calls: Mapping[str, dict[str, Any]] = field(default_factory=dict)   # CONNECTIONS: call id -> {connection, name, arguments}; the model names an id, code supplies the call
 
 
 @dataclass(frozen=True)

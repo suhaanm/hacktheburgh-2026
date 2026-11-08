@@ -293,7 +293,7 @@ def test_the_status_route_reports_the_flag_and_counters():
 
 
 def test_the_wake_lines_the_desktop_speaks_all_exist_here_with_the_same_words():
-    """Hey Knack speaks four fixed lines by id (apps/desktop/src/main/wake/texts.ts). A line missing here is a 422 and silence."""
+    """Hey Knack speaks five fixed lines by id (apps/desktop/src/main/wake/texts.ts). A line missing here is a 422 and silence."""
     import pathlib
     import re
 
@@ -301,6 +301,6 @@ def test_the_wake_lines_the_desktop_speaks_all_exist_here_with_the_same_words():
     block = src[src.index("export const SPOKEN_LINES"):]
     block = block[: block.index("}")]
     desktop = dict(re.findall(r"'(wake\.[a-z_]+)':\s*'([^']*)'", block))
-    assert len(desktop) == 4, desktop
+    assert len(desktop) == 5, desktop
     for line_id, text in desktop.items():
         assert lines.resolve(line_id, {}).text == text, line_id

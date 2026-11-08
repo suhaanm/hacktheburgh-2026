@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { createActivityTracker, progressOf } from './activity'
-import type { PillSignals } from './pill-state'
+import { QUIET_CLEAR_MS, createActivityTracker, isQuiet, pillOutlivedWork, progressOf } from './activity'
+import { RUN_MAX_AGE_MS, type PillSignals } from './pill-state'
 import type { ShellEvent } from './shell-machine'
 
 const sig = (over: Partial<PillSignals> = {}): PillSignals => ({ reachable: true, supervisor: 'idle', runs: [], killed: false, pending: 0, ...over })
@@ -85,5 +85,81 @@ describe('from the agent service to the shell machine', () => {
   it('adds up the children of the runs that are working', () => {
     expect(progressOf({ runs: [{ id: 'a', state: 'running', progress: { done: 1, total: 4 } }, { id: 'b', state: 'running', progress: { done: 2, total: 2 } }, { id: 'c', state: 'done', progress: { done: 9, total: 9 } }] })).toEqual({ n: 3, m: 6 })
     expect(progressOf({ runs: [{ id: 'a', state: 'running' }] })).toBeNull()
+  })
+
+  it('never says "n of m" when the total is one or unknown ("0 of 1" says nothing and goes stale): the words alone', () => {
+    expect(progressOf({ runs: [{ id: 'a', state: 'running', progress: { done: 0, total: 1 } }] })).toBeNull()
+    expect(progressOf({ runs: [{ id: 'a', state: 'running', progress: { done: 0, total: 0 } }] })).toBeNull()
+    expect(progressOf({ runs: [{ id: 'a', state: 'running', progress: { done: 0, total: 2 } }] })).toEqual({ n: 0, m: 2 })
+    expect(progressOf({ runs: [{ id: 'a', state: 'running', progress: { done: 5, total: 2 } }] })).toEqual({ n: 2, m: 2 }) // never more done than there are
+  })
+})
+
+// The stale pill (owner, 8 Nov, bottom right: "working on ... 0 of 1" after the work finished). The agent service lists the runs it has on disk as well as the live ones, and a run
+// that a dead process left mid-way keeps its last state ("planning", one child, none done) for ever. It must never keep the pill up.
+describe('a record left behind by a dead process', () => {
+  const DAY = 24 * 60 * 60_000
+  const ghost = (now: number) => ({ id: 'r_ghost', state: 'planning', startedAt: now - 3 * DAY, progress: { done: 0, total: 1 } })
+
+  it('is not a run: nothing starts, nothing is shown, however long it is listed', () => {
+    const r = rig()
+    r.at(10 * DAY)
+    for (let i = 0; i < 5; i++) {
+      r.at(10 * DAY + i * 2000)
+      r.t.ingest(sig({ runs: [ghost(10 * DAY + i * 2000)] }))
+    }
+    expect(r.take()).toEqual([])
+    expect(r.t.state().kind).toBe('idle')
+  })
+
+  it('the exact sequence: a real run with one child starts, ends, and the pill clears even though the old record is still listed as planning', () => {
+    const r = rig()
+    const T0 = 10 * DAY
+    r.at(T0)
+    r.t.ingest(sig({ supervisor: 'running', runs: [ghost(T0), { id: 'r_now', state: 'running', startedAt: T0 - 1000, progress: { done: 0, total: 1 } }] }))
+    expect(r.take()).toEqual([{ type: 'run_started', realScreen: false }])
+    r.at(T0 + 2000)
+    r.t.ingest(sig({ supervisor: 'running', runs: [ghost(T0 + 2000), { id: 'r_now', state: 'running', startedAt: T0 - 1000, progress: { done: 0, total: 1 } }] }))
+    expect(r.take()).toEqual([{ type: 'run_progress', label: 'Working on it' }]) // the words alone: no "0 of 1"
+    r.at(T0 + 4000)
+    r.t.ingest(sig({ supervisor: 'idle', runs: [ghost(T0 + 4000), { id: 'r_now', state: 'done', startedAt: T0 - 1000, progress: { done: 1, total: 1 } }] }))
+    expect(r.take()).toEqual([{ type: 'run_done', needsNothing: true }])
+    r.fire()
+    expect(r.take()).toEqual([{ type: 'done_timer' }])
+    r.at(T0 + 9000)
+    r.t.ingest(sig({ runs: [ghost(T0 + 9000), { id: 'r_now', state: 'done', startedAt: T0 - 1000, progress: { done: 1, total: 1 } }] }))
+    expect(r.take()).toEqual([]) // and it stays quiet: the old record does not start a new run
+    expect(r.t.state().kind).toBe('idle')
+  })
+
+  it('a run that is older than any run can last ends by itself (the service caps a run at 15 minutes)', () => {
+    const r = rig()
+    const T0 = 10 * DAY
+    r.at(T0)
+    r.t.ingest(sig({ runs: [{ id: 'r_1', state: 'running', startedAt: T0 - 60_000 }] }))
+    expect(r.take()).toEqual([{ type: 'run_started', realScreen: false }])
+    r.at(T0 + 18 * 60_000)
+    r.t.ingest(sig({ runs: [{ id: 'r_1', state: 'running', startedAt: T0 - 60_000 }] }))
+    expect(r.take().map((e) => e.type)).toEqual(['run_done'])
+  })
+})
+
+describe('the pill never outlives its work', () => {
+  it('is quiet only when the service answers and nothing is acting: not running, not local, no live run', () => {
+    const now = 1_000_000
+    expect(isQuiet(sig(), now)).toBe(true)
+    expect(isQuiet(sig({ reachable: false }), now)).toBe(false) // a silent service says nothing about the work
+    expect(isQuiet(sig({ supervisor: 'running' }), now)).toBe(false)
+    expect(isQuiet(sig({ local: true }), now)).toBe(false)
+    expect(isQuiet(sig({ runs: [{ id: 'a', state: 'running', startedAt: now - 1000 }] }), now)).toBe(false)
+    expect(isQuiet(sig({ runs: [{ id: 'a', state: 'running', startedAt: now - 3 * RUN_MAX_AGE_MS }] }), now)).toBe(true) // a ghost is not work
+  })
+  it('clears a pill from the service three seconds after it went quiet, whatever it last heard, and leaves the dev hook and an unquiet service alone', () => {
+    const base = { fromService: true, machineWorking: true, quietSince: 1000 }
+    expect(pillOutlivedWork({ ...base, now: 3999 })).toBe(false)
+    expect(pillOutlivedWork({ ...base, now: 1000 + QUIET_CLEAR_MS })).toBe(true)
+    expect(pillOutlivedWork({ ...base, now: 9000, quietSince: null })).toBe(false)
+    expect(pillOutlivedWork({ ...base, now: 9000, fromService: false })).toBe(false)
+    expect(pillOutlivedWork({ ...base, now: 9000, machineWorking: false })).toBe(false)
   })
 })

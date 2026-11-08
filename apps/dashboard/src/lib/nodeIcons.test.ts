@@ -35,6 +35,25 @@ describe("step icons for the transition graph", () => {
     const want: Record<string, StepKind> = { READ: "read", READ_RESULT: "read", SEARCH: "search", OPEN_CALCULATOR: "open", ENTER: "enter", ENTER_HOUSEHOLD: "enter", CHECK_CLIFF: "check", COMPARE: "compare", RECONCILE: "compare", COPY_TO_NOTE: "copy", IDLE: "idle", REVERT: "revert" };
     for (const [cog, kind] of Object.entries(want)) expect(stepKind(cog), cog).toBe(kind);
   });
+  // The cogs the three role packs (benefits processor, data analyst, programmer) and the engine's base mapping use. A new cog may be added; none is removed.
+  const PACK_COGS = [
+    "ASK", "CHECK", "CHECK_CLIFF", "CLEAN_DATA", "COMMIT", "COMPARE", "COPY", "COPY_TO_NOTE", "DECIDE", "EDIT_CODE", "ENTER", "ENTER_HOUSEHOLD", "EXPORT_RESULT", "GROUP_AGG", "IDLE",
+    "INSPECT_INPUT", "INSPECT_RESULT", "LOAD_DATA", "NAVIGATE", "OPEN_CALCULATOR", "PASTE", "PLOT", "PROBE_EDGE", "PROFILE_DATA", "READ", "READ_CODE", "READ_RESULT", "READ_TRACE",
+    "RECONCILE", "RECONCILE_CONTROL", "REFORMULATE", "REVERT", "REVIEW_DIFF", "RUN_QUERY", "RUN_TESTS", "SEARCH", "SEARCH_DOCS", "WRITE_QUERY", "WRITE_TEST",
+  ];
+  it("gives every cog of every role pack a real kind, so no role's graph is a row of plain dots", () => {
+    for (const c of PACK_COGS) expect(stepKind(c), c).not.toBe("step");
+  });
+  it("maps the other packs' cogs to kinds a person would expect", () => {
+    const want: Record<string, StepKind> = {
+      LOAD_DATA: "open", RUN_QUERY: "run", RUN_TESTS: "run", WRITE_QUERY: "enter", EDIT_CODE: "enter", READ_CODE: "read", INSPECT_RESULT: "read", PROFILE_DATA: "read", PLOT: "plot",
+      EXPORT_RESULT: "send", COMMIT: "send", DECIDE: "decide", ASK: "ask", GROUP_AGG: "group", REVIEW_DIFF: "compare", RECONCILE_CONTROL: "compare", SEARCH_DOCS: "search", REFORMULATE: "search",
+    };
+    for (const [cog, kind] of Object.entries(want)) expect(stepKind(cog), cog).toBe(kind);
+    // TASK is not ASK, and a handoff is its own kind.
+    expect(stepKind("TASK_START")).toBe("step");
+    expect(stepKind("HANDOFF")).toBe("handoff");
+  });
   it("reads a cog in any case, and treats an unknown one as a plain step", () => {
     expect(stepKind("read_result")).toBe("read");
     expect(stepKind("TELEPORT")).toBe("step");

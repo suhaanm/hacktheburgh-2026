@@ -3,12 +3,13 @@ import { createVoiceLock } from '../attention/lock'
 import { LIVE_CONSENT_VERSION, LiveSettingsStore } from '../live/settings'
 import { createWakeController, type CardAnswer, type CardSpec, type WakeController, type WakeControllerDeps } from './controller'
 import type { HelperStatus } from './helper'
+import type { ConsentChoice, TaskClient, TaskRow } from './tasks'
 import type { RungReading } from './rung'
 import { WakeSettingsStore } from './settings'
 
 const CALM = { flagOn: true, isMac: true, mock: false, locked: false, asleep: false, paused: false, killed: false, hardQuiet: { dnd: false, screenSharing: false, onCall: false, inMeeting: false }, agentActing: false, away: false }
 
-function rig(over: { firstRun?: { on: boolean }; rung?: RungReading; live?: { consented?: boolean; frames?: boolean }; startOk?: boolean; blocker?: string | null; inputs?: Partial<typeof CALM> } = {}) {
+function rig(over: { tasks?: TaskClient; readOut?: (t: string) => boolean; firstRun?: { on: boolean }; rung?: RungReading; live?: { consented?: boolean; frames?: boolean }; startOk?: boolean; blocker?: string | null; inputs?: Partial<typeof CALM> } = {}) {
   const settings = new WakeSettingsStore(null)
   const liveSettings = new LiveSettingsStore(null)
   if (over.live?.consented) liveSettings.patch({ liveEnabled: true, liveConsentVersion: LIVE_CONSENT_VERSION, liveFrames: over.live.frames === true }, { trusted: true })
@@ -32,10 +33,16 @@ function rig(over: { firstRun?: { on: boolean }; rung?: RungReading; live?: { co
   const timers: Array<{ fn: () => void; ms: number; live: boolean }> = []
   const inputs = { ...CALM, ...over.inputs }
   const opened: string[] = []
+  const readOuts: string[] = []
   const deps: WakeControllerDeps = {
     settings,
     liveSettings,
     openSettings: (w) => void opened.push(w),
+    tasks: over.tasks,
+    readOut: (t) => (readOuts.push(t), over.readOut?.(t) ?? false),
+    sleep: async (ms) => void (t += ms),
+    taskPollMs: 1,
+    taskWatchMs: 50,
     firstRun: () => over.firstRun?.on === true,
     live: {
       blocker: () => over.blocker ?? null,
@@ -122,7 +129,7 @@ function rig(over: { firstRun?: { on: boolean }; rung?: RungReading; live?: { co
   const flush = async (): Promise<void> => {
     for (let i = 0; i < 6; i++) await Promise.resolve()
   }
-  return { ctl, setHelper, opened, settings, liveSettings, helperLog, started, cardsSeen, closed, answers, runs, finishRun: (r: { ok: boolean; reason?: string }) => finishRun(r), stops, said, chimes, endLive, fire, flush, inputs, advance: (ms: number) => void (t += ms) }
+  return { ctl, readOuts, setHelper, opened, settings, liveSettings, helperLog, started, cardsSeen, closed, answers, runs, finishRun: (r: { ok: boolean; reason?: string }) => finishRun(r), stops, said, chimes, endLive, fire, flush, inputs, advance: (ms: number) => void (t += ms) }
 }
 const mouse = (id: string): CardAnswer => ({ buttonId: id, via: 'mouse' })
 
@@ -430,7 +437,8 @@ describe('the words always get an answer', () => {
     const { DORMANT_LINE } = await import('./guards')
     const strings: string[] = [t.LISTENING_LINE, t.SWITCH_LABEL, t.SWITCH_NOTE, ...Object.values(t.SPOKEN_LINES), ...Object.values(t.REFUSAL_LINE), ...Object.values(t.BLOCKED_LINE), ...Object.values(DORMANT_LINE)]
     for (const c of [...Object.values(t.CARDS), ...Object.values(t.INFO_CARDS)] as Array<{ title: string; body: string; buttons: ReadonlyArray<{ label: string }> }>) strings.push(c.title, c.body, ...c.buttons.map((b) => b.label))
-    for (const s of strings) expect(s).not.toMatch(/demo|mock|example mode|example data/i)
+    strings.push(t.EVERYTHING_CARD.title, t.EVERYTHING_CARD.body, t.FIRST_WELCOME, t.FIRST_WAKE_OPENING)
+    for (const s of strings) expect(s).not.toMatch(/demo|mock|example mode|example data|synthetic|simulated/i)
   })
 })
 
@@ -639,5 +647,235 @@ describe('a blocked listener and a click that cannot run say so on a card', () =
       expect(words(c.body)).toBeLessThanOrEqual(22)
       for (const b of c.buttons) expect(words(b.label)).toBeLessThanOrEqual(3)
     }
+  })
+})
+
+// ------------------------------------------------------------------------------------------------ "Hey Knack, do X"
+const CONSENT = {
+  kind: 'claude_agent',
+  scope_text: 'Knack will start a Claude agent.',
+  can: ['Read and change files on this Mac', 'Run commands on this Mac'],
+  cannot: ['Use Knack’s own keys or models'],
+  folder: '~/Knack/work/summarise',
+  max_minutes: 30,
+  buttons: { allow: 'Allow for this task', decline: 'Not now', more: [{ id: 'everything', label: 'Allow everything for this task' }] },
+}
+const row = (state: TaskRow['state'], over: Partial<TaskRow> = {}): TaskRow => ({ task_id: 'tk_ab12cd34', route: 'claude_agent', state, result: null, answer: null, needs_consent: null, question: null, ...over })
+
+function fakeTasks(o: { created?: Record<string, unknown> | 'fail:too_many_tasks' | 'fail:kill_switch' | 'fail:unavailable'; rows?: TaskRow[]; consent?: 'ok' | 'too_many_tasks' | 'no_token'; answerRow?: TaskRow | null } = {}) {
+  const calls: string[] = []
+  const consents: ConsentChoice[] = []
+  const answers: string[] = []
+  const rows = [...(o.rows ?? [])]
+  const client: TaskClient = {
+    async create(text) {
+      calls.push(`create:${text}`)
+      if (typeof o.created === 'string') return { ok: false, reason: o.created.slice(5) as 'too_many_tasks' }
+      const c = o.created ?? {}
+      return { ok: true, created: { task_id: 'tk_ab12cd34', route: 'claude_agent', summary: 'Knack will start a Claude agent for this once you allow it.', needs_consent: CONSENT, question: null, ...(c as object) } as never }
+    },
+    async consent(_id, choice) {
+      consents.push(choice)
+      if (o.consent === 'too_many_tasks') return { ok: false, reason: 'too_many_tasks' }
+      if (o.consent === 'no_token') return { ok: false, reason: 'no_token' }
+      return { ok: true, row: row('running') }
+    },
+    async answer(_id, option) {
+      answers.push(option)
+      return { ok: true, row: o.answerRow ?? row('running') }
+    },
+    async get() {
+      return rows.length > 1 ? (rows.shift() as TaskRow) : (rows[0] ?? null)
+    },
+    async list() {
+      return rows
+    },
+    async stop() {
+      return true
+    },
+  }
+  return { client, calls, consents, answers }
+}
+
+describe('start_task: the request goes to the task service and a card asks first', () => {
+  it('without a task service the tool answers that it is unavailable', async () => {
+    const r = rig()
+    r.ctl.start()
+    expect(await r.ctl.startTask('summarise my notes')).toEqual({ ok: false, reason: 'unavailable' })
+  })
+  it('a job that needs consent: the tool returns at once with waiting_consent and a card with Allow for this task, Not now and More appears', async () => {
+    const t = fakeTasks()
+    const r = rig({ tasks: t.client })
+    r.ctl.start()
+    r.answers.push(null)
+    const a = await r.ctl.startTask('summarise my notes')
+    expect(a).toEqual({ ok: true, started: false, waiting_consent: true, route: 'claude_agent' })
+    await r.flush()
+    expect(t.calls).toEqual(['create:summarise my notes'])
+    expect(r.cardsSeen[0]).toMatchObject({ title: 'Start a Claude agent for this?' })
+    expect(r.cardsSeen[0].body).toBe('It can read and change files on this Mac. It cannot use Knack’s own keys or models. Folder: ~/Knack/work/summarise.')
+    expect(r.cardsSeen[0].buttons.map((b) => b.label)).toEqual(['Allow for this task', 'Not now', 'More'])
+    expect(t.consents).toEqual([]) // nothing was posted without a click
+  })
+  it('a real click on Allow posts consent once, Knack says the fixed started line, and Done. when it finishes', async () => {
+    const t = fakeTasks({ rows: [row('running'), row('done')] })
+    const r = rig({ tasks: t.client })
+    r.ctl.start()
+    r.answers.push({ buttonId: 'allow', via: 'mouse' })
+    await r.ctl.startTask('summarise my notes')
+    await r.flush()
+    await r.flush()
+    expect(t.consents).toEqual(['allow'])
+    expect(r.said[0]).toBe('started')
+    for (let i = 0; i < 6; i++) await r.flush()
+    expect(r.said).toContain('done')
+  })
+  it('Allow by a key or voice, a closed card and a timeout post nothing and leave the task waiting', async () => {
+    for (const a of [{ buttonId: 'allow', via: 'other' as const }, null]) {
+      const t = fakeTasks()
+      const r = rig({ tasks: t.client })
+      r.ctl.start()
+      r.answers.push(a)
+      await r.ctl.startTask('summarise my notes')
+      await r.flush()
+      expect(t.consents).toEqual([])
+      expect(r.said).toEqual([])
+    }
+  })
+  it('Not now declines the task and says nothing', async () => {
+    const t = fakeTasks()
+    const r = rig({ tasks: t.client })
+    r.ctl.start()
+    r.answers.push({ buttonId: 'decline', via: 'mouse' })
+    await r.ctl.startTask('summarise my notes')
+    await r.flush()
+    expect(t.consents).toEqual(['decline'])
+    expect(r.said).toEqual([])
+  })
+  it('More shows the wider option on its own card: Allow everything posts everything, Not now posts nothing', async () => {
+    const t = fakeTasks()
+    const r = rig({ tasks: t.client })
+    r.ctl.start()
+    r.answers.push({ buttonId: 'more', via: 'mouse' }, { buttonId: 'everything', via: 'mouse' })
+    await r.ctl.startTask('summarise my notes')
+    for (let i = 0; i < 4; i++) await r.flush()
+    expect(r.cardsSeen[1]).toMatchObject({ title: 'Allow everything for this task?' })
+    expect(t.consents).toEqual(['everything'])
+    const t2 = fakeTasks()
+    const r2 = rig({ tasks: t2.client })
+    r2.ctl.start()
+    r2.answers.push({ buttonId: 'more', via: 'mouse' }, { buttonId: 'not_now', via: 'mouse' })
+    await r2.ctl.startTask('summarise my notes')
+    for (let i = 0; i < 4; i++) await r2.flush()
+    expect(t2.consents).toEqual([])
+  })
+  it('a browser job has no More button', async () => {
+    const t = fakeTasks({ created: { route: 'browser', needs_consent: { ...CONSENT, kind: 'browser', can: ['Open pages and read them'], cannot: ['Use your own browser or your saved logins'], folder: null, buttons: { allow: 'Allow for this task', decline: 'Not now', more: [] } } } })
+    const r = rig({ tasks: t.client })
+    r.ctl.start()
+    r.answers.push(null)
+    await r.ctl.startTask('check the benefits site')
+    await r.flush()
+    expect(r.cardsSeen[0].title).toBe("Open Knack's browser for this?")
+    expect(r.cardsSeen[0].buttons.map((b) => b.label)).toEqual(['Allow for this task', 'Not now'])
+  })
+  it('a consent that is refused after the click says why on a card; a failed job says it did not work', async () => {
+    const t = fakeTasks({ consent: 'too_many_tasks' })
+    const r = rig({ tasks: t.client })
+    r.ctl.start()
+    r.answers.push({ buttonId: 'allow', via: 'mouse' }, null)
+    await r.ctl.startTask('summarise my notes')
+    for (let i = 0; i < 4; i++) await r.flush()
+    expect(r.cardsSeen.at(-1)?.body).toBe('Too many tasks are running. Stop one or wait.')
+    expect(r.said).not.toContain('started')
+    const f = fakeTasks({ rows: [row('failed')] })
+    const r2 = rig({ tasks: f.client })
+    r2.ctl.start()
+    r2.answers.push({ buttonId: 'allow', via: 'mouse' })
+    await r2.ctl.startTask('summarise my notes')
+    for (let i = 0; i < 8; i++) await r2.flush()
+    expect(r2.said).toContain('did_not_work')
+  })
+  it('the service refusing or not answering gives a closed answer and a plain card, and Stop everything refuses before calling it', async () => {
+    for (const [created, reason, body] of [['fail:too_many_tasks', 'too_many_tasks', 'Too many tasks are running. Stop one or wait.'], ['fail:kill_switch', 'kill_switch', 'Everything is stopped. Resume from the menu bar.'], ['fail:unavailable', 'unavailable', 'The task service is not answering. Try again soon.']] as const) {
+      const t = fakeTasks({ created })
+      const r = rig({ tasks: t.client })
+      r.ctl.start()
+      r.answers.push(null)
+      expect(await r.ctl.startTask('summarise my notes')).toEqual({ ok: false, reason })
+      await r.flush()
+      expect(r.cardsSeen[0].body).toBe(body)
+    }
+    const t = fakeTasks()
+    const r = rig({ tasks: t.client })
+    r.ctl.start()
+    r.ctl.setKilled(true)
+    expect(await r.ctl.startTask('summarise my notes')).toEqual({ ok: false, reason: 'kill_switch' })
+    expect(t.calls).toEqual([])
+  })
+  it('Stop everything closes a task card that is up', async () => {
+    const t = fakeTasks()
+    const r = rig({ tasks: t.client })
+    r.ctl.start()
+    await r.ctl.startTask('summarise my notes')
+    await r.flush()
+    r.ctl.setKilled(true)
+    expect(r.closed).toContain('task-tk_ab12cd34')
+  })
+  it('a question about the request is shown as a card of its own options; the click answers it, and a job that then needs consent shows that card', async () => {
+    const t = fakeTasks({ created: { route: 'unclear', needs_consent: null, question: { text: 'Which do you mean?', options: [{ id: 'answer', label: 'Answer here' }, { id: 'browser', label: 'Use a browser' }] } }, answerRow: row('waiting_consent', { route: 'browser', needs_consent: { ...CONSENT, kind: 'browser', can: ['Open pages and read them'], cannot: ['Use your own browser or your saved logins'], folder: null, buttons: { allow: 'Allow for this task', decline: 'Not now', more: [] } } }) })
+    const r = rig({ tasks: t.client })
+    r.ctl.start()
+    r.answers.push({ buttonId: 'browser', via: 'mouse' }, null)
+    const a = await r.ctl.startTask('check the site for me')
+    expect(a).toEqual({ ok: true, started: false, waiting_consent: false, route: 'unclear', asked: true })
+    for (let i = 0; i < 4; i++) await r.flush()
+    expect(r.cardsSeen[0]).toMatchObject({ title: 'A quick question', body: 'Which do you mean?' })
+    expect(r.cardsSeen[0].buttons.map((b) => b.label)).toEqual(['Answer here', 'Use a browser'])
+    expect(t.answers).toEqual(['browser'])
+    expect(r.cardsSeen[1].title).toBe("Open Knack's browser for this?")
+  })
+  it('the desktop route: nothing is clicked, and a single click is mentioned only when the first supervised test has passed', async () => {
+    const t = fakeTasks({ created: { route: 'desktop', needs_consent: null } })
+    const r = rig({ tasks: t.client })
+    r.ctl.start()
+    expect(await r.ctl.startTask('rename the file on my desktop')).toEqual({ ok: true, started: false, waiting_consent: false, route: 'desktop', desktop_click_possible: false })
+    const c = rig({ tasks: t.client, rung: { cleared: true, targets: ['TextEdit'], at: 'x' } })
+    c.ctl.start()
+    expect(await c.ctl.startTask('rename the file on my desktop')).toMatchObject({ route: 'desktop', desktop_click_possible: true })
+    expect(r.cardsSeen).toHaveLength(0)
+    expect(t.consents).toEqual([])
+  })
+  it('an answer route returns the result line for the model to say', async () => {
+    const t = fakeTasks({ created: { route: 'answer', needs_consent: null }, rows: [row('running', { route: 'answer' }), row('done', { route: 'answer', result: 'The office opens at nine.' })] })
+    const r = rig({ tasks: t.client })
+    r.ctl.start()
+    expect(await r.ctl.startTask('when does the office open')).toEqual({ ok: true, started: false, waiting_consent: false, route: 'answer', result: 'The office opens at nine.' })
+  })
+  it('the full answer is what is said when the service gives one, cut to 300 characters', async () => {
+    const long = 'The office opens at nine and closes at five. '.repeat(20)
+    const t = fakeTasks({ created: { route: 'answer', needs_consent: null }, rows: [row('done', { route: 'answer', result: 'The office opens.', answer: long })] })
+    const r = rig({ tasks: t.client })
+    r.ctl.start()
+    const a = await r.ctl.startTask('when does the office open')
+    expect(a).toMatchObject({ route: 'answer' })
+    expect((a as { result: string }).result.length).toBe(300)
+    expect((a as { result: string }).result.startsWith('The office opens at nine')).toBe(true)
+  })
+  it('an answer that is not ready in time is read out later in the open conversation, or shown on a card', async () => {
+    const slow = fakeTasks({ created: { route: 'answer', needs_consent: null }, rows: [...Array(21).fill(row('running', { route: 'answer' })), row('done', { route: 'answer', result: 'The office opens at nine.' })] })
+    const r = rig({ tasks: slow.client, readOut: () => true })
+    r.ctl.start()
+    expect(await r.ctl.startTask('when does the office open')).toMatchObject({ route: 'answer', result: null })
+    for (let i = 0; i < 40; i++) await r.flush()
+    expect(r.readOuts).toEqual(['The office opens at nine.'])
+    expect(r.cardsSeen).toHaveLength(0)
+    const slow2 = fakeTasks({ created: { route: 'answer', needs_consent: null }, rows: [...Array(21).fill(row('running', { route: 'answer' })), row('done', { route: 'answer', result: 'The office opens at nine.' })] })
+    const r2 = rig({ tasks: slow2.client })
+    r2.ctl.start()
+    r2.answers.push(null)
+    await r2.ctl.startTask('when does the office open')
+    for (let i = 0; i < 40; i++) await r2.flush()
+    expect(r2.cardsSeen.at(-1)).toMatchObject({ title: 'Your answer', body: 'The office opens at nine.' })
   })
 })

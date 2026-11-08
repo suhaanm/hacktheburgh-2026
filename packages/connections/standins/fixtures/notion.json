@@ -1,0 +1,11 @@
+{
+  "server": "example-notion",
+  "tools": [
+    {"name": "post-search", "description": "Search pages and databases.", "response": [{"object": "page", "id": "page-ex-1", "title": "Team handbook (example)"}, {"object": "database", "id": "db-ex-1", "title": "Request tracker (example)"}]},
+    {"name": "retrieve-a-page", "description": "One page.", "response": {"id": "page-ex-1", "title": "Team handbook (example)", "last_edited": "2026-11-03"}},
+    {"name": "get-block-children", "description": "Blocks of a page.", "response": [{"type": "heading_1", "text": "Working agreements"}, {"type": "paragraph", "text": "Check the worked example before you send a decision."}]},
+    {"name": "query-data-source", "description": "Rows of a database.", "response": [{"request": "Pull monthly totals", "status": "Open"}, {"request": "Fix header on report", "status": "Done"}]},
+    {"name": "patch-page", "description": "Change a page.", "write": true},
+    {"name": "delete-a-block", "description": "Delete a block.", "write": true}
+  ]
+}

@@ -17,7 +17,14 @@ export type ToolName = (typeof TOOL_NAMES)[number]
 // asks to click ONE thing the worker named: it never clicks by itself, it asks code, and code asks the worker (a real mouse click on a card).
 export const WAKE_TOOL_NAMES = ['clear', 'do_it_for_me'] as const
 export type WakeToolName = (typeof WAKE_TOOL_NAMES)[number]
+// Offered in a talk-key session and a wake session alike, when code can answer it. `start_task` hands a request to the task service; it never starts
+// anything itself (the service holds it for the worker's real click on a card).
+export const TASK_TOOL_NAMES = ['start_task'] as const
+export const TASK_TEXT_MAX = 300
+export const TASK_TEXT_MIN = 3
 export interface ToolOptions {
+  // `start_task` is declared and accepted only when code can answer it (a task port exists).
+  tasks?: boolean
   wake?: boolean
   // `do_it_for_me` is offered only when code can answer it (a port exists). Default true in a wake session.
   doIt?: boolean
@@ -37,6 +44,7 @@ export interface CandidateList {
 }
 
 export type ParsedToolCall =
+  | { ok: true; name: 'start_task'; args: { text: string } }
   | { ok: true; name: 'point_at'; args: { description: string } }
   | { ok: true; name: 'show_step'; args: { step_id: string } }
   | { ok: true; name: 'ask_choice'; args: { options: string[] } }
@@ -53,6 +61,7 @@ export type ToolRefusal =
   | 'bad_description'
   | 'bad_choices'
   | 'no_candidates'
+  | 'bad_text'
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
 
@@ -69,6 +78,13 @@ const URLISH = /(https?:\/\/|www\.|\b[a-z0-9-]+\.(com|org|net|io|uk|gov|co|dev)\
 const LONG_NUMBER = /\d[\d\s-]{6,}\d/
 const MARKUP = /[<>{}`]|```/
 
+/** The model's wording of a request: cleaned like a pointing description (controls and hidden characters out, one line, no markup), at most 300. */
+export function parseTaskText(v: unknown): string | null {
+  const s = cleanLine(v)
+  if ([...s].length < TASK_TEXT_MIN || [...s].length > TASK_TEXT_MAX || MARKUP.test(s)) return null
+  return s
+}
+
 export function parseDescription(v: unknown): string | null {
   const s = cleanLine(v)
   if (s.length < DESCRIPTION_MIN_CHARS || [...s].length > DESCRIPTION_MAX_CHARS) return null
@@ -84,6 +100,15 @@ function onlyKeys(o: Record<string, unknown>, allowed: readonly string[]): strin
 const refuse = (code: ToolRefusal, message: string): ParsedToolCall => ({ ok: false, code, message })
 
 export function parseToolCall(name: unknown, args: unknown, candidates: CandidateList, opts: ToolOptions = {}): ParsedToolCall {
+  if (name === 'start_task' && opts.tasks === true) {
+    const a0 = args === undefined || args === null ? {} : args
+    if (!isObj(a0)) return refuse('bad_arguments', 'The arguments must be an object.')
+    const extra0 = onlyKeys(a0, ['text'])
+    if (extra0) return refuse('unknown_argument', `start_task takes only "text"; "${cleanLine(extra0).slice(0, 20)}" is not allowed.`)
+    const text = parseTaskText(a0.text)
+    if (!text) return refuse('bad_text', `text must be the worker's request in plain words, ${TASK_TEXT_MAX} characters or fewer, with no code or markup and no passwords or keys.`)
+    return { ok: true, name: 'start_task', args: { text } }
+  }
   const wakeTool = opts.wake === true && typeof name === 'string' && (WAKE_TOOL_NAMES as readonly string[]).includes(name) && !(name === 'do_it_for_me' && opts.doIt === false)
   if (typeof name !== 'string' || (!(TOOL_NAMES as readonly string[]).includes(name) && !wakeTool)) {
     return refuse('unknown_tool', 'That tool does not exist. The only tools are point_at, show_step, ask_choice and end_session.')
@@ -184,6 +209,16 @@ export function buildToolDeclarations(candidates: CandidateList, opts: ToolOptio
       },
     )
   }
+  if (opts.tasks === true) {
+    tools.push({
+      name: 'start_task',
+      behavior: NB,
+      description:
+        'Hands a job the worker asked for to Knack\'s task service, for example "summarise this folder" or "look this up on the benefits site". Use it ONLY when the worker clearly asks you to do something, or asks something you cannot answer by pointing. ' +
+        `Pass their request in plain words, ${TASK_TEXT_MAX} characters at most, with no passwords or keys. It never starts anything by itself: a card on their screen asks them first. The answer says whether a card is waiting; never say a job has started.`,
+      parameters: { type: 'object', properties: { text: { type: 'string', maxLength: TASK_TEXT_MAX, description: `The worker's request in plain words, at most ${TASK_TEXT_MAX} characters.` } }, required: ['text'] },
+    })
+  }
   if (opts.wake === true) {
     tools.push(
       {
@@ -220,6 +255,6 @@ export function buildToolDeclarations(candidates: CandidateList, opts: ToolOptio
 export function schedulingFor(name: string, result: unknown): Scheduling {
   const r = isObj(result) ? result : {}
   if (r.ok === false) return 'WHEN_IDLE'
-  if (name === 'point_at' || name === 'show_step' || name === 'do_it_for_me') return 'WHEN_IDLE'
+  if (name === 'point_at' || name === 'show_step' || name === 'do_it_for_me' || name === 'start_task') return 'WHEN_IDLE'
   return 'SILENT'
 }

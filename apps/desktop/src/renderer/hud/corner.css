@@ -44,8 +44,9 @@
 .cpill[data-leaving='true'] {
   opacity: 0;
 }
+/* The error pill keeps its panel: it sits over whatever is behind it, and light text on a see-through pill is unreadable over a light page. It is told apart by its red outline. */
 .cpill[data-phase='error'] {
-  background: transparent;
+  background: var(--panel);
   border-color: var(--bad);
 }
 /* The brand mark at pill size (knack-glyph.svg): a solid disc and a ring offset behind it. The ring is the state. */

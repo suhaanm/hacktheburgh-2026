@@ -3,6 +3,7 @@
 // from a screen, a page, a file or a name ever goes through here. In a browser tab (no `window.knackShell.wake`) every call does nothing.
 import { AGENT_URL } from "../api";
 import { wakeBridge, type WakeBridge, type WakeContext } from "../screens/Settings/bridge";
+import { streamRegistry } from "./live";
 
 /** The shape of an id the shell accepts: lower-case words, digits, dot, dash and underscore. */
 export const ID_RE = /^[a-z0-9][a-z0-9_.-]{0,63}$/;
@@ -52,13 +53,14 @@ async function fetchStatus(runId: string): Promise<RunStatus | null> {
 export function trackRoutineRun(routineId: string, runId: string, opts: { fetchStatus?: (id: string) => Promise<RunStatus | null>; bridge?: WakeBridge | null; everyMs?: number; maxMs?: number } = {}): () => void {
   const get = opts.fetchStatus ?? fetchStatus;
   const started = Date.now();
-  const stop = () => { const t = tracking.get(runId); if (t) clearInterval(t); tracking.delete(runId); reportWake({ routine: null }, opts.bridge, 0); };
+  const stop = () => { const t = tracking.get(runId); if (t) clearInterval(t); tracking.delete(runId); streamRegistry.remove(runId); reportWake({ routine: null }, opts.bridge, 0); };
   if (tracking.has(runId)) return stop;
   const tick = async () => {
     const s = await get(runId);
     if (!s || TERMINAL.has(s.state ?? "") || Date.now() - started > (opts.maxMs ?? 600_000)) { stop(); return; }
     reportWake({ routine: routineContext(routineId, s) }, opts.bridge, 0);
   };
+  streamRegistry.add(runId);                                       // the run page's stream refreshes the screens while it runs
   tracking.set(runId, setInterval(() => void tick(), opts.everyMs ?? 3000));
   void tick();
   return stop;
@@ -70,5 +72,6 @@ export function resetWakeContext(): void {
   if (timer) clearTimeout(timer);
   for (const t of tracking.values()) clearInterval(t);
   tracking.clear();
+  streamRegistry.clear();
 }
 export const lastReported = (): WakeContext => current;

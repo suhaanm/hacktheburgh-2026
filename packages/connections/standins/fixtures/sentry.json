@@ -1,0 +1,13 @@
+{
+  "server": "example-sentry",
+  "tools": [
+    {"name": "find_projects", "description": "Projects in an organisation.", "response": [{"slug": "claims-calc", "platform": "python"}]},
+    {"name": "search_issues", "description": "Search error groups.", "response": [
+      {"id": "EX-1A", "title": "ZeroDivisionError in summary.total", "events": 14, "users": 3, "last_seen": "2026-11-06"},
+      {"id": "EX-2B", "title": "KeyError: 'partner_income'", "events": 6, "users": 2, "last_seen": "2026-11-05"}]},
+    {"name": "get_issue_details", "description": "One error group.", "response": {"id": "EX-1A", "title": "ZeroDivisionError in summary.total", "culprit": "calc.summary in total", "first_seen": "2026-11-01"}},
+    {"name": "get_event_stacktrace", "description": "Stack trace of an event.", "response": "calc/summary.py:12 in total\n  return sum(items) / len(items)"},
+    {"name": "update_issue", "description": "Resolve or assign an error group.", "write": true},
+    {"name": "delete_alert_rule", "description": "Delete an alert rule.", "write": true}
+  ]
+}

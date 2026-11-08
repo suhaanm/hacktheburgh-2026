@@ -19,9 +19,17 @@ export const ydSectionOf = (s: string | null | undefined): YdSection | null => (
 export interface MemItem { id: string; section: string; text: string; note: string | null }
 const cleanNote = (n: string | null): string | null => { const c = (n ?? "").replace(/^id:\S+\s*\|?\s*/, "").trim(); return c || null; };
 
-export function memoryItems(m: Pick<Memory, "sections">): MemItem[] {
-  const names = [...SECTION_ORDER.filter((n) => n in m.sections), ...Object.keys(m.sections).filter((n) => !(SECTION_ORDER as readonly string[]).includes(n))];
-  return names.flatMap((section) => m.sections[section].map((l) => ({ id: l.id, section, text: l.text, note: cleanNote(l.note) })));
+export function memoryItems(m: Pick<Memory, "sections"> | null | undefined): MemItem[] {
+  const sections = m?.sections && typeof m.sections === "object" ? m.sections : {};
+  const names = [...SECTION_ORDER.filter((n) => n in sections), ...Object.keys(sections).filter((n) => !(SECTION_ORDER as readonly string[]).includes(n))];
+  const seen = new Set<string>();
+  return names.flatMap((section) => (Array.isArray(sections[section]) ? sections[section] : []).flatMap((l, i): MemItem[] => {
+    if (!l || typeof l !== "object" || typeof l.text !== "string") return [];
+    const id = typeof l.id === "string" && l.id ? l.id : `${section}#${i}`;
+    if (seen.has(id)) return [];          // the same line sent twice is one line: forgetting it must not be ambiguous
+    seen.add(id);
+    return [{ id, section, text: l.text, note: cleanNote(typeof l.note === "string" ? l.note : null) }];
+  }));
 }
 
 /** The memory file with every line removed and every heading kept, so the role and the shape of the file stay. */
@@ -43,7 +51,7 @@ export function factLine(id: YdSection, f: { lines: number; capture: boolean | n
   switch (id) {
     case "remembers": return `${f.lines} ${f.lines === 1 ? "line" : "lines"}${f.rules ? `, ${f.rules} ${f.rules === 1 ? "rule" : "rules"} waiting` : ""}`;
     case "measured": return f.capture === null ? "" : f.capture ? "Times only" : "Capture off";
-    case "sent": return sentLine(f.entries);
+    case "sent": return "";             // the list is under Settings, Advanced; a worker's row holds one sentence and one link, and no count to read
     case "admin-sees": return f.shared === null ? "" : `${f.shared} summaries`;
     case "switches": return f.capture === null ? "" : f.capture ? "Capture on" : "Capture off";
   }
@@ -88,4 +96,11 @@ export function deleteResultText(parts: DeletePart[]): string {
   if (bad.length === 0) return "Deleted. Everything listed was cleared.";
   const ok = parts.filter((p) => p.ok).map((p) => p.part);
   return `${ok.length ? `Cleared: ${ok.join(", ")}. ` : "Nothing was cleared. "}Not cleared: ${bad.map((p) => `${p.part}${p.note ? ` (${p.note})` : ""}`).join(", ")}. Try again.`;
+}
+
+/** The headline of Your data: how much Knack remembers, and that it stays on this Mac. */
+export function dataHeadline(i: { lines: number; capture: boolean | null }): string {
+  const n = Math.max(0, Math.floor(i.lines));
+  const base = n === 0 ? "Knack remembers nothing about you yet" : `Knack remembers ${n} ${n === 1 ? "thing" : "things"} about you`;
+  return `${base}, on this Mac only${i.capture ? ", and learns from when you are active" : ""}.`;
 }

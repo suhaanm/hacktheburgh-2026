@@ -20,6 +20,8 @@ export interface ContextSourceDeps {
   cue: () => string
   consent: () => { voice: string; screen: string; frames: boolean }
   rung: () => RungReading
+  /** How many tasks are planning or running now, with the time it was counted (a count and nothing else). Absent: unknown. */
+  tasksRunning?: () => { n: number; t: number } | null
   /** Optional live readers for what the shell owns. Absent (or null): the value `hub.set*` last reported, or unknown. */
   screen?: () => string | null
   insight?: () => { id: string; template: string } | null | undefined
@@ -82,6 +84,10 @@ export function createContextHub(d: ContextSourceDeps): ContextHub {
         task: task === undefined ? undefined : { value: task ? { id: task.id, step: task.step, of: task.stepsTotal } : null, t },
         coach: coach === undefined ? undefined : coach === null ? { value: null, t } : { value: { step: coach.step, zone: coach.zone }, t: coach.t },
         cue: { value: safe(d.cue) ?? 'none', t },
+        tasks: ((): Reading<number | null> => {
+          const c = d.tasksRunning ? safe(d.tasksRunning) : undefined
+          return c ? { value: c.n, t: c.t } : undefined
+        })(),
         firstRun,
         consent: safe(d.consent) ?? { voice: 'unset', screen: 'unset', frames: false },
         click: safe(d.rung)?.cleared === true ? 'cleared' : 'pending',

@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api } from "../api";
 import { useLoad, useWidth } from "../hooks";
 import { ChartFoot, EmptyState, ErrorState, Loading, OriginBadge, PageHead } from "../components/common";
 import { GraphCanvas } from "../components/graph/GraphCanvas";
 import { GraphLegend, WORK_LEGEND } from "../components/graph/GraphLegend";
 import { NodePanel } from "../components/graph/NodePanel";
-import { cleanGraph, isLapsed } from "../lib/graph";
+import { cleanGraph, graphHeadline } from "../lib/graph";
 
 /** The badge says where the data came from, in the worker's words: an example is an example (D57: the word "synthetic" is not on any screen). */
 const originLabel = (origin: string): string => (origin === "real" ? "Real data" : origin === "mixed" ? "Some example data" : origin === "synthetic" ? "Example data" : "Not run");
@@ -35,7 +35,12 @@ function canvasHeight(width: number, count: number): number {
   return base + Math.min(280, Math.round(Math.sqrt(Math.max(0, count - 40)) * 8));
 }
 
-export default function Graph() {
+/**
+ * The work graph. `embedded` is for a section of another screen (Growth, "My routines map"): it draws no title, no origin badge and no page wrapper, only
+ * the canvas, the key and the foot. The section prints its own title and the headline (graphHeadline, from lib/graph.ts); the origin stays in the foot's
+ * "About this data" row.
+ */
+export default function Graph({ embedded = false }: { embedded?: boolean }) {
   const g = useLoad(() => api.workGraph(), []);
   const [sel, setSel] = useState<string | null>(null);
   const [box, width] = useWidth<HTMLDivElement>();
@@ -53,23 +58,25 @@ export default function Graph() {
     if (window.matchMedia?.(NARROW).matches) panel.current.scrollIntoView({ block: "nearest", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   }, [node?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (g.status === "error" && !g.data) return <div className="page"><ErrorState error={g.error} retry={g.reload} what="the work graph" /></div>;
-  if (!graph) return <div className="page"><Loading label="Loading the work graph" /></div>;
+  const wrap = (body: ReactNode) => (embedded ? <div className="stack">{body}</div> : <div className="page page--wide">{body}</div>);
+  if (g.status === "error" && !g.data) return embedded ? <ErrorState error={g.error} retry={g.reload} what="the work graph" /> : <div className="page"><ErrorState error={g.error} retry={g.reload} what="the work graph" /></div>;
+  if (!graph) return embedded ? <Loading label="Loading the work graph" /> : <div className="page"><Loading label="Loading the work graph" /></div>;
   const count = graph.nodes.length;
-  const faded = graph.nodes.filter(isLapsed).length;
   const height = canvasHeight(width, count);
   // On a wide screen the details sit at the stage's right edge: the graph makes room for them, so the opened node is never under the panel.
   const canvasWidth = node && !narrow ? Math.max(300, width - PANEL_ROOM) : width;
   const close = () => { setSel(null); svg.current?.focus(); };
 
-  return (
-    <div className="page page--wide">
-      <PageHead
-        eyebrow="Graph"
-        title="How your work connects"
-        lede={count === 0 ? undefined : `${count} ${count === 1 ? "thing" : "things"} Knack knows about your work${faded ? `, ${faded} fading now` : ""}.`}
-        aside={<OriginBadge meta={g.meta} label={g.meta ? originLabel(g.meta.origin) : undefined} />}
-      />
+  return wrap(
+    <>
+      {!embedded && (
+        <PageHead
+          eyebrow="Graph"
+          title="How your work connects"
+          lede={graphHeadline(graph) || undefined}
+          aside={<OriginBadge meta={g.meta} label={g.meta ? originLabel(g.meta.origin) : undefined} />}
+        />
+      )}
 
       {count === 0 ? (
         <EmptyState title="Nothing here yet" body="Knack adds things here as it sees your work." action={<a className="btn btn--secondary" href="#/setup">Go to set-up</a>} />
@@ -87,6 +94,6 @@ export default function Graph() {
           <ChartFoot variant="about" meta={g.meta} badge={false} extra={<span>click a node for why it exists; the layout is for reading only</span>} />
         </div>
       )}
-    </div>
+    </>,
   );
 }
