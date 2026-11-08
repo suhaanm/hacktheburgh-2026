@@ -77,6 +77,9 @@ export function roleLabel(id: string | null | undefined, packs: PackLike[] | nul
   return packs?.find((p) => p.id === id)?.name ?? roleWords(id);
 }
 
+/** How far a role's pack is built, in the worker's words: deep is validated, standard is a full pack, anything else a starter. Never a number. */
+export const depthLabel = (depth: unknown): string => (depth === "deep" ? "Fully built and validated" : depth === "standard" ? "Full pack" : "Starter");
+
 /** Earlier work as another role is offered when the engine reports work under a role that is not the current one. Pure so the rule is a test. */
 export function earlierRoles(scope: { role?: string; roles?: { role: string; n: number }[] } | null | undefined): string[] {
   return (scope?.roles ?? []).filter((r) => r.role !== scope?.role && r.n > 0).map((r) => r.role);

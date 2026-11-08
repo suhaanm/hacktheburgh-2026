@@ -15,6 +15,7 @@
 //   --narrow                    also read 390x844 (words and paragraphs only)
 //   --theme=light|dark          default light
 //   --example                   block the engine and the agent (deterministic example data)
+//   --app                       measure as the Knack desktop app draws it: a stand-in for its bridges is injected (scripts/lib/fake-app.mjs), so first run shows all three consent cards
 //   --live-via=http://127.0.0.1:5173   relay the page's engine and agent GETs through a running dashboard (real engine data, read-only)
 //   --out=qa/knack/copy-report.json   write the measurements
 //   --report-only               print and write, never exit 1 (for the baseline)
@@ -25,6 +26,7 @@ import fs from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { openAs, relayLive } from "./lib/knack-page.mjs";
+import { fakeApp } from "./lib/fake-app.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const banned = JSON.parse(fs.readFileSync(join(here, "..", "..", "..", "docs", "knack-ux", "banned-phrases.json"), "utf8"));
@@ -41,6 +43,7 @@ const out = opt("out", "");
 const reportOnly = Boolean(flag("report-only"));
 const example = Boolean(flag("example"));
 const liveVia = opt("live-via", "");
+const asApp = Boolean(flag("app"));
 
 /** The budget for one route and one metric: the route's own number, else the default of its audience. */
 export function budgetFor(route, metric, audience, state = {}) {
@@ -180,7 +183,7 @@ const measureInPage = (dump) => {
     empty, busy, dump: sink,
     controlDump: dump ? controls.map((e) => `${e.tagName.toLowerCase()}${e.getAttribute("role") ? `[${e.getAttribute("role")}]` : ""} ${(e.getAttribute("aria-label") || e.textContent || "").trim().slice(0, 50)}`) : [],
     pillDump: dump ? pills.map((e) => e.textContent.trim().slice(0, 40)) : [],
-    gate: /part of the Admin view|Admin view only|not in this view/i.test(main.innerText),
+    gate: /part of the Admin view|Admin view only|not in this view|Switch to Admin to see this/i.test(main.innerText),
   };
 };
 
@@ -243,6 +246,7 @@ try {
       return r.continue();
     });
     if (liveVia) await relayLive(ctx, liveVia);
+    if (asApp) await ctx.addInitScript(fakeApp, { microphone: "granted", speech: "not-determined", screen: "denied" });
     const page = await ctx.newPage();
     page.on("pageerror", (e) => notes.push(`pageerror at ${vp.join("x")}: ${e.message}`));
     for (const view of ["worker", "admin"]) {

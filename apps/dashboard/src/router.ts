@@ -10,14 +10,16 @@ export interface Route {
 /**
  * The route ids: the first path segment of the address (`#/needs-you`, `#/roles`). A worker has five destinations (home, needs-you, routines,
  * growth, your-data); an admin has eight (firm, brief, forecasts, roles, people, onboarding, automation, risk) and three more behind More
- * (models, evidence, agents); first-run and setup have no sidebar. Every older id (queue, briefing, repeats, privacy, memory, notices, predictions,
- * today, week, presence, genome, graph, git, and the /firm/<view> forms) is not a screen any more: routeRedirects.ts sends it to the new one
+ * (models, evidence, agents); first-run and setup have no sidebar; today (the live coach) has none either: it is unlisted, and Home opens it from one quiet
+ * row while a coach step is active. Every older id (queue, briefing, repeats, privacy, memory, notices, predictions, week, presence, genome, graph, git,
+ * and the /firm/<view> forms) is not a screen any more: routeRedirects.ts sends it to the new one
  * before anything renders (docs/knack-ux/views.md).
  */
 export const SCREENS = [
   "home", "needs-you", "routines", "growth", "your-data",
   "firm", "brief", "forecasts", "roles", "people", "onboarding", "automation", "risk",
   "models", "evidence", "agents",
+  "today",
   "first-run", "setup",
 ] as const;
 export type Screen = (typeof SCREENS)[number];

@@ -223,3 +223,21 @@ export function exampleLine(standIn: boolean, firstRunAt: string | null, now = n
   const age = now.getTime() - t;
   return Number.isFinite(t) && age < 7 * 86_400_000 && age > -86_400_000 ? EXAMPLE_LINE : null;
 }
+
+/* -- The coaching row -------------------------------------------------------------------------------------------------------------- */
+
+export interface CoachTaskLike { name?: unknown; step?: unknown; steps_total?: unknown }
+
+/**
+ * "Coaching you on Entitlement check." while a coach step is active, else null (the row is not drawn). The task name is cut at its first comma or colon
+ * ("Entitlement check, household H-9" is the task; the household is not part of the sentence), at most five words. A step that is not a positive whole
+ * number, or one past the last, is not active. Never throws: the coach state is whatever the service sent.
+ */
+export function coachLine(task: CoachTaskLike | null | undefined): string | null {
+  if (!task || typeof task.name !== "string") return null;
+  const step = Number(task.step), total = Number(task.steps_total);
+  if (!Number.isInteger(step) || step < 1 || (Number.isInteger(total) && total >= 1 && step > total)) return null;
+  const name = task.name.split(/[,:;(]/)[0].replace(/\s+/g, " ").trim().split(" ").slice(0, 5).join(" ");
+  if (!/[\p{L}\p{N}]/u.test(name)) return null;
+  return `Coaching you on ${name}.`;
+}

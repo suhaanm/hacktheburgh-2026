@@ -15,8 +15,8 @@ export const OLD_ROUTES = [
  *   Your data:  remembers, measured, sent, admin-sees, switches
  *   Settings:   live-models, interruptions, coaching, move-aside, open-at-login, appearance, models, views, about
  *   Growth:     progress, time, steps, map, commits   (docs/knack-ux/views.md: one page, five sections)
- * A worker has five destinations and nothing else, so Today, Week, Presence, Genome, Graph and Git are not places any more: their content is a Growth section
- * (or, for Today, Home). The Firm views are top-level addresses of their own (`/roles`, `/people`, `/brief`).
+ * A worker has five destinations and nothing else, so Week, Presence, Genome, Graph and Git are not places any more: their content is a Growth section.
+ * Today (the live coach) is the one exception: it has no menu row and no redirect, Home opens it while a coach step is active. The Firm views are top-level addresses of their own (`/roles`, `/people`, `/brief`).
  */
 const MAP: Record<string, string> = {
   "/queue": "/needs-you",
@@ -27,7 +27,6 @@ const MAP: Record<string, string> = {
   "/notices": "/home?settings=interruptions",
   "/predictions": "/forecasts",
   "/settings": "/home?settings=live-models",
-  "/today": "/home",
   "/week": "/growth?section=time",
   "/presence": "/growth?section=time",
   "/genome": "/growth?section=steps",

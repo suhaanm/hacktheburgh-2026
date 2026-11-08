@@ -4,15 +4,14 @@ import { Suspense, lazy, useCallback, useEffect, useMemo, useReducer, useRef, us
 import { ApiError, api } from "../../api";
 import { navigate, useRoute } from "../../router";
 import { useLoad } from "../../hooks";
-import { Details } from "../../components/ui";
 import { Glyph } from "../../components/Lockup";
 import { getBridge, permissionsAvailable, permStates, type PermKind, type PermState } from "../../components/shell/bridge";
 import { reportWake } from "../../lib/wakeContext";
-import { awarenessBridge, type AwarenessState } from "../YourData/awareness";
+import { awarenessBridge } from "../YourData/awareness";
 import { liveModelsBridge, wakeBridge, type LiveModelsState, type WakeStatus } from "../Settings/bridge";
 import type { OnboardingQuestions } from "../../types";
 import {
-  CAPTURE_CARD, CAPTURE_CHOICE_KEY, CHOICES, FIRST_RUN_KEY, GLANCE_CHOICE_KEY, GLANCE_TITLE, NO_ROLE, PERM_COPY, PROGRESS_KEY, RING_SENTENCE, SEEN_KEY, START, STEPS, VOICE_CARD, VOICE_CHOICE_KEY,
+  CAPTURE_CARD, CAPTURE_CHOICE_KEY, CHOICES, FIRST_RUN_KEY, GLANCE_CARD, GLANCE_CHOICE_KEY, NO_ROLE, PERM_COPY, PROGRESS_KEY, RING_SENTENCE, SEEN_KEY, START, STEPS, VOICE_CARD, VOICE_CHOICE_KEY,
   captureRecord, defaultAnswers, heyKnackRow, kindsFor, nextUnanswered, parseProgress, permsToShow, progressRecord, reduce, roleCards, type Choice, type ConsentKind,
 } from "./model";
 import "./firstrun.css";
@@ -40,9 +39,10 @@ type WakeApi = NonNullable<ReturnType<typeof wakeBridge>> & { arm?: () => Promis
 const setFirstRun = (on: boolean): void => reportWake({ firstRun: on } as never, undefined, 0);
 
 const CHOICE_LABEL: Record<ConsentKind, Record<Choice, string>> = {
-  capture: { yes: "Yes, learn my times", "not-now": "Not now", never: "Never" },
-  glance: { yes: "Yes, look when I am stuck", "not-now": "Not now", never: "Never" },
-  voice: { yes: "Yes, listen", "not-now": "Not now", never: "Never" },
+  // The card's title and sentence say what Yes does, so the three buttons are one or two words of one size and one weight.
+  capture: { yes: "Yes", "not-now": "Not now", never: "Never" },
+  glance: { yes: "Yes", "not-now": "Not now", never: "Never" },
+  voice: { yes: "Yes", "not-now": "Not now", never: "Never" },
 };
 
 export default function FirstRun() {
@@ -59,7 +59,6 @@ export default function FirstRun() {
   const questions = useLoad(() => (chosen ? api.onboardingQuestions(chosen) : Promise.resolve({ data: null as unknown as OnboardingQuestions, meta: null, source: "demo" as const })), [chosen]);
   const [picked, setPicked] = useState<string | null>(null);
   const [cardError, setCardError] = useState<Partial<Record<ConsentKind, string>>>({});
-  const [glance, setGlance] = useState<AwarenessState | null>(null);
   const [slow, setSlow] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const n = STEPS.indexOf(s.step) + 1;
@@ -68,13 +67,12 @@ export default function FirstRun() {
   useEffect(() => { setFirstRun(true); return () => setFirstRun(false); }, []);
   useEffect(() => { heading.current?.focus(); }, [s.step]);
   useEffect(() => { if (!again) store.set(PROGRESS_KEY, progressRecord(s)); }, [s, again]);
-  useEffect(() => { awareness?.state().then(setGlance, () => setGlance(null)); }, [awareness]);
 
   // Answering a card is a real click. The glance and voice answers reach the desktop app at once (and can be undone in Settings and Your data); capture waits for the file.
   const answer = useCallback(async (kind: ConsentKind, choice: Choice) => {
     setCardError((e) => ({ ...e, [kind]: undefined }));
     try {
-      if (kind === "glance" && awareness) setGlance(await awareness.setConsent({ trigger: choice === "yes" }));
+      if (kind === "glance" && awareness) await awareness.setConsent({ trigger: choice === "yes" });
       if (kind === "voice" && wakeApi) { await wakeApi.set(choice === "yes"); if (choice === "yes") await (wakeApi as WakeApi).arm?.(); }
     } catch {
       setCardError((e) => ({ ...e, [kind]: "Could not change that. Nothing was changed." }));
@@ -134,7 +132,7 @@ export default function FirstRun() {
                     <div key={c.id} className="rolecard__wrap" data-picked={picked === c.id || undefined}>
                       <div className="rolecard">
                         <button type="button" className="rolecard__btn" aria-describedby={`rc-${c.id}`} aria-pressed={ConnectionChips && c.id !== NO_ROLE ? picked === c.id : undefined} onClick={() => (ConnectionChips && c.id !== NO_ROLE ? setPicked(c.id) : chooseRole(c.id))}>{c.name}</button>
-                        <span className="rolecard__line" id={`rc-${c.id}`}>{c.line}</span>
+                        <span className="rolecard__line" id={`rc-${c.id}`}>{c.line}{c.tag ? ` · ${c.tag}` : ""}</span>
                       </div>
                       {ConnectionChips && picked === c.id && c.id !== NO_ROLE && (
                         <div className="rolecard__chips">
@@ -155,17 +153,15 @@ export default function FirstRun() {
             <h1 id="fr-h" className="firstrun__q" ref={heading} tabIndex={-1}>What may Knack do?</h1>
             <div className="consents">
               <ConsentCardView kind="capture" title={CAPTURE_CARD.title} text={CAPTURE_CARD.text} answer={s.answers.capture} error={cardError.capture} onAnswer={answer} disabled={s.writing} />
-              {caps.glance && <ConsentCardView kind="glance" title={GLANCE_TITLE} text={glance?.consentText || "Knack may send a picture of your screen to a model when you seem stuck. Each one is listed in Your data."} answer={s.answers.glance} error={cardError.glance} onAnswer={answer} disabled={s.writing} />}
+              {caps.glance && <ConsentCardView kind="glance" title={GLANCE_CARD.title} text={GLANCE_CARD.text} answer={s.answers.glance} error={cardError.glance} onAnswer={answer} disabled={s.writing} />}
               {caps.voice && <ConsentCardView kind="voice" title={VOICE_CARD.title} text={VOICE_CARD.text} answer={s.answers.voice} error={cardError.voice} onAnswer={answer} disabled={s.writing} />}
             </div>
             {s.error && <p className="firstrun__note firstrun__note--error" role="alert">{s.error}</p>}
             {s.writing && <p className="firstrun__note" role="status">{slow ? "This is taking longer than usual. You can skip and set your role later." : "Saving your choices"}</p>}
-            <Details summary="Times only">
-              <p>Recorded: when each step of your role starts and ends, and its name. Never recorded: page text, URLs, field values, passwords or screenshots.</p>
-            </Details>
-            <p className="firstrun__note">Each of these can be changed any time in Your data. Anything you leave is asked once, when it first matters.</p>
+            <p className="firstrun__note">Change any of this in Your data.</p>
             <div className="firstrun__links">
-              <button type="button" className="linkish firstrun__back" onClick={() => dispatch({ type: "back" })} disabled={s.writing}>Back</button>
+              {/* The full app screen carries three cards and the ten-control budget; Back is there when the screen is shorter. */}
+              {kindsFor(caps).length < 3 && <button type="button" className="linkish firstrun__back" onClick={() => dispatch({ type: "back" })} disabled={s.writing}>Back</button>}
               <button type="button" className="linkish firstrun__skip" onClick={() => dispatch({ type: "skip" })} disabled={s.writing}>Skip</button>
             </div>
           </section>

@@ -35,31 +35,52 @@ const go = async (hash, wait = 700) => {
   await page.goto(`${base}/#${hash}`); await page.waitForTimeout(wait);
 };
 
-// 1. First run (the old Onboarding): two roles, timed. Set up again reruns the same three screens in a browser tab: role, what Knack may do, then Show my week.
-const memoryText = async () => {
-  await go("/your-data?section=remembers", 1000);
-  await page.locator("#yd-remembers-body details summary", { hasText: /^More/ }).click();
-  await page.getByRole("button", { name: "Edit as text" }).click();
-  return page.locator("#memtext").inputValue();
+// The view role is remembered on this device and read when the page loads, so changing it is a write and a reload. A worker has five screens; the screens that
+// belong to the firm (Evidence, Models and cost, Background runs, the Firm views) and the older work views that Growth now bridges are measured as an admin, where
+// they are not behind the gate or the cohort guard.
+const asView = async (v) => {
+  await page.evaluate((role) => { try { if (role === "admin") localStorage.setItem("understudy-view-as", "admin"); else localStorage.removeItem("understudy-view-as"); } catch { /* */ } }, v);
+  await page.reload();
+  await page.waitForTimeout(600);
 };
+
+// 1. First run (the old Onboarding): two roles, timed. Set up again reruns the same three screens in a browser tab: role, what Knack may do, then Show my week.
+// With no engine the write cannot reach a memory file, so this section reads what the page SENDS: the request to /engine/onboarding is answered here (and recorded),
+// and the file the engine writes from it is the engine's own test (services/engine/tests). What is checked is the contract: the role, the capture answer as a boolean
+// the worker's click decided, sent as the worker, once per first run.
+// (The services are answered with a 503 here rather than refused: a refused connection makes the page skip that service for six seconds, and the write would never be sent.)
+const onboarded = [];
+const SERVICES_HERE = ANY_SERVICE;
+await page.route(SERVICES_HERE, async (route) => {
+  const req = route.request();
+  if (!(req.method() === "POST" && /^https?:\/\/[^/]+\/engine\/onboarding$/.test(req.url()))) {
+    return route.fulfill({ status: 503, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ error: { code: "unavailable", message: "Not running." } }) });
+  }
+  const body = JSON.parse(req.postData() ?? "{}");
+  onboarded.push({ body, actor: req.headers()["x-understudy-actor"], type: req.headers()["content-type"] });
+  return route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ data: { person: "p_you", role: body.role, revision: 1, memory_markdown: "", risk_classes: { irreversible: [] }, tone: { length: "short", voice: "plain" }, pace: "gradual" } }) });
+});
 for (const [role, pack] of [["UK benefits processor", "benefits-processor"], ["Data analyst", "data-analyst"]]) {
   await go("/setup");
   const t0 = Date.now();
+  const before = onboarded.length;
   await page.locator(".rolecard__btn", { hasText: role }).click();
   const cards = page.locator(".consent");
   check(`first run ${pack}: capture is never pre-selected (nothing is answered until a real click)`, (await page.getByRole("heading", { name: "What may Knack do?" }).count()) === 1 && (await cards.locator("button[aria-pressed=true]").count()) === 0);
-  await cards.first().getByRole("button", { name: pack === "benefits-processor" ? "Yes, learn my times" : "Not now" }).click();
+  check(`first run ${pack}: nothing is written before the worker answers`, onboarded.length === before);
+  await cards.first().getByRole("button", { name: pack === "benefits-processor" ? "Yes" : "Not now" }).click();
   await page.getByRole("button", { name: "Show my week" }).waitFor();
   const secs = (Date.now() - t0) / 1000;
+  const sent = onboarded[onboarded.length - 1];
+  check(`first run ${pack}: written once, in under 60 s`, onboarded.length === before + 1 && secs < 60, `${secs.toFixed(1)} s, ${onboarded.length - before} write(s)`);
+  check(`first run ${pack}: the role is sent, as the worker, as JSON`, sent?.body.role === pack && sent?.actor === "worker" && /application\/json/.test(sent?.type ?? ""), JSON.stringify(sent?.body.role));
+  check(`first run ${pack}: capture is on only when the worker said yes (a boolean, never a default)`, sent?.body.answers?.capture === (pack === "benefits-processor"), JSON.stringify(sent?.body.answers?.capture));
   await page.getByRole("button", { name: "Show my week" }).click();
-  const text = await memoryText();
-  check(`first run ${pack}: file written in under 60 s`, secs < 60, `${secs.toFixed(1)} s`);
-  check(`first run ${pack}: file names the role`, text.includes(`role: ${pack}`));
-  check(`first run ${pack}: capture line only when the worker said yes`, text.includes("Capture: times only") === (pack === "benefits-processor"));
+  await page.waitForTimeout(400);
   if (pack === "benefits-processor") await page.screenshot({ path: join(qa, "onboarding-done-1440.png") });
-  globalThis[pack] = text;
 }
-check("first run: two roles give different files", globalThis["benefits-processor"] !== globalThis["data-analyst"]);
+check("first run: two roles send different files", onboarded.length === 2 && onboarded[0].body.role !== onboarded[1].body.role);
+await page.unroute(SERVICES_HERE);
 
 // 2. First run mid-flow screenshot (the consent screen), and Not sure yet writes nothing
 await go("/setup");
@@ -170,19 +191,20 @@ await page.getByRole("button", { name: "Approve and submit" }).click();
 await page.waitForTimeout(700);
 check("needs you: approving decides the item", (await submitHead.count()) === 0);
 
-// 8. Presence: quiet hours save changes idle capacity
+// 8. Presence: quiet hours save changes idle capacity (the older Presence screen, now a part of Growth, section time; read as an admin, see asView)
+await asView("admin");
 await go("/presence");
-const idle0 = await page.locator(".stat__value").first().innerText();
+const idle0 = await page.locator(".page:has(#qs) .stat__value").first().innerText();
 await page.locator("#qs").fill("01:00");
 await page.locator("#qe").fill("11:00");
 await page.getByRole("button", { name: "Save quiet hours" }).click();
 await page.waitForTimeout(700);
-const idle1 = await page.locator(".stat__value").first().innerText();
+const idle1 = await page.locator(".page:has(#qs) .stat__value").first().innerText();
 check("presence: saving quiet hours recomputes idle capacity", idle0 !== idle1, `${idle0.replace(/\n/g, " ")} -> ${idle1.replace(/\n/g, " ")}`);
-await page.locator("svg[role='application']").focus();
+await page.locator(".page:has(#qs) svg[role='application']").focus();
 await page.keyboard.press("ArrowRight");
 await page.waitForTimeout(150);
-check("presence: arrow keys read a cell with its interval", /95% interval/.test(await page.locator("p[aria-live]").first().innerText()));
+check("presence: arrow keys read a cell with its interval", /95% interval/.test(await page.locator(".page:has(#qs) p[aria-live]").first().innerText()));
 
 // 8b. Evidence: honest states
 await go("/evidence", 1200);
@@ -230,6 +252,7 @@ check("study: time columns say uncoached and coached, never before and after", /
 check("study: assisted speed is reported separately", /Assisted speed, reported separately/i.test(studyText));
 await page.unroute("**/eval/report");
 
+await asView("worker");
 // 8c. Today and the live coach brain (mocked engine so the checks are exact)
 {
   let scenario = "nudge";
@@ -272,12 +295,14 @@ await page.unroute("**/eval/report");
 }
 
 // 8d. Extension screens (REQ-2), demo fixtures
+await asView("admin");
 await go("/week", 900);
 const weekText = await page.locator("main").innerText();
 check("week: the ribbon, the gap table with intervals and 3 to 5 suggestion cards", (await page.locator(".weekribbon svg").count()) === 2 && /95% interval/i.test(weekText) && (await page.locator(".sug").count()) >= 3 && (await page.locator(".sug").count()) <= 5);
 check("week: every suggestion says that nothing is sent, booked or changed", (await page.locator(".sug", { hasText: /Nothing is sent, booked or changed\./ }).count()) === (await page.locator(".sug").count()));
 check("week: no titles or names anywhere on the screen", !/(standup|1:1|review with|@[a-z]+\.)/i.test(weekText));
 
+await asView("worker");
 await go("/needs-you", 900);
 await showAll();
 const cardRows = page.locator("article[data-kind=prepared]");
@@ -303,6 +328,7 @@ await page.locator("article[data-kind=prepared]").first().getByRole("button", { 
 await page.waitForTimeout(500);
 check("needs you: with nothing prepared left, none is shown", (await page.locator("article[data-kind=prepared]").count()) === 0);
 
+await asView("admin");
 await go("/agents", 900);
 await showAll();        // three runs show by default
 const runsBefore = await page.locator("article.run").count();
@@ -328,6 +354,7 @@ await page.waitForTimeout(500);
 const detail = await page.locator("article.run", { hasText: "Data profile" }).innerText();
 check("agents: result steps carry a check with a glyph and a word", /verified/.test(detail) && /uncertain/.test(detail) && (await page.locator(".pill--check .pill__glyph-char").count()) >= 3);
 
+await asView("worker");
 await go("/your-data?section=sent", 900);
 await showAll(page.locator("[data-testid=sent]"));
 check("your data: the model-call list shows each call with its fields and the payload as sent", (await page.locator("[data-testid=sent] .ledger__row").count()) >= 6 && /Payload, exactly as sent/.test(await page.locator("main").innerText()) && (await page.locator("[data-testid=sent] pre.payload").first().innerText()).includes("card_kind"));
@@ -360,11 +387,15 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
     return json(route, { error: { code: "not_found", message: "not mocked" } }, 404);
   });
   await page.goto(`${base}/#/today`); await page.reload(); await page.waitForTimeout(600);
-  // Knack: five destinations in the sidebar and the rest in the More sheet (the old fold lists became the sheet; Briefing and Privacy became Needs you and Your data).
+  // Knack: a worker has five rows and no More; an admin has eight and a More of three (Briefing and Privacy became Needs you and Your data; Calendar and Git habits became sections of Growth).
+  const workerNav = await page.locator("nav#nav").textContent();
+  check("layers off: nothing is hidden from the worker's menu", /Home/.test(workerNav) && /Needs you/.test(workerNav) && /Routines/.test(workerNav) && /Growth/.test(workerNav) && /Your data/.test(workerNav) && (await page.locator("nav#nav").getByRole("button", { name: "More" }).count()) === 0);
+  await asView("admin");
   await page.locator("nav#nav").getByRole("button", { name: "More" }).click();
-  const nav = `${await page.locator("nav#nav").textContent()} ${await page.getByRole("menu", { name: "More" }).textContent()}`;
+  const adminNav = `${await page.locator("nav#nav").textContent()} ${await page.getByRole("menu", { name: "More" }).textContent()}`;
   await page.keyboard.press("Escape");
-  check("layers off: nothing is hidden from the menu", /Calendar/.test(nav) && /Your data/.test(nav) && /Background runs/.test(nav) && /Needs you/.test(nav) && /Git habits/.test(nav) && /Models and cost/.test(nav));
+  check("layers off: nothing is hidden from the admin's menu", /Firm/.test(adminNav) && /Brief/.test(adminNav) && /Forecasts/.test(adminNav) && /Automation/.test(adminNav) && /Risk/.test(adminNav) && /Models and cost/.test(adminNav) && /Evidence/.test(adminNav) && /Background runs/.test(adminNav));
+  await asView("worker");
   await page.goto(`${base}/#/your-data?section=sent`); await page.waitForTimeout(700);
   const off = await page.locator("main").innerText();
   // One plain line is on the page; the engine's sentence with the flag name sits in a closed "Details" disclosure under it (D45). Open it, then assert the text.
@@ -379,6 +410,7 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
 // 8f. Explain: "Where did my time go?" on the Genome screen
 {
   // Example answers first (the engine is blocked): the answer, where it came from, the checks, the limits and the footer are all there.
+  await asView("admin");
   await go("/genome", 1500);
   const ex = page.locator("#explain");
   const exText = await ex.innerText();
@@ -437,6 +469,7 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
   await page.unroute(ENGINE);
 }
 
+await asView("worker");
 // 8g. Settings, Interruptions: three words, the kinds behind "Per kind", locked safety kinds, learned quieting and a refused change
 {
   // The block before mocked a live engine with nobody set up, which sends the app to the first run: start this one from a clean page.
@@ -491,6 +524,117 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
   check("settings: a refused change goes back and shows the engine's own words", (await row.locator("button[aria-pressed=true]").innerText()) === "Normal" && /That setting is not one the engine knows\. \(unknown_key\)/.test(await page.locator("[data-testid=settings]").innerText()));
   check("settings: the change was sent as JSON from the worker", posted?.actor === "worker" && /application\/json/.test(posted?.type ?? "") && posted.body.modes?.routine_proposal === "digest", JSON.stringify(posted));
   await page.unroute(ENGINE);
+}
+
+// 8h. Growth bridges the older work screens as sections: in the worker view none of them draws another person's figures (docs/knack-ux/views.md), and a
+// section that would is not drawn at all ("This section is being rebuilt").
+for (const sec of ["time", "steps", "map", "commits"]) {
+  await go(`/growth?section=${sec}`, 6500);
+  const grown = await page.locator("#main").innerText();
+  check(`growth ${sec}: the worker view draws no average over others, count of people or other person's id`, !/average over all|\b\d+ (?:experts|learners|colleagues|people)\b|\bp_[a-z]*\d+/i.test(grown), grown.replace(/\s+/g, " ").slice(0, 90));
+}
+
+// 8i. The Home task box (Track T's task API, mocked): Enter sends, examples only fill, a consent is a real click on one of its own buttons, nothing starts without
+// the service, and what the service answers is shown in its own words.
+{
+  const seen = [];
+  const json = (route, body, status = 200) => route.fulfill({ status, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify(body) });
+  let reply = { status: 201, body: { task_id: "tk_a", route: "answer", summary: "I will answer that at once.", needs_consent: null, question: null } };
+  const TASKS = /^https?:\/\/[^/]+\/agent\/tasks(\/.*)?$/;
+  await page.route(TASKS, async (route) => {
+    const req = route.request(), u = new URL(req.url());
+    const path = u.pathname.replace(/^\/agent/, "");
+    if (req.method() === "GET") {
+      if (path === "/tasks/events") return route.fulfill({ status: 404, body: "" });
+      if (/^\/tasks\/[^/]+$/.test(path)) return json(route, { task_id: "tk_a", state: "done", answer: "Two plus two is four.", result: "Done." });
+      return json(route, []);
+    }
+    seen.push({ path, body: req.postData() ? JSON.parse(req.postData()) : null, actor: req.headers()["x-understudy-actor"], type: req.headers()["content-type"] });
+    if (reply.status === 0) return route.abort();
+    return json(route, reply.body, reply.status);
+  });
+  const consentCard = (kind, more) => ({ task_id: "tk_c", route: kind, summary: "I need your OK first.", question: null, needs_consent: { kind, scope_text: "Knack will run a Claude agent in your Downloads folder.", can: ["Read files in Downloads"], cannot: ["Delete anything"], folder: "/Users/me/Downloads", command_hash: null, cost_note: "Uses your Claude plan.", max_minutes: 30, buttons: { allow: "Allow for this task", decline: "Not now", more } } });
+  await go("/home", 1500);
+  const box = page.locator("[data-testid=task-box]");
+  const field = box.locator("input[type=text]");
+  check("task box: it is the one text field on Home, with its question printed", (await box.getByRole("heading", { name: "What should Knack do?" }).count()) === 1 && (await field.count()) === 1);
+  check("task box: no Send button until there is something to send", (await box.getByRole("button", { name: "Send" }).count()) === 0);
+  await field.focus();
+  await page.keyboard.press("Enter");
+  check("task box: Enter on an empty box sends nothing", seen.length === 0);
+  const chip = box.locator(".taskbox__chip").first();
+  check("task box: examples appear when the box is focused and empty", (await chip.count()) === 1);
+  const chipText = await chip.innerText();
+  await chip.click();
+  check("task box: an example fills the box and never sends it", (await field.inputValue()) === chipText && seen.length === 0);
+  await field.fill("Summarise today's commits");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(500);
+  check("task box: Enter sends the typed task as the worker, as JSON", seen.length === 1 && seen[0].path === "/tasks" && seen[0].body.text === "Summarise today's commits" && seen[0].body.source === "typed" && seen[0].actor === "worker" && /application\/json/.test(seen[0].type), JSON.stringify(seen[0]));
+  check("task box: the service's own line is shown at once, and the box is empty and still has focus", (await box.locator("[data-testid=task-summary]").innerText()) === "I will answer that at once." && (await field.inputValue()) === "" && (await field.evaluate((e) => e === document.activeElement)));
+  await page.waitForTimeout(2200);
+  check("task box: an inline answer appears under the box once the task is done, as plain text", /Two plus two is four\./.test(await box.locator("[data-testid=task-answer]").innerText().catch(() => "")));
+  await box.getByRole("button", { name: "Dismiss" }).click();
+
+  // a consent card: both buttons of one weight, nothing pre-selected, More behind a small link, and no key answers it
+  reply = { status: 201, body: consentCard("claude_agent", [{ id: "everything", label: "Allow everything for this task" }]) };
+  await field.fill("Tidy my downloads");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(500);
+  const card = box.locator("[data-testid=task-consent]");
+  const cardText = await card.innerText();
+  check("task box: a consent card prints its scope, what it can and cannot do, where, the cost and the time cap", /Claude agent in your Downloads folder/.test(cardText) && /Read files in Downloads/.test(cardText) && /Delete anything/.test(cardText) && /\/Users\/me\/Downloads/.test(cardText) && /Uses your Claude plan/.test(cardText) && /30 minutes/.test(cardText));
+  check("task box: Allow and Not now are two buttons of one size, none pre-selected, and Allow everything is not shown until More", (await card.getByRole("button", { name: "Allow for this task" }).count()) === 1 && (await card.getByRole("button", { name: "Not now" }).count()) === 1 && (await card.locator("button[aria-pressed=true]").count()) === 0 && (await card.getByRole("button", { name: "Allow everything for this task" }).count()) === 0 && (await card.getByRole("button", { name: "Allow for this task" }).getAttribute("class")) === (await card.getByRole("button", { name: "Not now" }).getAttribute("class")));
+  check("task box: focus did not jump to the card, so the Enter that sent the task cannot also answer it", await field.evaluate((e) => e === document.activeElement));
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(300);
+  check("task box: a key never answers a consent", seen.filter((s) => /consent/.test(s.path)).length === 0);
+  await card.getByRole("button", { name: "More" }).click();
+  check("task box: More reveals the wider choice", (await card.getByRole("button", { name: "Allow everything for this task" }).count()) === 1);
+  await card.getByRole("button", { name: "Not now" }).click();
+  await page.waitForTimeout(400);
+  const declined = seen.filter((s) => /consent/.test(s.path));
+  check("task box: Not now is sent as the approval actor with the closed choice, and says nothing was changed", declined.length === 1 && declined[0].path === "/tasks/tk_c/consent" && declined[0].body.choice === "decline" && declined[0].actor === "worker_approval" && /Not started\. Nothing was changed\./.test(await box.innerText()), JSON.stringify(declined));
+  check("task box: a decided card goes away", (await box.locator("[data-testid=task-consent]").count()) === 0);
+
+  // a browser task has no "Allow everything"
+  reply = { status: 201, body: consentCard("browser", []) };
+  await field.fill("Look something up");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(500);
+  check("task box: a card with no wider choice has no More", (await box.locator("[data-testid=task-consent]").getByRole("button", { name: "More" }).count()) === 0);
+  await box.locator("[data-testid=task-consent]").getByRole("button", { name: "Allow for this task" }).click();
+  await page.waitForTimeout(400);
+  check("task box: Allow is sent as the approval actor", seen.filter((s) => /consent/.test(s.path)).pop()?.body.choice === "allow" && seen.filter((s) => /consent/.test(s.path)).pop()?.actor === "worker_approval");
+
+  // a question card
+  reply = { status: 201, body: { task_id: "tk_q", route: "desktop", summary: "I need to know one thing.", needs_consent: null, question: { text: "Which folder?", options: [{ id: "dl", label: "Downloads" }, { id: "dk", label: "Desktop" }] } } };
+  await field.fill("Find my invoice");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(500);
+  await box.locator("[data-testid=task-question]").getByRole("button", { name: "Desktop" }).click();
+  await page.waitForTimeout(400);
+  const answered = seen.filter((s) => /answer/.test(s.path));
+  check("task box: a question's option is sent as the worker", answered.length === 1 && answered[0].path === "/tasks/tk_q/answer" && answered[0].body.option_id === "dk" && answered[0].actor === "worker", JSON.stringify(answered));
+
+  // the limit of three, and no service
+  reply = { status: 429, body: { error: { code: "too_many_tasks", message: "Too many tasks." } } };
+  await field.fill("One more thing");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(500);
+  check("task box: at three running it says so, and keeps what was typed", /Three tasks are already running/.test(await box.innerText()) && (await field.inputValue()) === "One more thing");
+  reply = { status: 502, body: { error: { code: "bad_gateway" } } };
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(500);
+  check("task box: with no task service it says nothing was started, and keeps what was typed", /nothing was started/.test(await box.innerText()) && (await field.inputValue()) === "One more thing");
+  const tooLong = "a".repeat(501);
+  await field.fill(tooLong);
+  await page.waitForTimeout(150);
+  const sentBefore = seen.length;
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(300);
+  check("task box: a task over 500 characters is refused with a sentence, never cut and never sent", /under 500 characters/.test(await box.innerText()) && seen.length === sentBefore);
+  await page.unroute(TASKS);
 }
 
 // 9. Kill switch
