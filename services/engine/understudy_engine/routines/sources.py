@@ -62,6 +62,28 @@ def split_by_current_role(events: list[Event]) -> tuple[str, list[Event], list[E
     return role, events[i:], events[:i]
 
 
+_SHARED: dict[str, "PersonSource"] = {}
+_SHARED_LOCK = threading.Lock()
+_SHARED_MAX = 4
+
+
+def shared_source(root: Path | str | None = None) -> "PersonSource":
+    """The one PersonSource of this process for a data root.
+
+    The handoff routes used to make a fresh PersonSource for every request, so its per-version cache (a person's parsed events, their episodes) was
+    thrown away each time and every page re-read and re-parsed all the worker's JSONL files: about two seconds of CPU per request, six or more
+    requests per screen. Sharing the instance keeps the parsed events until a file's size or mtime changes (``load`` re-keys on it), which is the
+    only thing that invalidates the cache. Bounded: a handful of roots at most (tests and tools switch the data directory)."""
+    key = str(Path(root) if root is not None else data_dir())
+    with _SHARED_LOCK:
+        src = _SHARED.get(key)
+        if src is None:
+            if len(_SHARED) >= _SHARED_MAX:
+                _SHARED.pop(next(iter(_SHARED)))
+            src = _SHARED[key] = PersonSource(Path(key))
+        return src
+
+
 class PersonSource:
     def __init__(self, root: Path | None = None) -> None:
         self.root = root or data_dir()

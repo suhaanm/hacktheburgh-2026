@@ -193,6 +193,11 @@ def create_app(root: Path | str | None = None, warm: bool | None = None) -> Fast
     app = FastAPI(title="Understudy engine", version=__version__, lifespan=lifespan,
                   description="Event store, analytics, packs, queue, audit and kill switch. See docs/API_CONTRACT.md.")
     app.state.warm = {}
+    # Innermost of the three: single-flight, a short result cache and a limit of two computing heavy reads (api/heavy.py), so a page or a poller that
+    # re-asks a heavy route cannot pile up copies of it. CORS and the guard sit outside it and still judge and decorate every request.
+    from .heavy import HeavyGetMiddleware, settings_from_env
+
+    app.add_middleware(HeavyGetMiddleware, **settings_from_env())
     # CORS answers preflights from exactly the origins the guard allows (the same parsed allow-list); the guard itself is added last,
     # so it is the outermost layer: Host, Origin, content type, actor and token are judged before anything else runs.
     ext_origins, ext_regex = http_guard.cors_extension()
