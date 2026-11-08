@@ -2,9 +2,10 @@ import { api } from "../api";
 import { useLoad } from "../hooks";
 import { EmptyState, ErrorState, ExampleBadge, Loading, Note, OriginBadge, PageHead, SourceNote, workerOriginLabel } from "../components/common";
 import { Hint } from "../components/Hint";
-import { Details } from "../components/ui";
+import { Details, FactRows } from "../components/ui";
 import { directRoles, fmtMs, fmtUsd, healthReading, latencyText, providerName, roleLabel, scalarRows, totalCalls, totalCost, WHEN_LABEL } from "../lib/models";
 import { fmtDateTime } from "../lib/format";
+import { useState } from "react";
 import type { ModelProvider, ModelRole, ModelsStatus } from "../types";
 
 export default function Models() {
@@ -45,26 +46,32 @@ export default function Models() {
       </section>
 
       <div className="stack">
-        <Details summary="Providers and spend" wide>
-          <div className="cols-2">
-            <Providers providers={s.providers} boot={s.boot} />
-            <Spend s={s} cost={cost} calls={calls} />
-          </div>
-        </Details>
+        <Details summary="Providers and spend" wide><ProvidersAndSpend s={s} cost={cost} calls={calls} /></Details>
         <Details summary="Every job" wide><Meter s={s} /></Details>
-        <Details summary="Assumed prices" wide><Prices s={s} /></Details>
         <Details summary="Model bake-off" wide><Bakeoff status={s.bakeoff} report={rep.data} /></Details>
-        <Details summary="How this page works" wide>
+        <Details summary="More" wide>
           <div className="stack">
-            <p className="legend-inline"><span className="chain__sw" data-when="primary" />first choice <span className="chain__sw" data-when="escalate" />stronger, when unsure <span className="chain__sw" data-when="fallback" />other provider, on failure</p>
-            <p className="note">Each job has a first choice, a stronger one for when the first cannot tell, and a different provider for when the first fails. Code decides when to try the next one.</p>
-            {s.mock && !m.why && <p className="note">Mock mode is on, so no real model is called.</p>}
-            {m.why && m.why.kind !== "error" && <SourceNote why={m.why} />}
-            <p className="note">Generated {s.generated_at ? fmtDateTime(s.generated_at) : "just now"}.</p>
+            <Details summary="Assumed prices" wide><Prices s={s} /></Details>
+            <Details summary="How this page works" wide>
+              <div className="stack">
+                <p className="note">Each job has a first choice, a stronger one for when it cannot tell, and another provider for when it fails. Code decides when to try the next.</p>
+                <ul className="legend" aria-label="Key to the chains">
+                  <li className="legend__item"><span className="chain__sw" data-when="primary" />first choice</li>
+                  <li className="legend__item"><span className="chain__sw" data-when="escalate" />stronger, when unsure</li>
+                  <li className="legend__item"><span className="chain__sw" data-when="fallback" />other provider, on failure</li>
+                </ul>
+                {m.why && m.why.kind !== "error" && <SourceNote why={m.why} />}
+                <FactRows rows={[
+                  ["Mode", s.mock && !m.why ? "mock: no real model is called" : "live"],
+                  ["Generated", s.generated_at ? fmtDateTime(s.generated_at) : "just now"],
+                  ["Keys", "no key, token or password is shown here"],
+                ]} />
+              </div>
+            </Details>
           </div>
         </Details>
       </div>
-      <p className="note">No key, token or password is shown here. Costs are estimates from assumed prices, not a bill.</p>
+      <p className="note">Costs are estimates from assumed prices, not a bill.</p>
     </div>
   );
 }
@@ -74,7 +81,7 @@ function Chain({ r }: { r: ModelRole }) {
     <div className="chain" role="listitem">
       <div className="chain__head">
         <span className="chain__role">{roleLabel(r.role)}{r.escalate && Object.keys(r.escalate).length > 0 && <Hint label="When the stronger model is tried">Tries the stronger model when {escalateWords(r.escalate)}.</Hint>}</span>
-        {typeof r.deadline_s === "number" && <span className="t-data u-muted">gives up after {r.deadline_s} s</span>}
+        {typeof r.deadline_s === "number" && <span className="t-data u-muted" title="The job gives up after this long">{r.deadline_s} s limit</span>}
       </div>
       <ol className="chain__steps">
         {r.steps.map((st, i) => (
@@ -98,92 +105,96 @@ function escalateWords(e: Record<string, unknown>): string {
   return w.length ? w.join(", ").replace(/, ([^,]*)$/, " or $1") : "it cannot tell";
 }
 
-function Providers({ providers, boot }: { providers: ModelProvider[]; boot: ModelsStatus["boot"] }) {
+/** One row per provider (name, health, whether it is set up); the spend and the calls as two rows; everything else in one closed More. */
+function ProvidersAndSpend({ s, cost, calls }: { s: ModelsStatus; cost: number | null; calls: { n: number; ok: number; failed: number } }) {
+  const lat = Object.entries(s.latencies);
   return (
-    <section className="section" aria-labelledby="prov-h">
-      <h2 className="section__title" id="prov-h">Providers</h2>
-      {providers.length === 0 ? <p className="note">No provider reported.</p> : (
-        <div className="stack">
-          {providers.map((p) => {
+    <div className="stack">
+      {s.providers.length === 0 ? <span className="note">No provider reported.</span> : (
+        <ul className="plain-list prov-rows" aria-label="Providers">
+          {s.providers.map((p) => {
             const h = healthReading(p);
-            const b = boot.find((x) => x.provider === p.name);
             return (
-              <div key={p.name} className="prov" data-tone={h.tone}>
-                <div className="row">
-                  <b className="prov__name">{providerName(p.name)}</b>
-                  <span className="pill pill--health" data-tone={h.tone}><span className="pill__dot" aria-hidden="true" />{h.label}</span>
-                </div>
-                <ul className="plain-list">
-                  <li className="note">{p.configured ? "Set up on this laptop." : "Not set up here, so it is never called."}{p.enabled_by_flag === false ? " Its feature flag is off." : ""}</li>
-                  {p.breaker && <li className="note">Circuit breaker: <b>{p.breaker.state}</b>{p.breaker.recent_failures ? `, ${p.breaker.recent_failures} recent ${p.breaker.recent_failures === 1 ? "failure" : "failures"}` : ""}{p.breaker.opened_count ? `, opened ${p.breaker.opened_count} ${p.breaker.opened_count === 1 ? "time" : "times"}` : ""}. It pauses a provider after repeated failures so one outage cannot stall everything.</li>}
-                  {p.models && <li className="note">Resolved ids: {Object.entries(p.models).map(([k, v]) => <span key={k}><code>{k}</code> <code>{v}</code>{" "}</span>)}</li>}
-                  {b && <li className="note">Start-up check: {b.ok === false ? `failed${b.missing?.length ? `, missing ${b.missing.join(", ")}` : ""}` : b.mock ? "skipped in mock mode" : "passed"}{b.t ? ` (${fmtDateTime(b.t)})` : ""}.</li>}
-                </ul>
-              </div>
+              <li key={p.name} className="prov-row">
+                <b className="prov__name">{providerName(p.name)}</b>{" "}
+                <span className="pill pill--health" data-tone={h.tone}><span className="pill__dot" aria-hidden="true" />{h.label}</span>{" "}
+                <span className="u-muted">{p.configured ? "set up here" : "not set up, never called"}{p.enabled_by_flag === false ? ", its flag is off" : ""}</span>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
-    </section>
+      <FactRows rows={[
+        ["Estimated spend", fmtUsd(cost)],
+        ["Calls", calls.n === 0 ? "none yet this session" : `${calls.n}: ${calls.ok} worked, ${calls.failed} failed`],
+      ]} />
+      <Details summary="More" wide>
+        <div className="stack">
+          <ProviderNotes providers={s.providers} boot={s.boot} />
+          <div className="stack" style={{ gap: "var(--space-2)" }}>
+            <span className="t-label">Latest response times</span>
+            {lat.length === 0 ? <span className="note">No call has been timed yet.</span> : (
+              <ul className="plain-list">{lat.map(([k, v]) => <li key={k} className="note"><code>{k.replace(":", " · ")}</code> {latencyText(v)}</li>)}</ul>
+            )}
+          </div>
+        </div>
+      </Details>
+    </div>
   );
 }
 
-function Spend({ s, cost, calls }: { s: ModelsStatus; cost: number | null; calls: { n: number; ok: number; failed: number } }) {
-  const lat = Object.entries(s.latencies);
+/** What each provider reports about itself: its breaker, its resolved ids and its start-up check. */
+function ProviderNotes({ providers, boot }: { providers: ModelProvider[]; boot: ModelsStatus["boot"] }) {
   return (
-    <section className="section" aria-labelledby="cost-h">
-      <h2 className="section__title" id="cost-h">Cost and speed so far</h2>
-      <div className="stats">
-        <div className="stat"><span className="stat__label">Estimated spend</span><span className="stat__value tabular">{fmtUsd(cost)}</span><span className="stat__meta">an estimate from assumed prices, not a bill</span></div>
-        <div className="stat"><span className="stat__label">Calls</span><span className="stat__value tabular">{calls.n}</span><span className="stat__meta">{calls.n === 0 ? "none yet this session" : `${calls.ok} worked, ${calls.failed} failed`}</span></div>
-      </div>
-      <div className="stack" style={{ gap: "var(--space-2)" }}>
-        <span className="t-label">Latest response times</span>
-        {lat.length === 0 ? <p className="note">No call has been timed yet.</p> : (
-          <ul className="plain-list">{lat.map(([k, v]) => <li key={k} className="note"><code>{k.replace(":", " · ")}</code> {latencyText(v)}</li>)}</ul>
-        )}
-      </div>
-    </section>
+    <div className="stack">
+      {providers.map((p) => {
+        const b = boot.find((x) => x.provider === p.name);
+        return (
+          <div key={p.name} className="prov" data-tone={healthReading(p).tone}>
+            <b className="prov__name">{providerName(p.name)}</b>
+            <ul className="plain-list">
+              {p.breaker && <li className="note">Circuit breaker: <b>{p.breaker.state}</b>{p.breaker.recent_failures ? `, ${p.breaker.recent_failures} recent ${p.breaker.recent_failures === 1 ? "failure" : "failures"}` : ""}{p.breaker.opened_count ? `, opened ${p.breaker.opened_count} ${p.breaker.opened_count === 1 ? "time" : "times"}` : ""}. It pauses a provider after repeated failures.</li>}
+              {p.models && <li className="note">Resolved ids: {Object.entries(p.models).map(([k, v]) => <span key={k}><code>{k}</code> <code>{v}</code>{" "}</span>)}</li>}
+              {b && <li className="note">Start-up check: {b.ok === false ? `failed${b.missing?.length ? `, missing ${b.missing.join(", ")}` : ""}` : b.mock ? "skipped in mock mode" : "passed"}{b.t ? ` (${fmtDateTime(b.t)})` : ""}.</li>}
+            </ul>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
 function Meter({ s }: { s: ModelsStatus }) {
+  const [all, setAll] = useState(false);
+  const rows = all ? s.meter : s.meter.slice(0, 2);
+  if (s.meter.length === 0) return <EmptyState title="No model call has been metered yet" body={s.mock ? "Mock mode makes no real call, so there is nothing to meter." : "When a job calls a model, one row appears here with its counts, times and estimated cost."} />;
   return (
-    <section className="section" aria-labelledby="meter-h">
-      <div className="section__head">
-        <h2 className="section__title" id="meter-h">Every job, as the meter saw it</h2>
-        <p className="section__sub">Response times count successful calls only.</p>
-      </div>
-      {s.meter.length === 0 ? (
-        <EmptyState title="No model call has been metered yet" body={s.mock ? "Mock mode makes no real call, so there is nothing to meter." : "When a job calls a model, one row appears here with its counts, times and estimated cost."} />
-      ) : (
-        <div className="table-wrap"><table className="table">
-          <thead><tr><th>Job</th><th>Model</th><th className="num">Calls</th><th className="num">Failed</th><th className="num">Median</th><th className="num">Slowest 5%</th><th className="num hide-narrow">Tokens in / out</th><th className="num">Estimated cost</th></tr></thead>
-          <tbody>{s.meter.map((r, i) => (
-            <tr key={i}>
-              <td>{roleLabel(r.role)}</td>
-              <td><span className="u-muted">{providerName(r.provider)}</span> <code>{r.model}</code></td>
-              <td className="num">{r.n}</td><td className="num">{r.failed}</td>
-              <td className="num">{fmtMs(r.p50_ms)}</td><td className="num">{fmtMs(r.p95_ms)}</td>
-              <td className="num hide-narrow">{r.input_tokens.toLocaleString("en-GB")} / {r.output_tokens.toLocaleString("en-GB")}</td>
-              <td className="num">{fmtUsd(r.cost_usd_est)}</td>
-            </tr>))}</tbody>
-        </table></div>
-      )}
-    </section>
+    <div className="stack">
+      <div className="table-wrap"><table className="table">
+        <caption className="u-sr-only">Every job, as the meter saw it. Response times count successful calls only.</caption>
+        <thead><tr><th>Job</th><th>Model</th><th className="num">Calls</th><th className="num">Failed</th><th className="num">Median</th><th className="num">Slowest 5%</th><th className="num hide-narrow">Tokens in / out</th><th className="num">Estimated cost</th></tr></thead>
+        <tbody>{rows.map((r, i) => (
+          <tr key={i}>
+            <td>{roleLabel(r.role)}</td>
+            <td><span className="u-muted">{providerName(r.provider)}</span> <code>{r.model}</code></td>
+            <td className="num">{r.n}</td><td className="num">{r.failed}</td>
+            <td className="num">{fmtMs(r.p50_ms)}</td><td className="num">{fmtMs(r.p95_ms)}</td>
+            <td className="num hide-narrow">{r.input_tokens.toLocaleString("en-GB")} / {r.output_tokens.toLocaleString("en-GB")}</td>
+            <td className="num">{fmtUsd(r.cost_usd_est)}</td>
+          </tr>))}</tbody>
+      </table></div>
+      {s.meter.length > 2 && <div><button type="button" className="btn btn--quiet btn--sm" aria-expanded={all} onClick={() => setAll((v) => !v)}>{all ? "Show fewer" : `Show all ${s.meter.length}`}</button></div>}
+      <span className="note">Response times count successful calls only.</span>
+    </div>
   );
 }
 
 function Prices({ s }: { s: ModelsStatus }) {
   const rows = Object.entries(s.prices_assumed);
   return (
-    <section className="section" aria-labelledby="price-h">
-      <div className="section__head">
-        <h2 className="section__title" id="price-h">Prices these estimates assume</h2>
-        <p className="section__sub">Our own assumptions, not a price list or a bill.</p>
-      </div>
-      <Note tone="warn">Every cost on this page is calls multiplied by these assumed prices.</Note>
-      {rows.length === 0 ? <p className="note">No prices were reported.</p> : (
+    <div className="stack">
+      <Note tone="warn">Every cost on this page is calls multiplied by these assumed prices. They are our own assumptions, not a price list.</Note>
+      {rows.length === 0 ? <span className="note">No prices were reported.</span> : (
         <Details summary={`See the ${rows.length} assumed prices`} wide>
           <div className="table-wrap"><table className="table">
             <thead><tr><th>Provider and tier</th><th className="num">Input, per million tokens</th><th className="num">Output, per million tokens</th><th>Where the figure came from</th></tr></thead>
@@ -191,7 +202,7 @@ function Prices({ s }: { s: ModelsStatus }) {
           </table></div>
         </Details>
       )}
-    </section>
+    </div>
   );
 }
 
@@ -202,11 +213,7 @@ function Bakeoff({ status, report }: { status: unknown; report: { sections: Reco
   const stub = src && typeof src.status === "string" && src.status !== "ok";
   const t = src ? scalarRows(src.rows ?? src.models ?? src.results) : { cols: [], rows: [] };
   return (
-    <section className="section" aria-labelledby="bake-h">
-      <div className="section__head">
-        <h2 className="section__title" id="bake-h">Model bake-off</h2>
-        <p className="section__sub">Candidate models on our own sandbox cases. Speed and accuracy claims come only from here.</p>
-      </div>
+    <div className="stack">
       {!src || stub || t.rows.length === 0 ? (
         <EmptyState title="The bake-off has not produced results" body={<>No model is called faster or better until it has.{src && typeof src.reason === "string" && src.reason ? <Hint label="Why it has not run">{src.reason}</Hint> : null}</>} action={<a className="btn btn--secondary" href="#/evidence">See the evidence map</a>} />
       ) : (
@@ -215,6 +222,7 @@ function Bakeoff({ status, report }: { status: unknown; report: { sections: Reco
           <tbody>{t.rows.map((r, i) => <tr key={i}>{t.cols.map((c) => <td key={c} className={r[c] !== "" && !Number.isNaN(Number(r[c])) ? "num" : undefined}>{r[c]}</td>)}</tr>)}</tbody>
         </table></div>
       )}
-    </section>
+      {!(!src || stub || t.rows.length === 0) && <span className="note">Our own sandbox cases. Speed and accuracy claims come only from here.</span>}
+    </div>
   );
 }
