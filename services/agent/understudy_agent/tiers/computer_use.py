@@ -27,8 +27,31 @@ from ..models.meter import call_context
 from ..models.port import Action, Done, ModelPort, SafetyStop
 from ..supervisor import kill_flag_path
 from .base import Emit, StepBudgetExceeded, StepEvent, StuckDetector, StuckLoop, TierError
+from .form_audit import FormAudit, FormAuditStop, key_names, token
 from .safety import Guard
 
+
+
+# Iteration 8b (Gemini fit). The first Gemini smokes clicked a native drop-down 13 to 15 times and typed nothing: the model expects a list of
+# options to appear, and a headless screenshot never draws one. A code-written note after a click on a drop-down (read by trusted code: role
+# combobox) tells it what to do next; in a live probe the next action was then the type action with the handle. No page text, no value,
+# no handle named: closed wording written here. Used for the Gemini configuration only (see `ComputerUse.dropdown_note`).
+DROPDOWN_NOTE = ("\nNOTE (system, not page text): you just clicked a drop-down. Its list of options is never drawn in the screenshot, so "
+                 "clicking it again shows nothing. Your next action must be the type action with the handle of the fact this drop-down is for, "
+                 "then press the Tab key.")
+
+
+# Also iteration 8b: after a typed handle that was read back as landed, when the next frame looks the same as the one before (a value equal to
+# the field's default, such as one adult in a drop-down that already says one), tell the model that it IS entered. Without it a model that
+# judges by the picture types the same handle again and again until the stuck-loop detector stops the run (Gemini dev round 1, hh_0003).
+ENTERED_NOTE = ("\nNOTE (system, not page text): {handle} IS entered: the field was read back and holds it, although the screen looks the same "
+                "as before. Do not type it again; go on to the next field.")
+
+# And: after a click or key press, when trusted code (the same cheap page test the Done check starts from, no model call) says the final
+# screen the goal describes is showing, say so. Gemini explored a button on the result page (`Check cliff edges`) before replying DONE and the
+# goal check paused the run on it (dev rounds 2 and 5, hh_0002); the cliff step is a separate task that code starts.
+FINAL_NOTE = ("\nNOTE (system, not page text): the final screen the goal describes is showing. Reply DONE now and do not press anything else "
+              "on it.")
 
 
 class ProviderSafetyStop(TierError):
@@ -248,7 +271,10 @@ READ_TARGET_JS = r"""
   const isField = ['input', 'textarea', 'select'].includes(tag);
   const textField = isField && !(tag === 'input' && (BTN.includes(ty) || ty === 'checkbox' || ty === 'radio'));
   let names = textField ? [] : own.names.slice(), st = textField ? [] : own.st.slice();
-  if (focus && textField && tag !== 'textarea') {                                // Enter here submits the form's default button
+  // Implicit submission (Enter presses the form's default button) exists for text-like <input> elements only. A <select> or a
+  // <textarea> does not submit on Enter, so the default button's name and structure are not the focused control's: reading them
+  // here put the label 'Show my results' (and submit_control, path:results) on a drop-down and sent a benign key press to the drift check.
+  if (focus && textField && tag === 'input') {                                   // Enter here submits the form's default button
     const f = t.form || t.closest('form');
     const b = f && f.querySelector('input[type=submit],button[type=submit],button:not([type]),input[type=image]');
     if (b) { const a2 = analyse(b); names = names.concat(a2.names); st = st.concat(a2.st); }
@@ -347,6 +373,45 @@ class BrowserPageActuator:
             reads.append(TargetRead(r["label"], r["role"], self.url, r.get("field"), tuple(r.get("structure") or ()))
                          if r and r.get("ok") else None)
         return merge_reads(reads)
+
+    async def _eval_isolated(self, js: str, arg: dict[str, Any]) -> Any:
+        """Run a page script in the same ISOLATED world as the target read (the page's own scripts cannot replace any function it uses)
+        and return its value. Raises on any failure: the callers turn that into `unreadable`, never into "fine"."""
+        import json as _json
+
+        ctx = getattr(self.page, "context", None)
+        if ctx is None:
+            return await self.page.evaluate(js, arg)
+        cdp = await ctx.new_cdp_session(self.page)
+        try:
+            fid = (await cdp.send("Page.getFrameTree"))["frameTree"]["frame"]["id"]
+            world = await cdp.send("Page.createIsolatedWorld", {"frameId": fid, "worldName": "understudy-read"})
+            r = await cdp.send("Runtime.evaluate", {"expression": f"({js})({_json.dumps(arg)})",
+                                                    "contextId": world["executionContextId"], "returnByValue": True})
+            if "exceptionDetails" in r:
+                raise RuntimeError("the isolated script failed")
+            return r["result"].get("value")
+        finally:
+            try:
+                await cdp.detach()
+            except Exception:  # noqa: BLE001
+                pass
+
+    async def read_back(self, *, expected: str, hint: list[str] | None = None) -> dict[str, Any]:
+        """Did the text just typed land in the control that has focus? The comparison runs inside the page script: `expected` goes in, and
+        only enums, a short id token and a position come back (never the control's value). See tiers/form_audit.py."""
+        from .form_audit import READ_BACK_JS, script_arg
+
+        return await self._eval_isolated(READ_BACK_JS, script_arg(expected=expected, hint=hint))
+
+    async def audit_form(self, items: list[dict[str, Any]], *, stray: bool = False,
+                         presence: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+        """The pre-submit audit: for each item (a handle, the value it should hold and where it was bound) say whether the page holds
+        it; for each `presence` entry (a handle and the page's own ids for it) say whether a control for it is on screen. Enums only
+        come back."""
+        from .form_audit import AUDIT_FORM_JS, script_arg
+
+        return await self._eval_isolated(AUDIT_FORM_JS, script_arg(items=items, stray=stray, presence=presence or []))
 
     async def screenshot(self) -> bytes:
         """A click that submits a form can leave the page mid-navigation; wait for it, and retry once on a timeout."""
@@ -1066,6 +1131,20 @@ class Tier3Result:
     resets: int = 0                    # times the provider's conversation was restarted from the compact task state
     nudges: int = 0                    # times the model ended its turn early and the system told it, in its own words, to continue
     premature_claims: int = 0          # of those, how many were a claimed success that code then refused to confirm
+    inputs: str = "n/a"                # the form audit's state when the loop ended (n/a | unaudited | clean | mismatch | uncertain); tiers/form_audit.py
+    readback_failures: int = 0         # typed handles that did NOT land in the control that had focus (the handle stays pending)
+    audit_blocks: int = 0              # final-button presses held back because the form was not as the facts say
+    audit: dict[str, Any] = field(default_factory=dict)   # the audit's summary: enums, counts and handle ids only
+    model_retries: int = 0             # model calls asked again after a transient provider failure (the answer, never an action, was lost)
+    model_retry_classes: list[str] = field(default_factory=list)   # the error class (a closed enum) of each, in order
+
+
+# A provider failure that only says "try again": a rate limit, a timeout, a dropped connection or a server error, and an answer that
+# arrived empty, cut off or malformed. A refusal, a refused key and a blocked answer are the same on the next ask, and an error nothing
+# classifies is a bug to see, not to hide, so none of those is asked again.
+MODEL_RETRY_CLASSES = frozenset({"rate_limit", "timeout", "transport", "invalid_answer"})
+MODEL_RETRIES = 2                       # asks after the first (so at most 3 calls per step)
+MODEL_BACKOFF_S = (0.5, 1.5)            # fixed waits before ask 2 and ask 3: no jitter, so a test can predict every wait
 
 
 FP_SIZE = (640, 400)
@@ -1135,8 +1214,14 @@ class ComputerUse:
                  max_steps: int = 120, deadline_s: float = 600.0, screenshot_size: tuple[int, int] = (1280, 720),
                  facts: Any = None, stall_limit: int = 12, pause: Any = None, context_reset_every: int = 4, max_nudges: int = 2, stateless: bool | None = None,
                  resume_wm: dict[str, Any] | None = None, page_kept: bool = False,
-                 on_snapshot: Callable[[int, dict[str, Any]], None] | None = None, postcondition: str = "final_page") -> None:
-        if stateless is None:                    # UNDERSTUDY_CU_STATELESS=0 opts back into the chained provider thread (comparison only)
+                 on_snapshot: Callable[[int, dict[str, Any]], None] | None = None, postcondition: str = "final_page",
+                 form_audit: FormAudit | None = None, dropdown_note: bool | None = None, entered_note: bool | None = None,
+                 final_hint: Callable[[], Awaitable[bool]] | None = None, final_note: bool | None = None,
+                 model_retries: int = MODEL_RETRIES, model_backoff_s: tuple[float, ...] = MODEL_BACKOFF_S,
+                 sleep: Callable[[float], Awaitable[None]] = asyncio.sleep) -> None:
+        self.model_retries, self.model_backoff_s, self._sleep = max(0, int(model_retries)), tuple(model_backoff_s) or (0.0,), sleep
+        self.model_retry_classes: list[str] = []      # kept on the instance too, so a run that ends in an exception still reports them
+        if stateless is None:                  # UNDERSTUDY_CU_STATELESS=0 opts back into the chained provider thread (comparison only)
             stateless = os.environ.get("UNDERSTUDY_CU_STATELESS", "1").strip().lower() not in ("0", "false", "no", "off")
         self.stateless = stateless               # no provider-side thread: each step is goal + code-built working memory + ONE fresh frame
         self.max_nudges = max_nudges             # early endings the loop answers with a code-written 'not finished, continue'
@@ -1153,6 +1238,19 @@ class ComputerUse:
         self.resume_wm, self.page_kept, self.on_snapshot, self.postcondition = resume_wm, page_kept, on_snapshot, postcondition
         self.wm: Any = None
         self.last_manifest: dict[str, Any] | None = None
+        # The typed-input read-back and the pre-submit audit (tiers/form_audit.py). Only an actuator that can read the page's controls takes
+        # part (the page actuator); the desktop and simulated actuators run exactly as before.
+        self.form_audit = form_audit
+        self._audit_logged = 0
+        if dropdown_note is None or entered_note is None or final_note is None:    # the Gemini fit (iteration 8b); every other provider's prompts are as they were
+            from ..models.gemini_provider import fit_enabled
+
+            fit = getattr(model, "name", "") == "gemini" and fit_enabled()
+            dropdown_note = fit if dropdown_note is None else dropdown_note
+            entered_note = fit if entered_note is None else entered_note
+            final_note = fit if final_note is None else final_note
+        self.dropdown_note, self.entered_note, self.final_note = bool(dropdown_note), bool(entered_note), bool(final_note)
+        self.final_hint = final_hint
 
     def _snapshot(self, steps: int, wm: Any) -> None:
         if self.on_snapshot is None:
@@ -1213,6 +1311,70 @@ class ComputerUse:
         if self.emit:
             self.emit(ev)
 
+    async def _ask_model(self, n: int, res: "Tier3Result", *args: Any, **kw: Any) -> Any:
+        """One `computer_step` call, asked AGAIN (at most `model_retries` times, fixed waits) when the provider failed in a way that only
+        says "try again" (`MODEL_RETRY_CLASSES`). A failed call means nothing was done on the screen: asking again cannot repeat an
+        action, and what comes back still goes through every gate on its own. The frame is the one already held in memory, and every ask
+        goes through the same egress guard and ledger as the first. Anything else, a stop, or the last failed ask is raised unchanged."""
+        attempt = 0
+        while True:
+            try:
+                return await asyncio.to_thread(self.model.computer_step, *args, **kw)
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:  # noqa: BLE001 - classified below; an unknown class is raised, never retried
+                from ..security.drift import classify_provider_error
+
+                cls, retryable = classify_provider_error(exc)
+                if not (retryable and cls in MODEL_RETRY_CLASSES) or attempt >= self.model_retries or not self.is_current():
+                    raise
+                wait = float(self.model_backoff_s[min(attempt, len(self.model_backoff_s) - 1)])
+                attempt += 1
+                res.model_retries += 1
+                res.model_retry_classes.append(cls)
+                self.model_retry_classes.append(cls)
+                self._event(n + 1, "model_retry", True, f"the model call failed ({cls}); asking again")
+                await self._sleep(wait)
+                if not self.is_current():
+                    raise
+
+    def _page_key(self) -> str:
+        """A short id for the page the actuator is on (its URL path), so the audit can tell one page of a wizard from the next."""
+        url = getattr(self.actuator, "url", None)
+        if not url:
+            return ""
+        import hashlib as _h
+        from urllib.parse import urlsplit
+
+        return "p" + _h.sha1(urlsplit(url).path.encode()).hexdigest()[:8]
+
+    def _audit_in_use(self) -> FormAudit | None:
+        a = self.form_audit
+        if a is not None and callable(getattr(self.actuator, "read_back", None)) and callable(getattr(self.actuator, "audit_form", None)):
+            return a
+        return None
+
+    def _flush_audit(self, audit: FormAudit) -> None:
+        """One audit line per new record: kind, handle id, reason (all tokens; never a value)."""
+        for rec in audit.records[self._audit_logged:]:
+            self.guard.note("form_audit", rec["match"], f"{rec['k']}:{rec['handle'] or 'form'}:{rec['reason']}", tier=3)
+        self._audit_logged = len(audit.records)
+
+    @staticmethod
+    def _act_detail(act: Action, tr: "TargetRead | None") -> str:
+        """What the step touched, as enums and the page's own control id as a short token: never typed text, never a label. This is
+        what makes a misplaced click or key visible in the evidence afterwards."""
+        bits: list[str] = []
+        if act.kind == "key":
+            bits.append(f"keys={key_names([str(k) for k in act.args.get('keys', [])])}")
+        if tr is not None:
+            bits.append(f"role={token(tr.role, 16) or '?'}")
+            fa = tr.field_attrs or {}
+            ident = token(fa.get("id") or fa.get("name"))
+            if ident:
+                bits.append(f"field={ident}")
+        return " ".join(bits)
+
     async def run(self, goal: str, verify: Callable[[], Awaitable[bool]]) -> Tier3Result:
         from .facts import FactRefused, UnresolvedFact, key_would_type_text
 
@@ -1229,6 +1391,7 @@ class ComputerUse:
         if callable(attach):          # test doubles that need the actuator's page; real providers have no such hook
             attach(self.navigator, self.actuator)
         res = Tier3Result("step_cap")
+        audit = self._audit_in_use()
         wm = None
         synced = 0
         base_step = 0
@@ -1257,6 +1420,8 @@ class ComputerUse:
         retargets = 0
         last_reset = 0
         feedback = ""
+        entered_check: str | None = None      # a handle just typed and read back as landed: did the picture change? (see ENTERED_NOTE)
+        final_check = False                   # a click or key just ran: is the final screen showing now? (see FINAL_NOTE)
         try:
             while res.steps < self.max_steps:
                 if not self.is_current():
@@ -1278,6 +1443,16 @@ class ComputerUse:
                     if stalled >= self.stall_limit:
                         res.outcome = "stalled"
                         raise StepBudgetExceeded(f"tier 3 made no visible progress in {stalled} steps")
+                    if entered_check is not None and not changed:
+                        feedback += ENTERED_NOTE.format(handle=entered_check)     # landed (read back), but the picture did not change
+                entered_check = None
+                if final_check:
+                    final_check = False
+                    try:
+                        if self.final_hint is not None and await self.final_hint():
+                            feedback += FINAL_NOTE      # the final screen is showing: say so, until the model replies DONE
+                    except Exception:  # noqa: BLE001 - a page mid-navigation has no verdict; no note
+                        pass
                 last_fp = fp if fp is not None else last_fp
                 pobs = self.guard.observe_screen()  # one fresh observation authorises exactly one action
                 # Working memory is bounded: the provider's thread (every earlier frame) is restarted every N steps from
@@ -1315,12 +1490,11 @@ class ComputerUse:
                     # a scripted double (the mock provider) indexes its script by history length; a real provider gets none
                     hist = list(res.history) if getattr(self.model, "name", "") == "mock" else []
                     with call_context(manifest):          # the meter records the sections and token counts of THIS call, never the text
-                        out = await asyncio.to_thread(self.model.computer_step, prompt, shot, hist, session=self.navigator, store=False)
+                        out = await self._ask_model(n, res, prompt, shot, hist, session=self.navigator, store=False)
                 else:
                     prompt = base_goal + self._task_state(res) + feedback
                     res.prompt_chars.append(len(prompt) + sum(len(str(h)) for h in res.history[-12:]))
-                    out = await asyncio.to_thread(self.model.computer_step, prompt, shot, list(res.history),
-                                                  session=self.navigator)
+                    out = await self._ask_model(n, res, prompt, shot, list(res.history), session=self.navigator)
                 feedback = ""
                 res.steps += 1
                 self.last_steps = res.steps
@@ -1352,6 +1526,13 @@ class ComputerUse:
                     res.done_summary_len = len(out.summary or "")
                     res.last_summary = out.summary or ""
                     ok = await verify()
+                    inputs_refused = False
+                    if ok and audit is not None and not audit.inputs_ok:
+                        # The final page is showing, but the last pre-submit audit was not clean (or there was none): nothing confirms the
+                        # form held the household's facts when the calculation was asked for. A claim is not believed on that.
+                        ok, inputs_refused = False, True
+                    if audit is not None:
+                        res.inputs, res.audit = audit.state, audit.summary()
                     if ok:                                       # code looked at the final page and it is the page the goal describes
                         res.history.append({"kind": "verify", "ok": True, "verified": self.postcondition})
                     if wm is not None:
@@ -1360,7 +1541,8 @@ class ComputerUse:
                     res.false_claim = bool(out.claimed_success and not ok)
                     res.outcome = "done" if ok else ("claimed_not_verified" if out.claimed_success else "gave_up")
                     self._event(n, "done", ok, "claim verified" if ok else (
-                        "claim NOT verified by code" if out.claimed_success else "the model said it could not finish"))
+                        ("claim NOT verified by code (the form audit did not confirm the inputs)" if inputs_refused
+                         else "claim NOT verified by code") if out.claimed_success else "the model said it could not finish"))
                     return res
                 handle: str | None = None
                 if self.facts is not None:
@@ -1390,6 +1572,36 @@ class ComputerUse:
                 # What the gate sees is what TRUSTED code reads at the target. The model's own `label` is only a hint
                 # that can add risk (it stays in the action's args); it never makes a step "resolved" (S-01).
                 tr = await self._read_target(out)
+                if audit is not None and audit.is_final(out.kind, out.args, tr.label if tr else None):
+                    # The press of the FINAL button (or Enter that would press it): code reads every control back first. Anything that is
+                    # not as the facts say holds the press and tells the navigator which handles (ids and a closed reason, never a
+                    # value). Deterministic code, before any model call is spent on the step, and before the gate authorises it.
+                    pre = await audit.before_final(self.actuator, step=n, page_key=self._page_key())
+                    self._flush_audit(audit)
+                    if pre.state != "clean":
+                        res.audit_blocks += 1
+                        res.history.append({"kind": out.kind, "ok": False, "why": "form_not_ready"})
+                        self._event(n, out.kind, False, f"held: form check {pre.state}, {len(pre.bad)} not as it should be, "
+                                                        f"{len(pre.unreadable)} could not be read")
+                        if pre.state == "uncertain":
+                            raise FormAuditStop("a field could not be read, so a person is asked", retryable=False)
+                        if pre.exhausted:
+                            raise FormAuditStop("the form was still not right after the allowed number of checks on this page", retryable=True)
+                        feedback = audit.block_note(pre)
+                        continue
+                elif audit is not None and audit.is_forward(out.kind, out.args, tr.label if tr else None):
+                    # A button that moves on from a page that is not the last: a handle whose control is on THIS page and is not entered
+                    # holds the press, so a skipped field is fixed on the page where it exists (a wizard cannot go back).
+                    fwd = await audit.before_forward(self.actuator, step=n, page_key=self._page_key())
+                    self._flush_audit(audit)
+                    if fwd.state != "clean":
+                        res.audit_blocks += 1
+                        res.history.append({"kind": out.kind, "ok": False, "why": "page_not_ready"})
+                        self._event(n, out.kind, False, f"held: page check, {len(fwd.bad)} not as it should be on this page")
+                        if fwd.exhausted:
+                            raise FormAuditStop("this page was still not right after the allowed number of checks", retryable=True)
+                        feedback = audit.block_note(fwd, where="forward")
+                        continue
                 dec = self.guard.authorise(out, pobs, label=tr.label if tr else None, role=tr.role if tr else None,
                                            url=(tr.url if tr else None) or getattr(self.actuator, "url", None),
                                            field_attrs=tr.field_attrs if tr else None, screen=self.size,
@@ -1440,15 +1652,35 @@ class ComputerUse:
                         self._event(n, "type_fact", True, f"handle={handle} (no value for this household)")
                         continue
                     await self.actuator.execute(Action("type", {"text": value}))
+                    rb = None
+                    if audit is not None:
+                        # Read the focused control back: did the text land? The page script compares; only enums come back.
+                        rb = await audit.after_type(self.actuator, handle, value, step=n, page_key=self._page_key())
+                        self._flush_audit(audit)
                     del value
+                    if rb is not None and rb.landed == "no":
+                        res.readback_failures += 1
+                        res.history.append({"kind": "type", "handle": handle, "ok": False, "why": "not_landed"})
+                        self._event(n, "type_fact", False, f"handle={handle} landed=no reason={rb.reason} focus={rb.focus} field={rb.field}")
+                        if audit.readback_exhausted(handle):
+                            raise FormAuditStop(f"{handle} would not land after {audit.max_readback_fails} tries", retryable=True)
+                        feedback = audit.readback_note(handle, rb)
+                        continue
                     res.history.append({"kind": "type", "handle": handle, "ok": True})
-                    self._event(n, "type_fact", True, f"handle={handle}")
+                    self._event(n, "type_fact", True, f"handle={handle}" + (
+                        f" focus={rb.focus} field={rb.field} landed={rb.landed}" if rb is not None else ""))
+                    if self.entered_note and rb is not None and rb.landed == "yes":
+                        entered_check = handle
                     continue
                 retargets = 0
                 await self.actuator.execute(act)
                 self.guard.record(dec, True)
                 res.history.append({"kind": act.kind, "args": {k: v for k, v in act.args.items() if k != "text"}, "ok": True})
-                self._event(n, act.kind, True)
+                self._event(n, act.kind, True, self._act_detail(act, tr))
+                if self.dropdown_note and act.kind in ("click", "double_click") and tr is not None and tr.role == "combobox":
+                    feedback = DROPDOWN_NOTE        # trusted code read a drop-down under the click: say what comes next
+                elif self.final_note and self.final_hint is not None and act.kind in ("click", "double_click", "key"):
+                    final_check = True              # look at the NEXT frame (the screenshot waits for the page to load), then say so if it is final
             raise StepBudgetExceeded(f"tier 3 step cap {self.max_steps} reached")
         finally:
             await self.actuator.release_all()

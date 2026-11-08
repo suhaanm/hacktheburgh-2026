@@ -34,6 +34,10 @@ try {
   check('GET /state reports the main window (visibility and bounds)', s0.knack?.window?.exists === true && s0.knack?.window?.bounds !== undefined, s0.knack?.window)
   const windowBefore = s0.knack.window
 
+  // The old side panel's own eight-step set-up never runs in the app: on a fresh profile it is already done, and no patch can bring it back.
+  const pinned = await post('/settings', { patch: { onboardingDone: false } })
+  check('a fresh profile never starts the old panel set-up, and nothing can switch it back on (Knack has one onboarding, the first run)', pinned.body?.onboardingDone === true, pinned.body?.onboardingDone)
+
   let r = await post('/hud/activity', { phase: 'working', label: 'Filling in calculator B', step: 3, of: 8, realScreen })
   check('a run starts: the pill shows the words and n of m', r.body?.hud?.activity?.phase === 'working' && r.body.hud.activity.label === 'Filling in calculator B' && r.body.hud.activity.step === 3, r.body?.hud?.activity)
   await sleep(700)

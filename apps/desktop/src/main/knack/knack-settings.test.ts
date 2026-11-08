@@ -20,6 +20,29 @@ describe('the Knack settings', () => {
   })
 })
 
+describe('the old side panel set-up in the Knack app', () => {
+  it('is pinned done: no patch (the panel, the tray, a script) can bring its eight steps back, because the app has one onboarding, the first run in its own window', () => {
+    const s = new SettingsStore(null, { forced: { onboardingDone: true } })
+    expect(s.get().onboardingDone).toBe(true)
+    s.patch({ onboardingDone: false })
+    s.patch({ onboardingDone: false }, { trusted: true })
+    expect(s.get().onboardingDone).toBe(true)
+  })
+  it('is how it was in the older build when nothing pins it (a fresh profile starts the old set-up)', () => {
+    expect(new SettingsStore(null).get().onboardingDone).toBe(false)
+  })
+})
+
+describe('the desktop defaults the owner asked for on 8 Nov 2026', () => {
+  it('everything on that is safe to have on, and the help level automatic', () => {
+    expect(DEFAULT_SETTINGS).toMatchObject({ launchAtLogin: true, moveAsideWhileWorking: true, keepAwakeWhileWorking: true, cueEnabled: true, helpLevelMode: 'auto', useLiveModels: true, showInDock: true, showMenuBarIcon: true, confirmStyle: 'toast' })
+  })
+  it('and nothing that spends consent or acts alone: autonomy, the old wake word, files, spoken cues and spoken screen glances stay off', () => {
+    expect(DEFAULT_SETTINGS).toMatchObject({ agency: 'ask_per_task', wakeEnabled: false, filesEnabled: false, cueVoice: false, carerSharing: false })
+    expect(new SettingsStore(null).get().agency).not.toBe('autonomous')
+  })
+})
+
 describe('the Dock icon', () => {
   const fake = () => {
     const calls: string[] = []

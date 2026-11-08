@@ -18,6 +18,13 @@ from .helpers import FakeGeminiClient, reply
 PNG = make_test_png(1280, 800)           # 1280 x 800: normalised 500,500 is pixel 640,400
 
 
+@pytest.fixture(autouse=True)
+def _first_smoke_wording(monkeypatch):
+    """The tests below pin the faithful mapping of the API's flags and the wording of the first Gemini smokes. The iteration 8b
+    configuration (`UNDERSTUDY_GEMINI_FIT`, ON by default) is tested at the end of this file, where it is switched on again."""
+    monkeypatch.setenv("UNDERSTUDY_GEMINI_FIT", "0")
+
+
 def call(name, **args):
     return reply("", calls=({"id": "call_1", "name": name, "arguments": args},))
 
@@ -181,3 +188,44 @@ def test_type_text_at_without_coordinates_is_plain_typing():
     p, _ = prov(call("type_text_at", text="hi"))
     a = p.computer_step("g", PNG, [])
     assert a.kind == "type" and a.args == {"text": "hi"}
+
+
+# ----------------------------------------------------------------------------- iteration 8b: the Gemini fit (default on)
+def test_the_fit_paragraph_and_the_clear_before_typing_system_text_reach_the_request(monkeypatch):
+    from understudy_agent.models.gemini_provider import GEMINI_FORM_FIT, _CU_SYSTEM, _CU_SYSTEM_FIT, fit_enabled
+
+    monkeypatch.setenv("UNDERSTUDY_GEMINI_FIT", "1")
+    assert fit_enabled()
+    p, c = prov(call("click", x=1, y=1))
+    p.computer_step("GOAL-TEXT", PNG, [])
+    user, system = c.calls[0]["parts"][0].value, c.calls[0]["system"]
+    assert user.startswith("Goal: GOAL-TEXT\n" + GEMINI_FORM_FIT) and system == _CU_SYSTEM_FIT != _CU_SYSTEM
+    assert "set clear_before_typing to true only when the field already holds" in system and "{household.savings}" in GEMINI_FORM_FIT
+    assert "click it ONCE, then type its handle" in GEMINI_FORM_FIT and "never drawn in the screenshot" in GEMINI_FORM_FIT
+    monkeypatch.setenv("UNDERSTUDY_GEMINI_FIT", "0")                       # the wording of the first smokes, byte for byte
+    p, c = prov(call("click", x=1, y=1))
+    p.computer_step("GOAL-TEXT", PNG, [])
+    assert c.calls[0]["system"] == _CU_SYSTEM and GEMINI_FORM_FIT not in c.calls[0]["parts"][0].value
+    assert "clear_before_typing to false" in _CU_SYSTEM and not fit_enabled()
+
+
+def test_with_the_fit_on_no_enter_follows_the_typing_and_an_absent_clear_flag_means_no_clearing(monkeypatch):
+    """The API's default adds an Enter after typing (an Enter in a text field submits the form with whatever it holds) and clears the field
+    first (two more gated steps and two more goal checks per field). The benefits forms are moved on by clicking their buttons and their
+    fields start empty, so the fit configuration never queues an Enter and reads an absent clear flag as false. A model that WANTS a field
+    replaced says clear_before_typing true and gets the select-all and the delete."""
+    import sys
+
+    sel = ["cmd", "a"] if sys.platform == "darwin" else ["ctrl", "a"]
+    click = ("click", {"x": 640, "y": 400, "button": "left"})
+    monkeypatch.setenv("UNDERSTUDY_GEMINI_FIT", "1")
+    for args in ({}, {"press_enter": True}, {"press_enter": False, "clear_before_typing": False}):
+        p, c = prov(call("type_text_at", x=500, y=500, text="{a.b}", **args))
+        out = [p.computer_step("g", PNG, [], session="n1") for _ in range(2)]
+        assert kinds(out) == [click, ("type", {"text": "{a.b}"})] and len(c.calls) == 1
+        assert p._pending.get("n1") in (None, [])                              # nothing else is queued: no Enter, no clearing
+    for args in ({"clear_before_typing": True}, {"press_enter": True, "clear_before_typing": True}):
+        p, c = prov(call("type_text_at", x=500, y=500, text="{a.b}", **args))
+        out = [p.computer_step("g", PNG, [], session="n1") for _ in range(4)]
+        assert kinds(out) == [click, ("key", {"keys": sel}), ("key", {"keys": ["backspace"]}), ("type", {"text": "{a.b}"})]
+        assert p._pending.get("n1") in (None, [])                              # an explicit request to clear is honoured, an Enter is still not queued
