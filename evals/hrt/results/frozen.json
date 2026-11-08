@@ -1,5 +1,5 @@
 {
- "frozen_at": "2026-11-08T00:57:05Z",
+ "frozen_at": "2026-11-08T01:26:10Z",
  "parts": {
   "decisions": {
    "fingerprint": "125de99f2a71545c1cafedfe19a09be4943530edbe52bc0713da999fe2b7e2ec",
@@ -20,6 +20,20 @@
     "ledger.py": "79bd6deed78caaba3aa292650e9aac9f71a8f61cf100b12b40dfc2324c343813",
     "prospective.py": "bf4cf6f7831407a0c7cc41bdbe48bf34d6efc3f61d913b3dd79b9176b3991d28",
     "run.py": "f6e50a810211812f6efc1f9522175e79eb1435ab35d513c4ed1a1311a8050676",
+    "scoring.py": "20fcd43f274757fc31a8eb00879c70e4df73a51425faaa41ab187ed2ee3900c1",
+    "worlds.py": "5035e22fbaa5a0bd1129d6c8f538276d6e75f53f41672f8eb889b80f794ae516"
+   }
+  },
+  "recal": {
+   "fingerprint": "557e8307cf9b3abbb8adf592d8420b241226020d6ba504e63cb328152436b681",
+   "hashes": {
+    "PLAN.md": "13232641bab434437eee77805aa1ca3d73cdc891ab46a1109a70f3728f6573ce",
+    "PLAN_RECAL.md": "88c75133c985c9a278527496b14a868ddb9944125bc611daf2d3fc820d434268",
+    "__init__.py": "1f71121d69a43831b36dea8acd62b6f8513ae96bfc56d262fd613c84aef5568b",
+    "ledger.py": "79bd6deed78caaba3aa292650e9aac9f71a8f61cf100b12b40dfc2324c343813",
+    "prospective.py": "bf4cf6f7831407a0c7cc41bdbe48bf34d6efc3f61d913b3dd79b9176b3991d28",
+    "recal.py": "869c5b5d25100c753f19027887e497990c24747ebf6f88d69429e27aa859c347",
+    "run_recal.py": "8b4f84f723b2c9702f5875187690cc8e8f8cb3c45bcac2917626f3aa74886205",
     "scoring.py": "20fcd43f274757fc31a8eb00879c70e4df73a51425faaa41ab187ed2ee3900c1",
     "worlds.py": "5035e22fbaa5a0bd1129d6c8f538276d6e75f53f41672f8eb889b80f794ae516"
    }
