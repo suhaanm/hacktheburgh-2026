@@ -95,7 +95,6 @@ def test_score_binary_reports_every_predictor_and_pairs_the_primary():
 
 
 def test_truncated_crps_handles_censoring_without_imputing():
-    K = 4
     cdf = np.array([[0.25, 0.5, 0.75, 1.0], [0.25, 0.5, 0.75, 1.0], [0.0, 0.0, 0.0, 0.0]])
     # row 0: event in step 2 (observed all 4 steps); row 1: censored after 2 steps with no event; row 2: no event in 4 steps against a CDF of 0 (perfect)
     event = np.array([2, -1, -1])

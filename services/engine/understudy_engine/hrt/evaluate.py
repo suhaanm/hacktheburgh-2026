@@ -119,11 +119,50 @@ def _claim_text(c: dict[str, Any]) -> str:
     return json.dumps(ev, default=float)[:200]
 
 
-def shape_ledger(res: dict[str, Any]) -> dict[str, Any]:
-    return app_words(_shape_ledger(res))
+def _recal_text(c: dict[str, Any]) -> str:
+    ev = c.get("evidence")
+    if not isinstance(ev, dict):
+        return str(ev)
+    if c["id"] == "R1":
+        return f"after the change, recal minus the frozen model {ev['est']:+.4f} {_ci(ev['ci'])} over {ev['n']:,} cases"
+    if c["id"] in ("R2", "R3", "R7"):
+        return "; ".join(f"{k.replace('_', ' ')} {v['est']:+.4f} {_ci(v['ci'])}" for k, v in ev.items())
+    if c["id"] in ("R4", "R6"):
+        extra = f"; the frozen model's intercept was {ev['frozen_model_intercept']:+.2f}" if "frozen_model_intercept" in ev else ""
+        return f"intercept {ev['intercept']:+.3f} {_ci(ev['intercept_ci'], 3)}, slope {ev['slope']:.3f} {_ci(ev['slope_ci'], 3)}{extra}"
+    if c["id"] == "R5":
+        return f"after the change, recal_w minus the frozen model {ev['vs_model']['est']:+.4f} {_ci(ev['vs_model']['ci'])}; minus recal {ev['vs_recal']['est']:+.4f} {_ci(ev['vs_recal']['ci'])}"
+    return json.dumps(ev, default=float)[:200]
 
 
-def _shape_ledger(res: dict[str, Any]) -> dict[str, Any]:
+def _shape_recal(rec: dict[str, Any]) -> dict[str, Any]:
+    """The online-recalibration follow-up (evals/hrt/PLAN_RECAL.md): its claims as run and one row per world."""
+    worlds = rec["worlds"]
+    rows = []
+    for key in WORLD_ORDER:
+        w = worlds.get(key)
+        if not w:
+            continue
+        p = w["predictors"]
+        cal, mcal = p["recal"]["calibration"], w["model_calibration"]
+        rows.append({"world": WORLD_LABEL[key], "model_log_loss": _r(p["model"]["log_loss"]["est"]), "recal_log_loss": _r(p["recal"]["log_loss"]["est"]), "recal_w_log_loss": _r(w["w"]["log_loss"]["est"]),
+                     "online_base_log_loss": _r(p["online_base"]["log_loss"]["est"]),
+                     "recal_minus_model": _r(w["paired_log_loss_vs"]["model"]["est"]), "recal_minus_model_ci": _ci(w["paired_log_loss_vs"]["model"]["ci"]),
+                     "recal_w_minus_model": _r(w["w"]["paired_log_loss_vs"]["model"]["est"]), "recal_w_minus_model_ci": _ci(w["w"]["paired_log_loss_vs"]["model"]["ci"]),
+                     "best_naive": w["recal_vs_best_naive"]["baseline"], "recal_minus_best_naive": _r(w["recal_vs_best_naive"]["est"]), "recal_minus_best_naive_ci": _ci(w["recal_vs_best_naive"]["ci"]),
+                     "recal_verdict_vs_best_naive": w["recal_vs_best_naive"]["verdict"],
+                     "recal_intercept": _r(cal["intercept"], 3), "model_intercept": _r(mcal["intercept"], 3), "recal_slope": _r(cal["slope"], 3), "model_slope": _r(mcal["slope"], 3)})
+    claims = [{"id": c["id"], "claim": c["claim"], "result": "passed" if c["pass"] is True else "not passed", "evidence": _recal_text(c)} for c in rec["claims"]]
+    n_pass = sum(c["result"] == "passed" for c in claims)
+    return {"claims": claims, "worlds": rows, "statement": f"Recalibrating the frozen model online from resolved outcomes: {n_pass} of {len(claims)} registered claims passed; the ones that did not are listed. Registered after the first held-out result, on new seeds.",
+            "design": rec.get("design"), "split_label": rec.get("split_label")}
+
+
+def shape_ledger(res: dict[str, Any], rec: dict[str, Any] | None = None) -> dict[str, Any]:
+    return app_words(_shape_ledger(res, rec))
+
+
+def _shape_ledger(res: dict[str, Any], rec: dict[str, Any] | None = None) -> dict[str, Any]:
     worlds = res["worlds"]
     rows, guard_rows = [], []
     n_preds = 0
@@ -165,7 +204,7 @@ def _shape_ledger(res: dict[str, Any]) -> dict[str, Any]:
                  "interval_level": 0.95, "note": "Cluster bootstrap resampling people (error risk: blocks of 100 cases), B = 2000, paired across predictors. Pre-registered in evals/hrt/PLAN.md; run once on held-out seeds.", "generated_at": res.get("generated_at") or "1970-01-01T00:00:00Z"},
         "statement": " ".join(bits),
         "label": "generated worlds, held-out seeds, single frozen run; the ledger has recorded no live forecasts yet",
-        "rows": claims, "worlds": rows, "guard": guard_rows, "guard_sensitivity": sens,
+        "rows": claims, "worlds": rows, "guard": guard_rows, "guard_sensitivity": sens, "recalibration": (_shape_recal(rec) if rec else None),
         "reliability_v1": [{k: b[k] for k in ("p_mean", "freq", "n", "freq_lo", "freq_hi", "lo", "hi")} for b in v1["scores"]["predictors"]["model"]["reliability"]],
         "reliability_v1_online_base": [{k: b[k] for k in ("p_mean", "freq", "n", "lo", "hi")} for b in v1["scores"]["predictors"]["online_base"]["reliability"]],
         "design": res.get("design"), "split_label": res.get("split_label"), "code_fingerprint": res.get("code_fingerprint"),
@@ -198,7 +237,7 @@ def _shape_decisions(res: dict[str, Any]) -> dict[str, Any]:
     n = sum(res["replicates"].values())
     fam = res["primary_family"]
     wins = [r["id"] for r in rows if r["verdict"] == "win"]
-    cue = (res.get("recorded") or [{}])[0]
+    (res.get("recorded") or [{}])[0]
     stmt = (f"Four registered contrasts, each the shipped rule against a naive policy in fresh generated worlds, judged at the Bonferroni-adjusted level ({fam['adjusted_level']:.2%}): "
             f"{len(wins)} of 4 are wins ({', '.join(wins) if wins else 'none'}). Costs that the data cannot supply are swept, not assumed.")
     return {
@@ -216,4 +255,4 @@ def recorded_section(part: str) -> dict[str, Any]:
     res = recorded(part)
     if res is None:
         raise FileNotFoundError(f"hrt {part}: the single frozen held-out run (python -m understudy_engine.hrt.run heldout --part {part}) has not been made; a dev result is never shown as evidence")
-    return shape_ledger(res) if part == "ledger" else shape_decisions(res)
+    return shape_ledger(res, recorded("recal")) if part == "ledger" else shape_decisions(res)         # the recalibration follow-up rides in the ledger section when it has run

@@ -64,6 +64,22 @@ def test_the_cli_refuses_with_exit_code_3_and_writes_no_log_line(evals, monkeypa
     assert not fz.log_path().exists()
 
 
+def test_every_frozen_part_of_the_repository_is_unchanged_since_its_freeze():
+    """The held-out runs were made with the code and plan the freeze recorded. A later edit to any fingerprinted file or to a plan is allowed only as a dated
+    amendment with a re-freeze; until then this fails and names the file, so a silent change to what a held-out result came from cannot happen."""
+    from understudy_engine.store.paths import repo_root
+
+    path = repo_root() / "evals" / "hrt" / "results" / "frozen.json"
+    if not path.exists():
+        pytest.skip("no freeze recorded")
+    frozen = json.loads(path.read_text(encoding="utf-8"))
+    for part, rec in frozen["parts"].items():
+        now = fz.code_hashes(part)
+        if fz.fingerprint(now) != rec["fingerprint"]:
+            changed = sorted(k for k in set(now) | set(rec["hashes"]) if now.get(k) != rec["hashes"].get(k))
+            pytest.fail(f"part {part} changed since its freeze: {', '.join(changed)}. If this is a declared amendment, re-freeze and say so in the plan's amendment log.")
+
+
 def test_results_json_is_nan_safe(evals):
     import numpy as np
 

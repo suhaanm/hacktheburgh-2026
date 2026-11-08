@@ -2,10 +2,8 @@
 stuck-hazard features are causal (no leakage by construction)."""
 from __future__ import annotations
 
-import dataclasses
 
 import numpy as np
-import pytest
 
 from understudy_engine.hrt import worlds as w
 

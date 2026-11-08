@@ -6,7 +6,6 @@ import pytest
 
 from understudy_engine.hazard.sim import simulate_people
 from understudy_engine.hrt import prospective as pr
-from understudy_engine.hrt import scoring as sc
 from understudy_engine.hrt.ledger import Ledger
 
 
@@ -108,8 +107,7 @@ def test_time_to_progress_replay_scores_a_distribution_with_censoring_handled():
     assert np.isfinite(out["model"]["est"]) and np.isfinite(out["frozen_km"]["est"]) and out["n"] == arr["event_step"].size
     assert out["model_minus_km"]["verdict"] in ("a better", "a worse", "no clear difference")
     # an outcome may not be written before the observed span has passed
-    pid = 0
-    from understudy_engine.hrt.ledger import Ledger, LedgerError
+    from understudy_engine.hrt.ledger import LedgerError
 
     fresh = Ledger()
     k = fresh.predict(kind="time_to_progress", stream="a", made_at=0.0, horizon_s=300.0, forecasts={"model": [0.1] * 10}, primary="model")

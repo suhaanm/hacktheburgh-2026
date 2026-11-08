@@ -49,6 +49,9 @@ interface Claim { id: string; claim: string; result: string; evidence: string }
 interface World { world: string; deployments: number; people_or_blocks: number; predictions: number; model_log_loss: number; best_naive: string; model_minus_best_naive: number; model_minus_best_naive_ci: Interval; verdict: string; calibration_slope: number; calibration_slope_ci: Interval; calibration_intercept: number; calibration_intercept_ci: Interval; guard_flags: string }
 interface GuardRow { world: string; flags: number; of: number; flag_rate_ci: Interval; always_model: number; always_fallback: number; guarded: number; oracle: number; guarded_minus_always_model: number; guarded_minus_always_model_ci: Interval; share_on_fallback: number }
 
+interface RecalWorld { world: string; model_log_loss: number; recal_log_loss: number; recal_w_log_loss: number; online_base_log_loss: number; recal_minus_model: number; recal_minus_model_ci: Interval; best_naive: string; recal_minus_best_naive: number; recal_minus_best_naive_ci: Interval; recal_verdict_vs_best_naive: string }
+interface RecalBlock { claims: Claim[]; worlds: RecalWorld[]; statement: string }
+
 export function HrtLedger({ rep }: { rep: EvalReport }) {
   const s = sec(rep, "hrt_ledger");
   if (!s || stubOf(s)) return <Waiting id="hrt-ledger" kicker="Does it hold out of time?" what="Forecasts scored forward in time" s={s} />;
@@ -60,6 +63,7 @@ export function HrtLedger({ rep }: { rep: EvalReport }) {
   const rel = arr<RelPoint>(s.reliability_v1);
   const meta = (s.meta ?? null) as AnalyticMeta | null;
   const limits = arr<{ id: string; text: string }>(s.limitations);
+  const recal = (s.recalibration ?? null) as RecalBlock | null;
   return (
     <Block id="hrt-ledger" kicker="Does it hold out of time?"
       claim={<>Every forecast was written before its outcome and scored forward in time. {passed} of {applicable} registered claims passed{failed.length ? `; ${failed.map((c) => c.id).join(" and ")} did not` : ""}. Where the world changed, the model was worse than a one-line baseline in {changed.length} of {Math.max(0, worlds.filter((w) => /shifted/.test(w.world)).length)} worlds.</>}>
@@ -103,6 +107,22 @@ export function HrtLedger({ rep }: { rep: EvalReport }) {
         </table></div>
         <p className="ev-note">Mean log loss per forecast. The oracle is the better of the first two in hindsight. Intervals resample deployments, eight a world, so they are wide.</p>
       </Details>
+      {recal && (
+        <Details summary={`Recalibrating online instead of discarding the model (${recal.claims.filter((c) => c.result === "passed").length} of ${recal.claims.length} claims passed)`}>
+          <p className="ev-note">{recal.statement} The recalibrated forecast passes the frozen model's forecast through a logistic map fitted only on outcomes the ledger has already resolved.</p>
+          <div className="table-wrap"><table className="table" style={{ minWidth: 760 }}>
+            <thead><tr><th>World</th><th className="num">Model</th><th className="num">Recalibrated</th><th className="num">Recent 2,000 only</th><th className="num">Online base rate</th><th className="num">Recalibrated minus model</th><th className="num">Recalibrated minus best naive</th></tr></thead>
+            <tbody>{recal.worlds.map((w) => (
+              <tr key={w.world}><td>{w.world}</td><td className="num">{w.model_log_loss.toFixed(3)}</td><td className="num">{w.recal_log_loss.toFixed(3)}</td><td className="num">{w.recal_w_log_loss.toFixed(3)}</td><td className="num">{w.online_base_log_loss.toFixed(3)}</td>
+                <td className="num">{signed(w.recal_minus_model, 3)} <span className="interval">{ci(w.recal_minus_model_ci)}</span></td>
+                <td className="num">{signed(w.recal_minus_best_naive, 3)} <span className="interval">{ci(w.recal_minus_best_naive_ci)}</span><br /><span className="u-muted">{w.recal_verdict_vs_best_naive.replace(/^a /, "recalibrated ")} than {name(w.best_naive)}</span></td></tr>))}</tbody>
+          </table></div>
+          <div className="table-wrap"><table className="table">
+            <thead><tr><th>Id</th><th>Claim, registered before the run on new seeds</th><th>Result</th></tr></thead>
+            <tbody>{recal.claims.map((c) => <tr key={c.id}><td>{c.id}</td><td>{c.claim}<br /><span className="u-muted">{c.evidence}</span></td><td><Result ok={c.result === "passed"} /></td></tr>)}</tbody>
+          </table></div>
+        </Details>
+      )}
       {limits.length > 0 && <Details summary={`Limits (${limits.length})`}><ul className="plain-list">{limits.map((l) => <li key={l.id} className="ev-note">{l.text}</li>)}</ul></Details>}
       <ChartFoot meta={meta} extra={<span>registered in evals/hrt/PLAN.md; run once</span>} />
     </Block>
