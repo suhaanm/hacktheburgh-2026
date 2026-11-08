@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { MODELS_OFF_NOTICE, boundedBootCheck, canSwitchModels, decideModels, keyPresent, modelStatus, planModels, wantsLive } from './model-mode'
+import { BOOT_LIMITS_MS, BOOT_PAUSE_MS, MODELS_OFF_NOTICE, MODELS_RETRY_NOTICE, MODELS_UNREACHABLE_LINE, boundedBootCheck, canSwitchModels, decideModels, keyPresent, modelStatus, planModels, wantsLive } from './model-mode'
 
 describe('live or models off', () => {
   const base = { switchOn: true, hasKey: true, bootOk: true as boolean | null }
@@ -10,7 +10,7 @@ describe('live or models off', () => {
     expect(decideModels({ ...base, hasKey: false, bootOk: null })).toEqual({ mode: 'demo', reason: 'no_key', notice: 'Models are off' })
   })
   it('falls back when the boot check fails', () => {
-    expect(decideModels({ ...base, bootOk: false })).toEqual({ mode: 'demo', reason: 'boot_check_failed', notice: MODELS_OFF_NOTICE })
+    expect(decideModels({ ...base, bootOk: false })).toEqual({ mode: 'demo', reason: 'boot_check_failed', notice: MODELS_RETRY_NOTICE })
   })
   it('is models off when the worker switched live models off', () => {
     expect(decideModels({ ...base, switchOn: false })).toMatchObject({ mode: 'demo', reason: 'switched_off' })
@@ -52,14 +52,50 @@ describe('the boot check', () => {
     expect(await boundedBootCheck(never, 50, async () => undefined)).toBe(false)
     expect((await planModels({ switchOn: true, hasKey: true, bootCheck: never, limitMs: 10, wait: async () => undefined })).reason).toBe('boot_check_failed')
   })
-  it('tries a failed check once more, so one slow start does not switch the models off for the session', async () => {
+  it('tries a failed check again, up to three times, so one slow start does not switch the models off for the session', async () => {
     let n = 0
     const slowThenFine = vi.fn(async () => { n += 1; return n > 1 })
     expect((await planModels({ switchOn: true, hasKey: true, bootCheck: slowThenFine, wait: async () => undefined })).mode).toBe('live')
     expect(slowThenFine).toHaveBeenCalledTimes(2)
+    let m = 0
+    const thirdTime = vi.fn(async () => { m += 1; return m > 2 })
+    expect((await planModels({ switchOn: true, hasKey: true, bootCheck: thirdTime, wait: async () => undefined })).mode).toBe('live')
+    expect(thirdTime).toHaveBeenCalledTimes(3)
     const always = vi.fn(async () => false)
     expect((await planModels({ switchOn: true, hasKey: true, bootCheck: always, wait: async () => undefined })).reason).toBe('boot_check_failed')
-    expect(always).toHaveBeenCalledTimes(2)
+    expect(always).toHaveBeenCalledTimes(3)
+  })
+  it('gives each attempt a little longer, none longer than twelve seconds', async () => {
+    expect([...BOOT_LIMITS_MS]).toEqual([...BOOT_LIMITS_MS].sort((a, b) => a - b))
+    expect(Math.max(...BOOT_LIMITS_MS)).toBeLessThanOrEqual(12_000)
+    expect(BOOT_LIMITS_MS.length).toBe(3)
+    // A check that never answers: the limits the timer is asked for are the growing ones, in order.
+    const asked: number[] = []
+    const never = (): Promise<boolean> => new Promise(() => undefined)
+    const wait = (ms: number): Promise<void> => { asked.push(ms); return Promise.resolve() }
+    const d = await planModels({ switchOn: true, hasKey: true, bootCheck: never, wait })
+    expect(d.reason).toBe('boot_check_failed')
+    // wait() is used both for the limit and the short pause between attempts
+    expect(asked.filter((ms) => ms !== BOOT_PAUSE_MS)).toEqual([...BOOT_LIMITS_MS])
+  })
+  it('a failure that comes at once (no network) is not waited for: the pauses add up to about two seconds', async () => {
+    const pauses: number[] = []
+    const wait = (ms: number): Promise<void> => { pauses.push(ms); return Promise.resolve() }
+    const noNetwork = vi.fn(async () => { throw new Error('ENOTFOUND') })
+    const d = await planModels({ switchOn: true, hasKey: true, bootCheck: noNetwork, wait: (ms) => (ms === BOOT_PAUSE_MS ? wait(ms) : new Promise(() => undefined)) })
+    expect(d.reason).toBe('boot_check_failed')
+    expect(noNetwork).toHaveBeenCalledTimes(3)
+    expect(pauses.reduce((a, b) => a + b, 0)).toBeLessThanOrEqual(2000)
+  })
+  it('a models-off start that is only a failed check says it is trying again, and says the real reason in plain words', () => {
+    expect(MODELS_RETRY_NOTICE.split(/\s+/).length).toBeLessThanOrEqual(5)
+    const d = decideModels({ switchOn: true, hasKey: true, bootOk: false })
+    expect(d.notice).toBe(MODELS_RETRY_NOTICE)
+    expect(modelStatus(true, d).text).toBe(MODELS_RETRY_NOTICE)
+    expect(modelStatus(null, d).text).toBe(MODELS_RETRY_NOTICE)
+    expect(modelStatus(false, d)).toEqual({ live: true, text: 'Live models' }) // once the service itself says live, it is live
+    expect(modelStatus(true, decideModels({ switchOn: false, hasKey: true, bootOk: null })).text).toBe(MODELS_OFF_NOTICE) // switched off stays plain
+    expect(MODELS_UNREACHABLE_LINE).toBe('Knack could not reach the model service. It keeps trying and will switch on by itself.')
   })
 })
 

@@ -64,6 +64,7 @@ import { registerAppScheme } from './knack/app-protocol-electron'
 import { glyphSvg } from './knack/brand-glyph'
 import { knackHidden, knackShellEnabled, prepareKnackEnv } from './knack/env'
 import { createKnackShell, type KnackShell } from './knack/knack-shell'
+import { recoveredAtFromArgs } from './knack/model-recovery'
 
 // The key lives only in REPO/.env; it is never logged or sent to a renderer.
 if (process.env.ALONGSIDE_USERDATA) app.setPath('userData', path.resolve(process.env.ALONGSIDE_USERDATA))
@@ -125,6 +126,7 @@ void app.whenReady().then(async () => {
       glyphSvg,
       // The key is only checked for being there; the boot check lists the models it can use. A port built for live (never the mock) answers it.
       bootCheck: async () => (await createModelPortFromEnv({ env: { ...process.env, UNDERSTUDY_MOCK: '0', ALONGSIDE_MOCK: '0' } }).bootCheck()).ok,
+      recoveredAtMs: recoveredAtFromArgs(process.argv),
       killAccelerator: () => lastHotkeyReport()?.kill[0] ?? null,
       stopEverything: () => lateBox.kill?.(),
       log: (...args) => console.log('[knack]', ...args),

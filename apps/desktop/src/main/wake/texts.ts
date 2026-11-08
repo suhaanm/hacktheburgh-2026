@@ -58,7 +58,9 @@ const CLOSE = { id: 'close', label: 'Close' } as const
 const SETTINGS_BTN = [{ id: 'settings', label: 'Open Settings' }, CLOSE] as const
 const card = (title: string, body: string, buttons: InfoCard['buttons'] = [CLOSE], action: InfoAction | null = null): InfoCard => ({ title, body, buttons, action })
 export const INFO_CARDS: Readonly<Record<string, InfoCard>> = {
+  // The switch is off (the worker's own choice): the Settings wording is true. When the switch is on and the service just could not be reached, `models_unreachable` says so.
   mock_mode: card('Voice needs live models.', 'Turn on Use live models in Settings, then try again.', SETTINGS_BTN, 'settings'),
+  models_unreachable: card('Knack could not reach the model service.', 'It keeps trying and will switch on by itself.'),
   no_key: card('Voice needs a Gemini key.', 'Add the key to the .env file and reopen Knack.', [CLOSE]),
   no_model: card('Voice has no model set.', 'Add the voice model name to the .env file and reopen Knack.', [CLOSE]),
   model_unusable: card('The voice model was not accepted.', 'The key cannot use the voice model that is set. Run Check voice in Settings.', SETTINGS_BTN, 'settings'),
@@ -118,6 +120,7 @@ export const REFUSAL_LINE: Readonly<Record<string, string>> = {
   model_unusable: 'The voice model was not accepted.',
   no_key: 'Voice needs a Gemini key.',
   mock_mode: 'Voice needs live models.',
+  models_unreachable: 'Knack could not reach the model service. It keeps trying.',
   mic_permission: 'Knack needs the microphone. Turn it on in System Settings.',
   busy: 'Knack is already talking.',
 }

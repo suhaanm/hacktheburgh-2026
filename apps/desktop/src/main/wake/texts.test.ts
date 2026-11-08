@@ -6,7 +6,7 @@ import type { Refusal, VoiceProblem } from '../live/manager'
 
 const PROBLEMS: VoiceProblem[] = ['mic_permission', 'mic_device', 'secure_input', 'denylisted_app', 'locked', 'gate_stale', 'ledger_unavailable', 'voice_no_key', 'voice_refused', 'voice_network', 'connection_lost']
 // (no_consent and not_enabled are answered by the two consent cards, not an information card: their status line says where the card is.)
-const REFUSALS: Refusal[] = ['flag_off', 'paused', 'killed', 'agent_acting', 'day_cap', 'breaker_open', 'no_model', 'model_unusable', 'no_key', 'mock_mode', 'mic_permission']
+const REFUSALS: Refusal[] = ['flag_off', 'paused', 'killed', 'agent_acting', 'day_cap', 'breaker_open', 'no_model', 'model_unusable', 'no_key', 'mock_mode', 'models_unreachable', 'mic_permission']
 
 describe('every voice failure has its own card', () => {
   it('a card for each problem and each refusal that stops a conversation, with a status line for each refusal', () => {
@@ -28,6 +28,7 @@ describe('every voice failure has its own card', () => {
       bodies.set(key, k)
     }
     expect(INFO_CARDS.no_key.title).not.toBe(INFO_CARDS.mock_mode.title)
+    expect(INFO_CARDS.models_unreachable.title).not.toBe(INFO_CARDS.mock_mode.title)
     expect(INFO_CARDS.no_model.title).not.toBe(INFO_CARDS.no_key.title)
     expect(INFO_CARDS.model_unusable.title).not.toBe(INFO_CARDS.no_model.title)
   })
@@ -39,6 +40,17 @@ describe('every voice failure has its own card', () => {
       for (const b of c.buttons) expect(words(b.label)).toBeLessThanOrEqual(3)
       for (const s of [c.title, c.body]) expect(s, k).not.toMatch(/demo|mock|synthetic|simulated|example data|sample data|stand-in|for this build|please|oops|invalid|UNDERSTUDY_|GEMINI_/i)
     }
+  })
+  it('the card for a service that could not be reached says so, and never tells the worker to turn on a switch that is already on', () => {
+    const c = INFO_CARDS.models_unreachable
+    expect(c.title).toBe('Knack could not reach the model service.')
+    expect(c.body).toBe('It keeps trying and will switch on by itself.')
+    expect(`${c.title} ${c.body}`).not.toMatch(/Settings|Use live models|turn on/i)
+    expect(c.action).toBeNull()
+    expect(c.buttons.map((b) => b.label)).toEqual(['Close'])
+    // The Settings wording belongs to the card for a switch that really is off.
+    expect(INFO_CARDS.mock_mode.body).toContain('Use live models')
+    expect(REFUSAL_LINE.models_unreachable).not.toMatch(/Settings|turn on/i)
   })
   it('the microphone card asks first when macOS was never asked, and opens the list when it said no', () => {
     expect(infoCardWith('mic_permission', { micStatus: 'not-determined' })?.buttons[0].label).toBe('Allow')

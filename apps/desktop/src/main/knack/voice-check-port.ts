@@ -73,6 +73,7 @@ export function createVoiceCheckPort(d: VoiceCheckPortDeps): { check(): Promise<
         now: (d.now ?? Date.now)(),
         liveFlagOn: liveFlagOn(env),
         offline: env.UNDERSTUDY_MOCK === '1' || env.ALONGSIDE_MOCK === '1',
+        modelsReason: env.KNACK_MODELS_REASON ?? null,
         keyPresent: (env.GEMINI_API_KEY ?? '').trim().length > 0,
         modelId: model,
         killed: d.killed(),

@@ -5,11 +5,16 @@
 //   anything else              ->  models off: offline models, data/demo-home and data/demo-data (what `make demo` does), with one calm line saying so
 //
 // The key is only ever tested for being there; its value is never read into a message or a log. The boot check is injected (it lists the models the key
-// can use) and has a time limit: a slow or failing check means models off, never a hang.
+// can use) and has a time limit: a slow or failing check means models off, never a hang. Models off because the check failed is NOT final: model-recovery.ts keeps
+// trying in the background and brings the app back by itself when the service answers (a busy Mac at launch must not cost the whole session).
 import type { StackMode } from './stack'
 
 export const MODELS_OFF_NOTICE = 'Models are off'
 export const LIVE_NOTICE = 'Live models'
+/** Models off only because the model service could not be reached at start: Knack keeps trying by itself. */
+export const MODELS_RETRY_NOTICE = 'Models are off, trying again'
+/** The real reason, in plain words, wherever a person is told voice is off while the switch is on (a card, the Check voice row). */
+export const MODELS_UNREACHABLE_LINE = 'Knack could not reach the model service. It keeps trying and will switch on by itself.'
 
 export type ModelReason = 'live' | 'switched_off' | 'no_key' | 'boot_check_failed'
 
@@ -40,7 +45,7 @@ export function wantsLive(i: Pick<ModelInputs, 'switchOn' | 'envOverride'>): boo
 export function decideModels(i: ModelInputs): ModelDecision {
   if (!wantsLive(i)) return { mode: 'demo', reason: 'switched_off', notice: MODELS_OFF_NOTICE }
   if (!i.hasKey) return { mode: 'demo', reason: 'no_key', notice: MODELS_OFF_NOTICE }
-  if (i.bootOk === false) return { mode: 'demo', reason: 'boot_check_failed', notice: MODELS_OFF_NOTICE }
+  if (i.bootOk === false) return { mode: 'demo', reason: 'boot_check_failed', notice: MODELS_RETRY_NOTICE }
   return { mode: 'live', reason: 'live', notice: null }
 }
 
@@ -56,29 +61,36 @@ export async function boundedBootCheck(check: () => Promise<boolean>, limitMs: n
   }
 }
 
+/** How long each boot check attempt may take: a busy Mac (load average well above the core count) can need most of a quarter of a minute for the first call. */
+export const BOOT_LIMITS_MS: readonly number[] = [8000, 10000, 12000]
+/** The pause after an attempt that failed at once (no network, a refused connection): short, so a Mac with no internet starts in about two seconds. */
+export const BOOT_PAUSE_MS = 700
+
 /**
  * The full plan: apply the switch and the key, run the check only when it can matter, and say what happened. `bootCheck` runs only when live is wanted and a key is
- * present, once when it passes. A failed check is tried once more after a short pause, because a busy Mac or a slow first connection must not switch the models
- * off for the whole session (the mode is decided once, at start).
+ * present, once when it passes. A failed check is tried again (up to three attempts, each allowed a little longer), because a busy Mac or a slow first connection must
+ * not switch the models off for the whole session. A failure that comes back at once is not waited for: the pause is short, and a worker with no network is not kept
+ * waiting. A check that still fails is not the end either: the shell keeps trying in the background (model-recovery.ts).
  */
-export async function planModels(i: Omit<ModelInputs, 'bootOk'> & { bootCheck: () => Promise<boolean>; limitMs?: number; attempts?: number; pauseMs?: number; wait?: (ms: number) => Promise<void> }): Promise<ModelDecision> {
+export async function planModels(i: Omit<ModelInputs, 'bootOk'> & { bootCheck: () => Promise<boolean>; limitMs?: number; limitsMs?: readonly number[]; attempts?: number; pauseMs?: number; wait?: (ms: number) => Promise<void> }): Promise<ModelDecision> {
   const base = { switchOn: i.switchOn, envOverride: i.envOverride, hasKey: i.hasKey }
   if (!wantsLive(base) || !i.hasKey) return decideModels({ ...base, bootOk: null })
   const wait = i.wait ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)))
-  const attempts = Math.max(1, Math.min(3, Math.trunc(i.attempts ?? 2)))
+  const attempts = Math.max(1, Math.min(3, Math.trunc(i.attempts ?? 3)))
+  const limits = i.limitMs !== undefined ? [i.limitMs] : (i.limitsMs ?? BOOT_LIMITS_MS)
   let ok = false
   for (let n = 0; n < attempts && !ok; n += 1) {
-    if (n > 0) await wait(i.pauseMs ?? 1000)
-    ok = await boundedBootCheck(i.bootCheck, i.limitMs ?? 8000, i.wait)
+    if (n > 0) await wait(i.pauseMs ?? BOOT_PAUSE_MS)
+    ok = await boundedBootCheck(i.bootCheck, limits[Math.min(n, limits.length - 1)], i.wait)
   }
   return decideModels({ ...base, bootOk: ok })
 }
 
 /** The status the person sees next to the dot: what is running, not what was asked for. `mock` is the agent service's own answer (null: unknown). */
 export function modelStatus(mock: boolean | null, decision: ModelDecision | null): { live: boolean | null; text: string } {
-  if (mock === true) return { live: false, text: MODELS_OFF_NOTICE }
+  if (mock === true) return { live: false, text: decision?.reason === 'boot_check_failed' ? MODELS_RETRY_NOTICE : MODELS_OFF_NOTICE }
   if (mock === false) return { live: true, text: LIVE_NOTICE }
-  if (decision) return { live: decision.mode === 'live', text: decision.mode === 'live' ? LIVE_NOTICE : MODELS_OFF_NOTICE }
+  if (decision) return { live: decision.mode === 'live', text: decision.mode === 'live' ? LIVE_NOTICE : decision.reason === 'boot_check_failed' ? MODELS_RETRY_NOTICE : MODELS_OFF_NOTICE }
   return { live: null, text: '' }
 }
 

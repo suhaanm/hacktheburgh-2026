@@ -46,6 +46,15 @@ describe('Check voice', () => {
     const net = { modelCheck: async () => (asked++, { ok: true, reason: 'ok' }), tokenCheck: async () => (asked++, { ok: true, reason: 'ok' }) }
     const off = await run({ ...net, offline: true })
     expect(stage(off, 'models')).toMatchObject({ state: 'fix', action: { do: 'settings' }, line: 'Voice needs live models. Turn on Use live models in Settings.' })
+    // The switch is on and the service just could not be reached: the real reason, no button to a switch that is already on.
+    const unreachable = await run({ ...net, offline: true, modelsReason: 'boot_check_failed' })
+    expect(stage(unreachable, 'models')).toMatchObject({ state: 'fix', action: null, line: 'Knack could not reach the model service. It keeps trying and will switch on by itself.' })
+    expect(stage(unreachable, 'models').line).not.toMatch(/Settings|Use live models/)
+    const noKey = await run({ ...net, offline: true, modelsReason: 'no_key', keyPresent: false })
+    expect(stage(noKey, 'models')).toMatchObject({ state: 'fix', action: null })
+    expect(stage(noKey, 'models').line).toContain('no Gemini key')
+    // The worker's own switch off (or nothing said) keeps the Settings wording.
+    expect(stage(await run({ ...net, offline: true, modelsReason: 'switched_off' }), 'models').action).toEqual({ do: 'settings' })
     const nokey = await run({ ...net, keyPresent: false })
     expect(stage(nokey, 'key').line).toBe('Voice needs a Gemini key. Add it to the .env file and reopen Knack.')
     const nomodel = await run({ ...net, modelId: null })

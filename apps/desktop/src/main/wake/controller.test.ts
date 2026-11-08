@@ -358,10 +358,11 @@ describe('the words always get an answer', () => {
     mock_mode: { title: 'Voice needs live models.', body: 'Turn on Use live models in Settings, then try again.' },
     no_key: { title: 'Voice needs a Gemini key.', body: 'Add the key to the .env file and reopen Knack.' },
     no_model: { title: 'Voice has no model set.', body: 'Add the voice model name to the .env file and reopen Knack.' },
+    models_unreachable: { title: 'Knack could not reach the model service.', body: 'It keeps trying and will switch on by itself.' },
     model_unusable: { title: 'The voice model was not accepted.', body: 'The key cannot use the voice model that is set. Run Check voice in Settings.' },
   }
   it('with no live models the listener still hears the words, shows a card in plain words, asks no consent and opens nothing', async () => {
-    for (const blocker of ['mock_mode', 'no_key', 'no_model', 'model_unusable']) {
+    for (const blocker of ['mock_mode', 'no_key', 'no_model', 'model_unusable', 'models_unreachable']) {
       const r = rig({ blocker })
       r.ctl.start()
       expect(r.ctl.status().listening).toBe(true)
@@ -370,10 +371,10 @@ describe('the words always get an answer', () => {
       await r.flush()
       expect(r.cardsSeen).toHaveLength(1)
       expect(r.cardsSeen[0]).toMatchObject(needsLive[blocker])
-      expect(r.cardsSeen[0].buttons.map((b) => b.label)).toEqual(blocker === 'no_key' || blocker === 'no_model' ? ['Close'] : ['Open Settings', 'Close'])
+      expect(r.cardsSeen[0].buttons.map((b) => b.label)).toEqual(blocker === 'no_key' || blocker === 'no_model' || blocker === 'models_unreachable' ? ['Close'] : ['Open Settings', 'Close'])
       expect(r.started).toHaveLength(0)
       expect(r.settings.get().voiceAnswer).toBe('unset') // no consent was asked for something that could not happen
-      expect(r.ctl.status().line).toBe({ mock_mode: 'Voice needs live models.', no_key: 'Voice needs a Gemini key.', no_model: 'Voice has no model set.', model_unusable: 'The voice model was not accepted.' }[blocker])
+      expect(r.ctl.status().line).toBe({ mock_mode: 'Voice needs live models.', no_key: 'Voice needs a Gemini key.', no_model: 'Voice has no model set.', model_unusable: 'The voice model was not accepted.', models_unreachable: 'Knack could not reach the model service. It keeps trying.' }[blocker])
       r.fire()
       expect(r.helperLog.at(-1)).toBe('start') // and it keeps listening afterwards
     }

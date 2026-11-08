@@ -56,6 +56,19 @@ describe("Use live models", () => {
   it("an unknown key state does not block the switch (the engine did not say)", () => {
     expect(liveModels({ ...base, health: { mock: true } }).disabled).toBe(false);
   });
+  it("with the switch on and the service just not reachable, shows the switch on and says Knack keeps trying (never 'turn it on')", () => {
+    const v = liveModels({ ...base, health: { mock: true, key_present: true }, retrying: true });
+    expect(v).toEqual({ checked: true, disabled: false, line: LIVE_LINES.retrying });
+    expect(v.line).toBe("On. Knack could not reach the model service. It keeps trying and will switch on by itself.");
+    expect(v.line).not.toMatch(/turn on|Settings/i);
+    // The engine itself says live: the plain on line. No key: the key line wins, whatever the shell says.
+    expect(liveModels({ ...base, health: live, retrying: true }).line).toBe(LIVE_LINES.on);
+    expect(liveModels({ ...base, health: { mock: true, key_present: false }, retrying: true }).line).toBe(LIVE_LINES.noKey);
+    // A job running or a browser tab still disables it, with the reason printed after.
+    expect(liveModels({ ...base, health: { mock: true, key_present: true }, retrying: true, running: true }).line).toContain("A job is running.");
+    // Not retrying (the worker turned it off): unchanged.
+    expect(liveModels({ ...base, retrying: false }).line).toBe(LIVE_LINES.off);
+  });
 });
 
 describe("Interruptions: three words over the kinds", () => {

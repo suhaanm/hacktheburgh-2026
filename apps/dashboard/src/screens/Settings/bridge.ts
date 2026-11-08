@@ -30,6 +30,8 @@ export interface LiveModelsState {
   live: boolean | null;
   /** A run or a voice session is going: the switch is disabled. */
   running: boolean;
+  /** Why the app chose what it runs (the shell's closed word); "boot_check_failed" is models off only because the service could not be reached. Absent in an older shell. */
+  reason?: string | null;
 }
 export type LiveModelsResult = { ok: true } | { ok: false; reason: "no_key" | "running" | "bad_request" };
 export interface LiveModelsBridge {

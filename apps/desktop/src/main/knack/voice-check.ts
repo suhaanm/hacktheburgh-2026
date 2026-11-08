@@ -7,6 +7,7 @@ import type { Dormancy } from '../wake/guards'
 import { DORMANT_LINE } from '../wake/guards'
 import type { BlockedCode } from '../wake/helper'
 import { BLOCKED_LINE } from '../wake/texts'
+import { MODELS_UNREACHABLE_LINE } from './model-mode'
 
 export type MediaStatus = 'granted' | 'denied' | 'not-determined' | 'restricted' | 'unknown'
 
@@ -16,6 +17,8 @@ export interface VoiceCheckInputs {
   liveFlagOn: boolean
   /** The app runs on its offline stand-ins (UNDERSTUDY_MOCK or ALONGSIDE_MOCK): it never opens a real voice session. */
   offline: boolean
+  /** Why the app chose models off (the shell's closed word: switched_off, no_key, boot_check_failed), or null when unknown. Only read while `offline`. */
+  modelsReason?: string | null
   keyPresent: boolean
   /** The configured Live model id, or null. */
   modelId: string | null
@@ -44,7 +47,10 @@ export async function buildVoiceCheck(i: VoiceCheckInputs): Promise<KnackVoiceCh
   const stages: KnackVoiceStage[] = []
 
   // 1. live models
-  if (i.offline) stages.push(fix('models', 'Live models', 'Voice needs live models. Turn on Use live models in Settings.', SETTINGS))
+  // The real reason: the Settings wording is only true when the switch is really off.
+  if (i.offline && i.modelsReason === 'boot_check_failed') stages.push(fix('models', 'Live models', MODELS_UNREACHABLE_LINE, null))
+  else if (i.offline && i.modelsReason === 'no_key') stages.push(fix('models', 'Live models', 'Live models are off because no Gemini key is set. Add it to the .env file and reopen Knack.', null))
+  else if (i.offline) stages.push(fix('models', 'Live models', 'Voice needs live models. Turn on Use live models in Settings.', SETTINGS))
   else if (!i.liveFlagOn) stages.push(fix('models', 'Live models', 'Voice is switched off. Remove the setting that switches it off from the .env file and reopen Knack.', null))
   else stages.push(ready('models', 'Live models', 'Live models are on.'))
 

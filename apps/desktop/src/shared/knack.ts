@@ -82,6 +82,8 @@ export interface KnackModelsState {
   live: boolean | null
   /** A run or a voice session is going: the switch is disabled ("A job is running. Stop it first."). */
   running: boolean
+  /** Why the app chose what it runs (live, switched_off, no_key, boot_check_failed): the last one is "off only because the service could not be reached". */
+  reason?: 'live' | 'switched_off' | 'no_key' | 'boot_check_failed' | null
 }
 export type KnackModelsSetResult = { ok: true } | { ok: false; reason: 'no_key' | 'running' | 'bad_request' }
 

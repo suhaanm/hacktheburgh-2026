@@ -230,6 +230,11 @@ describe('the start gates (each refusal is a closed code, and nothing opens)', (
     ['no_key', { UNDERSTUDY_X_LIVE: '1', UNDERSTUDY_FLAG_VOICE: '1', GEMINI_MODEL_LIVE: 'm' }],
     ['mock_mode', { ...ENV_ON, UNDERSTUDY_MOCK: '1' }],
     ['mock_mode', { ...ENV_ON, ALONGSIDE_MOCK: '1' }],
+    // The shell says why it chose models off. The switch is on and the service could not be reached: say that, never "turn on the switch". No key: say no key.
+    ['models_unreachable', { ...ENV_ON, UNDERSTUDY_MOCK: '1', KNACK_MODELS_REASON: 'boot_check_failed' }],
+    ['no_key', { ...ENV_ON, UNDERSTUDY_MOCK: '1', KNACK_MODELS_REASON: 'no_key' }],
+    // The worker's own switch is off: the Settings wording stays true.
+    ['mock_mode', { ...ENV_ON, UNDERSTUDY_MOCK: '1', KNACK_MODELS_REASON: 'switched_off' }],
   ] as const)('refuses with %s from the environment alone', async (reason, env) => {
     const m = h.make({ env })
     m.start()

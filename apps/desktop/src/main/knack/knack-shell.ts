@@ -9,7 +9,7 @@
 // The decisions are in the pure modules (model-mode, stack, activity, shell-machine, quit-guard, window-state, app-menu); this file connects them to Electron and has no
 // rules of its own.
 import path from 'node:path'
-import { app, BrowserWindow, dialog, ipcMain, Menu, powerMonitor, powerSaveBlocker, screen, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, powerMonitor, powerSaveBlocker, screen, shell } from 'electron'
 import { APP_NAME, APP_ORIGIN } from '../../shared/brand'
 import type { HudActivity } from '../../shared/hud'
 import type { Settings } from '../../shared/settings'
@@ -24,6 +24,7 @@ import { buildAppMenuTemplate, buildDockMenuTemplate } from './app-menu'
 import { registerDock } from './dock'
 import { createMainWindow, type MainWindow } from './mainwindow'
 import { canSwitchModels, keyPresent, modelStatus, planModels, type ModelDecision } from './model-mode'
+import { createModelRecovery, relaunchArgs, restoreEnv, snapshotEnv, type ModelRecovery, type ModelRecoveryDeps } from './model-recovery'
 import type { PillSignals } from './pill-state'
 import { createQuitGuard, type QuitGuard } from './quit-guard'
 import { INITIAL_SHELL, TIMING, reduce, type Effect, type ShellEvent, type ShellState } from './shell-machine'
@@ -60,8 +61,14 @@ export interface KnackEarlyDeps {
   stopEverything: () => void
   /** The brand glyph file's text, for the starting page. */
   glyphSvg: string
-  /** Relaunch the app (the models switch). Default: app.relaunch then app.quit. */
-  relaunch?: () => void
+  /** Relaunch the app (the models switch, and the automatic recovery, which passes the arguments the reopened app carries). Default: app.relaunch then app.quit. */
+  relaunch?: (args?: string[]) => void
+  /** When this process was opened by the automatic recovery (the `--knack-recovered=` argument), else null: a second automatic reopening waits out a gap. */
+  recoveredAtMs?: number | null
+  /** The one calm line before the recovery reopens the app (default: a notification). */
+  notify?: (line: string) => void
+  /** Tests: timers, the clock and the check's limit and interval of the background recovery. */
+  recovery?: Partial<Pick<ModelRecoveryDeps, 'intervalMs' | 'limitMs' | 'timers' | 'now' | 'wait'>>
   stack?: Stack
   upstream?: Upstream
   log: (...args: unknown[]) => void
@@ -177,6 +184,16 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
   const stack = deps.stack ?? createRealStack(config, (...a) => log('stack', ...a))
   let decision: ModelDecision | null = null
   let mockNow: boolean | null = null
+  let recovery: ModelRecovery | null = null
+  // The environment this launch gave the app, so a reopened app (the models switch, the automatic recovery) starts from it and not from the mode this run chose.
+  const envAtLaunch = snapshotEnv(env)
+  const relaunchApp = (opts: { recoveredAtMs?: number } = {}): void => {
+    restoreEnv(env, envAtLaunch)
+    const args = opts.recoveredAtMs ? relaunchArgs(process.argv.slice(1), opts.recoveredAtMs) : undefined
+    if (deps.relaunch) return deps.relaunch(args)
+    app.relaunch(args ? { args } : undefined)
+    app.quit()
+  }
   let stackStopped = false
   let stopping = false
   let machine: ShellState = { ...INITIAL_SHELL, moveAside: deps.settings.get().moveAsideWhileWorking, ...(deps.openedAtLogin ? { window: 'absent' as const, focused: false } : {}) }
@@ -221,7 +238,7 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
   }
   ipcMain.handle(KNACK_IPC.modelsGet, (event) => {
     if (!fromOurPage(event)) throw new Error('shell IPC from an unknown sender')
-    return { useLiveModels: deps.settings.get().useLiveModels, keyPresent: keyPresent(env), live: status().live, running: machine.activity === 'working' || machine.activity === 'voice' }
+    return { useLiveModels: deps.settings.get().useLiveModels, keyPresent: keyPresent(env), live: status().live, running: machine.activity === 'working' || machine.activity === 'voice', reason: decision?.reason ?? null }
   })
   ipcMain.handle(KNACK_IPC.modelsSet, (event, on: unknown) => {
     if (!fromOurPage(event)) throw new Error('shell IPC from an unknown sender')
@@ -380,9 +397,25 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
     decision = d
     stack.setMode(d.mode)
     applyModeEnv(env, config, d.mode)
+    // Why the models are off (a closed word, never a value): the voice path says the real reason on its cards, not a wrong one about the switch.
+    env.KNACK_MODELS_REASON = d.reason
     log('knack', `models: ${d.mode} (${d.reason})`)
     pushUi()
     void stack.start()
+    // Off only because the service could not be reached (the switch is on and the key is there): keep trying, and switch on by itself when it answers.
+    if (d.reason === 'boot_check_failed') {
+      recovery = createModelRecovery({
+        check: deps.bootCheck,
+        wanted: () => deps.settings.get().useLiveModels && keyPresent(env),
+        idle: () => !wasRunning() && late?.kill.isKilled() !== true,
+        relaunch: () => relaunchApp({ recoveredAtMs: (deps.recovery?.now ?? Date.now)() }),
+        say: deps.notify ?? ((line) => { if (Notification.isSupported()) new Notification({ title: APP_NAME, body: line, silent: true }).show() }),
+        log,
+        recoveredAtMs: deps.recoveredAtMs ?? null,
+        ...deps.recovery,
+      })
+      recovery.start()
+    }
     return d
   })()
 
@@ -581,11 +614,7 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
     // The models switch: a change restarts the whole app (the model port is built once, at start).
     if ('useLiveModels' in patch) {
       log('knack', 'the live models switch changed: restarting')
-      if (deps.relaunch) deps.relaunch()
-      else {
-        app.relaunch()
-        app.quit()
-      }
+      relaunchApp()
     }
   })
 
@@ -770,6 +799,7 @@ dispatch,
       tracker: tracker?.state().kind ?? 'none',
     }),
     async dispose() {
+      recovery?.stop()
       offStack()
       offDock()
       offSettings()

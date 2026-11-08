@@ -73,7 +73,7 @@ export default function Settings({ section }: { section?: string }) {
   const h = health.data as HealthExt | null;
   // Only an answer from the engine itself counts: the built-in sample says nothing about the real engine, so then it is "cannot reach".
   const answered = health.status !== "loading" && health.source === "live" ? { ...h, key_present: h?.key_present ?? liveState?.keyPresent } : null;
-  const live = liveModels({ health: answered, canSwitch: !!(liveBridge ?? bridge), running: !!runs.data?.some(runActive) || !!liveState?.running, changing });
+  const live = liveModels({ health: answered, canSwitch: !!(liveBridge ?? bridge), running: !!runs.data?.some(runActive) || !!liveState?.running, changing, retrying: liveState?.useLiveModels === true && liveState.reason === "boot_check_failed" });
   const liveView = liveError ? { ...live, line: `${live.line} ${liveError}` } : live;
 
   const onLive = async (on: boolean) => {

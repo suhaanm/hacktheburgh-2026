@@ -45,6 +45,7 @@ export type Refusal =
   | 'model_unusable'
   | 'no_key'
   | 'mock_mode'
+  | 'models_unreachable'
   | 'mic_permission'
   | 'busy'
 
@@ -242,8 +243,9 @@ export function createLiveManager(d: ManagerDeps): LiveManager {
     if (usage.todayUsd(now()) >= s.liveDailyUsd) return 'day_cap'
     if (breaker.isOpen()) return 'breaker_open'
     if (!liveModelId(env)) return 'no_model'
-    // Mock mode (the offline demo and the tests) never opens a real voice session.
-    if (env.UNDERSTUDY_MOCK === '1' || env.ALONGSIDE_MOCK === '1') return 'mock_mode'
+    // Models off (the offline stand-ins and the tests) never opens a real voice session. The shell says why it chose them (KNACK_MODELS_REASON, a closed word): when the
+    // switch is on and the model service just could not be reached, the answer says that (it keeps trying), not that the switch is off.
+    if (env.UNDERSTUDY_MOCK === '1' || env.ALONGSIDE_MOCK === '1') return env.KNACK_MODELS_REASON === 'boot_check_failed' ? 'models_unreachable' : env.KNACK_MODELS_REASON === 'no_key' ? 'no_key' : 'mock_mode'
     if (!(env.GEMINI_API_KEY ?? '').trim()) return 'no_key'
     if (modelState && !modelState.ok && modelState.reason !== 'unreachable') return modelState.reason === 'no_key' ? 'no_key' : 'model_unusable'
     // Never ask: reading the status cannot raise the macOS prompt. The owner grants it in System Settings.

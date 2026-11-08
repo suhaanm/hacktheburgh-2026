@@ -27,6 +27,8 @@ export interface LiveInput {
   running: boolean;
   /** The switch was just pressed and the restart is under way. */
   changing: boolean;
+  /** The switch is on, a key is set, and the app could not reach the model service at start: it keeps trying and switches on by itself. */
+  retrying?: boolean;
 }
 export interface LiveView { checked: boolean; disabled: boolean; line: string }
 
@@ -39,14 +41,19 @@ export const LIVE_LINES = {
   running: "A job is running. Stop it first.",
   app: "Switch this in the Knack app.",
   down: "Knack cannot reach its engine. Nothing was changed.",
+  /** The switch is on; only the service could not be reached. Never says to turn the switch on. */
+  retrying: "On. Knack could not reach the model service. It keeps trying and will switch on by itself.",
 } as const;
 
 /** The first row of Settings. Disabled, with its reason printed, when there is no key, a job is running, or this is not the app. */
 export function liveModels(i: LiveInput): LiveView {
   if (!i.health) return { checked: false, disabled: true, line: LIVE_LINES.down };
-  const checked = i.health.mock === false;
+  const live = i.health.mock === false;
+  // The worker's switch is on and a key is set, but the service could not be reached at start: the row shows the switch as it is (on) and says what Knack is doing about it.
+  const retrying = i.retrying === true && !live && i.health.key_present !== false;
+  const checked = live || retrying;
   // 'Because a key is set' is only said when the engine says a key is set: it never claims a key it was not told about.
-  const base = checked ? (i.health.key_present === true ? LIVE_LINES.on : LIVE_LINES.onPlain) : LIVE_LINES.off;
+  const base = retrying ? LIVE_LINES.retrying : checked ? (i.health.key_present === true ? LIVE_LINES.on : LIVE_LINES.onPlain) : LIVE_LINES.off;
   if (i.changing) return { checked, disabled: true, line: LIVE_LINES.restart };
   if (i.health.key_present === false && !checked) return { checked, disabled: true, line: LIVE_LINES.noKey };
   if (i.running) return { checked, disabled: true, line: `${base} ${LIVE_LINES.running}` };
