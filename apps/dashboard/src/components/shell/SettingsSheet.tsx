@@ -2,7 +2,6 @@
 // The contents belong to the Settings screen folder (apps/dashboard/src/screens/Settings/index.tsx, default export, props { section, onClose }):
 // the shell finds that file with import.meta.glob. Until it exists, a short fallback shows the two settings the shell itself owns (Appearance and Views).
 import { Suspense, lazy, useEffect, useRef, type ComponentType } from "react";
-import { Notices } from "../../legacyScreens";
 import { pick } from "../../screenRegistry";
 import { closeSettings, useOverlay } from "../home/overlayStore";
 import { VIEW_LABEL, setViewRole, useViewRole, type ViewRole } from "../home/viewAs";
@@ -19,8 +18,6 @@ function Fallback({ section }: SettingsProps) {
   const [theme, setTheme] = useTheme();
   const view = useViewRole();
   const [pinned, setPinned] = usePinnedViews();
-  // Until the Settings folder exists, the old Notices screen answers "Interruptions" (the address #/notices lands here).
-  if (section === "interruptions" && Notices) return <Suspense fallback={null}><Notices /></Suspense>;
   return (
     <div className="settings__fallback" data-section={section ?? undefined}>
       <section aria-labelledby="set-look">

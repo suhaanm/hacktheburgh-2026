@@ -86,7 +86,7 @@ describe("the role cards", () => {
 describe("the line under a role", () => {
   it("cuts a pack summary to a short noun phrase of at most four words", () => {
     expect(cardLine("Runs entitlement checks for households and writes the case note.")).toBe("Runs entitlement checks");
-    for (const p of packs) expect(cardLine(p.summary).split(" ").length, p.id).toBeLessThanOrEqual(4);
+    for (const p of packs) { const l = cardLine(p.summary); expect(l.split(" ").length, p.id).toBeLessThanOrEqual(4); expect(l, p.id).not.toMatch(/[,;:]$/); }
   });
 });
 

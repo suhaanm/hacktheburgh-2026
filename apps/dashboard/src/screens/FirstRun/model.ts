@@ -84,7 +84,7 @@ export function readyLines(q: OnboardingQuestions, a: OnboardingAnswers): string
 /** The one line under a role's name: its summary cut at the first " for ", " and ", " that " or " to ", at most four words ("Runs entitlement checks"). */
 export function cardLine(summary: string): string {
   const first = summary.split(/(?<=[.!?])\s/)[0].replace(/[.!?]$/, "");
-  const cut = first.split(/ (?:for|and|that|to) /)[0];
+  const cut = first.split(/,| (?:for|and|that|to) /)[0];
   return cut.split(/\s+/).filter(Boolean).slice(0, 4).join(" ");
 }
 

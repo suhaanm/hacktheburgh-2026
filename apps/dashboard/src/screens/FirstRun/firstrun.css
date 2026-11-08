@@ -1,6 +1,6 @@
 /* First run: one column, one idea per screen, the question at 40 px. No sidebar, no card stack, no illustration. */
-.firstrun { min-height: 100vh; padding: var(--space-10) var(--space-8); }
-.firstrun__col { max-width: var(--content-read, 720px); display: grid; gap: var(--space-8); align-content: start; }
+.firstrun { min-height: 100vh; padding: 120px var(--space-8) var(--space-10); }
+.firstrun__col { max-width: var(--content-read, 720px); margin: 0 auto; display: grid; gap: var(--space-8); align-content: start; }
 .firstrun__top { display: flex; align-items: center; gap: var(--space-4); }
 .firstrun__progress { flex: 1 1 auto; height: 2px; background: var(--line); }
 .firstrun__progress i { display: block; height: 100%; background: var(--accent); transition: width var(--dur-base) var(--ease-out); }
