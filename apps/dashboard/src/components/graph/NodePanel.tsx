@@ -14,6 +14,8 @@ import { Details } from "../ui";
 import { KindChip } from "./Glyph";
 
 const REASON_WORDS = 24;
+/** A name longer than this stops at four lines in the title and is printed whole under The numbers. */
+const NAME_LONG = 70;
 
 export function NodePanel({ node: n, graph, onClose, onChanged }: { node: WorkNode; graph: WorkGraph; onClose: () => void; onChanged: () => void }) {
   const toast = useToast();
@@ -76,6 +78,7 @@ export function NodePanel({ node: n, graph, onClose, onChanged }: { node: WorkNo
             <div><dt>Last seen</dt><dd>{fmtDate(n.last_seen)}{days > 0 ? `, ${days} ${days === 1 ? "day" : "days"} ago` : ""}</dd></div>
             {size && <div><dt>Size</dt><dd>{size}</dd></div>}
             {linked.length > 0 && <div><dt>Linked to</dt><dd>{linked.join(", ")}</dd></div>}
+            {n.label.length > NAME_LONG && <div><dt>Full name</dt><dd>{n.label}</dd></div>}
             {reason !== n.why.trim() && <div><dt>In full</dt><dd>{n.why}</dd></div>}
           </dl>
         </Details>

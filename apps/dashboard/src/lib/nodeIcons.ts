@@ -44,7 +44,7 @@ export const GLYPH_MIN_R = 7.5;
 
 /* -- The steps of the transition graph ---------------------------------------------------------------------------------------------------------- */
 
-export type StepKind = "read" | "enter" | "search" | "open" | "check" | "compare" | "copy" | "idle" | "revert" | "step";
+export type StepKind = "read" | "enter" | "search" | "open" | "check" | "compare" | "copy" | "idle" | "revert" | "run" | "plot" | "send" | "decide" | "ask" | "group" | "handoff" | "step";
 
 export const STEP_ICON: Record<StepKind, IconPrim[]> = {
   read: [{ t: "path", d: "M4 2.5h8v11H4zM6.5 6h3M6.5 9h3" }],
@@ -56,25 +56,43 @@ export const STEP_ICON: Record<StepKind, IconPrim[]> = {
   copy: [{ t: "path", d: "M6 6h7v7H6zM10 6V3H3v7h3" }],
   idle: [{ t: "path", d: "M6 4v8M10 4v8" }],
   revert: [{ t: "path", d: "M4 4v3.5h3.5M4.3 7.5A4.6 4.6 0 1 1 5.6 11" }],
+  run: [{ t: "path", d: "M5.5 3.5v9l7-4.5z" }],
+  plot: [{ t: "path", d: "M3 3v10h10M5.5 10l2.5-3 2 1.5 2.5-4" }],
+  send: [{ t: "path", d: "M8 10.5V3M5 6l3-3 3 3M3 13h10" }],
+  decide: [{ t: "path", d: "M8 2.5l5.5 5.5L8 13.5 2.5 8z" }],
+  ask: [{ t: "path", d: "M6 6.2a2 2 0 1 1 3 1.7c-.7.4-1 .9-1 1.6M8 12v.1" }],
+  group: [{ t: "path", d: "M11.5 4h-7l4 4-4 4h7" }],
+  handoff: [{ t: "path", d: "M6.5 4H3v9h9V9.5M8 8l5-5M9.5 3H13v3.5" }],
   step: [{ t: "circle", cx: 8, cy: 8, r: 2.2, fill: true }],
 };
 
 export const STEP_NAME: Record<StepKind, string> = {
-  read: "Reading", enter: "Entering", search: "Searching", open: "Opening", check: "Checking", compare: "Comparing", copy: "Copying", idle: "Waiting", revert: "Going back", step: "Step",
+  read: "Reading", enter: "Entering", search: "Searching", open: "Opening", check: "Checking", compare: "Comparing", copy: "Copying", idle: "Waiting", revert: "Going back",
+  run: "Running", plot: "Charting", send: "Sending out", decide: "Deciding", ask: "Asking", group: "Grouping", handoff: "Handing off", step: "Step",
 };
 
-/** Which icon a step gets, from its cog name (READ_RESULT, CHECK_CLIFF, COPY_TO_NOTE). An unknown cog is a plain step. */
+/**
+ * Which icon a step gets, from its cog name. The cogs are the three role packs' (READ_RESULT, CHECK_CLIFF, COPY_TO_NOTE; LOAD_DATA, RUN_QUERY, PLOT;
+ * READ_CODE, EDIT_CODE, RUN_TESTS, COMMIT) and the engine's base cogs. A cog nobody has drawn yet is a plain step, so a new pack never breaks the graph.
+ */
 export function stepKind(cog: string): StepKind {
   const c = cog.toUpperCase();
-  if (c.includes("SEARCH") || c.includes("FIND")) return "search";
-  if (c.includes("REVERT") || c.includes("UNDO") || c.includes("BACK")) return "revert";
+  if (c.includes("SEARCH") || c.includes("FIND") || c.includes("REFORMULATE")) return "search";
+  if (c.includes("REVERT") || c.includes("UNDO") || c.includes("ROLLBACK")) return "revert";
   if (c.includes("IDLE") || c.includes("WAIT") || c.includes("PAUSE")) return "idle";
   if (c.includes("COPY") || c.includes("PASTE")) return "copy";
+  if (c.includes("HANDOFF") || c.includes("HAND_OFF") || c.includes("ESCALATE") || c.includes("DELEGATE")) return "handoff";
+  if (c.includes("EXPORT") || c.includes("COMMIT") || c.includes("PUBLISH") || c.includes("SEND") || c.includes("PUSH")) return "send";
   if (c.includes("CHECK") || c.includes("VERIFY")) return "check";
-  if (c.includes("COMPARE") || c.includes("RECONCILE")) return "compare";
-  if (c.includes("OPEN") || c.includes("SWITCH") || c.includes("NAVIGATE")) return "open";
-  if (c.startsWith("READ") || c.includes("SCAN")) return "read";
-  if (c.startsWith("ENTER") || c.includes("TYPE") || c.includes("FILL")) return "enter";
+  if (c.includes("COMPARE") || c.includes("RECONCILE") || c.includes("DIFF")) return "compare";
+  if (c.includes("DECIDE") || c.includes("DECISION")) return "decide";
+  if (c.includes("PLOT") || c.includes("CHART")) return "plot";
+  if (c.includes("GROUP") || c.includes("AGG")) return "group";
+  if (c.startsWith("RUN") || c.includes("EXECUTE") || c.includes("PROBE")) return "run";
+  if (c === "ASK" || c.startsWith("ASK_")) return "ask";
+  if (c.includes("OPEN") || c.includes("SWITCH") || c.includes("NAVIGATE") || c.includes("LOAD")) return "open";
+  if (c.startsWith("READ") || c.includes("INSPECT") || c.includes("PROFILE") || c.includes("SCAN")) return "read";
+  if (c.startsWith("ENTER") || c.includes("TYPE") || c.includes("FILL") || c.includes("WRITE") || c.includes("EDIT") || c.includes("CLEAN")) return "enter";
   return "step";
 }
 
