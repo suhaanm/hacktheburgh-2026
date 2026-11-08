@@ -97,10 +97,10 @@ describe("the first run", () => {
     expect(cardLine("Reads code")).toBe("Reads code");
     expect(cardLine("x".repeat(500))).toBe("x".repeat(500));
   });
-  it("more than five packs show five cards; none shows none", () => {
+  it("more than four packs show four and Not sure yet; none shows only Not sure yet", () => {
     const packs = Array.from({ length: 9 }, (_, i) => ({ id: `p${i}`, name: `Role ${i}`, summary: "Does things for people.", depth: "thin" as const }));
     expect(roleCards(packs)).toHaveLength(5);
-    expect(roleCards([])).toEqual([]);
+    expect(roleCards([]).map((c) => c.id)).toEqual(["none"]);
   });
   it("the ready lines cope with a pack that has no tools, no risky actions and no hours days", () => {
     const qn = { role: "x", pack: { name: "X", summary: "", extra_cogs: [], risk_classes: { irreversible: [] }, tone_defaults: { length: "short", voice: "plain" } }, questions: [] } as never;

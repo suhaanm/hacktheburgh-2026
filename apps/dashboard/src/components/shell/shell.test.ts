@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { breadcrumb } from "../home/ScreenFrame";
 import { NAV_ENTRIES, groupOf, moreFor, sidebarFor } from "../home/navModel";
-import { capsOf, type KnackShellBridge } from "./bridge";
+import { capsOf, permState, permStates, permissionsAvailable, type KnackShellBridge } from "./bridge";
 
 describe("the breadcrumb", () => {
   it("says where a screen under More sits, with the way back to Home", () => {
@@ -24,6 +24,24 @@ describe("the desktop bridge", () => {
     const b: KnackShellBridge = { ask: () => undefined, pause: () => undefined };
     expect(capsOf(b)).toEqual({ ask: true, pause: true, accessibility: false });
     expect(capsOf({ openSystemSettings: () => undefined }).accessibility).toBe(true);
+  });
+});
+
+describe("macOS permissions as the first run reads them", () => {
+  it("reads any reasonable answer as allowed, turned off, or not asked yet; an unknown answer is never read as allowed", () => {
+    for (const v of ["granted", "authorized", "Authorised", "allowed", true]) expect(permState(v), String(v)).toBe("granted");
+    for (const v of ["denied", "restricted", "off", "turned-off", "Turned off", false]) expect(permState(v), String(v)).toBe("off");
+    for (const v of ["not-determined", "not_determined", "undetermined", "", "granted?", null, undefined, 7, {}]) expect(permState(v), String(v)).toBe("not-asked");
+  });
+  it("reads the three permissions by their usual names, and a missing answer or key as not asked yet", () => {
+    expect(permStates({ microphone: "granted", speech: "denied", screen: "not-determined" })).toEqual({ microphone: "granted", speech: "off", screen: "not-asked" });
+    expect(permStates({ mic: true, speechRecognition: false, screenRecording: "authorized" })).toEqual({ microphone: "granted", speech: "off", screen: "granted" });
+    expect(permStates(null)).toEqual({ microphone: "not-asked", speech: "not-asked", screen: "not-asked" });
+    expect(permStates({})).toEqual({ microphone: "not-asked", speech: "not-asked", screen: "not-asked" });
+  });
+  it("the permissions are offered only when the shell exposes them", () => {
+    expect(permissionsAvailable({})).toBe(false);
+    expect(permissionsAvailable({ permissions: { state: async () => ({}), request: async () => "granted", openSettings: () => undefined } })).toBe(true);
   });
 });
 

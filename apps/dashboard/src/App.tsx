@@ -15,7 +15,7 @@ import { useViewRole } from "./components/home/viewAs";
 import { CompactBars, Sidebar } from "./components/shell/Sidebar";
 import { EngineBanner } from "./components/shell/StatusLine";
 import { StopProvider, StoppedBanner } from "./components/shell/StopControl";
-import { FIRST_RUN_KEY, shouldStartFirstRun } from "./screens/FirstRun/model";
+import { FIRST_RUN_KEY, SEEN_KEY, shouldStartFirstRun } from "./screens/FirstRun/model";
 import { screens } from "./screenRegistry";
 import "./components/home/home.css";
 import "./styles/shell.css";
@@ -53,6 +53,9 @@ export function App() {
 }
 
 const firstRunDone = (): boolean => { try { return window.localStorage.getItem(FIRST_RUN_KEY) !== null; } catch { return true; } };
+const firstRunSeen = (): boolean => { try { return window.sessionStorage.getItem(SEEN_KEY) !== null; } catch { return false; } };
+/** The Knack app sets html[data-knack-shell] on every page load; a browser tab does not. */
+const inKnackApp = (): boolean => typeof document !== "undefined" && document.documentElement.dataset.knackShell !== undefined;
 
 function Shell() {
   const route = useRoute();
@@ -93,7 +96,7 @@ function Shell() {
   }, [settings, route.path, route.query]);
   // First run: only when the engine answered, it does not know the worker, nothing was chosen before, and the address names Home or nothing.
   useEffect(() => {
-    if (shouldStartFirstRun({ engineUp: s.engineUp, extReady: s.extReady, role: s.role, person: s.person, done: firstRunDone(), path: route.path, hash: window.location.hash, query: route.query.toString() })) navigate("/first-run");
+    if (shouldStartFirstRun({ engineUp: s.engineUp, extReady: s.extReady, role: s.role, person: s.person, done: firstRunDone(), path: route.path, hash: window.location.hash, query: route.query.toString(), inApp: inKnackApp(), seen: firstRunSeen() })) navigate("/first-run");
   }, [s.engineUp, s.extReady, s.role, s.person, route.path]);
 
   const Screen = current === "unknown" ? screens[DEFAULT_SCREEN] : screens[current];

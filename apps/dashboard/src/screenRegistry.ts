@@ -23,7 +23,6 @@ const prefer = (load: Loader | null, standIn: ComponentType = Missing): ReturnTy
 const NEEDS_YOU = import.meta.glob("./screens/NeedsYou/index.tsx");
 const ROUTINES = import.meta.glob("./screens/Routines/index.tsx");
 const YOUR_DATA = import.meta.glob("./screens/YourData/index.tsx");
-const SETUP = import.meta.glob("./screens/{Settings/SetUp.tsx,Onboarding.tsx}");
 
 export const screens: Record<Screen, ReturnType<typeof lazy>> = {
   home: lazy(() => import("./screens/Home")),
@@ -45,5 +44,6 @@ export const screens: Record<Screen, ReturnType<typeof lazy>> = {
   today: lazy(() => import("./screens/Today")),
   evidence: lazy(() => import("./screens/Evidence")),
   "first-run": lazy(() => import("./screens/FirstRun")),
-  setup: prefer(pick(SETUP, ["./screens/Settings/SetUp.tsx", "./screens/Onboarding.tsx"])),
+  // "Set up again" (Settings) reruns first run, the same three screens, from the top.
+  setup: lazy(() => import("./screens/FirstRun")),
 };
