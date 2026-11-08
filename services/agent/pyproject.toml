@@ -18,6 +18,10 @@ dependencies = [
   "orjson>=3.10",
   "pillow>=10",
   "mcp==2.3.0",
+  # the real desktop actuator (clicks, typing, window list, accessibility reads) on a Mac; the engine and the tests never import these
+  "pyobjc-framework-Quartz>=10; sys_platform == 'darwin'",
+  "pyobjc-framework-Cocoa>=10; sys_platform == 'darwin'",
+  "pyobjc-framework-ApplicationServices>=10; sys_platform == 'darwin'",
 ]
 
 [build-system]

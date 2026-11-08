@@ -1,0 +1,73 @@
+{
+ "ok": true,
+ "real": true,
+ "scale": 2.0,
+ "log": [
+  {
+   "action": "click",
+   "verdict": "allow",
+   "codes": [],
+   "target_read": true
+  },
+  {
+   "action": "type",
+   "verdict": "allow",
+   "codes": [],
+   "target_read": true
+  }
+ ],
+ "report": {
+  "target_app": "TextEdit",
+  "backing_scale": 2.0,
+  "scale_check": {
+   "backing_scale": 2.0,
+   "screenshot_px": 3456,
+   "display_pts": 1728.0,
+   "measured_scale": 2.0,
+   "agree": true
+  },
+  "hits": [
+   {
+    "at": "click",
+    "x_pt": 300.0,
+    "y_pt": 200.0,
+    "scale": 2.0,
+    "owner": "TextEdit",
+    "bounds": [
+     60.0,
+     60.0,
+     603.0,
+     505.0
+    ],
+    "number": 6228,
+    "pid": 74736
+   },
+   {
+    "at": "click:before-down",
+    "x_pt": 300.0,
+    "y_pt": 200.0,
+    "scale": 2.0,
+    "owner": "TextEdit",
+    "bounds": [
+     60.0,
+     60.0,
+     603.0,
+     505.0
+    ],
+    "number": 6228,
+    "pid": 74736
+   }
+  ],
+  "typed_chars": 5,
+  "pinned_window": {
+   "number": 6228,
+   "pid": 74736
+  }
+ },
+ "postcondition": "passed",
+ "postcondition_source": "AppleScript read-back",
+ "rung_cleared": "/Users/suhaan/Desktop/hacktheburgh/data/live-data/rung_cleared.json",
+ "rung": "R1",
+ "date": "2026-11-08",
+ "note": "owner present at the Mac; Do Not Disturb on; one TextEdit window; countdown 40 s; owner switched to TextEdit; stop key proven in preflight (39 ms dry, physical press 3.9 s after prompt)"
+}

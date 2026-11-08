@@ -103,3 +103,13 @@ Counts and enums only (no titles, no text, no pixels kept):
 - The one marker at (1056, 1020) px = (528, 510) pt, the centre of the TextEdit window, landed in the **Claude** window (frontmost app, window number 205), not in TextEdit: `lands_in_target` false, `all_in_target` false, exit code 2.
 
 Reading: by this rung's own rule ("a point lands in another app") this is a stop-and-report, and it is the check doing its job: the Claude window overlaps the TextEdit region, which R1 preflight item 5 (clear target region) would also refuse. Nothing was clicked. Next: the owner moves the Claude window (or TextEdit) so the TextEdit document area is fully uncovered and TextEdit is in front, then one more read-only R0 run (a second capture) needs the owner's go; R1 needs the preflight first.
+
+## R1 run (Sun 8 Nov 2026, 06:17 GMT): PASS, owner present
+
+Owner approved R1 in chat and was at the Mac; Do Not Disturb on, no clipboard manager (both attested in chat), one TextEdit window with an empty document. Preflight: every item PASS (scale 2.0 agrees, one TextEdit window, region clear, accessibility reads an AXTextArea at the point, AppleScript read-back works and the document was empty, the stop key writes the stop file in 39 ms by the dry press and the owner's physical Option-Shift-Command-K was seen 3.9 s after the prompt).
+
+Findings fixed on the way (each with a test): the hit test skipped the app's own full-display click-through overlay only under the old names (Understudy, Electron), so every point would have been refused as belonging to Knack; the default list now includes Knack. The dry run's fake window must contain the click point (it sits at 150, 100, 300 by 180 points), so the TextEdit window was moved to 60, 60 and the point set to 600, 400 px (300, 200 pt): inside both. Two countdowns ran out before the owner brought TextEdit forward (12 s and 30 s): nothing was done, which is the guard working.
+
+Result of the third run (40 s countdown): `ok` true, `real` true, `postcondition` passed (read back through AppleScript), click verdict allow with the target read, type verdict allow with the target read, scale check agree (2.0), pinned window one TextEdit window, typed characters 5, zero guards fired. The record `data/live-data/rung_cleared.json` was written by `mac_check` (schema 1, rung R1, target TextEdit). Counts and enums only are in `evals/agentic/results/real_clicks/R1-2026-11-08.json`.
+
+Not done: the S-13, S-05, S-06 and S-03 confirmations (separate short runs, each needing the owner's go), and R2 onward. Typed and spoken tasks use the desktop only through a consent card the owner answers with a real click, once per task (TASKS-DESKTOP, D69).
