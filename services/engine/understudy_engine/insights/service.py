@@ -184,22 +184,30 @@ class InsightsService:
                 "title": r["title"], "headline": r["headline"], "detail": r["detail"], "text": r["text"], "source": r["source"], "badge": c.badge, "origin": c.origin,
                 "numbers": nums, "action": _action(c), "details_available": c.kind in DETAILS_KINDS, "a11y_label": T.a11y_label(c.polarity, r["headline"]), "reason": s.reason}
 
+    @staticmethod
+    def _pin_key(rec: PersonRecord, snap: FirmSnapshot) -> str:
+        """The week's pin is kept per person, and for the worker's own ledger per role too: a worker who switches role gets that role's pointers, not the last role's."""
+        return f"{rec.id}|{rec.role}" if snap.source == "local" else rec.id
+
     def worker(self, person: str, source: str) -> dict[str, Any]:
         with self._lock:
             snap = self.snapshot(source)
             rec = self._person(snap, person)
             wk, w0, w1 = week_bounds(snap.now, rec.tz)
-            ev = {"n": len(rec.rows), "last": max((r["t_hour"] for r in rec.rows), default="")}
-            pin = self.store.get_pin(rec.id, wk)
-            if pin is not None and not (ev["n"] >= pin["evidence"]["n"] and ev["last"] >= pin["evidence"]["last"]):
-                self.store.drop_pin(rec.id, wk)             # the ledger was deleted or reset: nothing derived from it survives
+            pk = self._pin_key(rec, snap)
+            mine = [r for r in rec.rows if r.get("role") == rec.role] if snap.source == "local" else list(rec.rows)       # the pin of one role counts that role's work only
+            ev = {"n": len(mine), "last": max((r["t_hour"] for r in mine), default="")}
+            pin = self.store.get_pin(pk, wk)
+            if pin is not None and (not (ev["n"] >= pin["evidence"]["n"] and ev["last"] >= pin["evidence"]["last"])
+                                    or (pin.get("status") in ("no_data", "onboarding") and ev["n"] > pin["evidence"]["n"])):
+                self.store.drop_pin(pk, wk)                 # the ledger was deleted or reset, or the week was pinned before there was anything to look at: recompute
                 pin = None
             if pin is None:
                 out, sel, w0_ = self._worker_selection(rec, snap)
                 pointers = [self._pointer(s, rec.role) for s in sel.selected]
                 status = out.status if out.status != "ok" else ("ok" if pointers else "nothing_stands_out")
                 pin = {"evidence": ev, "status": status, "pointers": pointers, "stale_sources": out.stale_sources, "needed": out.needed}
-                self.store.set_pin(rec.id, wk, pin)
+                self.store.set_pin(pk, wk, pin)
                 self.store.record_shown(rec.id, [replace(history_entry(s.cand, w0_), t=w0_) for s in sel.selected])
             hist = self.store.history(rec.id)
             vis = [p for p in pin["pointers"] if not (p["id"] in hist.quiet_ids and snap.now - hist.quiet_ids[p["id"]] <= self.p.novelty_window_days * DAY)
@@ -314,7 +322,7 @@ class InsightsService:
         c = sel.all_candidates.get(insight)
         st = sel.reason_of(insight)
         if c is None or st is None:
-            pin = self.store.get_pin(rec.id, week_bounds(snap.now, rec.tz)[0])
+            pin = self.store.get_pin(self._pin_key(rec, snap), week_bounds(snap.now, rec.tz)[0])
             pp = next((p for p in (pin or {}).get("pointers", []) if p["id"] == insight), None)
             if pp is None:
                 return None
@@ -337,7 +345,7 @@ class InsightsService:
                 _o, sel, _w = self._worker_selection(rec, snap)
                 c = sel.all_candidates.get(insight)
                 if c is None:
-                    pin = self.store.get_pin(rec.id, week_bounds(snap.now, rec.tz)[0]) or {}
+                    pin = self.store.get_pin(self._pin_key(rec, snap), week_bounds(snap.now, rec.tz)[0]) or {}
                     pp = next((p for p in pin.get("pointers", []) if p["id"] == insight), None)
                     kind = pp["base_kind"] if pp else None
                 else:
