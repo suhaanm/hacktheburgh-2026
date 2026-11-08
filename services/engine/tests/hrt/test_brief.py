@@ -26,11 +26,31 @@ def test_every_placeholder_and_assertion_resolves_against_the_reports(hb):
     assert "[[UNRESOLVED" not in text and "{{" not in text
 
 
-def test_the_committed_brief_equals_a_fresh_render(hb):
-    text, bad = hb.build()
-    assert not bad
-    have = hb.OUT.read_text(encoding="utf-8") if hb.OUT.exists() else ""
-    assert have == text, "docs/HRT_BRIEF.md is out of date: a report under evals/ changed. Run `python3 scripts/hrt_brief.py` and commit the result."
+def test_the_committed_documents_equal_a_fresh_render(hb):
+    for dest, text, bad, _n in hb.build_all():
+        assert not bad, f"{dest.name}: {bad}"
+        have = dest.read_text(encoding="utf-8") if dest.exists() else ""
+        assert have == text, f"{dest.relative_to(ROOT)} is out of date: a report under evals/ changed. Run `make hrt-brief` (or `python3 scripts/hrt_brief.py`) and commit the result."
+
+
+def _numbers(text: str) -> set[str]:
+    text = re.sub(r"\bC\d+\b|\bP\d[ab]?\b|\bD\d\b|\bM\d+\b|\bH\d\b|\bB\d\b", " ", text)          # row labels, claim ids and shot ids are not results
+    return {m.group(0).lstrip("+-") for m in re.finditer(r"[+-]?\d[\d,]*(?:\.\d+)?", text)}
+
+
+def test_every_number_in_the_hrt_passages_of_the_drafts_is_in_the_generated_documents(hb):
+    """DEVPOST's HRT bullet, its tenth limitation and the 30-second cut quote numbers; each must appear in the generated claims rows or the brief."""
+    generated = "\n".join(text for _d, text, _b, _n in hb.build_all())
+    have = _numbers(generated)
+    devpost = (ROOT / "docs" / "drafts" / "DEVPOST.md").read_text(encoding="utf-8")
+    bullet = re.search(r"- \*\*HRT, best use of data.*?(?=\n- \*\*Also for HRT)", devpost, re.S).group(0)
+    limit10 = re.search(r"\n10\. \*\*The stuck model's edge.*?(?=\n\n)", devpost, re.S).group(0)
+    cut = (ROOT / "docs" / "drafts" / "HRT_30S.md").read_text(encoding="utf-8")
+    voice = "\n".join(row.split("|")[4] for row in cut.splitlines() if re.match(r"\| H\d ", row))
+    for label, passage in (("DEVPOST HRT bullet", bullet), ("DEVPOST limitation 10", limit10), ("HRT 30 s voiceover", voice)):
+        loose = sorted(n for n in _numbers(passage) if n not in have)
+        assert not loose, f"{label} quotes numbers that are not in the generated documents: {loose}"
+    assert "C93" in bullet and "C91" in bullet and "C96" in bullet
 
 
 def test_the_brief_says_what_it_must_and_avoids_what_it_must_not(hb):

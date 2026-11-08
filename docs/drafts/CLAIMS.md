@@ -226,3 +226,7 @@ Update C65, README "Disclosure: Alongside", DEVPOST "Disclosure" and DEMO_SCRIPT
 | 18 findings (15 fixed, 3 open); 6 high privacy findings | R D P S | C42, C43 |
 | 107 and 42 of 200 | R D P S | C61 |
 | 14 of 14, 48 cases | R D S | C60 |
+
+## 7. HRT additions (C90 to C99)
+
+The prospective ledger, the guard and the decisions scoreboard (Track H, 8 Nov 2026) have their rows in **`docs/drafts/CLAIMS_HRT.md`**, which is **generated** from the reports by `scripts/hrt_brief.py` (`make hrt-brief`) so no number in it is typed by hand. Same columns and status words as above. Rows C92 and C93 are the sentence that **C04 and C05 must carry**: the stuck model's edge was mostly the generator, it reverses under shift, and a simple rule does about as well (FIX_LEDGER section G). Quoted so far in `docs/drafts/DEVPOST.md` (HRT bullet, limitation 10) and in the HRT 30-second cut (`docs/drafts/HRT_30S.md`); `tests/hrt/test_brief.py` checks that every number in those two HRT passages appears in the generated files.
