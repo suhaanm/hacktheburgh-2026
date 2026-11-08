@@ -4,13 +4,14 @@ import routinesFx from "../../fixtures/routines.json";
 import briefingFx from "../../fixtures/briefing.json";
 import agentsFx from "../../fixtures/agents-runs.json";
 import type { AgentRun, BriefingCard, QueueItem, Routine } from "../../types";
-import { firstLoadDone, fieldName, approvalClass, approvalLabels, awayLine, buildItems, consequence, isPausedRun, leadAndRest, neverLine, plainWords, saveHint, saveLine, seenLine, touchesLead, visible, visibleItems } from "./model";
+import { firstLoadDone, fieldName, approvalClass, approvalLabels, awayLine, buildItems, consequence, isPausedRun, leadAndRest, neverLine, plainDuration, plainWords, routineName, sameRoutine, saveHint, saveLine, seenLine, touchesLead, visible, visibleItems } from "./model";
 
 const queue = (queueFx as unknown as { data: QueueItem[] }).data;
 const routines = (routinesFx as unknown as { data: Routine[] }).data;
 const briefing = (briefingFx as unknown as { data: { generated_at: string; cards: BriefingCard[] } }).data;
 const runs = (agentsFx as unknown as { data: AgentRun[] }).data;
 
+const NOW_Q = Date.parse("2026-11-08T09:30:00Z");
 const q = (over: Partial<QueueItem>): QueueItem => ({ ...queue[0], status: "pending", ...over });
 
 describe("order: safety, then time-sensitive, then the rest, newest first inside a class", () => {
@@ -209,5 +210,68 @@ describe("the list is drawn only after every source has answered once", () => {
   });
   it("stays done during a reload (the old data is kept)", () => {
     expect(firstLoadDone([{ data: [1], status: "loading" }])).toBe(true);
+  });
+});
+
+describe("one routine is one row (QA Q1-08)", () => {
+  const card = (title: string, id = "c1") => ({ id, kind: "automate", title, why: "You did these steps 14 times.", prepared: {}, risk_class: "normal", sources: [], expires_at: "", status: "ready" }) as never;
+  const routine = (title: string, id = "r1") => ({ ...(routines.find((r) => r.status === "proposed") as Routine), id, title });
+  it("a prepared 'Automate: X' beside the proposal 'X' is one row, the proposal's, and the card's reason travels with it", () => {
+    const items = buildItems({ routines: [routine("Enter the household into three calculators")], cards: [card("Automate: Enter the household into three calculators")], now: NOW_Q });
+    expect(items).toHaveLength(1);
+    expect(items[0].kind).toBe("proposal");
+    expect(items[0].kind === "proposal" && items[0].also?.id).toBe("c1");
+  });
+  it("sameRoutine ignores the lead-in, the case and extra spaces, and never matches an empty title", () => {
+    expect(sameRoutine({ title: "automate:  Enter  the household" } as never, { title: "Enter the household" } as never)).toBe(true);
+    expect(sameRoutine({ title: "Protect Wednesday morning for focus" } as never, { title: "Enter the household" } as never)).toBe(false);
+    expect(sameRoutine({ title: "" } as never, { title: "" } as never)).toBe(false);
+    expect(sameRoutine({} as never, {} as never)).toBe(false);
+  });
+  it("a prepared action about something else stays its own row, and a card with no twin is untouched", () => {
+    const items = buildItems({ routines: [routine("Enter the household")], cards: [card("Protect Wednesday morning for focus")], now: NOW_Q });
+    expect(items.map((i) => i.kind).sort()).toEqual(["prepared", "proposal"]);
+  });
+  it("two cards for one proposal do not become two rows: the second stays its own (only one twin is taken)", () => {
+    const items = buildItems({ routines: [routine("Enter the household")], cards: [card("Automate: Enter the household", "c1"), card("Automate: Enter the household", "c2")], now: NOW_Q });
+    expect(items.map((i) => i.kind).sort()).toEqual(["prepared", "proposal"]);
+  });
+});
+
+describe("the away report in a worker's words (QA Q1-09)", () => {
+  it("a routine id becomes a name, and a name with spaces is left alone", () => {
+    expect(routineName("benefits-workflow")).toBe("Benefits workflow");
+    expect(routineName("Copy the three results")).toBe("Copy the three results");
+    expect(routineName(undefined)).toBe("A routine");
+    expect(routineName("")).toBe("A routine");
+  });
+  it("minutes become words: under a minute, minutes, hours, days; nonsense is no duration", () => {
+    expect(plainDuration(0.3)).toBe("under a minute");
+    expect(plainDuration(1)).toBe("1 minute");
+    expect(plainDuration(40)).toBe("40 minutes");
+    expect(plainDuration(481.3)).toBe("8 hours");
+    expect(plainDuration(60 * 24 * 3)).toBe("3 days");
+    expect(plainDuration(-5)).toBeNull();
+    expect(plainDuration(Number.NaN)).toBeNull();
+    expect(plainDuration("481")).toBeNull();
+  });
+});
+
+describe("a twin found by meaning (the fixture's own wording)", () => {
+  const cardB02 = briefing.cards.find((c) => c.kind === "automate") as BriefingCard;
+  it("'Let Knack enter households into the three calculators' (kind automate) is the twin of the proposal 'Enter the household into three calculators'", () => {
+    const calc = routines.find((r) => r.id === "calc-entry-3x") as Routine;
+    expect(sameRoutine(cardB02, calc)).toBe(true);
+    const items = buildItems({ routines: [calc], cards: [cardB02], now: NOW_Q });
+    expect(items).toHaveLength(1);
+    expect(items[0].kind).toBe("proposal");
+  });
+  it("it is not the twin of a different routine, and a card that is not an 'automate' card is only matched by its exact title", () => {
+    const rec = routines.find((r) => r.id === "reconcile-totals") as Routine;
+    expect(sameRoutine(cardB02, rec)).toBe(false);
+    expect(sameRoutine({ kind: "focus_block", title: "Let Knack enter households into the three calculators" }, routines.find((r) => r.id === "calc-entry-3x") as Routine)).toBe(false);
+  });
+  it("a title with fewer than three meaning words is never matched by meaning", () => {
+    expect(sameRoutine({ kind: "automate", title: "Automate: Tidy up" }, { title: "Tidy up now" } as Routine)).toBe(false);
   });
 });

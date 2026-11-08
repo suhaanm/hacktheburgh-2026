@@ -12,6 +12,12 @@ const idOf = (r: Routine, i: number): string => (typeof r?.id === "string" && r.
 /** Real routines only, each id once (the first): a list the engine sent twice, or with a hole in it, is still a list. */
 const routinesOf = (rs: unknown): Routine[] => uniqueBy<Routine>(rs, idOf);
 
+/** The tab to open: the one asked for in the address; with none asked for, Could automate when Your routines is empty and that list is not, else Your routines. */
+export function defaultTab(asked: string | null | undefined, routines: number, could: number): Tab {
+  if (asked) return tabOf(asked);
+  return routines === 0 && could > 0 ? "could-automate" : "running";
+}
+
 /** Routines the worker switched on: watching first, with approval, or while away. Most minutes a week first; a missing or odd number counts as none. */
 export function runningRoutines(rs: Routine[] | null | undefined): Routine[] {
   const mpw = (r: Routine): number => num(r.minutes_per_week) ?? 0;

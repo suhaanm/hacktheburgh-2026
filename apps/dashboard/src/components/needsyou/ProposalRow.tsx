@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { ApiError } from "../../api";
-import { neverLine, proposalFacts } from "../../screens/NeedsYou/model";
-import type { Routine } from "../../types";
+import { neverLine, plainWords, proposalFacts } from "../../screens/NeedsYou/model";
+import { clip } from "../../lib/safeText";
+import type { BriefingCard, Routine } from "../../types";
 import { APPROVAL_TEXT, AWAY_TEXT, WATCH_TEXT } from "../routines/consent";
 import { AwayButton, AwayConfirm, useAway } from "../routines/AwayChoice";
 import { SkillGate, type Gate } from "../routines/SkillGate";
@@ -14,11 +15,11 @@ import { KV } from "./KV";
  * yes does (the consent, printed whole), and ONE row of actions: Run with my approval, Run while I'm away and Never. A routine with steps that cannot be
  * undone asks once more, in place, under the row.
  */
-export function ProposalDetails({ routine: p, touches, interval, busy, onApproval, onNever, onDecide }: { routine: Routine; touches: string; /** What is behind the hours: the 95% interval and the money, never the only copy of the range (which is printed on the row). */ interval?: string; busy: boolean; onApproval: () => void; onNever: () => void; onDecide: Decide }) {
+export function ProposalDetails({ routine: p, touches, interval, also, busy, onApproval, onNever, onDecide }: { routine: Routine; touches: string; /** What is behind the hours: the 95% interval and the money, never the only copy of the range (which is printed on the row). */ interval?: string; /** What a prepared action about this same routine says (its reason), when there is one. */ also?: string; busy: boolean; onApproval: () => void; onNever: () => void; onDecide: Decide }) {
   const away = useAway(p, onDecide);
   return (
     <div className="kc-panel" id={`more-${p.id}`} data-testid="proposal-details">
-      <KV rows={[["Touches", touches], ["The hours", interval]]} label="About this routine" />
+      <KV rows={[["Touches", touches], ["The hours", interval], ["Also prepared", also]]} label="About this routine" />
       <p className="kc-sub" data-testid="watch-consent">{WATCH_TEXT} {APPROVAL_TEXT} Run while I'm away: {AWAY_TEXT.charAt(0).toLowerCase()}{AWAY_TEXT.slice(1)}</p>
       <div className="kc-row__actions">
         <button type="button" className="btn btn--secondary btn--sm" disabled={busy} onClick={onApproval}>Run with my approval</button>
@@ -35,7 +36,7 @@ export function ProposalDetails({ routine: p, touches, interval, busy, onApprova
  * and two choices of one size and one weight, Watch first and Not now, so a taller window adds no words. Details opens the rest in place: what it touches,
  * Never, and the other ways to say yes with their consent text.
  */
-export function ProposalRow({ routine: p, onDecide }: { routine: Routine; onDecide: Decide }) {
+export function ProposalRow({ routine: p, also, onDecide }: { routine: Routine; also?: BriefingCard; onDecide: Decide }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [gate, setGate] = useState<Gate | null>(null);
@@ -74,7 +75,7 @@ export function ProposalRow({ routine: p, onDecide }: { routine: Routine; onDeci
         <button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => void go("not_now", "Okay, not now.")}>Not now</button>
         <button type="button" className="kc-link" aria-expanded={more} aria-controls={`more-${p.id}`} onClick={() => setMore((v) => !v)}>Details<Glyph name="chevron" /></button>
       </div>
-      {more && <ProposalDetails routine={p} interval={f.save ? f.hint : undefined} touches={touchList.length > 1 ? `${touchList.slice(0, -1).join(", ")} and ${touchList[touchList.length - 1]}` : touchList.join("")} busy={!!busy}
+      {more && <ProposalDetails routine={p} interval={f.save ? f.hint : undefined} also={also ? plainWords(clip(also.why, 160)) || undefined : undefined} touches={touchList.length > 1 ? `${touchList.slice(0, -1).join(", ")} and ${touchList[touchList.length - 1]}` : touchList.join("")} busy={!!busy}
         onApproval={() => void go("approval", "Set to run with your approval.")} onNever={() => void go("never", "Okay. This will not be suggested again.")} onDecide={onDecide} />}
       {gate && <SkillGate gate={gate} busy={!!busy} onOverride={() => void go(gate.mode, gate.done, true)} onDismiss={() => setGate(null)} />}
       {err && <p className="kc-error" role="alert">{err}</p>}

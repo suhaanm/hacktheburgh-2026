@@ -40,6 +40,8 @@ The rules behind every row:
 | NY-14 | A prepared action with no text, title, reason, ranking, sources | Its three choices and "A prepared action" | a prepared action with no prepared text |
 | NY-15 | A paused run with no start time and no kind | No clock; "Paused: Background run" | a paused run with no start time |
 | NY-16 | An away report with lists missing, empty, or full | Nothing, nothing, "Since you were away: 2 runs finished, 1 failed." | an away report |
+| NY-18 | A prepared 'Automate: X' and the proposal 'X' (QA Q1-08) | One row, the proposal's; the prepared action's reason waits in its Details; a card about something else stays its own row | a prepared 'Automate: X' beside the proposal |
+| NY-19 | The away report with a routine id, minutes and 'stepped aside' (QA Q1-09) | 'Benefits workflow', '8 hours', 'Paused to let you work'; a nonsense length is no length | the away report |
 | NY-17 | The word swap given null, a number or an object | An empty string, never a throw | the word swap accepts anything |
 
 ## Routines and background tasks
@@ -53,6 +55,7 @@ The rules behind every row:
 | RT-05 | A 500-character title; no title | Cut with an ellipsis; "A routine" | a very long routine title |
 | RT-06 | What it touches, lists missing | "" or "Touches A, B and C." | what a routine touches survives |
 | RT-07 | The headline with no tasks, negative or NaN minutes | Empty, or 'N tasks are working in the background.' / 'You have N routines set up.'; never a negative number and never a word that says a routine is executing | the headline names the most urgent fact |
+| RT-09 | Routines opened with no tab asked for and Your routines empty (QA Q1-12) | Opens on Could automate; a tab in the address always wins, so a worker who chose Your routines keeps it | which tab Routines opens on |
 | RT-08 | 500 runs; a run with nothing in it | 500 tasks, no error; a finished task | five hundred runs |
 
 The background tasks list has its own tests in `src/lib/tasks.test.ts` (state words, notes, steps, rows from the tasks service, the fade into Done today, finishing, one announcement), `src/components/routines/BackgroundTasks.test.ts` (one line each, icons by shape, nothing for no tasks, steps closed, Done today closed, a retry when it cannot be read) and `src/lib/live.test.ts` (fake clock and fake stream: fast and slow polling, focus, bursts, a broken stream, a stream at an address, no overlap, a hidden tab).
@@ -80,6 +83,7 @@ The agent service lists persisted run records with their LAST state, so a proces
 | YD-04 | Capture and glances with nothing from the app | One line | capture and glances in a browser tab |
 | YD-05 | Memory file: a missing section, not a list, a line with no id, a duplicate id, a non-text line | Handled, in order, one per id | the memory lines |
 | YD-06 | The headline: 0, 1, many, negative | "nothing", "1 thing", "12 things"; never a negative | the headline counts what is remembered |
+| YD-08 | Memory lines written as codes (QA Q1-10) | Sentences ('Calc entry 3x is set to watch first. Away runs are off.', 'Always asks you first before: submit, close case.'); the file's own text kept for editing | memory lines the engine writes as codes |
 | YD-07 | What it looked at or sent, for a worker | One sentence and one link; no call row | what it looked at or sent is one sentence |
 
 ## Settings
@@ -94,6 +98,7 @@ The agent service lists persisted run records with their LAST state, so a proces
 | ST-06 | Hey Knack: no bridge, and each of its three states | "Available in the Knack app."; the fixed note in all three | Hey Knack |
 | ST-07 | 500 skills, a duplicate name, 300-character descriptions | 200 shown, sorted, each once, cut at 140 | five hundred skills |
 | ST-08 | The headline with live models on, off, or unknown | Says how Knack is set; empty when it does not know | the headline says how Knack is set |
+| ST-10 | The task limits and the live line (QA Q1-11 and a wrong claim) | 'Longest a task runs' and 'Most a task may spend' only inside Advanced (closed); 'because a key is set' only when the engine said a key is set | the two limits on a task |
 | ST-09 | Advanced | Closed, last, and the call list not loaded until opened | the Advanced section is closed |
 
 ## Admin only

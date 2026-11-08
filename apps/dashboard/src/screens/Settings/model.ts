@@ -32,6 +32,7 @@ export interface LiveView { checked: boolean; disabled: boolean; line: string }
 
 export const LIVE_LINES = {
   on: "On, because a key is set. Every call is listed under Advanced.",
+  onPlain: "On. Every call is listed under Advanced.",
   off: "Off. Everything runs on example data.",
   noKey: "No key found. Add it to .env and reopen Knack.",
   restart: "Switching restarts the engine. About 20 seconds.",
@@ -44,7 +45,8 @@ export const LIVE_LINES = {
 export function liveModels(i: LiveInput): LiveView {
   if (!i.health) return { checked: false, disabled: true, line: LIVE_LINES.down };
   const checked = i.health.mock === false;
-  const base = checked ? LIVE_LINES.on : LIVE_LINES.off;
+  // 'Because a key is set' is only said when the engine says a key is set: it never claims a key it was not told about.
+  const base = checked ? (i.health.key_present === true ? LIVE_LINES.on : LIVE_LINES.onPlain) : LIVE_LINES.off;
   if (i.changing) return { checked, disabled: true, line: LIVE_LINES.restart };
   if (i.health.key_present === false && !checked) return { checked, disabled: true, line: LIVE_LINES.noKey };
   if (i.running) return { checked, disabled: true, line: `${base} ${LIVE_LINES.running}` };

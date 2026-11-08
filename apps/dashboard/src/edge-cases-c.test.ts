@@ -25,10 +25,10 @@ import { learnedLines } from "./lib/attention";
 import { clip, count, uniqueBy, validTime, whenText } from "./lib/safeText";
 import { DAY_MS, RUN_GHOST_MS, TASK_GHOST_MS, WAITING_GHOST_MS, anyActiveRun, groupTasks, isGhostRow, isGhostRun, pickTasks, tasksOf } from "./lib/tasks";
 import Agents from "./screens/Agents";
-import { MAX_ROWS, PAGE_ROWS, awayLine, buildItems, needsCount, needsHeadline, plainWords, saveHint, saveLine, seenLine, visibleItems } from "./screens/NeedsYou/model";
-import { routinesHeadline, runningRoutines, touchesSentence, turnedDown } from "./screens/Routines/model";
+import { MAX_ROWS, PAGE_ROWS, awayLine, buildItems, needsCount, needsHeadline, plainDuration, plainWords, routineName, sameRoutine, saveHint, saveLine, seenLine, visibleItems } from "./screens/NeedsYou/model";
+import { defaultTab, routinesHeadline, runningRoutines, touchesSentence, turnedDown } from "./screens/Routines/model";
 import { liveModels, settingsHeadline, skillRows } from "./screens/Settings/model";
-import { dataHeadline, memoryItems } from "./screens/YourData/model";
+import { dataHeadline, memoryItems, plainMemoryLine } from "./screens/YourData/model";
 import type { AgentRun, AttentionSettings, BriefingCard, LedgerEntry, QueueItem, Routine } from "./types";
 
 const queue = (queueFx as unknown as { data: QueueItem[] }).data;
@@ -189,6 +189,22 @@ describe("edge cases: Needs you", () => {
   });
 });
 
+describe("edge cases: one routine, one row (QA Q1-08, Q1-09)", () => {
+  T("NY-18", "a prepared 'Automate: X' beside the proposal 'X' is one row (the proposal's); a card about something else stays; an empty title never matches", () => {
+    const card = (title: string) => ({ id: "c1", kind: "automate", title, why: "You did these steps 14 times.", prepared: {}, risk_class: "normal", sources: [], expires_at: "", status: "ready" }) as never;
+    const items = buildItems({ routines: [proposed], cards: [card(`Automate: ${proposed.title}`)], now: NOW });
+    expect(items).toHaveLength(1);
+    expect(buildItems({ routines: [proposed], cards: [card("Something else entirely")], now: NOW })).toHaveLength(2);
+    expect(sameRoutine({ title: "" } as never, { title: "" } as never)).toBe(false);
+  });
+  T("NY-19", "the away report: an id becomes a name, minutes become words, and a nonsense length is no length", () => {
+    expect(routineName("benefits-workflow")).toBe("Benefits workflow");
+    expect(plainDuration(481.3)).toBe("8 hours");
+    expect(plainDuration(-1)).toBeNull();
+    expect(plainDuration(Number.NaN)).toBeNull();
+  });
+});
+
 describe("edge cases: Routines and background tasks", () => {
   T("RT-01", "no routines: nothing running, nothing turned down, an empty headline", () => {
     expect(runningRoutines(null)).toEqual([]);
@@ -229,6 +245,11 @@ describe("edge cases: Routines and background tasks", () => {
     expect(routinesHeadline({ tasksRunning: 0, routinesRunning: 0, couldMinutes: 180 })).toBe("About 3 hours a week could be handed over.");
     expect(routinesHeadline({ tasksRunning: 0, routinesRunning: 0, couldMinutes: Number.NaN })).toBe("");
     expect(routinesHeadline({ tasksRunning: 0, routinesRunning: 0, couldMinutes: -50 })).toBe("");
+  });
+  T("RT-09", "which tab Routines opens on: Could automate when Your routines is empty and that list is not; a tab in the address always wins", () => {
+    expect(defaultTab(null, 0, 2)).toBe("could-automate");
+    expect(defaultTab(null, 1, 2)).toBe("running");
+    expect(defaultTab("running", 0, 2)).toBe("running");
   });
   T("RT-08", "five hundred runs become five hundred tasks without an error; a run with nothing in it is a finished task", () => {
     const runs = Array.from({ length: 500 }, (_, i) => ({ run_id: `r${i}`, kind: "data.profile", mode: "foreground", state: "done", started: "2026-11-08T08:00:00Z", parent: { id: "p", role: "planner", state: "done", budget: {}, spent: {} }, children: [] }));
@@ -309,6 +330,11 @@ describe("edge cases: Your data", () => {
     expect(dataHeadline({ lines: 12, capture: true })).toBe("Knack remembers 12 things about you, on this Mac only, and learns from when you are active.");
     expect(dataHeadline({ lines: -3, capture: false })).toContain("nothing");
   });
+  T("YD-08", "memory lines the engine writes as codes are shown as sentences, the file's own text is kept for editing, and nothing reads like a granted permission", () => {
+    expect(plainMemoryLine("calc-entry-3x | rung A1 | consent: shadow | unattended: not allowed")).toBe("Calc entry 3x is set to watch first. Away runs are off.");
+    expect(plainMemoryLine("Run without my click: submit, close case")).toMatch(/^Always asks you first before: /);
+    expect(memoryItems({ sections: { Never: [{ id: "n", text: "Run without my click: submit", note: null }] } })[0].text).toBe("Run without my click: submit");
+  });
   T("YD-07", "what it looked at or sent is one sentence and one link for a worker, and no call row", () => {
     const h = render(SentLink, {});
     expect(text(h)).toBe(" Nothing leaves this Mac without your say. Every call Knack makes ");
@@ -362,6 +388,11 @@ describe("edge cases: Settings", () => {
     expect(settingsHeadline({ live: true, preset: "rarely" })).toBe("Knack uses live models and interrupts you rarely.");
     expect(settingsHeadline({ live: false, preset: null })).toBe("Knack runs on example data.");
     expect(settingsHeadline({ live: null, preset: null })).toBe("");
+  });
+  T("ST-10", "the two limits on a task live inside Advanced, and the live line only says 'because a key is set' when the engine said so", () => {
+    const h = html({ skills: { use_claude_skills: true, off: [], max_minutes: 30, max_budget_usd: 2, skills: [] } });
+    expect(h.indexOf("Most a task may spend")).toBeGreaterThan(h.indexOf(">Advanced<"));
+    expect(liveModels({ health: { mock: false }, canSwitch: true, running: false, changing: false }).line).not.toMatch(/because a key/);
   });
   T("ST-09", "the Advanced section is closed, last, and the call list is not even loaded until it is opened", () => {
     const h = html();

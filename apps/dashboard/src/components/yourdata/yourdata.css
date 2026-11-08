@@ -40,3 +40,4 @@
 .yd-switch__text .kc-sub { max-width: 62ch; }
 .yd-switch__control { flex: none; display: flex; align-items: center; min-height: var(--control-h, 32px); }
 .yd-delete { margin-top: var(--space-6); display: grid; gap: var(--space-3); }
+.yd-delete .kc-confirm p { max-width: none; }          /* the sentence is two lines at the column width, not four at 62 characters */

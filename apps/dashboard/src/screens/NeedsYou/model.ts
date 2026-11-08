@@ -9,7 +9,7 @@ export type NeedsClass = 0 | 1 | 2;
 
 export type NeedsItem =
   | { key: string; kind: "approval"; cls: NeedsClass; when: string | null; queue: QueueItem }
-  | { key: string; kind: "proposal"; cls: NeedsClass; when: string | null; routine: Routine }
+  | { key: string; kind: "proposal"; cls: NeedsClass; when: string | null; routine: Routine; /** A prepared action about the same routine: its words wait in the proposal's Details, it is not a second row. */ also?: BriefingCard }
   | { key: string; kind: "prepared"; cls: NeedsClass; when: string | null; card: BriefingCard }
   | { key: string; kind: "paused"; cls: NeedsClass; when: string | null; run: AgentRun }
   | { key: string; kind: "task"; cls: NeedsClass; when: string | null; task: TaskRow };
@@ -61,6 +61,9 @@ export function buildItems(src: { queue?: QueueItem[] | null; routines?: Routine
   }
   for (const c of uniqueBy<BriefingCard>(src.cards, idOf("id"))) {
     if (c.status !== "ready") continue;
+    // The same routine as a proposal ("Automate: X" beside "X"): one row, the proposal's; the prepared action's words go into its Details.
+    const twin = out.find((it) => it.kind === "proposal" && !it.also && sameRoutine(c, it.routine));
+    if (twin && twin.kind === "proposal") { twin.also = c; continue; }
     out.push({ key: `b:${idOf("id")(c, out.length)}`, kind: "prepared", cls: 2, when: src.cardsAt ?? null, card: c });
   }
   for (const run of uniqueBy<AgentRun>(src.runs, idOf("run_id"))) {
@@ -80,6 +83,45 @@ export function buildItems(src: { queue?: QueueItem[] | null; routines?: Routine
     .map((it, i) => ({ it, i }))
     .sort((a, b) => a.it.cls - b.it.cls || ms(b.it.when) - ms(a.it.when) || a.i - b.i)
     .map((x) => x.it);
+}
+
+const normTitle = (t: unknown): string => plainWords(typeof t === "string" ? t : "").toLowerCase().replace(/^automate:\s*/, "").replace(/\s+/g, " ").trim();
+const FILLER = new Set(["let", "knack", "automate", "the", "a", "an", "into", "to", "and", "for", "of", "it", "me", "my", "your", "you", "with", "on", "in"]);
+/** The words of a title that carry its meaning: no filler, plural endings taken off ('households' and 'household' are one word). */
+const meaningWords = (t: unknown): Set<string> => new Set(normTitle(t).replace(/[^a-z0-9 ]+/g, " ").split(" ").filter((w) => w && !FILLER.has(w)).map((w) => (w.length > 3 && w.endsWith("s") ? w.slice(0, -1) : w)));
+/**
+ * A prepared action and a routine proposal are about the same routine when their titles match once the 'Automate:' lead-in is taken off, or, for an
+ * 'automate' card, when they say the same thing in other words ('Let Knack enter households into the three calculators' and 'Enter the household into three
+ * calculators': the same four meaning words). Anything else stays its own row.
+ */
+export function sameRoutine(card: Pick<BriefingCard, "title"> & { kind?: string }, routine: Pick<Routine, "title">): boolean {
+  const a = normTitle(card?.title);
+  if (a === "") return false;
+  if (a === normTitle(routine?.title)) return true;
+  if (card?.kind !== "automate" && !/^automate:/i.test(String(card?.title ?? ""))) return false;
+  const x = meaningWords(card?.title), y = meaningWords(routine?.title);
+  if (x.size < 3 || y.size < 3) return false;
+  let both = 0;
+  for (const w of x) if (y.has(w)) both++;
+  return both / (x.size + y.size - both) >= 0.75;
+}
+
+/** A routine's name for a worker: an id like 'benefits-workflow' becomes 'Benefits workflow'; a name with spaces is left as it is. */
+export function routineName(v: unknown): string {
+  const s = typeof v === "string" ? v.trim() : "";
+  if (!s) return "A routine";
+  const t = /\s/.test(s) || !/[-_]/.test(s) ? s : s.replace(/[-_]+/g, " ");
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+/** A length of time in the words a person says: 'under a minute', '40 minutes', '8 hours', '3 days'. Anything that is not a sensible number is no duration (null). */
+export function plainDuration(minutes: unknown): string | null {
+  if (typeof minutes !== "number" || !Number.isFinite(minutes) || minutes < 0) return null;
+  if (minutes < 1) return "under a minute";
+  if (minutes < 90) { const m = Math.round(minutes); return `${m} ${m === 1 ? "minute" : "minutes"}`; }
+  if (minutes < 48 * 60) { const h = Math.round(minutes / 60); return `${h} ${h === 1 ? "hour" : "hours"}`; }
+  const d = Math.round(minutes / 1440);
+  return `${d} days`;
 }
 
 /** The one number the sidebar badge, the menu bar and the Dock all show. */

@@ -3,7 +3,7 @@ import memoryFx from "../../fixtures/memory.json";
 import ledgerFx from "../../fixtures/privacy-ledger.json";
 import { captureOn } from "../../lib/memory";
 import type { LedgerEntry, Memory } from "../../types";
-import { CAPTURE_TEXT, YD_SECTIONS, YD_TITLE, cleanNote, clearItemsMarkdown, deleteAllText, deleteResultText, factLine, memoryItems, sentLine, stepForgetText, ydSectionOf } from "./model";
+import { CAPTURE_TEXT, YD_SECTIONS, YD_TITLE, cleanNote, clearItemsMarkdown, deleteAllText, deleteResultText, factLine, memoryItems, plainMemoryLine, sentLine, stepForgetText, ydSectionOf } from "./model";
 
 const mem = (memoryFx as unknown as { data: Memory }).data;
 const ledger = (ledgerFx as unknown as { data: LedgerEntry[] }).data;
@@ -39,9 +39,10 @@ describe("the memory lines", () => {
     expect(items[0].note).toBe("You asked for this");
     expect(items[1].note).toBeNull();
   });
-  it("lists every line of the example file", () => {
-    const n = Object.values(mem.sections).reduce((a, l) => a + l.length, 0);
-    expect(memoryItems(mem)).toHaveLength(n);
+  it("lists every line of the example file about the worker (the file's own bracketed comments are not memories)", () => {
+    const all = Object.values(mem.sections).flat();
+    const comments = all.filter((l) => /^\(.*\)$/.test(l.text.trim())).length;
+    expect(memoryItems(mem)).toHaveLength(all.length - comments);
   });
   it("clearing removes every line and keeps the headings and the role", () => {
     const md = clearItemsMarkdown("---\nrole: benefits-processor\nrevision: 3\n---\n## Preferences\n- Capture: times only\n- Short summaries\n## Never\n- Send anything\n");
@@ -76,20 +77,21 @@ describe("Delete everything states exactly what is cleared", () => {
   it("names each part with its count, and what stays", () => {
     const t = deleteAllText({ memoryLines: 14, steps: 120, calls: 6, person: true });
     expect(t.question).toBe("Delete everything Knack holds about you?");
-    expect(t.consequence).toContain("14 lines of your memory file");
+    expect(t.consequence).toContain("14 memory lines");
     expect(t.consequence).toContain("120 step counts");
-    expect(t.consequence).toContain("6 records of model calls");
-    expect(t.consequence).toContain("what Knack learned about how loud to speak");
-    expect(t.consequence).toContain("the counts of your cursor and apps");
-    expect(t.consequence).toContain("It does not recall anything already sent.");
+    expect(t.consequence).toContain("6 call records");
+    expect(t.consequence).toContain("what it learned about notices");
+    expect(t.consequence).toContain("your cursor and app counts");
+    expect(t.consequence).toContain("Calls already sent are not recalled.");
+    expect(t.consequence.length).toBeLessThanOrEqual(220);          // two lines at the column width
     expect(t.consequence).toContain("Your role, settings and routines stay.");
   });
   it("does not claim the cursor counts when nobody is set up, and says 1 in the singular", () => {
     const t = deleteAllText({ memoryLines: 1, steps: 1, calls: 1, person: false });
     expect(t.consequence).not.toContain("cursor");
-    expect(t.consequence).toContain("1 line of your memory file");
+    expect(t.consequence).toContain("1 memory line");
     expect(t.consequence).toContain("1 step count,");
-    expect(t.consequence).toContain("1 record of model calls");
+    expect(t.consequence).toContain("1 call record");
   });
   it("after a partial failure it says which part was not cleared and claims nothing else", () => {
     expect(deleteResultText([{ part: "memory", ok: true }, { part: "model calls", ok: true }])).toBe("Deleted. Everything listed was cleared.");
@@ -116,5 +118,47 @@ describe("the capture consent", () => {
     expect(CAPTURE_TEXT).toContain("never what you read");
     expect(CAPTURE_TEXT).toContain("no page text, no URLs, no field values");
     expect(CAPTURE_TEXT).toContain("stays on this laptop");
+  });
+});
+
+describe("memory lines in sentences (QA Q1-10)", () => {
+  it("a routine's record becomes a sentence with no rung, no code and no 'consent:'", () => {
+    expect(plainMemoryLine("calc-entry-3x | rung A1 | consent: shadow | unattended: not allowed")).toBe("Calc entry 3x is set to watch first. Away runs are off.");
+    expect(plainMemoryLine("benefits-workflow | rung A2 | consent: approval | unattended: not allowed")).toBe("Benefits workflow is set to ask first. Away runs are off.");
+    expect(plainMemoryLine("x | rung A3 | consent: unattended | unattended: allowed")).toBe("X is set to run while you are away. Away runs are on.");
+  });
+  it("a help level line drops the streak and the 'last seen'", () => {
+    expect(plainMemoryLine("reads-error-first: L1, streak 0, last seen never")).toBe("Help on reads error first: level 1.");
+    expect(plainMemoryLine("reads-error-first: L3, streak 2")).toBe("Help on reads error first: level 3.");
+  });
+  it("a checklist loses its underscores", () => {
+    expect(plainMemoryLine("Checklist: read_case, then calc_a or calc_b")).toBe("Checklist: read case, then calc a or calc b");
+  });
+  it("the list of steps that always need a click says so, and does not read like a permission", () => {
+    const s = plainMemoryLine("Run without my click: submit, close case, approve payment");
+    expect(s).toBe("Always asks you first before: submit, close case, approve payment.");
+    expect(s).not.toMatch(/^Run without/i);
+  });
+  it("a line in the worker's own words is left alone, and the file's own text is kept for editing", () => {
+    expect(plainMemoryLine("Working hours: Mon to Fri, 09:00 to 17:30.")).toBe("Working hours: Mon to Fri, 09:00 to 17:30.");
+    const items = memoryItems({ sections: { Never: [{ id: "n1", text: "Run without my click: submit", note: null }] } });
+    expect(items[0].plain).toBe("Always asks you first before: submit.");
+    expect(items[0].text).toBe("Run without my click: submit");
+    expect(plainMemoryLine(undefined as unknown as string)).toBe("");
+  });
+});
+
+describe("memory lines: a routine that is not switched on, the Never section, and the file's own comments", () => {
+  it("a routine with consent 'none' is 'not switched on', with no away sentence", () => {
+    expect(plainMemoryLine("calc-entry-3x | rung A0 | consent: none | unattended: not allowed")).toBe("Calc entry 3x is not switched on.");
+  });
+  it("a line under Never says it is a Never line, and the click list still says what it is", () => {
+    expect(plainMemoryLine("banking sites, password managers", "Never")).toBe("Never: banking sites, password managers");
+    expect(plainMemoryLine("Never open banking sites", "Never")).toBe("Never open banking sites");
+    expect(plainMemoryLine("Run without my click: submit", "Never")).toBe("Always asks you first before: submit.");
+  });
+  it("an explanatory line in brackets is the file's comment, not a memory, and is not listed", () => {
+    const items = memoryItems({ sections: { Rules: [{ id: "a", text: "(3 consistent corrections become a proposed rule; each rule is versioned)", note: null }, { id: "b", text: "Check child benefits first.", note: null }] } });
+    expect(items.map((i) => i.text)).toEqual(["Check child benefits first."]);
   });
 });

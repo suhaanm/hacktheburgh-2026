@@ -52,8 +52,10 @@ export default function NeedsYou() {
   useEffect(() => { if (ready) setState({ pendingQueue: n }); }, [ready, n]);
 
   const reload = () => { q.reload(); rt.reload(); br.reload(); ag.reload(); tk.reload(); rep.reload(); };
-  // An approval that arrives, or a run that pauses or finishes, shows up by itself: every 2 s while a run is active, every 15 s otherwise, on focus.
-  useLive(reload, (ag.source === "live" && anyActiveRun(ag.data)) || (tk.source === "live" && anyActiveRow(tk.data)), useRegisteredStreams(), tk.source === "live" ? [`${AGENT_URL}/tasks/events`] : []);
+  // An approval that arrives, or a run that pauses or finishes, shows up by itself: the tasks list every 2 s while a task runs, the other sources (six endpoints, some slow) every 15 s and on focus.
+  const fastActive = (ag.source === "live" && anyActiveRun(ag.data)) || (tk.source === "live" && anyActiveRow(tk.data));
+  useLive(() => { tk.reload(); }, fastActive, useRegisteredStreams(), tk.source === "live" ? [`${AGENT_URL}/tasks/events`] : []);        // the tasks list: every 2 s while something runs
+  useLive(() => { q.reload(); rt.reload(); br.reload(); ag.reload(); rep.reload(); }, false);                                         // everything else: every 15 s and on focus
 
   if (q.status === "error" && !q.data) return <div className="page page--read kc-page"><ErrorState error={q.error} retry={q.reload} what="what needs you" /></div>;
   if (!q.data || (!ready && items.length === 0)) return <div className="page page--read kc-page"><Loading label="Loading what needs you" /></div>;
@@ -70,7 +72,7 @@ export default function NeedsYou() {
   const node = (it: NeedsItem) => {
     switch (it.kind) {
       case "approval": return <ApprovalRow item={it.queue} cls={it.cls} primary={it.key === primaryKey} onDone={reload} />;
-      case "proposal": return <ProposalRow routine={it.routine} onDecide={decide} />;
+      case "proposal": return <ProposalRow routine={it.routine} also={it.also} onDecide={decide} />;
       case "prepared": return (
         <PreparedRow card={it.card} onChanged={reload}
           onFired={(f, title) => { setGone((g) => ({ ...g, [it.card.id]: true })); setMade({ title, text: madeLine(f) }); reload(); }}

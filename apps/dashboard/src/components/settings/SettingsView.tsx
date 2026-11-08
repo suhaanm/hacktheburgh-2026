@@ -206,22 +206,6 @@ export function SettingsView(p: SettingsViewProps) {
           <Row id="skills" title="Use my skills" def="skills"
             line="Knack can use the skill files already on this Mac."
             control={<Switch label="Use my skills" checked={p.skills.use_claude_skills !== false} onChange={(on) => p.onSkills?.({ use_claude_skills: on })} />} />
-          {typeof p.skills.max_minutes === "number" && (
-            <Row id="max-minutes" title="Longest a task runs" def="max-minutes" line="A background task stops by itself after this long."
-              control={
-                <select className="select" aria-label="Longest a task runs" value={p.skills.max_minutes} onChange={(e) => p.onSkills?.({ max_minutes: Number(e.target.value) })}>
-                  {maxMinutesChoices(p.skills.max_minutes).map((n) => <option key={n} value={n}>{n} minutes</option>)}
-                </select>
-              } />
-          )}
-          {typeof p.skills.max_budget_usd === "number" && (
-            <Row id="max-budget" title="Most a task may spend" def="max-budget" line="A task stops by itself when it reaches this."
-              control={
-                <select className="select" aria-label="Most a task may spend" value={p.skills.max_budget_usd} onChange={(e) => p.onSkills?.({ max_budget_usd: Number(e.target.value) })}>
-                  {maxBudgetChoices(p.skills.max_budget_usd).map((n) => <option key={n} value={n}>{usd(n)}</option>)}
-                </select>
-              } />
-          )}
           {skillRows(p.skills).length > 0 && (
             <div className="st-sub">
               <Details summary="More" wide>
@@ -258,6 +242,26 @@ export function SettingsView(p: SettingsViewProps) {
       <div className="st-sub" id="set-advanced">
         <Details summary="Advanced" defaultOpen={target === "advanced"} onToggle={setAdv} wide>
           <div className="st-kinds">
+            {p.skills && (
+              <>
+                {typeof p.skills.max_minutes === "number" && (
+            <Row id="max-minutes" title="Longest a task runs" def="max-minutes" line="A background task stops by itself after this long."
+              control={
+                <select className="select" aria-label="Longest a task runs" value={p.skills.max_minutes} onChange={(e) => p.onSkills?.({ max_minutes: Number(e.target.value) })}>
+                  {maxMinutesChoices(p.skills.max_minutes).map((n) => <option key={n} value={n}>{n} minutes</option>)}
+                </select>
+              } />
+          )}
+          {typeof p.skills.max_budget_usd === "number" && (
+            <Row id="max-budget" title="Most a task may spend" def="max-budget" line="A task stops by itself when it reaches this."
+              control={
+                <select className="select" aria-label="Most a task may spend" value={p.skills.max_budget_usd} onChange={(e) => p.onSkills?.({ max_budget_usd: Number(e.target.value) })}>
+                  {maxBudgetChoices(p.skills.max_budget_usd).map((n) => <option key={n} value={n}>{usd(n)}</option>)}
+                </select>
+              } />
+          )}
+              </>
+            )}
             {adv && p.advanced}
             <p className="kc-sub" data-testid="line-about">Knack{p.version ? ` ${p.version}` : ""}. It runs on this Mac only. <a className="kc-link" href="#/setup">Set up again<span aria-hidden="true"> ›</span></a></p>
           </div>
