@@ -109,3 +109,19 @@ def test_truncated_crps_handles_censoring_without_imputing():
     vague = np.array([[0.25, 0.5, 0.75, 1.0]])
     e, o = np.array([2]), np.array([4])
     assert sc.truncated_crps(sharp, e, o, 30.0)[0] < sc.truncated_crps(vague, e, o, 30.0)[0]
+
+
+def test_calibration_fit_converges_for_an_anti_informative_and_a_saturated_forecast():
+    rng = np.random.default_rng(11)
+    n = 6000
+    p_true = rng.uniform(0.1, 0.9, n)
+    y = (rng.random(n) < p_true).astype(float)
+    flipped = 1.0 - p_true                      # a forecast that says the opposite: the slope is about -1
+    a, b = sc.calibration_fit(y, flipped)
+    assert -1.3 < b < -0.7 and abs(a) < 1.0
+    saturated = np.where(rng.random(n) < 0.5, 0.0, 1.0)      # clipped to 0.01 and 0.99, unrelated to y
+    a2, b2 = sc.calibration_fit(y, saturated)
+    assert np.isfinite(a2) and np.isfinite(b2) and abs(b2) < 1.0
+    w = rng.integers(0, 3, n).astype(float)     # weights (bootstrap multiplicities) work the same
+    a3, b3 = sc.calibration_fit(y, p_true, weights=w)
+    assert abs(b3 - 1.0) < 0.2

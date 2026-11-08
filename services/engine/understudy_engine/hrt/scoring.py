@@ -64,22 +64,39 @@ def _logit(p: np.ndarray) -> np.ndarray:
     return np.log(pc / (1.0 - pc))
 
 
+def _nll(a: float, b: float, s: np.ndarray, y: np.ndarray, w: np.ndarray) -> float:
+    z = np.clip(a + b * s, -30.0, 30.0)
+    return float(np.sum(w * (np.logaddexp(0.0, z) - y * z)))
+
+
 def calibration_fit(y: np.ndarray, p: np.ndarray, weights: np.ndarray | None = None) -> tuple[float, float]:
-    """(intercept a, slope b) of ``logit P(y = 1) = a + b logit(p)`` by Newton's method (two parameters; a clipped, regular problem)."""
+    """(intercept a, slope b) of ``logit P(y = 1) = a + b logit(p)``: damped Newton with a backtracking line search on the (convex) weighted
+    negative log likelihood, so it converges when the forecast is badly miscalibrated or even anti-informative (a negative slope is a real answer)."""
     s = _logit(p)
     y = np.asarray(y, dtype=float)
     w = np.ones_like(y) if weights is None else np.asarray(weights, dtype=float)
     a, b = 0.0, 1.0
-    for _ in range(25):
+    cur = _nll(a, b, s, y, w)
+    for _ in range(60):
         z = np.clip(a + b * s, -30, 30)
         q = 1.0 / (1.0 + np.exp(-z))
         r = w * (y - q)
         g = np.array([r.sum(), (r * s).sum()])
         v = w * q * (1.0 - q)
-        H = np.array([[v.sum(), (v * s).sum()], [(v * s).sum(), (v * s * s).sum()]]) + 1e-9 * np.eye(2)
+        H = np.array([[v.sum(), (v * s).sum()], [(v * s).sum(), (v * s * s).sum()]]) + 1e-6 * np.eye(2)
         step = np.linalg.solve(H, g)
-        a, b = a + float(step[0]), b + float(step[1])
-        if abs(step).max() < 1e-8:
+        t = 1.0
+        while t > 1e-6:
+            na, nb = a + t * float(step[0]), b + t * float(step[1])
+            new = _nll(na, nb, s, y, w)
+            if new <= cur + 1e-12:
+                break
+            t *= 0.5
+        else:
+            break
+        a, b, moved = na, nb, abs(cur - new)
+        cur = new
+        if moved < 1e-10 * max(1.0, abs(cur)):
             break
     return a, b
 
