@@ -22,6 +22,20 @@ const user = (label: string, over: Partial<UserRow> = {}): UserRow => ({
   automations_running: 0, automation: null, n: 50, n_recent: 20, ...over,
 });
 
+import { agreeWithEffect } from "./model";
+
+describe("a headline's rounded words agree with the exact figure under it", () => {
+  it("rounds to the nearest whole unit of the same kind, and leaves other units alone", () => {
+    expect(agreeWithEffect("Juniors take about 15 seconds longer per case than experts.", { unit: "seconds", value: 16.9 })).toBe("Juniors take about 17 seconds longer per case than experts.");
+    expect(agreeWithEffect("Juniors take about 20 seconds longer.", { unit: "seconds", value: 20.7 })).toBe("Juniors take about 21 seconds longer.");
+    expect(agreeWithEffect("Juniors take about 10 seconds longer.", { unit: "seconds", value: 9.4 })).toBe("Juniors take about 9 seconds longer.");
+    expect(agreeWithEffect("About 3 hours of work.", { unit: "seconds", value: 16.9 })).toBe("About 3 hours of work.");
+    expect(agreeWithEffect("Juniors take about 5 minutes longer.", { unit: "seconds", value: 16.9 })).toBe("Juniors take about 5 minutes longer.");
+    expect(agreeWithEffect("no number here", { unit: "seconds", value: Number.NaN })).toBe("no number here");
+    expect(agreeWithEffect("Juniors take about 15 seconds longer.", null)).toBe("Juniors take about 15 seconds longer.");
+  });
+});
+
 describe("est and interval", () => {
   it("reads every shape the services use", () => {
     expect(est(0.4)).toEqual({ value: 0.4, ci: null });

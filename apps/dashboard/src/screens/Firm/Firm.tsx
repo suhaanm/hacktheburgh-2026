@@ -68,7 +68,7 @@ function Overview({ openId }: { openId: string | null }) {
           )}
           {o.firm.users > 0 && <p className="firm-links"><a href="#/firm/brief">Print the firm brief</a></p>}
           {o.suppressed && o.suppressed.count > 0 && (
-            <Details summary={`${o.suppressed.count} other candidates were left out`}>
+            <Details summary={`${o.suppressed.count} other findings are not shown`}>
               <ul>{Object.entries(o.suppressed.by_reason).map(([k, v]) => <li key={k}>{REASON[k] ?? k.replace(/_/g, " ")}: {v}</li>)}</ul>
             </Details>
           )}

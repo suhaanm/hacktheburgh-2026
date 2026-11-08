@@ -43,7 +43,7 @@ Where they appear: **first run**, inside the role card, "Connect your tools" chi
 
 Outlook and Teams are Example only in the app: they are the calendar layer's read-only Graph sources, and a real sign-in to a Microsoft account is set up by the owner for a specific approved run (D26), never from a button here.
 
-Chip flags, printed on the chip itself: Notion "Vendor says unmaintained"; Sentry "Source-available licence"; Slack, Jira, Jupyter, Sheets and Drive, SharePoint "Community server".
+Chip flags, printed on the chip itself, in plain muted text: Notion "Vendor says unmaintained" and Sentry "Source-available licence". Who made a server (a community author, the vendor, the MCP project) is not a warning and is not on the chip; it is the publisher in the consent lines and in "About this server".
 
 ## 4. The security model, in plain words
 

@@ -1,3 +1,4 @@
+import { wrapLabel } from "../../lib/git";
 import { useId, useMemo } from "react";
 import { scaleLinear } from "d3-scale";
 import { useWidth } from "../../hooks";
@@ -74,8 +75,11 @@ export function IntervalPlot({ title, rows, domain, ticks, format, reference, ro
                   </>
                 ) : (
                   <>
-                    <text className="ip-label" x={0} y={cy - 3}>{r.label}</text>
-                    <text className="svg-text ip-value" x={0} y={cy + 11}>{r.est ? `${format(r.est.value)}${r.est.ci ? "" : " (no interval yet)"}` : "not enough data"}</text>
+                    {(() => {
+                      const ls = wrapLabel(r.label, 24);
+                      return <text className="ip-label" x={0} y={cy - (ls.length > 1 ? 10 : 3)}>{ls.map((l, k) => <tspan key={k} x={0} dy={k === 0 ? 0 : 12}>{l}</tspan>)}</text>;
+                    })()}
+                    <text className="svg-text ip-value" x={0} y={cy + (wrapLabel(r.label, 24).length > 1 ? 16 : 11)}>{r.est ? `${format(r.est.value)}${r.est.ci ? "" : " (no interval yet)"}` : "not enough data"}</text>
                   </>
                 )}
                 {r.est?.ci && <line className="ip-whisker" x1={x(r.est.ci[0])} x2={x(r.est.ci[1])} y1={cy} y2={cy} />}

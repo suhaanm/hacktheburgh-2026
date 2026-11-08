@@ -96,6 +96,18 @@ def _agents_on() -> bool:
 
 def _person(person: str | None) -> str | None:
     if person:
+        # Outside mock mode, on a stack where someone is set up, a briefing is the caller's own: another id in ?person= (a screen that asked before it knew who the worker is, a
+        # stale id) is answered with the caller's briefing under the caller's id, never with someone else's cards. Mock mode (the evaluation's personas) keeps ?person= as asked.
+        try:
+            from . import routes_handoff as rh
+            from .insights.paths import is_mock
+            from .memory.onboarding import load_profile
+
+            own = (load_profile(rh._mem()) or {}).get("person")
+            if own and not is_mock() and own != person:
+                return str(own)
+        except Exception:
+            pass
         return person
     try:
         from . import routes_handoff as rh

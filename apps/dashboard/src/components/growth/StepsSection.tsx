@@ -6,7 +6,8 @@ import { Ribbon } from "../Ribbon";
 import { Explain } from "../Explain";
 import { Details, FactRows } from "../ui";
 import { GrowthSection, SectionError, useReportSource } from "./GrowthSection";
-import { notKnown, useOwnPerson } from "./own";
+import { useAppState } from "../../store";
+import { notKnown, unknownAsError, useOwnPerson } from "./own";
 import { describeColumn, layoutRibbon } from "../../lib/ribbon";
 import { cogLabel, fmtDuration } from "../../lib/format";
 import { stepsHeadline, topLosses } from "../../lib/steps";
@@ -15,7 +16,8 @@ import { safeWhy } from "../../lib/voice";
 import type { Genome as GenomeData } from "../../types";
 import type { Loaded } from "../../api";
 
-const TASK = "t_entitlement_check";
+/** The task the worker's ribbon is cut from, by role: the engine has one reference trace per task (a benefits entitlement check, a programmer's fix, an analyst's chart). */
+export const taskFor = (role: string | null | undefined): string => (role === "programmer" ? "programmer" : role === "data-analyst" ? "data-analyst" : "t_entitlement_check");
 
 /**
  * My steps against an experienced worker's: the work ribbon for the worker's own case lined up with ONE experienced worker's, unnamed.
@@ -24,7 +26,8 @@ const TASK = "t_entitlement_check";
 export function StepsSection({ open }: { open: boolean }) {
   const own = useOwnPerson();
   const me = own.person;
-  const g = useLoad(() => (own.ready ? (own.blocked ? notKnown<Loaded<GenomeData>>() : api.genome(TASK, me, "nearest_expert")) : idle<GenomeData>()), [own.ready, own.blocked, me]);
+  const task = taskFor(useAppState().role);
+  const g = unknownAsError(useLoad(() => (own.ready ? (own.blocked ? notKnown<Loaded<GenomeData>>() : api.genome(task, me, "nearest_expert")) : idle<GenomeData>()), [own.ready, own.blocked, me, task]));
   useReportSource("steps", g.why ?? null);
   const cols = useMemo(() => (g.data ? layoutRibbon(g.data, 1000).columns : []), [g.data]);
 

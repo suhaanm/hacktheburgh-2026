@@ -96,13 +96,22 @@ export function normaliseSharing(body: unknown): WireSharing {
   };
 }
 
+/**
+ * The engine's headline rounds its number in words ("about 15 seconds"); the figure printed under it is exact (16.9). When the unit is the same, the words
+ * take the exact figure rounded to the nearest whole number, so the two never disagree.
+ */
+export function agreeWithEffect(headline: string, e: { unit: string; value: number } | null): string {
+  if (!e || !Number.isFinite(e.value) || !e.unit) return headline;
+  return headline.replace(/\babout (\d+(?:\.\d+)?) (seconds?|minutes?|hours?)\b/i, (m, _n: string, unit: string) => (e.unit.toLowerCase().startsWith(unit.toLowerCase().replace(/s$/, "")) ? `about ${Math.round(Math.abs(e.value))} ${unit}` : m));
+}
+
 export function insight(v: unknown): AdminInsight | null {
   if (!isObj(v)) return null;
   const id = str(v.id), headline = str(v.headline);
   if (!id || !headline) return null;
   const e = isObj(v.effect) && isNum(v.effect.value) ? { label: str(v.effect.label) ?? "", unit: str(v.effect.unit) ?? "", value: v.effect.value, ci: interval(v.effect.ci ?? v.effect.interval) } : null;
   return {
-    id, headline, role: str(v.role) ?? "all", effect: e, n: num(v.n), n_unit: str(v.n_unit) ?? "people", origin: origin(v.origin), drill: str(v.drill) ?? id,
+    id, headline: agreeWithEffect(headline, e), role: str(v.role) ?? "all", effect: e, n: num(v.n), n_unit: str(v.n_unit) ?? "people", origin: origin(v.origin), drill: str(v.drill) ?? id,
     kind: str(v.kind), polarity: polarity(v.polarity), polarity_label: str(v.polarity_label), glyph: str(v.glyph), a11y_label: str(v.a11y_label),
     position: isNum(v.position) ? v.position : null, text: str(v.text), badge: str(v.badge), split: str(v.split), statement: str(v.statement),
     action: isObj(v.action) && str(v.action.to) ? { id: str(v.action.id) ?? "open", label: str(v.action.label) ?? "Open", to: str(v.action.to) as string, query: str(v.action.query) } : null,
