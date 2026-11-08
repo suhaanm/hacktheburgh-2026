@@ -13,6 +13,7 @@
 #             --browser NAME     the app to open (default "Google Chrome")
 #             --screen WxH       the usable screen size in points (default: asked from macOS without any permission; falls back to 1440x875)
 #             --no-check         do not check that the sandbox, dashboard and engine answer first
+#             --headed           print what the AGENT needs to be seen on screen and exit (opens nothing; see the note below)
 #   env:      KNACK_DASHBOARD (default http://127.0.0.1:5173)   KNACK_SITES_PORT (default 7801)   KNACK_ENGINE (default http://127.0.0.1:7700)
 #
 # Scenes (the shot list in docs/KNACK_DEMO.md says which take uses which):
@@ -22,6 +23,9 @@
 #   home       the dashboard at #/home      needs-you   #/needs-you      routines   #/routines      growth   #/growth
 #   your-data  #/your-data    firm  #/firm (admin)    roles  #/roles    onboarding  #/onboarding   genome  #/genome   forecasts  #/forecasts
 #   evidence   #/evidence (the honest numbers: large window)       agents  #/agents (background runs)       models  #/models
+# THE AGENT IS INVISIBLE UNLESS ITS STACK WAS STARTED HEADED. The agent runs the three calculators in its own Chromium, which is headless by
+# default. For the recording the live stack is started by the lead as `UNDERSTUDY_AGENT_HEADED=1 make live` (this script never starts or restarts
+# anything); then the agent's own windows appear on screen while it works, on top of whatever this script opened.
 # The Knack app shows the dashboard inside its own window; these Chrome windows are for the web-only views (Evidence, Firm, Forecasts), for a
 # take without the app, and for the sandbox pages. The case-note page, the calculators and the dashboard all stay read-only here: opening a page
 # changes nothing except the sandbox page counters.
@@ -46,7 +50,8 @@ while [ $# -gt 0 ]; do
     --browser) BROWSER="${2:-}"; shift 2 ;;
     --screen) SCREEN="${2:-}"; shift 2 ;;
     --no-check) CHECK=0; shift ;;
-    -h|--help) sed -n '2,29p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --headed) echo "To see the agent work on screen, the live stack must be started with its browser headed (the lead does this; nothing here starts a service):"; echo "    UNDERSTUDY_AGENT_HEADED=1 make live"; echo "The agent's own Chromium windows then open by themselves during a run (Routines > Run now); this script does not place them."; exit 0 ;;
+    -h|--help) sed -n '2,31p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "unknown option: $1 (see --help)" >&2; exit 2 ;;
   esac
 done

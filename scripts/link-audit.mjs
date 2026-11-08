@@ -212,6 +212,14 @@ await link('GET', '/voice/lines', async () => {
     : { ok: true, detail: `${lines.length} fixed lines, including the ${wanted.length} that Hey Knack speaks` }
 })
 
+await link('GET', '/desktop/click', async () => {
+  // Hey Knack's "click when I say so" asks the agent for ONE real click through this route. It is not built on purpose: the answer is 404 and the
+  // desktop reports route_missing and clicks nothing until the owner's supervised R1 run (D52). A GET never clicks whatever the route is.
+  const r = await get(AGENT, '/desktop/click', {}, 5000)
+  if (r.status === 404 || r.status === 405) return { skip: "expected, closed by design: do_it_for_me answers route_missing and clicks nothing until the owner's supervised R1 run (D52)" }
+  return { ok: true, detail: `status ${r.status}: the route exists now; it must still refuse without the rung record and the one-time token` }
+})
+
 // ---------------------------------------------------------------------------------------------- DASHBOARD
 section('DASHBOARD')
 await link('GET', '/', async () => {
