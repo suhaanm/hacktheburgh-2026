@@ -13,3 +13,29 @@ enable_flag: UNDERSTUDY_GRAPH
 limitations:
   - Never exercised on a real account in tests; unit-tested against recorded fake responses only.
   - Tenant policy decides whether online meetings can be listed at all.
+connection:
+  group: benefits
+  app: Teams meetings
+  reads: Meeting times, length and attendance counts only.
+  short: Meeting times and counts
+  standin:
+    label: Example calendar
+    source: jsoncal
+  real:
+    verified: true
+    publisher: Microsoft (Graph API), read by our own adapter
+    publisher_kind: vendor
+    license: This repository
+    license_note: Our adapter code, reading the public Graph online-meetings API with GET only.
+    registry: plugin
+    package: graph_teams
+    version: "0.1.0"
+    transport: plugin
+    hosts: [graph.microsoft.com]
+    read_only: "GET only, and only counts, durations and enums are kept."
+    sources:
+      - https://learn.microsoft.com/en-us/graph/api/onlinemeeting-list
+      - https://learn.microsoft.com/en-us/graph/overview
+    verified_on: "2026-11-07"
+  tools:
+    classes: {}

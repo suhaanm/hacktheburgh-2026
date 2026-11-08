@@ -36,6 +36,7 @@ from clicky_lift import Condition, equals
 from .sandbox import PyResult, run_python
 from .spec import AgentSpec, TOOL_NAMES
 from .workspace import Workspace, WorkspaceError
+from ..connections import hook as _mcp   # CONNECTIONS: the mcp_call tool lives in understudy_agent/connections/hook.py; the lines it adds here are marked
 
 _TOKEN = re.compile(r"^[a-z0-9_.:\-]{1,40}$")
 
@@ -56,6 +57,8 @@ class ToolCtx:
     is_cancelled: Callable[[], bool] = lambda: False
     remaining: Callable[[], float] = lambda: policy.PY_TIMEOUT_S      # seconds of the child's time budget left
     emitted: dict[str, Any] | None = None
+    unattended: bool = False                                           # CONNECTIONS: the worker is away (mcp_call then allows a read only)
+    routine_id: str = ""                                               # CONNECTIONS: the routine whose consent record opted connections in
 
 
 @dataclass
@@ -106,11 +109,13 @@ TOOLS: dict[str, ToolDef] = {
                                "write a UTF-8 text file inside the workspace"),
     "emit_result": ToolDef("emit_result", frozenset({"result_file"}), frozenset({"result_file"}),
                            "finish: name a JSON file in the workspace holding your result; code checks it against the schema"),
+    "mcp_call": ToolDef(*_mcp.TOOLDEF),                                # CONNECTIONS
 }
 assert tuple(TOOLS) == TOOL_NAMES, "spec.TOOL_NAMES and tools.TOOLS must list the same tools"
 
 _INT_ARGS = {"offset": (0, 10_000_000), "max_bytes": (1, policy.MAX_READ_BYTES), "max_commits": (1, 1000)}
 _STR_ARGS = {"path": 200, "save_as": 120, "result_file": 200, "content": policy.MAX_FILE_BYTES}
+_STR_ARGS.update(_mcp.STR_ARGS)                                          # CONNECTIONS
 
 
 def normalise_step(raw: Any, allowed_tools: list[str]) -> tuple[str, dict[str, Any]]:
@@ -148,6 +153,8 @@ def pipeline_action(tool: str, args: dict[str, Any]) -> dict[str, Any]:
                                           paths or content become class `credential`: always a human click)
     The content itself is never put in an action (it would be audited and hashed); a digest stands in for it.
     """
+    if tool == "mcp_call":                                             # CONNECTIONS: read -> extract; anything else -> a gated step
+        return _mcp.pipeline_action(args)
     sel = str(args.get("path") or args.get("result_file") or args.get("save_as") or ".")[:280]
     if tool in ("write_workspace", "run_python"):
         body = args.get("content", "") if tool == "write_workspace" else sel
@@ -166,6 +173,8 @@ def pipeline_target(tool: str, args: dict[str, Any], ws: Workspace | None) -> Ta
     a human's call). A write or a code run addresses ONE FILE in the child's own workspace, and TRUSTED code reads that here: the
     path is resolved by `Workspace.resolve` (inside the workspace, no symlink, no escape). A path that does not resolve is an
     UNREADABLE target, so the gate sends it to a human. Reads and the final emit are `extract` steps that type nothing (class read)."""
+    if tool == "mcp_call":                                             # CONNECTIONS
+        return _mcp.pipeline_target(args)
     if tool not in ("write_workspace", "run_python"):
         return TargetInfo()
     if ws is None:
@@ -188,6 +197,7 @@ POSTCONDITIONS: dict[str, Condition] = {
     "run_python": Condition.of(equals("exit_zero", True)),
     "write_workspace": Condition.of(equals("file_exists", True), equals("size_matches", True), equals("content_matches", True)),
     "emit_result": Condition.of(equals("schema_valid", True)),
+    "mcp_call": Condition.of(equals("call_ok", True)),                 # CONNECTIONS
 }
 
 
@@ -313,7 +323,7 @@ def _emit_result(ctx: ToolCtx, a: dict[str, Any]) -> ToolOutcome:
 
 _IMPL: dict[str, Callable[[ToolCtx, dict[str, Any]], ToolOutcome]] = {
     "read_file": _read_file, "list_dir": _list_dir, "git_log": _git_log, "run_python": _run_python,
-    "write_workspace": _write_workspace, "emit_result": _emit_result,
+    "write_workspace": _write_workspace, "emit_result": _emit_result, "mcp_call": _mcp.run,   # CONNECTIONS
 }
 
 
@@ -344,6 +354,7 @@ def child_step_schema(child_id: str, allowed: list[str]) -> dict[str, Any]:
             "max_commits": {"type": "integer", "minimum": 1, "maximum": 1000},
             "save_as": {"type": "string", "maxLength": 120},
             "result_file": {"type": "string", "maxLength": 200},
+            **_mcp.STEP_PROPERTIES,                                    # CONNECTIONS
         },
     }
 
@@ -372,6 +383,8 @@ def resolve_menu_step(menu: Any, raw: Any, allowed_tools: list[str]) -> tuple[st
         raise StepRejected("unknown_file_id")
     if tpl is not None and (not isinstance(tpl, str) or tpl not in menu.templates):
         raise StepRejected("unknown_template_id")
+    if tool == "mcp_call" and tpl is None:                             # CONNECTIONS: the model names an id; code supplies connection, tool and arguments
+        return tool, _mcp.menu_call(menu, file_id)
     if tool == "write_workspace":
         if file_id is None or tpl is None:
             raise StepRejected("missing_arg")

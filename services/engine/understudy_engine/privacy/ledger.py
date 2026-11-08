@@ -197,9 +197,16 @@ CALL_ROW_KINDS = ("image", "audio", "reported")          # kinds written as a be
 
 def _merge_image_results(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """One row per call: fold each ``image_result`` line into the ``image``, ``audio`` or ``reported`` line it refers to (and drop it)."""
-    by_id = {r["id"]: r for r in rows if r.get("kind") in CALL_ROW_KINDS and isinstance(r.get("id"), str)}
+    by_id = {r["id"]: r for r in rows if r.get("kind") in CALL_ROW_KINDS + ("mcp",) and isinstance(r.get("id"), str)}
     out: list[dict[str, Any]] = []
     for r in rows:
+        if r.get("kind") == "mcp_result":                          # CONNECTIONS: a tool call to a connected server; sizes and outcome only
+            parent = by_id.get(r.get("ref"))
+            if parent is not None:
+                for k in ("outcome", "bytes_result", "ms"):
+                    if k in r:
+                        parent[k] = r[k]
+            continue
         if r.get("kind") == "image_result":
             parent = by_id.get(r.get("ref"))
             if parent is not None:
@@ -312,6 +319,8 @@ def summary() -> dict[str, Any]:
     rows = read_all()
     by_purpose: dict[str, int] = {}
     mock = direct = 0
+    mcp_rows = [r for r in rows if r.get("kind") == "mcp"]
+    rows = [r for r in rows if r.get("kind") != "mcp"]            # a tool call to a connected server is not a call to a remote model
     sent = [r for r in rows if r.get("status") != "blocked"]
     images = [r for r in rows if r.get("kind") == "image"]
     blocked_images = [r for r in images if r.get("status") == "blocked"]
@@ -360,6 +369,11 @@ def summary() -> dict[str, Any]:
                    "note": "Frames are held in memory for one call and never stored; a row records size, a short hash, model and latency only."},
         "audio": {**block("audio"), "note": "A row is one worker turn: a seconds bucket, bytes, model and source. Audio and transcripts are never stored."},
         "reported": {**block("reported"), "note": "Calls another process reports (legacy desktop paths): content kind, bytes, count, provider, model. Never the content."},
+        "connections": {"calls": len(mcp_rows), "reads": sum(1 for r in mcp_rows if r.get("class") == "read"),
+                        "changes_asked": sum(1 for r in mcp_rows if r.get("class") != "read"),
+                        "bytes_returned": sum(int(r.get("bytes_result") or 0) for r in mcp_rows),
+                        "note": "A connected server's own traffic goes from that server's process to its own hosts, outside the frame egress guard. "
+                                "A row records sizes and names only, never what was asked or returned."},
         "blocked_attempts": len([1 for o, _ in _iter_lines(blocked_path()) if o is not None]),
         "cleared": {"times": int(meta.get("clear_count", 0)), "calls_removed": int(meta.get("calls_removed_total", 0)),
                     "last_cleared_at": meta.get("last_cleared_at")},

@@ -44,6 +44,8 @@ Re-implemented from the idea only: Mark8, Pupil, Drigil, Stride, MOA, BandIt, Ro
 
 Installed from package registries under their own licences. Record notable ones here as they are added (for example Playwright, FastAPI, statsmodels, lifelines, React, Electron).
 
+**Connections (CONNECTIONS, 8 Nov 2026).** `mcp` 2.3.0 (the official MCP Python SDK, MIT, https://github.com/modelcontextprotocol/python-sdk) with its own dependencies `mcp-types` 2.3.0 (MIT), `httpx2`, `pyjwt`, `sse-starlette`, `python-multipart`, `cryptography` (see `uv.lock`), is a dependency of `services/agent`. The stand-in servers in `packages/connections/standins/` are our own code written with that SDK. **No code of any MCP server below is copied or vendored.** The worker may choose to run each one, unmodified, at the pinned version, as a separate process started only after the worker's own click; each keeps its own licence, listed with its source URLs in `docs/CONNECTIONS.md` section 8: `@modelcontextprotocol/server-filesystem` (Apache-2.0 and MIT), `mcp-server-git` (MIT), `github/github-mcp-server` (MIT), `mcp-atlassian` (MIT), `slack-mcp-server` (MIT), `@sentry/mcp-server` (FSL-1.1-ALv2, source-available, not OSI), `@toolbox-sdk/server` (Apache-2.0), `workspace-mcp` (MIT), `jupyter-mcp-server` (BSD-3-Clause), `@notionhq/notion-mcp-server` (MIT), `@softeria/ms-365-mcp-server` (MIT). Their licence texts travel with the packages the worker installs; we do not redistribute them.
+
 ## Later (if used)
 
 Skills or connectors from `anthropics/knowledge-work-plugins` (Apache-2.0): keep the licence text, retain notices and state changes.

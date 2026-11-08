@@ -1,0 +1,51 @@
+# Preset: Slack (Dev set and Data set), through the community slack-mcp-server. Verified 7 Nov 2026. Starts OFF.
+# Slack's own hosted MCP server is approval-gated for directory apps, so it is listed as unverified in docs/CONNECTIONS.md.
+id: slack
+version: 0.1.0
+kind: mcp
+description: Read Slack channels and threads you can already see, through the community Slack MCP server.
+permissions: [read]
+egress: app_only
+default_enabled: false
+connection:
+  group: dev
+  app: Slack
+  reads: Channels, threads and people you can already see in Slack.
+  short: Channels and threads
+  caution: Community server
+  standin:
+    label: Example Slack
+    script: packages/connections/standins/slack_server.py
+    args: []
+  real:
+    verified: true
+    publisher: korotovsky (community author)
+    publisher_kind: community
+    license: MIT
+    registry: npm
+    package: slack-mcp-server
+    version: "1.3.0"
+    transport: stdio
+    command: npx
+    args: ["-y", "slack-mcp-server@1.3.0", "--transport", "stdio"]
+    credentials:
+      - { env: SLACK_MCP_XOXP_TOKEN, label: Slack user token }
+    env_fixed: { SLACK_MCP_ENABLED_TOOLS: "conversations_history,conversations_replies,conversations_search_messages,conversations_unreads,channels_list,users_search" }
+    hosts: [slack.com]
+    read_only: "Posting is off by default in the server, and we ask it to register only read tools. Our table also needs a click for any write."
+    sources:
+      - https://registry.npmjs.org/slack-mcp-server/1.3.0
+      - https://github.com/korotovsky/slack-mcp-server
+      - https://raw.githubusercontent.com/korotovsky/slack-mcp-server/master/LICENSE
+    verified_on: "2026-11-07"
+  tools:
+    unlisted: verbs
+    classes:
+      read: [conversations_history, conversations_replies, conversations_search_messages, conversations_unreads, channels_list, users_search, usergroups_list, saved_list]
+      write: [conversations_mark, reactions_add, saved_update, saved_clear_completed, usergroups_create, usergroups_update, usergroups_me, attachment_get_data]
+      send: [conversations_add_message]
+      destructive: [reactions_remove, usergroups_users_update]
+    enabled: [conversations_history, conversations_replies, conversations_search_messages, conversations_unreads, channels_list, users_search]
+  limitations:
+    - Community server; its last release is from May 2026.
+    - Use a user token (xoxp) or bot token, not the browser-session option.

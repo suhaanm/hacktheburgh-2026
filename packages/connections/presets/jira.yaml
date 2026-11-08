@@ -1,0 +1,54 @@
+# Preset: Jira (Dev set), through the community mcp-atlassian server. Verified 7 Nov 2026. Starts OFF.
+# Linear has no verifiable package (hosted remote only), so it is listed as unverified in docs/CONNECTIONS.md and is not shipped.
+id: jira
+version: 0.1.0
+kind: mcp
+description: Read Jira issues, boards and sprints, through the community MCP Atlassian server.
+permissions: [read]
+egress: app_only
+default_enabled: false
+connection:
+  group: dev
+  app: Jira
+  reads: Issues, boards and sprints you can already see in Jira.
+  short: Issues, boards, sprints
+  caution: Community server
+  standin:
+    label: Example Jira
+    script: packages/connections/standins/fixture_server.py
+    args: ["--fixture", "jira"]
+  real:
+    verified: true
+    publisher: sooperset (community author)
+    publisher_kind: community
+    license: MIT
+    registry: pypi
+    package: mcp-atlassian
+    version: "0.23.1"
+    transport: stdio
+    command: uvx
+    args: ["mcp-atlassian@0.23.1"]
+    credentials:
+      - { env: JIRA_API_TOKEN, label: Jira API token }
+    params:
+      - { name: site, label: Jira site address, kind: url, env: JIRA_URL }
+      - { name: username, label: Jira email, kind: text, env: JIRA_USERNAME }
+    env_fixed: { READ_ONLY_MODE: "true" }
+    hosts: ["{site}"]
+    read_only: "READ_ONLY_MODE=true. Our table also needs a click for any write."
+    sources:
+      - https://pypi.org/pypi/mcp-atlassian/0.23.1/json
+      - https://github.com/sooperset/mcp-atlassian
+      - https://raw.githubusercontent.com/sooperset/mcp-atlassian/main/LICENSE
+      - https://mcp-atlassian.soomiles.com/docs/tools-reference
+    verified_on: "2026-11-07"
+  tools:
+    unlisted: verbs
+    classes:
+      read: [jira_get_issue, jira_search, jira_get_project_issues, jira_batch_get_changelogs, jira_search_fields, jira_get_field_options, jira_get_transitions, jira_get_project_issue_types, jira_get_create_fields, jira_get_project_versions, jira_get_project_components, jira_get_all_projects, jira_search_projects, jira_get_project_fields, jira_get_agile_boards, jira_get_board_issues, jira_get_sprints_from_board, jira_get_sprint_issues, jira_get_link_types, jira_get_worklog, jira_download_attachments, jira_get_issue_images, jira_get_user_profile, jira_search_assignable_users, jira_get_issue_watchers, jira_get_service_desk_for_project, jira_get_service_desk_queues, jira_get_queue_issues, jira_get_request_types, jira_get_request_type_fields, jira_get_issue_proforma_forms, jira_get_proforma_form_details, jira_get_issue_dates, jira_get_issue_sla, jira_get_issue_development_info, jira_get_issues_development_info, jira_get_project_epic_hierarchy, jira_get_cross_project_dependencies]
+      write: [jira_create_issue, jira_batch_create_issues, jira_update_issue, jira_assign_issue, jira_move_issue, jira_transition_issue, jira_create_version, jira_batch_create_versions, jira_update_version, jira_create_sprint, jira_update_sprint, jira_add_issues_to_sprint, jira_move_issues_to_backlog, jira_link_to_epic, jira_create_issue_link, jira_create_remote_issue_link, jira_add_worklog, jira_add_watcher, jira_remove_watcher, jira_create_customer_request, jira_update_proforma_form_answers]
+      send: [jira_add_comment, jira_edit_comment]
+      destructive: [jira_delete_issue, jira_remove_issue_link]
+  limitations:
+    - Community server, not an Atlassian product. The Confluence tools are not listed; they fall to verb rules.
+    - The read and write split is ours, from tool names; the documentation does not label it.

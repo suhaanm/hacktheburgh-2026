@@ -1,0 +1,1273 @@
+{
+ "meta": {
+  "origin": "synthetic",
+  "n": 15,
+  "n_unit": "connections",
+  "split": null,
+  "interval_level": 0.95,
+  "note": "Example connections.",
+  "generated_at": null
+ },
+ "roles": {
+  "benefits-processor": [
+   "graph_outlook",
+   "graph_teams",
+   "sharepoint"
+  ],
+  "data-analyst": [
+   "sqlite",
+   "postgres",
+   "bigquery",
+   "google_workspace",
+   "jupyter",
+   "notion",
+   "slack"
+  ],
+  "programmer": [
+   "github",
+   "local_git",
+   "jira",
+   "slack",
+   "sentry",
+   "filesystem"
+  ]
+ },
+ "data": [
+  {
+   "id": "graph_outlook",
+   "app": "Outlook calendar",
+   "group": "benefits",
+   "kind": "source",
+   "reads": "Meeting times and counts only. No titles, no people.",
+   "short": "Meeting times and counts",
+   "caution": "",
+   "state": "off",
+   "mode": null,
+   "reason": null,
+   "example": false,
+   "modes": {
+    "example": {
+     "mode": "example",
+     "summary": "Example data: invented and kept on this Mac. Reads meeting times and counts only. No titles, no people. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
+     "lines": [
+      "Example data: invented and kept on this Mac.",
+      "Reads meeting times and counts only. No titles, no people.",
+      "No account is used and nothing leaves this Mac.",
+      "Any change needs your click. Revoke any time."
+     ],
+     "example": true,
+     "publisher": "Knack",
+     "package": "jsoncal",
+     "version": "0.1.0",
+     "hosts": [],
+     "needs_token": false,
+     "caution": ""
+    },
+    "real": null
+   },
+   "tools": {
+    "read": 0,
+    "write": 0,
+    "send": 0,
+    "destructive": 0,
+    "execute": 0
+   },
+   "usage": {
+    "calls": 0,
+    "reads": 0,
+    "changes_asked": 0,
+    "refused": 0,
+    "needed_click": 0,
+    "last_call": null
+   },
+   "probe": null,
+   "consented_at": null,
+   "roles": [
+    "benefits-processor"
+   ],
+   "routines": []
+  },
+  {
+   "id": "graph_teams",
+   "app": "Teams meetings",
+   "group": "benefits",
+   "kind": "source",
+   "reads": "Meeting times, length and attendance counts only.",
+   "short": "Meeting times and counts",
+   "caution": "",
+   "state": "off",
+   "mode": null,
+   "reason": null,
+   "example": false,
+   "modes": {
+    "example": {
+     "mode": "example",
+     "summary": "Example data: invented and kept on this Mac. Reads meeting times, length and attendance counts only. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
+     "lines": [
+      "Example data: invented and kept on this Mac.",
+      "Reads meeting times, length and attendance counts only.",
+      "No account is used and nothing leaves this Mac.",
+      "Any change needs your click. Revoke any time."
+     ],
+     "example": true,
+     "publisher": "Knack",
+     "package": "jsoncal",
+     "version": "0.1.0",
+     "hosts": [],
+     "needs_token": false,
+     "caution": ""
+    },
+    "real": null
+   },
+   "tools": {
+    "read": 0,
+    "write": 0,
+    "send": 0,
+    "destructive": 0,
+    "execute": 0
+   },
+   "usage": {
+    "calls": 0,
+    "reads": 0,
+    "changes_asked": 0,
+    "refused": 0,
+    "needed_click": 0,
+    "last_call": null
+   },
+   "probe": null,
+   "consented_at": null,
+   "roles": [
+    "benefits-processor"
+   ],
+   "routines": []
+  },
+  {
+   "id": "bigquery",
+   "app": "BigQuery",
+   "group": "data",
+   "kind": "mcp",
+   "reads": "Datasets, tables and query results in one Google Cloud project.",
+   "short": "Datasets and tables",
+   "caution": "",
+   "state": "off",
+   "mode": null,
+   "reason": null,
+   "example": false,
+   "modes": {
+    "example": {
+     "mode": "example",
+     "summary": "Example data: invented and kept on this Mac. Reads datasets, tables and query results in one Google Cloud project. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
+     "lines": [
+      "Example data: invented and kept on this Mac.",
+      "Reads datasets, tables and query results in one Google Cloud project.",
+      "No account is used and nothing leaves this Mac.",
+      "Any change needs your click. Revoke any time."
+     ],
+     "example": true,
+     "publisher": "Knack",
+     "package": "packages/connections/standins/sqlite_server.py",
+     "version": "0.1.0",
+     "hosts": [],
+     "needs_token": false,
+     "caution": ""
+    },
+    "real": {
+     "mode": "real",
+     "summary": "Knack starts BigQuery server 1.16.0 (npm @toolbox-sdk/server) by Google (googleapis). It talks to bigquery.googleapis.com with your own sign-in on this Mac. Reads datasets, tables and query results in one Google Cloud project. Any change needs your click. Revoke any time.",
+     "lines": [
+      "Knack starts BigQuery server 1.16.0 (npm @toolbox-sdk/server) by Google (googleapis).",
+      "It talks to bigquery.googleapis.com with your own sign-in on this Mac.",
+      "Reads datasets, tables and query results in one Google Cloud project. Any change needs your click.",
+      "Revoke any time."
+     ],
+     "example": false,
+     "publisher": "Google (googleapis)",
+     "publisher_kind": "vendor",
+     "package": "@toolbox-sdk/server",
+     "version": "1.16.0",
+     "registry": "npm",
+     "license": "Apache-2.0",
+     "hosts": [
+      "bigquery.googleapis.com"
+     ],
+     "needs_token": false,
+     "caution": "",
+     "params": [
+      {
+       "name": "project",
+       "label": "Google Cloud project",
+       "kind": "text"
+      }
+     ],
+     "credentials": [],
+     "verified": true
+    }
+   },
+   "tools": {
+    "read": 7,
+    "write": 1,
+    "send": 0,
+    "destructive": 0,
+    "execute": 0
+   },
+   "usage": {
+    "calls": 0,
+    "reads": 0,
+    "changes_asked": 0,
+    "refused": 0,
+    "needed_click": 0,
+    "last_call": null
+   },
+   "probe": null,
+   "consented_at": null,
+   "roles": [
+    "data-analyst"
+   ],
+   "routines": []
+  },
+  {
+   "id": "filesystem",
+   "app": "Files",
+   "group": "dev",
+   "kind": "mcp",
+   "reads": "Files and folder names inside the one folder you pick.",
+   "short": "One folder of files",
+   "caution": "",
+   "state": "off",
+   "mode": null,
+   "reason": null,
+   "example": false,
+   "modes": {
+    "example": {
+     "mode": "example",
+     "summary": "Example data: invented and kept on this Mac. Reads files and folder names inside the one folder you pick. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
+     "lines": [
+      "Example data: invented and kept on this Mac.",
+      "Reads files and folder names inside the one folder you pick.",
+      "No account is used and nothing leaves this Mac.",
+      "Any change needs your click. Revoke any time."
+     ],
+     "example": true,
+     "publisher": "Knack",
+     "package": "packages/connections/standins/filesystem_server.py",
+     "version": "0.1.0",
+     "hosts": [],
+     "needs_token": false,
+     "caution": ""
+    },
+    "real": {
+     "mode": "real",
+     "summary": "Knack starts Files server 2.2.0 (npm @modelcontextprotocol/server-filesystem) by Model Context Protocol (MCP project). It stays on this Mac. Reads files and folder names inside the one folder you pick. Any change needs your click. Revoke any time.",
+     "lines": [
+      "Knack starts Files server 2.2.0 (npm @modelcontextprotocol/server-filesystem) by Model Context Protocol (MCP project).",
+      "It stays on this Mac.",
+      "Reads files and folder names inside the one folder you pick. Any change needs your click.",
+      "Revoke any time."
+     ],
+     "example": false,
+     "publisher": "Model Context Protocol (MCP project)",
+     "publisher_kind": "mcp_project",
+     "package": "@modelcontextprotocol/server-filesystem",
+     "version": "2.2.0",
+     "registry": "npm",
+     "license": "Apache-2.0 AND MIT",
+     "hosts": [],
+     "needs_token": false,
+     "caution": "",
+     "params": [
+      {
+       "name": "folder",
+       "label": "Folder",
+       "kind": "path"
+      }
+     ],
+     "credentials": [],
+     "verified": true
+    }
+   },
+   "tools": {
+    "read": 10,
+    "write": 5,
+    "send": 0,
+    "destructive": 1,
+    "execute": 0
+   },
+   "usage": {
+    "calls": 0,
+    "reads": 0,
+    "changes_asked": 0,
+    "refused": 0,
+    "needed_click": 0,
+    "last_call": null
+   },
+   "probe": null,
+   "consented_at": null,
+   "roles": [
+    "programmer"
+   ],
+   "routines": []
+  },
+  {
+   "id": "github",
+   "app": "GitHub",
+   "group": "dev",
+   "kind": "mcp",
+   "reads": "Issues, pull requests, commits and code you can already see on GitHub.",
+   "short": "Issues, pull requests, code",
+   "caution": "",
+   "state": "off",
+   "mode": null,
+   "reason": null,
+   "example": false,
+   "modes": {
+    "example": {
+     "mode": "example",
+     "summary": "Example data: invented and kept on this Mac. Reads issues, pull requests, commits and code you can already see on GitHub. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
+     "lines": [
+      "Example data: invented and kept on this Mac.",
+      "Reads issues, pull requests, commits and code you can already see on GitHub.",
+      "No account is used and nothing leaves this Mac.",
+      "Any change needs your click. Revoke any time."
+     ],
+     "example": true,
+     "publisher": "Knack",
+     "package": "packages/connections/standins/github_server.py",
+     "version": "0.1.0",
+     "hosts": [],
+     "needs_token": false,
+     "caution": ""
+    },
+    "real": {
+     "mode": "real",
+     "summary": "Knack starts GitHub server 2.1.0 (container image ghcr.io/github/github-mcp-server) by GitHub. It talks to api.github.com, github.com with your token. Reads issues, pull requests, commits and code you can already see on GitHub. Any change needs your click. Revoke any time.",
+     "lines": [
+      "Knack starts GitHub server 2.1.0 (container image ghcr.io/github/github-mcp-server) by GitHub.",
+      "It talks to api.github.com, github.com with your token.",
+      "Reads issues, pull requests, commits and code you can already see on GitHub. Any change needs your click.",
+      "Revoke any time."
+     ],
+     "example": false,
+     "publisher": "GitHub",
+     "publisher_kind": "vendor",
+     "package": "ghcr.io/github/github-mcp-server",
+     "version": "2.1.0",
+     "registry": "oci",
+     "license": "MIT",
+     "hosts": [
+      "api.github.com",
+      "github.com"
+     ],
+     "needs_token": true,
+     "caution": "",
+     "params": [],
+     "credentials": [
+      {
+       "env": "GITHUB_PERSONAL_ACCESS_TOKEN",
+       "label": "Personal access token"
+      }
+     ],
+     "verified": true
+    }
+   },
+   "tools": {
+    "read": 51,
+    "write": 32,
+    "send": 0,
+    "destructive": 3,
+    "execute": 0
+   },
+   "usage": {
+    "calls": 0,
+    "reads": 0,
+    "changes_asked": 0,
+    "refused": 0,
+    "needed_click": 0,
+    "last_call": null
+   },
+   "probe": null,
+   "consented_at": null,
+   "roles": [
+    "programmer"
+   ],
+   "routines": []
+  },
+  {
+   "id": "google_workspace",
+   "app": "Sheets and Drive",
+   "group": "data",
+   "kind": "mcp",
+   "reads": "Spreadsheets and Drive files you can already open.",
+   "short": "Sheets and Drive files",
+   "caution": "Community server",
+   "state": "off",
+   "mode": null,
+   "reason": null,
+   "example": false,
+   "modes": {
+    "example": {
+     "mode": "example",
+     "summary": "Example data: invented and kept on this Mac. Reads spreadsheets and Drive files you can already open. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
+     "lines": [
+      "Example data: invented and kept on this Mac.",
+      "Reads spreadsheets and Drive files you can already open.",
+      "No account is used and nothing leaves this Mac.",
+      "Any change needs your click. Revoke any time."
+     ],
+     "example": true,
+     "publisher": "Knack",
+     "package": "packages/connections/standins/fixture_server.py",
+     "version": "0.1.0",
+     "hosts": [],
+     "needs_token": false,
+     "caution": ""
+    },
+    "real": {
+     "mode": "real",
+     "summary": "Knack starts Sheets and Drive server 2.3.0 (PyPI workspace-mcp) by Taylor Wilsdon (community author). It talks to www.googleapis.com, sheets.googleapis.com, accounts.google.com with your token. Community server. Reads spreadsheets and Drive files you can already open. Any change needs your click. Revoke any time.",
+     "lines": [
+      "Knack starts Sheets and Drive server 2.3.0 (PyPI workspace-mcp) by Taylor Wilsdon (community author).",
+      "It talks to www.googleapis.com, sheets.googleapis.com, accounts.google.com with your token.",
+      "Community server.",
+      "Reads spreadsheets and Drive files you can already open. Any change needs your click.",
+      "Revoke any time."
+     ],
+     "example": false,
+     "publisher": "Taylor Wilsdon (community author)",
+     "publisher_kind": "community",
+     "package": "workspace-mcp",
+     "version": "2.3.0",
+     "registry": "pypi",
+     "license": "MIT",
+     "hosts": [
+      "www.googleapis.com",
+      "sheets.googleapis.com",
+      "accounts.google.com"
+     ],
+     "needs_token": true,
+     "caution": "Community server",
+     "params": [
+      {
+       "name": "client_id",
+       "label": "Google OAuth client id",
+       "kind": "text"
+      }
+     ],
+     "credentials": [
+      {
+       "env": "GOOGLE_OAUTH_CLIENT_SECRET",
+       "label": "Google OAuth client secret"
+      }
+     ],
+     "verified": true
+    }
+   },
+   "tools": {
+    "read": 12,
+    "write": 18,
+    "send": 0,
+    "destructive": 0,
+    "execute": 2
+   },
+   "usage": {
+    "calls": 0,
+    "reads": 0,
+    "changes_asked": 0,
+    "refused": 0,
+    "needed_click": 0,
+    "last_call": null
+   },
+   "probe": null,
+   "consented_at": null,
+   "roles": [
+    "data-analyst"
+   ],
+   "routines": []
+  },
+  {
+   "id": "jira",
+   "app": "Jira",
+   "group": "dev",
+   "kind": "mcp",
+   "reads": "Issues, boards and sprints you can already see in Jira.",
+   "short": "Issues, boards, sprints",
+   "caution": "Community server",
+   "state": "off",
+   "mode": null,
+   "reason": null,
+   "example": false,
+   "modes": {
+    "example": {
+     "mode": "example",
+     "summary": "Example data: invented and kept on this Mac. Reads issues, boards and sprints you can already see in Jira. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
+     "lines": [
+      "Example data: invented and kept on this Mac.",
+      "Reads issues, boards and sprints you can already see in Jira.",
+      "No account is used and nothing leaves this Mac.",
+      "Any change needs your click. Revoke any time."
+     ],
+     "example": true,
+     "publisher": "Knack",
+     "package": "packages/connections/standins/fixture_server.py",
+     "version": "0.1.0",
+     "hosts": [],
+     "needs_token": false,
+     "caution": ""
+    },
+    "real": {
+     "mode": "real",
+     "summary": "Knack starts Jira server 0.23.1 (PyPI mcp-atlassian) by sooperset (community author). It talks to your own address with your token. Community server. Reads issues, boards and sprints you can already see in Jira. Any change needs your click. Revoke any time.",
+     "lines": [
+      "Knack starts Jira server 0.23.1 (PyPI mcp-atlassian) by sooperset (community author).",
+      "It talks to your own address with your token.",
+      "Community server.",
+      "Reads issues, boards and sprints you can already see in Jira. Any change needs your click.",
+      "Revoke any time."
+     ],
+     "example": false,
+     "publisher": "sooperset (community author)",
+     "publisher_kind": "community",
+     "package": "mcp-atlassian",
+     "version": "0.23.1",
+     "registry": "pypi",
+     "license": "MIT",
+     "hosts": [
+      "your own address"
+     ],
+     "needs_token": true,
+     "caution": "Community server",
+     "params": [
+      {
+       "name": "site",
+       "label": "Jira site address",
+       "kind": "url"
+      },
+      {
+       "name": "username",
+       "label": "Jira email",
+       "kind": "text"
+      }
+     ],
+     "credentials": [
+      {
+       "env": "JIRA_API_TOKEN",
+       "label": "Jira API token"
+      }
+     ],
+     "verified": true
+    }
+   },
+   "tools": {
+    "read": 38,
+    "write": 21,
+    "send": 2,
+    "destructive": 2,
+    "execute": 0
+   },
+   "usage": {
+    "calls": 0,
+    "reads": 0,
+    "changes_asked": 0,
+    "refused": 0,
+    "needed_click": 0,
+    "last_call": null
+   },
+   "probe": null,
+   "consented_at": null,
+   "roles": [
+    "programmer"
+   ],
+   "routines": []
+  },
+  {
+   "id": "jupyter",
+   "app": "Jupyter",
+   "group": "data",
+   "kind": "mcp",
+   "reads": "Notebooks and cells in your own JupyterLab.",
+   "short": "Notebooks and cells",
+   "caution": "Community server",
+   "state": "off",
+   "mode": null,
+   "reason": null,
+   "example": false,
+   "modes": {
+    "example": {
+     "mode": "example",
+     "summary": "Example data: invented and kept on this Mac. Reads notebooks and cells in your own JupyterLab. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
+     "lines": [
+      "Example data: invented and kept on this Mac.",
+      "Reads notebooks and cells in your own JupyterLab.",
+      "No account is used and nothing leaves this Mac.",
+      "Any change needs your click. Revoke any time."
+     ],
+     "example": true,
+     "publisher": "Knack",
+     "package": "packages/connections/standins/fixture_server.py",
+     "version": "0.1.0",
+     "hosts": [],
+     "needs_token": false,
+     "caution": ""
+    },
+    "real": {
+     "mode": "real",
+     "summary": "Knack starts Jupyter server 2.2.4 (PyPI jupyter-mcp-server) by Datalayer (community). It talks to your own address with your token. Community server. Reads notebooks and cells in your own JupyterLab. Any change needs your click. Revoke any time.",
+     "lines": [
+      "Knack starts Jupyter server 2.2.4 (PyPI jupyter-mcp-server) by Datalayer (community).",
+      "It talks to your own address with your token.",
+      "Community server.",
+      "Reads notebooks and cells in your own JupyterLab. Any change needs your click.",
+      "Revoke any time."
+     ],
+     "example": false,
+     "publisher": "Datalayer (community)",
+     "publisher_kind": "community",
+     "package": "jupyter-mcp-server",
+     "version": "2.2.4",
+     "registry": "pypi",
+     "license": "BSD-3-Clause",
+     "hosts": [
+      "your own address"
+     ],
+     "needs_token": true,
+     "caution": "Community server",
+     "params": [
+      {
+       "name": "server",
+       "label": "JupyterLab address",
+       "kind": "url"
+      }
+     ],
+     "credentials": [
+      {
+       "env": "JUPYTER_TOKEN",
+       "label": "JupyterLab token"
+      }
+     ],
+     "verified": true
+    }
+   },
+   "tools": {
+    "read": 8,
+    "write": 6,
+    "send": 0,
+    "destructive": 1,
+    "execute": 2
+   },
+   "usage": {
+    "calls": 0,
+    "reads": 0,
+    "changes_asked": 0,
+    "refused": 0,
+    "needed_click": 0,
+    "last_call": null
+   },
+   "probe": null,
+   "consented_at": null,
+   "roles": [
+    "data-analyst"
+   ],
+   "routines": []
+  },
+  {
+   "id": "local_git",
+   "app": "Git",
+   "group": "dev",
+   "kind": "mcp",
+   "reads": "Commits, diffs and branches of one repository on this Mac.",
+   "short": "Commits and diffs",
+   "caution": "",
+   "state": "off",
+   "mode": null,
+   "reason": null,
+   "example": false,
+   "modes": {
+    "example": {
+     "mode": "example",
+     "summary": "Example data: invented and kept on this Mac. Reads commits, diffs and branches of one repository on this Mac. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
+     "lines": [
+      "Example data: invented and kept on this Mac.",
+      "Reads commits, diffs and branches of one repository on this Mac.",
+      "No account is used and nothing leaves this Mac.",
+      "Any change needs your click. Revoke any time."
+     ],
+     "example": true,
+     "publisher": "Knack",
+     "package": "packages/connections/standins/fixture_server.py",
+     "version": "0.1.0",
+     "hosts": [],
+     "needs_token": false,
+     "caution": ""
+    },
+    "real": {
+     "mode": "real",
+     "summary": "Knack starts Git server 2026.11.4 (PyPI mcp-server-git) by Anthropic, PBC. (MCP project). It stays on this Mac. Reads commits, diffs and branches of one repository on this Mac. Any change needs your click. Revoke any time.",
+     "lines": [
+      "Knack starts Git server 2026.11.4 (PyPI mcp-server-git) by Anthropic, PBC. (MCP project).",
+      "It stays on this Mac.",
+      "Reads commits, diffs and branches of one repository on this Mac. Any change needs your click.",
+      "Revoke any time."
+     ],
+     "example": false,
+     "publisher": "Anthropic, PBC. (MCP project)",
+     "publisher_kind": "mcp_project",
+     "package": "mcp-server-git",
+     "version": "2026.11.4",
+     "registry": "pypi",
+     "license": "MIT",
+     "hosts": [],
+     "needs_token": false,
+     "caution": "",
+     "params": [
+      {
+       "name": "repository",
+       "label": "Repository folder",
+       "kind": "path"
+      }
+     ],
+     "credentials": [],
+     "verified": true
+    }
+   },
+   "tools": {
+    "read": 8,
+    "write": 4,
+    "send": 0,
+    "destructive": 2,
+    "execute": 0
+   },
+   "usage": {
+    "calls": 0,
+    "reads": 0,
+    "changes_asked": 0,
+    "refused": 0,
+    "needed_click": 0,
+    "last_call": null
+   },
+   "probe": null,
+   "consented_at": null,
+   "roles": [
+    "programmer"
+   ],
+   "routines": []
+  },
+  {
+   "id": "notion",
+   "app": "Notion",
+   "group": "data",
+   "kind": "mcp",
+   "reads": "Pages and databases you shared with your Notion integration.",
+   "short": "Pages and databases",
+   "caution": "Vendor says unmaintained",
+   "state": "off",
+   "mode": null,
+   "reason": null,
+   "example": false,
+   "modes": {
+    "example": {
+     "mode": "example",
+     "summary": "Example data: invented and kept on this Mac. Reads pages and databases you shared with your Notion integration. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
+     "lines": [
+      "Example data: invented and kept on this Mac.",
+      "Reads pages and databases you shared with your Notion integration.",
+      "No account is used and nothing leaves this Mac.",
+      "Any change needs your click. Revoke any time."
+     ],
+     "example": true,
+     "publisher": "Knack",
+     "package": "packages/connections/standins/fixture_server.py",
+     "version": "0.1.0",
+     "hosts": [],
+     "needs_token": false,
+     "caution": ""
+    },
+    "real": {
+     "mode": "real",
+     "summary": "Knack starts Notion server 2.6.1 (npm @notionhq/notion-mcp-server) by Notion (makenotion). It talks to api.notion.com with your token. Vendor says unmaintained. Reads pages and databases you shared with your Notion integration. Any change needs your click. Revoke any time.",
+     "lines": [
+      "Knack starts Notion server 2.6.1 (npm @notionhq/notion-mcp-server) by Notion (makenotion).",
+      "It talks to api.notion.com with your token.",
+      "Vendor says unmaintained.",
+      "Reads pages and databases you shared with your Notion integration. Any change needs your click.",
+      "Revoke any time."
+     ],
+     "example": false,
+     "publisher": "Notion (makenotion)",
+     "publisher_kind": "vendor",
+     "package": "@notionhq/notion-mcp-server",
+     "version": "2.6.1",
+     "registry": "npm",
+     "license": "MIT",
+     "hosts": [
+      "api.notion.com"
+     ],
+     "needs_token": true,
+     "caution": "Vendor says unmaintained",
+     "params": [],
+     "credentials": [
+      {
+       "env": "NOTION_TOKEN",
+       "label": "Notion integration token"
+      }
+     ],
+     "verified": true
+    }
+   },
+   "tools": {
+    "read": 14,
+    "write": 8,
+    "send": 1,
+    "destructive": 1,
+    "execute": 0
+   },
+   "usage": {
+    "calls": 0,
+    "reads": 0,
+    "changes_asked": 0,
+    "refused": 0,
+    "needed_click": 0,
+    "last_call": null
+   },
+   "probe": null,
+   "consented_at": null,
+   "roles": [
+    "data-analyst"
+   ],
+   "routines": []
+  },
+  {
+   "id": "postgres",
+   "app": "Postgres",
+   "group": "data",
+   "kind": "mcp",
+   "reads": "Tables, rows and statistics in the one database you name.",
+   "short": "One Postgres database",
+   "caution": "",
+   "state": "off",
+   "mode": null,
+   "reason": null,
+   "example": false,
+   "modes": {
+    "example": {
+     "mode": "example",
+     "summary": "Example data: invented and kept on this Mac. Reads tables, rows and statistics in the one database you name. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
+     "lines": [
+      "Example data: invented and kept on this Mac.",
+      "Reads tables, rows and statistics in the one database you name.",
+      "No account is used and nothing leaves this Mac.",
+      "Any change needs your click. Revoke any time."
+     ],
+     "example": true,
+     "publisher": "Knack",
+     "package": "packages/connections/standins/sqlite_server.py",
+     "version": "0.1.0",
+     "hosts": [],
+     "needs_token": false,
+     "caution": ""
+    },
+    "real": {
+     "mode": "real",
+     "summary": "Knack starts Postgres server 1.16.0 (npm @toolbox-sdk/server) by Google (googleapis). It talks to your own address with your token. Reads tables, rows and statistics in the one database you name. Any change needs your click. Revoke any time.",
+     "lines": [
+      "Knack starts Postgres server 1.16.0 (npm @toolbox-sdk/server) by Google (googleapis).",
+      "It talks to your own address with your token.",
+      "Reads tables, rows and statistics in the one database you name. Any change needs your click.",
+      "Revoke any time."
+     ],
+     "example": false,
+     "publisher": "Google (googleapis)",
+     "publisher_kind": "vendor",
+     "package": "@toolbox-sdk/server",
+     "version": "1.16.0",
+     "registry": "npm",
+     "license": "Apache-2.0",
+     "hosts": [
+      "your own address"
+     ],
+     "needs_token": true,
+     "caution": "",
+     "params": [
+      {
+       "name": "host",
+       "label": "Database host",
+       "kind": "text"
+      },
+      {
+       "name": "database",
+       "label": "Database name",
+       "kind": "text"
+      },
+      {
+       "name": "user",
+       "label": "Database user",
+       "kind": "text"
+      }
+     ],
+     "credentials": [
+      {
+       "env": "POSTGRES_PASSWORD",
+       "label": "Database password"
+      }
+     ],
+     "verified": true
+    }
+   },
+   "tools": {
+    "read": 28,
+    "write": 1,
+    "send": 0,
+    "destructive": 0,
+    "execute": 0
+   },
+   "usage": {
+    "calls": 0,
+    "reads": 0,
+    "changes_asked": 0,
+    "refused": 0,
+    "needed_click": 0,
+    "last_call": null
+   },
+   "probe": null,
+   "consented_at": null,
+   "roles": [
+    "data-analyst"
+   ],
+   "routines": []
+  },
+  {
+   "id": "sentry",
+   "app": "Sentry",
+   "group": "dev",
+   "kind": "mcp",
+   "reads": "Errors, traces and releases in your Sentry projects.",
+   "short": "Errors and traces",
+   "caution": "Source-available licence",
+   "state": "off",
+   "mode": null,
+   "reason": null,
+   "example": false,
+   "modes": {
+    "example": {
+     "mode": "example",
+     "summary": "Example data: invented and kept on this Mac. Reads errors, traces and releases in your Sentry projects. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
+     "lines": [
+      "Example data: invented and kept on this Mac.",
+      "Reads errors, traces and releases in your Sentry projects.",
+      "No account is used and nothing leaves this Mac.",
+      "Any change needs your click. Revoke any time."
+     ],
+     "example": true,
+     "publisher": "Knack",
+     "package": "packages/connections/standins/fixture_server.py",
+     "version": "0.1.0",
+     "hosts": [],
+     "needs_token": false,
+     "caution": ""
+    },
+    "real": {
+     "mode": "real",
+     "summary": "Knack starts Sentry server 0.49.0 (npm @sentry/mcp-server) by Sentry (getsentry). It talks to sentry.io with your token. Source-available licence. Reads errors, traces and releases in your Sentry projects. Any change needs your click. Revoke any time.",
+     "lines": [
+      "Knack starts Sentry server 0.49.0 (npm @sentry/mcp-server) by Sentry (getsentry).",
+      "It talks to sentry.io with your token.",
+      "Source-available licence.",
+      "Reads errors, traces and releases in your Sentry projects. Any change needs your click.",
+      "Revoke any time."
+     ],
+     "example": false,
+     "publisher": "Sentry (getsentry)",
+     "publisher_kind": "vendor",
+     "package": "@sentry/mcp-server",
+     "version": "0.49.0",
+     "registry": "npm",
+     "license": "FSL-1.1-ALv2",
+     "hosts": [
+      "sentry.io"
+     ],
+     "needs_token": true,
+     "caution": "Source-available licence",
+     "params": [],
+     "credentials": [
+      {
+       "env": "SENTRY_AUTH_TOKEN",
+       "label": "Sentry auth token"
+      }
+     ],
+     "verified": true
+    }
+   },
+   "tools": {
+    "read": 46,
+    "write": 21,
+    "send": 0,
+    "destructive": 4,
+    "execute": 1
+   },
+   "usage": {
+    "calls": 0,
+    "reads": 0,
+    "changes_asked": 0,
+    "refused": 0,
+    "needed_click": 0,
+    "last_call": null
+   },
+   "probe": null,
+   "consented_at": null,
+   "roles": [
+    "programmer"
+   ],
+   "routines": []
+  },
+  {
+   "id": "sharepoint",
+   "app": "SharePoint",
+   "group": "benefits",
+   "kind": "mcp",
+   "reads": "Sites, lists and document libraries you can already open.",
+   "short": "Sites, lists, libraries",
+   "caution": "Community server",
+   "state": "off",
+   "mode": null,
+   "reason": null,
+   "example": false,
+   "modes": {
+    "example": {
+     "mode": "example",
+     "summary": "Example data: invented and kept on this Mac. Reads sites, lists and document libraries you can already open. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
+     "lines": [
+      "Example data: invented and kept on this Mac.",
+      "Reads sites, lists and document libraries you can already open.",
+      "No account is used and nothing leaves this Mac.",
+      "Any change needs your click. Revoke any time."
+     ],
+     "example": true,
+     "publisher": "Knack",
+     "package": "packages/connections/standins/fixture_server.py",
+     "version": "0.1.0",
+     "hosts": [],
+     "needs_token": false,
+     "caution": ""
+    },
+    "real": {
+     "mode": "real",
+     "summary": "Knack starts SharePoint server 0.171.0 (npm @softeria/ms-365-mcp-server) by Softeria (community). It talks to graph.microsoft.com, login.microsoftonline.com with your token. Community server. Reads sites, lists and document libraries you can already open. Any change needs your click. Revoke any time.",
+     "lines": [
+      "Knack starts SharePoint server 0.171.0 (npm @softeria/ms-365-mcp-server) by Softeria (community).",
+      "It talks to graph.microsoft.com, login.microsoftonline.com with your token.",
+      "Community server.",
+      "Reads sites, lists and document libraries you can already open. Any change needs your click.",
+      "Revoke any time."
+     ],
+     "example": false,
+     "publisher": "Softeria (community)",
+     "publisher_kind": "community",
+     "package": "@softeria/ms-365-mcp-server",
+     "version": "0.171.0",
+     "registry": "npm",
+     "license": "MIT",
+     "hosts": [
+      "graph.microsoft.com",
+      "login.microsoftonline.com"
+     ],
+     "needs_token": true,
+     "caution": "Community server",
+     "params": [],
+     "credentials": [
+      {
+       "env": "MS365_MCP_OAUTH_TOKEN",
+       "label": "Microsoft Graph access token"
+      }
+     ],
+     "verified": true
+    }
+   },
+   "tools": {
+    "read": 15,
+    "write": 9,
+    "send": 1,
+    "destructive": 3,
+    "execute": 0
+   },
+   "usage": {
+    "calls": 0,
+    "reads": 0,
+    "changes_asked": 0,
+    "refused": 0,
+    "needed_click": 0,
+    "last_call": null
+   },
+   "probe": null,
+   "consented_at": null,
+   "roles": [
+    "benefits-processor"
+   ],
+   "routines": []
+  },
+  {
+   "id": "slack",
+   "app": "Slack",
+   "group": "dev",
+   "kind": "mcp",
+   "reads": "Channels, threads and people you can already see in Slack.",
+   "short": "Channels and threads",
+   "caution": "Community server",
+   "state": "off",
+   "mode": null,
+   "reason": null,
+   "example": false,
+   "modes": {
+    "example": {
+     "mode": "example",
+     "summary": "Example data: invented and kept on this Mac. Reads channels, threads and people you can already see in Slack. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
+     "lines": [
+      "Example data: invented and kept on this Mac.",
+      "Reads channels, threads and people you can already see in Slack.",
+      "No account is used and nothing leaves this Mac.",
+      "Any change needs your click. Revoke any time."
+     ],
+     "example": true,
+     "publisher": "Knack",
+     "package": "packages/connections/standins/slack_server.py",
+     "version": "0.1.0",
+     "hosts": [],
+     "needs_token": false,
+     "caution": ""
+    },
+    "real": {
+     "mode": "real",
+     "summary": "Knack starts Slack server 1.3.0 (npm slack-mcp-server) by korotovsky (community author). It talks to slack.com with your token. Community server. Reads channels, threads and people you can already see in Slack. Any change needs your click. Revoke any time.",
+     "lines": [
+      "Knack starts Slack server 1.3.0 (npm slack-mcp-server) by korotovsky (community author).",
+      "It talks to slack.com with your token.",
+      "Community server.",
+      "Reads channels, threads and people you can already see in Slack. Any change needs your click.",
+      "Revoke any time."
+     ],
+     "example": false,
+     "publisher": "korotovsky (community author)",
+     "publisher_kind": "community",
+     "package": "slack-mcp-server",
+     "version": "1.3.0",
+     "registry": "npm",
+     "license": "MIT",
+     "hosts": [
+      "slack.com"
+     ],
+     "needs_token": true,
+     "caution": "Community server",
+     "params": [],
+     "credentials": [
+      {
+       "env": "SLACK_MCP_XOXP_TOKEN",
+       "label": "Slack user token"
+      }
+     ],
+     "verified": true
+    }
+   },
+   "tools": {
+    "read": 8,
+    "write": 8,
+    "send": 1,
+    "destructive": 2,
+    "execute": 0
+   },
+   "usage": {
+    "calls": 0,
+    "reads": 0,
+    "changes_asked": 0,
+    "refused": 0,
+    "needed_click": 0,
+    "last_call": null
+   },
+   "probe": null,
+   "consented_at": null,
+   "roles": [
+    "data-analyst",
+    "programmer"
+   ],
+   "routines": []
+  },
+  {
+   "id": "sqlite",
+   "app": "SQLite",
+   "group": "data",
+   "kind": "mcp",
+   "reads": "Tables and rows in the one database file you pick.",
+   "short": "One database file",
+   "caution": "",
+   "state": "off",
+   "mode": null,
+   "reason": null,
+   "example": false,
+   "modes": {
+    "example": {
+     "mode": "example",
+     "summary": "Example data: invented and kept on this Mac. Reads tables and rows in the one database file you pick. No account is used and nothing leaves this Mac. Any change needs your click. Revoke any time.",
+     "lines": [
+      "Example data: invented and kept on this Mac.",
+      "Reads tables and rows in the one database file you pick.",
+      "No account is used and nothing leaves this Mac.",
+      "Any change needs your click. Revoke any time."
+     ],
+     "example": true,
+     "publisher": "Knack",
+     "package": "packages/connections/standins/sqlite_server.py",
+     "version": "0.1.0",
+     "hosts": [],
+     "needs_token": false,
+     "caution": ""
+    },
+    "real": {
+     "mode": "real",
+     "summary": "Knack starts SQLite server 1.16.0 (npm @toolbox-sdk/server) by Google (googleapis). It stays on this Mac. Reads tables and rows in the one database file you pick. Any change needs your click. Revoke any time.",
+     "lines": [
+      "Knack starts SQLite server 1.16.0 (npm @toolbox-sdk/server) by Google (googleapis).",
+      "It stays on this Mac.",
+      "Reads tables and rows in the one database file you pick. Any change needs your click.",
+      "Revoke any time."
+     ],
+     "example": false,
+     "publisher": "Google (googleapis)",
+     "publisher_kind": "vendor",
+     "package": "@toolbox-sdk/server",
+     "version": "1.16.0",
+     "registry": "npm",
+     "license": "Apache-2.0",
+     "hosts": [],
+     "needs_token": false,
+     "caution": "",
+     "params": [
+      {
+       "name": "database",
+       "label": "Database file",
+       "kind": "path"
+      }
+     ],
+     "credentials": [],
+     "verified": true
+    }
+   },
+   "tools": {
+    "read": 1,
+    "write": 1,
+    "send": 0,
+    "destructive": 0,
+    "execute": 0
+   },
+   "usage": {
+    "calls": 0,
+    "reads": 0,
+    "changes_asked": 0,
+    "refused": 0,
+    "needed_click": 0,
+    "last_call": null
+   },
+   "probe": null,
+   "consented_at": null,
+   "roles": [
+    "data-analyst"
+   ],
+   "routines": []
+  }
+ ]
+}
