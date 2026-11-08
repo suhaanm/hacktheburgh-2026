@@ -155,6 +155,9 @@ def create_app(*, base_urls: dict[str, str] | None = None, autostart_sandbox: bo
         if "c" in cluster_holder:
             cluster_holder["c"].stop()
         sup.close()
+        tm = getattr(app.state, "tasks", None)
+        if tm is not None:
+            tm.shutdown()
 
     app = FastAPI(title="Understudy agent service", version="0.1.0", lifespan=lifespan)
     from understudy_engine import http_guard
@@ -165,6 +168,10 @@ def create_app(*, base_urls: dict[str, str] | None = None, autostart_sandbox: bo
     app.add_middleware(CORSMiddleware, allow_origins=http_guard.cors_origins(), allow_methods=["GET", "POST", "OPTIONS"],
                        allow_headers=http_guard.CORS_ALLOW_HEADERS)
     app.state.runs, app.state.supervisor, app.state.queue, app.state.audit = runs, sup, queue, audit
+    app.state.tasks = None            # the task manager (tasks/), made on first use so building the app stays cheap
+    from .tasks.routes import router as tasks_router
+
+    app.include_router(tasks_router)  # open-ended tasks and skills: POST /tasks, GET /tasks/events, GET /skills (docs/TASKS.md)
 
     voice = False
     try:
@@ -433,6 +440,9 @@ def create_app(*, base_urls: dict[str, str] | None = None, autostart_sandbox: bo
         except OSError:
             pass
         sup.kill("agent service /kill")
+        tm = getattr(app.state, "tasks", None)
+        if tm is not None:
+            tm.kill_all()                     # every task, including a Claude child (SIGTERM then SIGKILL of its process group)
         return {"killed": True}
 
     @app.post("/kill/clear")
