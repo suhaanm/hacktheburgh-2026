@@ -9126,7 +9126,7 @@
           "outcomes": [
             "claimed_not_verified"
           ],
-          "note": "Real screenshots of the headless sandbox, a simulated actuator: nothing is clicked or typed. A claim of Done can never be true here, so every Done is a false claim by construction."
+          "note": "Real screenshots of the headless sandbox, a stand-in actuator: nothing is clicked or typed. A claim of Done can never be true here, so every Done is a false claim by construction."
         },
         "cost": {
           "estimated_usd_this_run": 0.055,
@@ -9148,11 +9148,11 @@
         }
       },
       "caveats": [
-        "Synthetic households on local sandbox sites; one model family (the ids in meta.models); one planner prompt; n = 20 households per condition, intervals are Wilson 95%.",
+        "Generated households on local sandbox sites; one model family (the ids in meta.models); one planner prompt; n = 20 households per condition, intervals are Wilson 95%.",
         "Identical prompts are cached, so repeated page situations are one live sample each (about 370 distinct live prompts behind 80 runs), not 80 independent samples; sampling variance of the model is therefore under-represented.",
         "The page_state fix (v2) was made AFTER seeing the glitch result and re-evaluated on the SAME condition: its 10-of-10 is in-sample. It was not tested on other conditions, so nothing here says it generalises.",
         "The v2 glitch re-run stopped at the cost budget after 10 households; later rows were contaminated by blocked model calls and are dropped (meta.dropped_after_budget_stop). v2 used a cap of 40 actions per navigator, v1 the production cap of 20.",
-        "Tier 3 is NOT demonstrated on the benefits task: against a simulated actuator the computer-use model declined at step 1 and took no action, because tier-3 goals carry no household values by design (n = 3).",
+        "Tier 3 is NOT demonstrated on the benefits task: against a stand-in actuator the computer-use model declined at step 1 and took no action, because tier-3 goals carry no household values by design (n = 3).",
         "The injected condition has no task success by design (the detector pauses the run); it measures detection and attack success only. The injection text is the red-team page set written by the same team.",
         "stated_confidence is present only for runs where the model made a finish claim with a confidence; elsewhere null.",
         "Cost figures are estimates from the provider's token counters at placeholder rates, not an invoice.",
@@ -15787,7 +15787,7 @@
         {
           "id": "small_n",
           "severity": "high",
-          "text": "Each attack is run 3 times per configuration on a catalog of a few dozen synthetic attacks. Repeats of one attack are not independent evidence (the intervals are clustered by attack); intervals are wide and the point estimates are not rates to rely on."
+          "text": "Each attack is run 3 times per configuration on a catalog of a few dozen scripted attacks. Repeats of one attack are not independent evidence (the intervals are clustered by attack); intervals are wide and the point estimates are not rates to rely on."
         },
         {
           "id": "no_execution",
@@ -15797,7 +15797,7 @@
         {
           "id": "synthetic_attacks",
           "severity": "medium",
-          "text": "The attacks are synthetic and were written by the same team that wrote the defences; models change, so a result is true of one model version on one day."
+          "text": "The attacks are scripted and were written by the same team that wrote the defences; models change, so a result is true of one model version on one day."
         },
         {
           "id": "judge_is_rules",
@@ -25380,7 +25380,7 @@
         "n_unit": "runs",
         "split": null,
         "interval_level": 0.95,
-        "note": "Synthetic fixtures with planted facts, mock model, offline; one live smoke with the real model when a key is present.",
+        "note": "Generated fixtures with planted facts, mock model, offline; one live smoke with the real model when a key is present.",
         "generated_at": "2026-11-08T02:58:04Z"
       },
       "sections": {
@@ -26711,7 +26711,7 @@
         {
           "id": "rt_synthetic",
           "severity": "high",
-          "text": "Every fixture is synthetic with planted facts; recovery rates say the runtime and its checks work on those fixtures, not that they work on a real repository or table. Nothing here was run on a person's real data."
+          "text": "Every fixture is generated with planted facts; recovery rates say the runtime and its checks work on those fixtures, not that they work on a real repository or table. Nothing here was run on a person's real data."
         },
         {
           "id": "rt_menu_mode",
@@ -26741,7 +26741,7 @@
         {
           "id": "rt_nightly_replay",
           "severity": "low",
-          "text": "The nightly replay uses a fake screen and a simulated presence service; it checks the decision flow, not the real lock screen or forecast."
+          "text": "The nightly replay uses a fake screen and a stand-in presence service; it checks the decision flow, not the real lock screen or forecast."
         },
         {
           "id": "rt_timing_loaded",
@@ -28000,7 +28000,7 @@
         }
       },
       "transfer_simulated_participants": {
-        "badge": "simulated participants (language model), not people",
+        "badge": "language-model participants, not people",
         "origin": "simulated_participants",
         "test_only": true,
         "n_participants_finished": 24,
@@ -28039,9 +28039,9 @@
             "p_sim24"
           ]
         },
-        "genome_comparison": "not applicable: the simulated participants are all novices; there is no expert reference in these data",
+        "genome_comparison": "not applicable: the language-model participants are all novices; there is no expert reference in these data",
         "train": {
-          "pool": "synthetic personas only",
+          "pool": "generated personas only",
           "n_people": 16,
           "n_bins": 31791
         },
@@ -28056,7 +28056,7 @@
           "max": 32
         },
         "interval_level": 0.95,
-        "split": "train on synthetic personas, test on simulated participants (no tuning)",
+        "split": "train on generated personas, test on language-model participants (no tuning)",
         "models": {
           "v1": {
             "log_loss": {
@@ -28383,10 +28383,10 @@
           }
         },
         "caveats": [
-          "simulated participants (language model), not people. Not people, not the live study.",
+          "language-model participants, not people. Not people, not the live study.",
           "Progress events are sparse in these traces, so the label ('no progress in the next 60 s') is almost always 1: log loss against the base rate says little, and a model can look good or bad for that reason alone.",
           "Cases are short (about a minute or two), so each participant contributes a handful of 30 s bins.",
-          "Nothing was tuned on these traces; the models and alarm rules were fitted on synthetic personas before any of these numbers existed.",
+          "Nothing was tuned on these traces; the models and alarm rules were fitted on generated personas before any of these numbers existed.",
           "Participants are language models acting in a sandbox we built, under a coach we built; this tests transfer to a different behaviour generator, not to real work."
         ],
         "status": "ok",
@@ -31384,7 +31384,7 @@
         "status": "not_run",
         "reason": "disabled for this call",
         "recorded": {
-          "origin": "live, small n, real models; packets are synthetic (apprentices) with scripted blocks; the check is the same in every arm",
+          "origin": "live, small n, real models; packets are generated (apprentices) with scripted blocks; the check is the same in every arm",
           "recorded_on": "2026-11-07",
           "what_is_measured": "the share of model replies that pass the number-provenance check (schema, every number traces, names, no URL or instruction, no causal or expert claim); not the quality of the English",
           "template": {
@@ -42738,7 +42738,7 @@
           "interval_level": 0.95,
           "n": 40,
           "n_unit": "personas",
-          "note": "Simulated; run once after evals/cue/PLAN.md was committed.",
+          "note": "Generated; run once after evals/cue/PLAN.md was committed.",
           "origin": "synthetic",
           "split": "held-out"
         }
@@ -49443,7 +49443,7 @@
             "summary_lines": [
               "Approval queue: 1 approval is holding up a job.",
               "Your overnight run: 3 finished.",
-              "Understudy: 1 can wait: 1 report."
+              "Knack: 1 can wait: 1 report."
             ],
             "summary_counts": {
               "needs_you": 1,
@@ -52403,7 +52403,7 @@
         "source": "evals/attention/report_held_out.json (the frozen held-out command; read here, never run by the harness)",
         "meta": {
           "origin": "synthetic",
-          "badge": "synthetic: simulated workers, schedules, events and reactions; not people",
+          "badge": "generated: workers, schedules, events and reactions; not people",
           "split": "held_out",
           "seeds": [
             1000,
@@ -53165,7 +53165,7 @@
               "summary_lines": [
                 "Approval queue: 1 approval is holding up a job.",
                 "Your overnight run: 3 finished.",
-                "Understudy: 1 can wait: 1 report."
+                "Knack: 1 can wait: 1 report."
               ],
               "summary_counts": {
                 "needs_you": 1,
@@ -53644,7 +53644,7 @@
           {
             "id": "att_sim_not_people",
             "severity": "high",
-            "text": "Every number is simulated: workers, schedules, event streams, reactions and attention costs are my assumptions (simulate.py). This shows the policy behaves as designed under them. It does not show that real people find Understudy natural. The live check with four teammates (n = 4) is the real test and was not run."
+            "text": "Every number comes from a generator: workers, schedules, event streams, reactions and attention costs are my assumptions (simulate.py). This shows the policy behaves as designed under them. It does not show that real people find Knack natural. The live check with four teammates (n = 4) is the real test and was not run."
           },
           {
             "id": "att_costs_assumed",
@@ -53659,7 +53659,7 @@
           {
             "id": "att_labels_proxy",
             "severity": "medium",
-            "text": "Implicit labels (followed within 10 s, dismissed within 4 s, ignored, never) are noisy proxies for welcome: a dismissal can mean already knew. The simulated worker's labels come from the same reaction model, so learning is validated for its direction, not for its calibration against people."
+            "text": "Implicit labels (followed within 10 s, dismissed within 4 s, ignored, never) are noisy proxies for welcome: a dismissal can mean already knew. The generated worker's labels come from the same reaction model, so learning is validated for its direction, not for its calibration against people."
           },
           {
             "id": "att_probes_exact",
@@ -53746,7 +53746,7 @@
             "not_met": 0,
             "inconclusive": 0
           },
-          "caveat": "simulated workers and an assumed reaction and cost model; shows the policy behaves as designed, not that people find it natural"
+          "caveat": "generated workers and an assumed reaction and cost model; shows the policy behaves as designed, not that people find it natural"
         },
         "post_hoc_corrections": [
           {
@@ -54731,18 +54731,18 @@
       "held_out": {
         "source": "evals/insights/results/heldout.json (the held-out seeds, run once; read here, never run by the harness)",
         "claims": [
-          "On null data the worker false-insight rate was 0.0037 per worker-week (62 of 16800 person-weeks, 2400 people; 95% interval [0.0027, 0.0047]; target at most 0.05; met). Without family control it would have been 0.0445. Synthetic.",
-          "On null data the admin false-insight rate was 0.0 per admin-week (0 of 160, 40 firms; 95% interval [0.0, 0.0]; target at most 0.10; met). Synthetic.",
-          "Planted time loss 15s: selected in 99 of 100 worlds (rate 0.99, interval [0.9455, 0.9982]); passed the gate in 0.99. Synthetic.",
-          "Planted time loss 30s: selected in 100 of 100 worlds (rate 1.0, interval [0.963, 1.0]); passed the gate in 1.0. Synthetic.",
-          "Planted time loss 60s: selected in 100 of 100 worlds (rate 1.0, interval [0.963, 1.0]); passed the gate in 1.0. Synthetic.",
-          "Planted improved: selected in 86 of 100 worlds (rate 0.86, interval [0.7786, 0.9147]); passed the gate in 0.98. Synthetic.",
-          "Planted rise: selected in 47 of 100 worlds (rate 0.47, interval [0.3751, 0.5671]); passed the gate in 0.47. Synthetic.",
-          "Planted relapse: selected in 82 of 100 worlds (rate 0.82, interval [0.7333, 0.883]); passed the gate in 0.82. Synthetic.",
-          "Planted retention: selected in 100 of 100 worlds (rate 1.0, interval [0.963, 1.0]); passed the gate in 1.0. Synthetic.",
-          "Planted tradeoff: selected in 81 of 100 worlds (rate 0.81, interval [0.7222, 0.8749]); passed the gate in 0.97. Synthetic.",
-          "Of 996 empty worker lists on the planted firm, 869 had no planted effect and 127 had at least one that was missed (planted effects: 2267, passed the gate 0.7574, selected in the top 3 0.7419). Synthetic.",
-          "With 5% of rows dropped, the worker top-3 sets had mean Jaccard 0.8796 among people with a non-empty set and the admin top-7 0.9333 (target 0.8). Synthetic.",
+          "On null data the worker false-insight rate was 0.0037 per worker-week (62 of 16800 person-weeks, 2400 people; 95% interval [0.0027, 0.0047]; target at most 0.05; met). Without family control it would have been 0.0445. Made-up firm data.",
+          "On null data the admin false-insight rate was 0.0 per admin-week (0 of 160, 40 firms; 95% interval [0.0, 0.0]; target at most 0.10; met). Made-up firm data.",
+          "Planted time loss 15s: selected in 99 of 100 worlds (rate 0.99, interval [0.9455, 0.9982]); passed the gate in 0.99. Made-up firm data.",
+          "Planted time loss 30s: selected in 100 of 100 worlds (rate 1.0, interval [0.963, 1.0]); passed the gate in 1.0. Made-up firm data.",
+          "Planted time loss 60s: selected in 100 of 100 worlds (rate 1.0, interval [0.963, 1.0]); passed the gate in 1.0. Made-up firm data.",
+          "Planted improved: selected in 86 of 100 worlds (rate 0.86, interval [0.7786, 0.9147]); passed the gate in 0.98. Made-up firm data.",
+          "Planted rise: selected in 47 of 100 worlds (rate 0.47, interval [0.3751, 0.5671]); passed the gate in 0.47. Made-up firm data.",
+          "Planted relapse: selected in 82 of 100 worlds (rate 0.82, interval [0.7333, 0.883]); passed the gate in 0.82. Made-up firm data.",
+          "Planted retention: selected in 100 of 100 worlds (rate 1.0, interval [0.963, 1.0]); passed the gate in 1.0. Made-up firm data.",
+          "Planted tradeoff: selected in 81 of 100 worlds (rate 0.81, interval [0.7222, 0.8749]); passed the gate in 0.97. Made-up firm data.",
+          "Of 996 empty worker lists on the planted firm, 869 had no planted effect and 127 had at least one that was missed (planted effects: 2267, passed the gate 0.7574, selected in the top 3 0.7419). Made-up firm data.",
+          "With 5% of rows dropped, the worker top-3 sets had mean Jaccard 0.8796 among people with a non-empty set and the admin top-7 0.9333 (target 0.8). Made-up firm data.",
           "Determinism: run twice identical True; shuffled rows and people identical True.",
           "k-anonymity violations across 11 firms: 0 (target 0).",
           "Edge-case matrix: 21 of 21 pass."
@@ -54869,7 +54869,7 @@
           },
           {
             "edge_case": "origin_badges_on_every_insight",
-            "expected": "badge and origin set; the text names the source and says synthetic firm data",
+            "expected": "badge and origin set; the text names the source and says made-up firm data",
             "pass": true,
             "scenario": "any selected pointer",
             "test": "test_worker::test_origin_and_badge_are_on_every_candidate"
@@ -54914,11 +54914,11 @@
           "No human has used the layer: whether workers find the pointers useful, or admins decide better, is not shown (the live check with four teammates is not run).",
           "The generators were written by the author of the selection, so planted effects are easier to recover than real ones. This is a test of the code paths and the statistics.",
           "The false-insight rates are for null worlds with independent weeks; real people have autocorrelation, seasonality and shared events, which will raise them.",
-          "The thresholds are a priori values checked on synthetic data; they are not tuned for any real firm.",
+          "The thresholds are a priori values checked on generated data; they are not tuned for any real firm.",
           "Per-user visibility for an employer needs a lawful basis and a notice to workers in a real deployment; nothing here supplies one."
         ],
         "meta": {
-          "badge": "synthetic firm",
+          "badge": "made-up firm",
           "fast": false,
           "origin": "synthetic",
           "people_per_firm": 60,
@@ -56390,11 +56390,11 @@
         "interval_level": 0.95,
         "note": null,
         "generated_at": "2026-11-08T02:58:04Z",
-        "origin_detail": "synthetic sandbox UI, headless screenshots"
+        "origin_detail": "sandbox UI, headless screenshots"
       },
       "pointing": null,
       "pointing_step_ids": {
-        "origin": "synthetic sandbox UI, headless screenshots",
+        "origin": "sandbox UI, headless screenshots",
         "cells": {
           "gemini_fast": {
             "n_cases": 33,
@@ -58498,7 +58498,7 @@
               "lo": 0.2984,
               "hi": 0.6201
             },
-            "note": "simulated from the paired per-case measurements of flash-lite and flash (the routing rule applied to recorded answers); not a separate live run"
+            "note": "generated from the paired per-case measurements of flash-lite and flash (the routing rule applied to recorded answers); not a separate live run"
           },
           "routed_lite_then_flash_6s_deadline": {
             "n_cases": 33,
@@ -59030,7 +59030,7 @@
               "lo": 0.2724,
               "hi": 0.5919
             },
-            "note": "simulated from the paired per-case measurements of flash-lite and flash (the routing rule applied to recorded answers); not a separate live run; latency is the sum of the calls used, capped by the 6 s deadline rule"
+            "note": "generated from the paired per-case measurements of flash-lite and flash (the routing rule applied to recorded answers); not a separate live run; latency is the sum of the calls used, capped by the 6 s deadline rule"
           }
         },
         "n_cases_defined": 37,
@@ -59098,7 +59098,7 @@
         }
       },
       "verifier": {
-        "origin": "synthetic sandbox UI, headless screenshots",
+        "origin": "sandbox UI, headless screenshots",
         "question": "page_shows_result: the page shows a completed calculation with a numeric result",
         "n_images_defined": 30,
         "groups": {
@@ -59618,7 +59618,7 @@
         }
       },
       "glance": {
-        "origin": "synthetic sandbox UI, headless screenshots",
+        "origin": "sandbox UI, headless screenshots",
         "purpose": "awareness.glance (the AWARENESS track's closed enums)",
         "screens": {
           "a_landing": "form",
@@ -60412,7 +60412,7 @@
         }
       },
       "latency_recheck": {
-        "origin": "synthetic sandbox UI, headless screenshots",
+        "origin": "sandbox UI, headless screenshots",
         "what": "one pointing call (the same screenshot and description) repeated sequentially per contender, the three contenders side by side; the 1-minute load average is recorded at every call",
         "cells": {
           "gemini_fast": {
@@ -60495,7 +60495,7 @@
       "recommendation": {
         "rules": [
           "point: flash-lite stays primary unless flash is SIGNIFICANTLY better on the same positives (paired bootstrap 95% interval of flash minus lite entirely above 0) or lite's p95 is over the 6 s deadline",
-          "point: keep the lite-to-flash escalation step only if the simulated routed cell is SIGNIFICANTLY better than lite alone on the same positives (paired interval of routed minus lite entirely above 0); otherwise it only adds latency and cost",
+          "point: keep the lite-to-flash escalation step only if the generated routed cell is SIGNIFICANTLY better than lite alone on the same positives (paired interval of routed minus lite entirely above 0); otherwise it only adds latency and cost",
           "point: make OpenAI fast primary only if its hit-rate Wilson interval lies entirely above both Gemini cells' intervals",
           "verify: a Gemini model is acceptable as the independent verifier unless its false-accept Wilson interval lies entirely above OpenAI fast's; the code gate (verdict yes and confidence >= 0.7) stays whatever the models do"
         ],
@@ -62092,7 +62092,7 @@
         {
           "id": "sim-instruction-following",
           "severity": "high",
-          "text": "Language-model participants, not people: A model that is shown 'check cliff edges before you copy this result' can simply do what it says. A higher score after coaching can therefore be instruction following plus a self-written note, not retention of a skill."
+          "text": "Language-model participants, not people: A model that is shown 'check cliff edges before you copy this result' can do what it says. A higher score after coaching can therefore be instruction following plus a self-written note, not retention of a skill."
         },
         {
           "id": "sim-authored-by-us",
@@ -62117,7 +62117,7 @@
         {
           "id": "sim-renderer",
           "severity": "medium",
-          "text": "Language-model participants, not people: The coach is real but the overlay renderer is simulated: a ring is drawn only when an element carrying the target zone exists on the page the participant is on. The cliff button exists only on a calculator result tab, not on the case note page where the prompt usually arrives. The reconcile target was `results_tabs` (no page element) when the plan was written; the pipeline snapshot used targets `reconcile_control` (the case note's dropdown), which exists. The by-zone table shows which was served."
+          "text": "Language-model participants, not people: The coach is real but the overlay renderer is a stand-in: a ring is drawn only when an element carrying the target zone exists on the page the participant is on. The cliff button exists only on a calculator result tab, not on the case note page where the prompt usually arrives. The reconcile target was `results_tabs` (no page element) when the plan was written; the pipeline snapshot used targets `reconcile_control` (the case note's dropdown), which exists. The by-zone table shows which was served."
         },
         {
           "id": "sim-model-frame",
@@ -62146,7 +62146,7 @@
         "n_unit": "silicon participants",
         "split": "within-participant, counterbalanced S1-S4, plus an A/A sham arm in which the coach is silent in every block; n = 16 coached-arm plus 8 A/A participants",
         "interval_level": 0.95,
-        "note": "Language-model participants, not people. Simulated participants (language model), not people. Never the live study. n counts silicon participants.",
+        "note": "Language-model participants, not people. Language-model participants, not people. Never the live study. n counts silicon participants.",
         "generated_at": "2026-11-08T02:58:04Z",
         "origin_detail": "simulated_llm"
       },
@@ -71595,7 +71595,7 @@
       },
       {
         "id": "small_n",
-        "text": "Each attack is run 3 times per configuration on a catalog of a few dozen synthetic attacks. Repeats of one attack are not independent evidence (the intervals are clustered by attack); intervals are wide and the point estimates are not rates to rely on.",
+        "text": "Each attack is run 3 times per configuration on a catalog of a few dozen scripted attacks. Repeats of one attack are not independent evidence (the intervals are clustered by attack); intervals are wide and the point estimates are not rates to rely on.",
         "severity": "high",
         "source": "agent-safety:redteam_live"
       },
@@ -71697,7 +71697,7 @@
       },
       {
         "id": "rt_synthetic",
-        "text": "Every fixture is synthetic with planted facts; recovery rates say the runtime and its checks work on those fixtures, not that they work on a real repository or table. Nothing here was run on a person's real data.",
+        "text": "Every fixture is generated with planted facts; recovery rates say the runtime and its checks work on those fixtures, not that they work on a real repository or table. Nothing here was run on a person's real data.",
         "severity": "high",
         "source": "agent-runtime:runtime"
       },
@@ -71799,7 +71799,7 @@
       },
       {
         "id": "sim-instruction-following",
-        "text": "Language-model participants, not people: A model that is shown 'check cliff edges before you copy this result' can simply do what it says. A higher score after coaching can therefore be instruction following plus a self-written note, not retention of a skill.",
+        "text": "Language-model participants, not people: A model that is shown 'check cliff edges before you copy this result' can do what it says. A higher score after coaching can therefore be instruction following plus a self-written note, not retention of a skill.",
         "severity": "high",
         "source": "study-sim:study_sim"
       },
@@ -72099,7 +72099,7 @@
       },
       {
         "id": "synthetic_attacks",
-        "text": "The attacks are synthetic and were written by the same team that wrote the defences; models change, so a result is true of one model version on one day.",
+        "text": "The attacks are scripted and were written by the same team that wrote the defences; models change, so a result is true of one model version on one day.",
         "severity": "medium",
         "source": "agent-safety:redteam_live"
       },
@@ -72525,7 +72525,7 @@
       },
       {
         "id": "sim-renderer",
-        "text": "Language-model participants, not people: The coach is real but the overlay renderer is simulated: a ring is drawn only when an element carrying the target zone exists on the page the participant is on. The cliff button exists only on a calculator result tab, not on the case note page where the prompt usually arrives. The reconcile target was `results_tabs` (no page element) when the plan was written; the pipeline snapshot used targets `reconcile_control` (the case note's dropdown), which exists. The by-zone table shows which was served.",
+        "text": "Language-model participants, not people: The coach is real but the overlay renderer is a stand-in: a ring is drawn only when an element carrying the target zone exists on the page the participant is on. The cliff button exists only on a calculator result tab, not on the case note page where the prompt usually arrives. The reconcile target was `results_tabs` (no page element) when the plan was written; the pipeline snapshot used targets `reconcile_control` (the case note's dropdown), which exists. The by-zone table shows which was served.",
         "severity": "medium",
         "source": "study-sim:study_sim"
       },
@@ -72789,7 +72789,7 @@
       },
       {
         "id": "rt_nightly_replay",
-        "text": "The nightly replay uses a fake screen and a simulated presence service; it checks the decision flow, not the real lock screen or forecast.",
+        "text": "The nightly replay uses a fake screen and a stand-in presence service; it checks the decision flow, not the real lock screen or forecast.",
         "severity": "low",
         "source": "agent-runtime:runtime"
       },
