@@ -36,7 +36,7 @@ Not a visual moment. Say it with a number: computer-use prompts stay flat at abo
 
 ## Honest limit
 
-Token counts are estimates (characters divided by 3.6) beside the provider's usage fields. The measured runs use test doubles or n = 1 live runs; nothing here is a live-model result at scale. The reader still re-reads the same page often; a memo is not built. At the time the document was written, keyed retrieval from the memory file was built and tested but not yet in any prompt, and no live-model result shows a gain in completion, steps or false claims.
+Token counts are estimates (characters divided by 3.6) beside the provider's usage fields. The measured runs use test doubles or n = 1 live runs; nothing here is a live-model result at scale. The document says the reader still re-reads the same page often and that a memo is not built; the demo director's later audit says the reader memo and the meter manifest are built (docs/knack-demo/context-audit.md, on its branch). At the time the document was written, keyed retrieval from the memory file was built and tested but not yet in any prompt, and no live-model result shows a gain in completion, steps or false claims.
 
 ## Hackathon target
 
