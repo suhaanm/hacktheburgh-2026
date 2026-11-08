@@ -13,6 +13,7 @@ describe("a memory line's note reads as plain words", () => {
     expect(cleanNote("id:l_ab12 | you said so 2026-11-08")).toBe("you said so 2026-11-08");
     expect(cleanNote("corr:summary_length=detailed")).toBeNull();
     expect(cleanNote("demo seed")).toBe("set up for you");
+    expect(cleanNote("onboarding 2026-11-08")).toBeNull();
     expect(cleanNote("from the UK benefits processor pack")).toBe("from the UK benefits processor pack");
     expect(cleanNote(null)).toBeNull();
   });
