@@ -58,28 +58,29 @@ Record in takes, then cut. Each take starts from a settled screen so the editor 
 
 ## 3. Main cut: about 3 minutes 55 seconds
 
-Spoken lines total about 560 words at 150 words a minute. Scene lengths below already include the pause after each line. Scenes marked (optional) can go if the cut runs long; the cut never drops M13, the honesty scene.
+Scene lengths below include the pause after each spoken line. Scenes marked (optional) can go if the cut runs long; the cut never drops M13, the honesty scene.
 
-| # | Scene | Time | Length | Capability | Target |
+| # | Scene | Starts | Length | Capability | Target |
 |---|---|---|---|---|---|
-| M1 | Launch and Home | 0:00 | 15 s | launch, Home, overnight approval, week insight | G-Research |
-| M2 | Where the time goes (work genome) | 0:15 | 25 s | work ribbon, controls, intervals | G-Research |
-| M3 | Hey Knack (voice guidance) | 0:40 | 20 s | wake word, Live voice, ring and ghost cursor | Wordsmith |
-| M4 | The coached case | 1:00 | 30 s | coach ring on the skipped cliff check | G-Research, HRT |
-| M5 | Cue, the stuck rescue | 1:30 | 20 s | Cue one question or cue, then silence | HRT |
-| M6 | A routine, one opt-in at a time | 1:50 | 15 s | proposal, Watch first, Run with my approval | Wordsmith |
-| M7 | The agent works, the pill shows | 2:05 | 25 s | background agent over three calculators, corner pill | Wordsmith |
-| M8 | The irreversible step waits for me | 2:30 | 25 s | approval card, Approve and submit, case note | Wordsmith |
-| M9 | Growth | 2:55 | 12 s | independence score, intervals, honest verdict | HRT |
-| M10 | Repeats and Needs you (optional) | 3:07 | 8 s | repeat list, one list for decisions | Wordsmith |
-| M11 | The firm view (admin) | 3:15 | 15 s | expert versus junior, onboarding speed | G-Research |
-| M12 | Forecasts | 3:30 | 12 s | calibrated stuck forecast, held-out | HRT |
-| M13 | Evidence: what did not hold up | 3:42 | 20 s | honest failures | all three |
-| M14 | Privacy (optional) | 4:02 | 8 s | ledger of what left the Mac | all three |
+| M1 | Launch and Home | 0:00 | 12 s | launch, Home, overnight approval, week insight | G-Research |
+| M2 | Where the time goes (work genome) | 0:12 | 22 s | work ribbon, controls, intervals | G-Research |
+| M3 | Hey Knack (voice guidance) | 0:34 | 18 s | wake word, Live voice, ring and ghost cursor | Wordsmith |
+| M4 | The coached case | 0:52 | 28 s | coach ring on the skipped cliff check | G-Research, HRT |
+| M5 | Cue, the stuck rescue | 1:20 | 18 s | Cue one cue and a reason, then silence | HRT |
+| M6 | A routine, one opt-in at a time | 1:38 | 14 s | proposal, Watch first, Run with my approval | Wordsmith |
+| M7 | The agent works, the pill shows | 1:52 | 22 s | background agent over three calculators, corner pill | Wordsmith |
+| M8 | The irreversible step waits for me | 2:14 | 24 s | approval card, Approve and submit, case note | Wordsmith |
+| M9 | Growth | 2:38 | 14 s | independence score, intervals, honest verdict | HRT |
+| M10 | Repeats and Needs you (optional) | 2:52 | 8 s | repeat list, one list for decisions | Wordsmith |
+| M11 | The firm view (admin) | 3:00 | 14 s | expert versus junior, onboarding speed | G-Research |
+| M12 | Forecasts | 3:14 | 11 s | calibrated stuck forecast, held-out | HRT |
+| M13 | Evidence: what did not hold up | 3:25 | 22 s | honest failures | all three |
+| M14 | Privacy (optional) | 3:47 | 8 s | ledger of what left the Mac | all three |
+| M15 | Stop, the kill hotkey, outro | 3:55 | 14 s | kill flag, supervisor stop | all three |
 
-(Without M10 and M14 the cut is 3:39; with them 3:55 plus the outro M15 below at 3:55 to 4:05. The editor chooses.)
+Start times are for the full cut with both optional scenes (4:09). Without M10 and M14 every later scene starts 8 s and then 16 s earlier and the cut ends at 3:53. The voiceover lines total about 540 words, which is about 3 minutes 35 seconds of speech at 150 words a minute; the rest of each scene is the screen doing the work. M16 (the supervised click) is outside the cut.
 
-### M1. Launch and Home (15 s)
+### M1. Launch and Home (12 s)
 
 - **Screen.** Dock icon, then the Knack window (Home), light theme.
 - **Actions.** The owner clicks the Knack icon in the Dock. The window opens at its remembered size. No other action.
@@ -89,81 +90,81 @@ Spoken lines total about 560 words at 150 words a minute. Scene lengths below al
 - **Data.** Seeded queue and pointers; badge origin "synthetic firm". **Order note.** An approval that blocks a job takes the Home hero by design; the week's pointer is the first quiet row until the worker approves or rejects. Do not resolve the seeded approvals before M1.
 - **If it fails.** Reload the window (Command-R) or open the page in Chrome with `scripts/demo-open.sh --only home`. If the status line says "Cannot reach the engine", stop and fix the stack; never narrate over it.
 
-### M2. Where the time goes (25 s)
+### M2. Where the time goes (22 s)
 
 - **Screen.** Knack, `Genome` (More, then "Where time goes"; or click the insight row on Home).
 - **Actions.** Open it. Hover the ribbon: expert p_exp04 on top (6 min 45 s), novice p_nov13 beneath (9 min 45 s), gaps hatched, seconds lost per step. Open "Key and comparison". Optionally press Play.
-- **Voiceover.** "Two people, the same task. The ribbon puts an expert above a novice and prices every gap in seconds: this novice lost three minutes. Two controls make sure the gap is real: expert against expert comes out at 7.1 seconds, a shuffled-label null at 46, the real gap at 230. All of it synthetic, and the screen says so."
+- **Voiceover.** "Two people, the same task. The ribbon puts an expert above a novice and prices every gap in seconds. Two controls check that the gap is real: expert against expert comes out at 7 seconds, shuffled labels at 46, the real gap at 230. All synthetic, and the screen says so."
 - **Hold on screen (4 s).** "Novices lose about 3 min 50 s per case", "Example data", the work ribbon with its legend.
 - **Proves.** The work genome, the controls, intervals. Numbers (synthetic, 24 people, `evals/report.md`): real gap 229.6 s [192.7, 272.6]; expert against expert 7.1 s [-2.8, 18.4]; shuffled-label null 46.2 s [-36.4, 116.9]; permutation p = 0.001. Do not say it generalises: on three harder synthetic generators precision falls to 48 to 71 percent (M13 says so).
 - **Data.** `/genome/t_entitlement_check` (default case). Audit link `GET /genome/t_entitlement_check`.
 - **If it fails.** The page has fixtures that render offline: reload; say "synthetic" either way.
 
-### M3. Hey Knack (20 s)
+### M3. Hey Knack (18 s)
 
 - **Screen.** Knack window on Home, the owner's face not needed. Take B.
 - **Actions.** The owner says "Hey Knack". The pill shows "Listening", a soft chime, Knack speaks. First time only: two cards ("Talk with Knack?" then "Knack may look at your screen while we talk", each Yes, Not now, Never: the owner clicks Yes with the mouse; a key or the voice never answers). The owner asks: "Where do I see what needs me?" A ring and a ghost cursor go to "Needs you" in the sidebar. It never clicks.
-- **Voiceover.** (The owner's own voice and Knack's reply are the audio. The editor adds, over the first seconds:) "You wake it by name, it listens on this Mac only, and when I ask where, it shows me. It points. It does not click."
+- **Voiceover.** (The owner's own voice and Knack's reply are the audio. The editor adds, over the first seconds:) "You wake it by name. It listens on this Mac only. When I ask where, it shows me. It points; it does not click."
 - **Hold on screen (3 s).** The pill "Listening" then "Speaking"; the ring on "Needs you".
 - **Proves.** On-device wake word (macOS speech, no transcript), Live voice session with a code-built context packet, the ring and ghost cursor guidance. Target: Wordsmith (a spoken, screen-aware workflow). Honest limits to print in the video description: the matcher was measured on text only (1 false accept in 159 held-out sentences, 0 misses in 25); real-microphone behaviour is not measured.
 - **Data.** Live mode (Gemini key in `.env`), `UNDERSTUDY_X_LIVE` and `UNDERSTUDY_X_WAKE` on, consent cards answered Yes once (frames only after "Yes"; never from a denylisted app; held in memory for one call). The context packet carries the screen id, pending approvals and the coach step; **it does not yet carry the top Home insight** (gap G1 in section 6), so do not ask it "what is my insight".
 - **If it fails.** Hold Option-Space and talk (hold-to-talk). If the microphone prompt was refused, say nothing about it and cut M3 (the main cut works without it). Wake and talk are not in the audit's reach: they are the owner's check.
 
-### M4. The coached case (30 s)
+### M4. The coached case (28 s)
 
 - **Screen.** The worker's Chromium (calculator A) at the left, the Knack ring drawn over it. Take C.
 - **Actions.** The lead runs `demo-worker.mjs --scene coach --pace slow` (section 7.2). A script plays a teammate on case CASE-1005 (one adult, 36, earns 250 a month, rent 480, one bedroom, savings 12,000; GovCalc 638, Quick Estimator 742.64, EntitledTo 638.24): four question pages typed at human pace with a visible cursor, the result, then the teammate goes to the case-note tab without opening "Check cliff edges" and comes back. About 4 s later the coach rings that button once with a one-line note, the teammate reads it for 7 s and presses it; the panel lists which edges are near; the note is saved as a draft (never submitted).
-- **Voiceover.** "A teammate, played by a script, skips the check that matters. The coach does not give the answer. It rings the skipped step once, at the first level of help, then goes quiet. In replay it rang all 14 planted skips and never prompted an expert. The skip is planted, so that is a test, not a result."
+- **Voiceover.** "A teammate, played by a script, skips the check that matters. The coach does not give the answer. It rings the skipped step once, at the first level of help, then goes quiet. In replay it rang all 14 planted skips and never prompted an expert. A planted skip is a test, not a result."
 - **Hold on screen (3 s).** The ring on "Check cliff edges"; the one-line note. Label bottom-left: "Played by a script on our sandbox".
 - **Proves.** The live coach brain (code decides, no model), the ring on the real control, fading help levels. Numbers (synthetic replay): 14 of 14 planted rings, 0 expert prompts, 48 cases (`docs/FEATURE_CATALOGUE.md`, claim C60).
 - **Data.** The worker script sets the engine's study mode to the first help level on the cliff skill for the run (the demo person is past it) and clears it at the end, even after a crash; say so in the video description, not in the voiceover. Audit links `GET /coach/next?dry=1`, `GET /study/mode` (must be clear before and after).
 - **If it fails.** If no ring after 20 s, the audit line `GET /coach/next?dry=1` says why (the script's own timeline prints "coach decides annotate" when the engine decided). Fallback: show Knack's Today strip ("More, Live coach") and say "the overlay isn't drawing, here is the coach's decision". Never improvise a real click.
 
-### M5. Cue, the stuck rescue (20 s)
+### M5. Cue, the stuck rescue (18 s)
 
 - **Screen.** Same worker window, case note page. Take C, straight after M4 (the script waits 125 s by default for the coach's quiet period; the editor cuts the wait).
 - **Actions.** `demo-worker.mjs --scene stuck` (part of `--scene both`): a second case (CASE-1006) in the expert's order, then the teammate fills in the case note and hovers over it without saving. About 50 s into the stall Cue shows its cue, "Read the note back", with its one reason, "Reading it back catches copy slips." The teammate takes the step and saves a draft. Then silence.
-- **Voiceover.** "Now they stall. Cue sees it: one cue, one reason, then quiet. It is rules and counts, not a model: the next step comes from what experts did. On simulated workers it kept false nudges under one an hour, 0.73 [0.64, 0.83]. It did not make them faster to resume: the median difference was zero."
+- **Voiceover.** "Now they stall. Cue offers one cue and one reason, then goes quiet. It is rules and counts, not a model. On simulated workers it kept false nudges under one an hour, 0.73. It did not make them faster to resume: the median difference was zero."
 - **Hold on screen (3 s).** The Cue card text; then "Cue: simulated workers" on the lower third.
 - **Proves.** Cue stuck rescue (path prior, gate with hard caps, tiers, fades). Numbers (simulated workers, 40 personas, 481.5 hours): false nudges 0.73 an hour (97.5% interval 0.64 to 0.83; target at most 1.0: met); faster to resume not met (median paired difference 0.0 s, exploratory mean -34 s [-43.7, -25.2]); cues reached 28 percent [25.1, 30.1] of stuck episodes. Say the "not met".
 - **Data.** Audit link `GET /cue/next?dry=1`. Cue fires only at a step where the person's own level is not 4 (the demo person is at L4 on the cliff step, so a stall there stays silent by design: that is why the stall is on the note).
 - **If it fails.** Cue is a soft check in the script (it prints a WARN, exit 0). Fallback: skip M5 and say nothing; or ask Knack by voice for help (a worker who asks bypasses the gate).
 
-### M6. A routine, one opt-in at a time (15 s)
+### M6. A routine, one opt-in at a time (14 s)
 
 - **Screen.** Needs you, then Routines.
 - **Actions.** Needs you: the first screen already holds the approval, a prepared action "Automate: Enter the household into three calculators. It came up 58 times, about 92 minutes a week." (its "Approve and run" only creates an item for your approval: the line "Creates an item for your approval. Nothing runs until then." is printed under "Details") and two more. Press "Show all 7": the routine proposal "Enter the household into three calculators, new routine. Seen about 58 times in 3 weeks. Could save 4 to 7 hours. Touches GovCalc, Quick Estimator and 2 more. It will never: submit, submit to claimant record." with three equal buttons "Watch first", "Not now", "Never" and "More ways to say yes". Press "Watch first" (nothing runs; "Watch first: it practises beside you. Nothing is saved or sent."), then on the same row (or later) "More ways to say yes", "Run with my approval" ("it works in the background and asks before anything outward"). The routine appears under Routines, "Running 1", "Asks first", with a "Run now" button. The same list also holds "Practice run differed from yours: Calculator B gave 214 where your entry gave 241. Nothing was saved. [Accept its answer] [Keep mine] [Evidence]": that is shadow mode comparing the agent with the worker, worth one second of screen.
-- **Voiceover.** "The repeat finder noticed the same household typed into three calculators fifty-eight times in three weeks. Nothing runs until I say yes, and I say it one level at a time: watch first, then run with my approval. It will never submit."
+- **Voiceover.** "The repeat finder saw the same household typed into three calculators fifty-eight times in three weeks. Nothing runs until I say yes, one level at a time. It will never submit."
 - **Hold on screen (3 s).** The proposal row with "It will never: submit"; the three equal buttons Watch first, Not now, Never.
 - **Proves.** Routine finder, opt-in, trust ladder (rung A0 to A2), the consent text. Numbers (synthetic): after the gate 6 of 6 proposals were planted routines on the first generator; raw cluster precision 22 percent, and 44 to 97 percent on three harder generators (say "depends on the generator").
 - **Data.** `/routines` (2 proposed, compiled bundle for `calc-entry-3x`), `/queue` (the shadow mismatch item); Audit link `GET /routines`. The skill gate passes for the seeded person (L4 on the routine's skill), so no override is needed. Verified in a headless render of the merged dashboard on the seeded home (the rows and buttons above are what it printed); pressing the buttons through the dashboard's proxy set the routine to "Asks first" and a run could be started (below).
 - **If it fails.** The same choice is under Routines, "Could automate" (the peek has "Watch first"). If a skill gate card appears, read it aloud: it is a feature.
 
-### M7. The agent works, the pill shows (25 s)
+### M7. The agent works, the pill shows (22 s)
 
 - **Screen.** Routines (Running 1), then the agent's own Chromium windows across the screen, the pill bottom-right. Take D.
 - **Actions.** Press "Run now". Three navigators work calculators A, B and C in parallel and a scribe writes the case note, all from the compiled routine (tier 1, no model call on the clean path). The corner pill reads "Working on it" with Stop. **The Knack window does not move itself**: it minimises on its own only for a run on the worker's real screen (the desktop's act-for-me), not for a run in the agent's browser. For the video the owner presses Command-M right after Run now (the window goes to the Dock and the pill and the three agent windows are what is left), or leaves it open; see gap G3 in section 6.
-- **Voiceover.** "Now the agent does the repetitive part. Three calculators, entered in parallel, in its own browser, through the same eight safety layers. I can watch, or I can step away: the corner pill says what is happening and has a Stop."
+- **Voiceover.** "Now the agent does the repetitive part: three calculators in parallel, in its own browser, through the same eight safety layers. The corner pill says what is happening, and has a Stop."
 - **Hold on screen (3 s).** The pill "Working on it" and the three windows.
 - **Proves.** Background agents, the corner pill, "n of m" progress, tier 1 compiled routine, the security layers. Target: Wordsmith (a multi-site browser workflow). Numbers (language model on our sandbox, headless; not a rate): clean path 20 of 20 in mock, live 18 of 20 with 0 false claims; held-out computer use clean 1 of 4 completed, injected 20 of 20 paused (M13 repeats the first). The run in this scene is the compiled routine, which is not the computer-use model.
 - **Data.** Stack headed (`UNDERSTUDY_AGENT_HEADED=1`), sandbox reset, consent mode approval. Audit links `GET /routines` (driver compiled), `GET /health (sandbox sites reachable from the agent)`. A mock run finishes in a few seconds; a headed live run takes longer: time it in rehearsal.
 - **If it fails.** If "Run now" answers "not started: sandbox busy", another run holds the lock (`/health` of the agent says); wait or stop it. If the agent windows do not appear, the stack was not started headed: say nothing, the pill and the next scene carry it.
 
-### M8. The irreversible step waits for me (25 s)
+### M8. The irreversible step waits for me (24 s)
 
 - **Screen.** The pill turns to "Needs your OK", a corner card above it, then the Knack window on the item, then Chrome on the case note. Take D.
 - **Actions.** The run ends at the designed gate. The corner card reads "A run is waiting for you. It needs your approval to go on." The owner clicks "Review": the window opens on Needs you. The new item is on top: "Submit case note CN-xxxx ... The agent stopped before submit. Cannot be undone. [Approve and submit] [Reject] [Evidence]". Open "Evidence": screenshots, what was extracted, what was expected, the diff. The owner clicks "Approve and submit" with the mouse. In the case-note window (`scripts/demo-open.sh --only casenote` opened it; the note id is in the item title) refresh: "Status: Submitted. This note is now part of the claimant record and cannot be withdrawn." (sandbox only). **Wiring gap G11 (found by running it): today the click only marks the queue item approved; the sandbox note stays "Draft" because nothing in the dashboard or the desktop calls `POST /agent/run/<run_id>/finalize`, the route that presses the real submit button for an item the worker approved.** Verified on a private stack: approve left the note Draft with 0 submissions; calling finalize through the dashboard's proxy then gave `{"submitted": true, "reason": "approved by the worker"}` and the note read Submitted, 1 submission. The fix belongs in the approve path of Needs you and the Home approval row (after a successful approve of an item that has a `run_id`, call finalize and tolerate a 409 for the seeded item, which has no live run). Until it is wired, either skip the "Status: Submitted" shot (end M8 on the approved item) or have the lead call finalize through the proxy (`POST http://127.0.0.1:5173/agent/run/<run_id>/finalize`) right after the owner's click, which is the designed second half of the same approval.
-- **Voiceover.** "It stopped before the one step that cannot be undone. The evidence is here, in plain view. I click, with the mouse: no key and no voice can approve. That is the only way the note goes in. In every held-out run the designed Submit waited for a human, and nothing was submitted without one."
+- **Voiceover.** "It stopped before the one step that cannot be undone. The evidence is in plain view. I approve with a click: no key and no voice can. In every held-out run the designed Submit waited for a human."
 - **Hold on screen (3 s).** The card, the consequence line "Cannot be undone.", the evidence list, then "Status: Submitted" on the sandbox page.
 - **Proves.** Approval queue, the gate on the real submit button, evidence, code decides done. Numbers (language model on our sandbox, headless): the designed Submit waited for a human in all 4 clean held-out runs; 0 submissions without approval; in 2 runs the harness accepted a wrong calculator B input and only an independent recomputation caught it (say so in M13).
 - **Data.** A pending irreversible item (the run creates one; the seed has another with no live run behind it: approving it only marks it approved, finalize answers 409). Use the item the run created. **Do not press Approve on the seeded CN-2041 in front of the camera if you want it for the teaser.**
 - **If it fails.** If the card does not show (it is content-protected unless `ALONGSIDE_OVERLAY_CAPTURABLE=1`), open Needs you by hand: the item is there. Never approve more than one item per take.
 
-### M9. Growth (12 s)
+### M9. Growth (14 s)
 
 - **Screen.** Knack, Growth.
 - **Actions.** Open Growth. The curve of the share of steps finished without an accepted cue, with its band; "Latest: 75% finished with no cue accepted"; "Baseline 1 of 5". Open "About this data" if time allows.
-- **Voiceover.** "Growth measures help needed, not expertise. On this simulated learner the share of unaided steps went from one in five to three in four. The screen still says: cannot tell yet. Its own power check would catch a steady fall in about two learners in ten at this size. We would rather under-claim."
+- **Voiceover.** "Growth measures help needed, not expertise. On this simulated learner, unaided steps went from one in five to three in four, and the screen still says cannot tell yet: we would rather under-claim."
 - **Hold on screen (4 s).** The title "Cannot tell yet whether you need less help", the badge "Example data", the printed limit "Measures help needed, not expertise."
 - **Proves.** The independence score with Wilson intervals, offloaded work never counted, an engine that refuses to overclaim on its own demo data. Target: HRT (a decision under uncertainty, stated as such). This is simulated data labelled `synthetic_learner`; it is not a result about people. **Do not "fix" the title.**
 - **Data.** The seeded Growth ledger. Audit link `GET /growth`.
@@ -176,31 +177,31 @@ Spoken lines total about 560 words at 150 words a minute. Scene lengths below al
 - **Voiceover.** "Repeats you could hand over, ranked by the minutes they would save. And one list for everything waiting on me."
 - **Hold on screen.** The rows. **Proves.** Repeat list (hit list), the single decisions list. **Data.** `GET /hitlist`. **If it fails.** Skip.
 
-### M11. The firm view (admin) (15 s)
+### M11. The firm view (admin) (14 s)
 
 - **Screen.** Knack, account menu, "View as Admin", then Firm, Roles, Onboarding.
 - **Actions.** Account menu (bottom of the sidebar), View as Admin. Firm: "60 people, 3 roles. 57 have enough data for a trend." Roles: Benefits processor experts 94% (92 to 97%), n = 7; juniors 63% (59 to 67%), n = 22; gap 32 points. Onboarding: "Half reach the target by step 82 (56 to 109)" against a dashed design target of 80%.
-- **Voiceover.** "For a manager: where the firm loses time, expert against junior, per role, with intervals, and how fast people reach independence. The names are made up, this firm is synthetic, and the screen says it is for coaching and onboarding, not for evaluating individuals."
+- **Voiceover.** "For a manager: expert against junior per role, with intervals, and how fast people reach independence. The names are made up, the firm is synthetic, and the screen says it is for coaching, not for evaluating individuals."
 - **Hold on screen (4 s).** "Names are made up. This firm is synthetic." and "For coaching and onboarding, not for evaluating individuals."
 - **Proves.** Admin role, insights engine (reliability gate, k-anonymity, "nothing stands out" is a valid answer), onboarding speed. Target: G-Research. Numbers (synthetic firm, 600 synthetic people in the evaluation): false worker insights 0.0037 per person-week [0.0027, 0.0047] on held-out; planted effects missed on dev and again on held-out (independence rise selected in 47 of 100 worlds against a target of 0.8). Say "a development set missed several targets; the held-out run repeated them".
 - **Data.** `/insights/admin/*` via the proxy. Audit link `GET /engine/insights/admin/firm (proxy adds the token)` and `GET /insights/admin/firm` (the gate must refuse without the token).
 - **If it fails.** If Firm answers 403, the dashboard is on a different data directory from the services; restart the stack. Switch back to Worker view after the take (account menu).
 
-### M12. Forecasts (12 s)
+### M12. Forecasts (11 s)
 
 - **Screen.** Knack, More, Forecasts.
 - **Actions.** The reliability diagram of the stuck forecast: dots on a dashed line, "mean gap (ECE): 0.013 (0.011 to 0.020)", "In 6 of 7 bands with 30 or more cases, the forecast is within 5 points of what happened. From about 62% up it runs high", "not validated on real people".
-- **Voiceover.** "A prediction is only worth something if it means what it says. This one is calibrated on held-out synthetic people to a mean gap of 1.3 points, runs high above about 60 percent, and has not been validated on real people."
+- **Voiceover.** "A forecast must mean what it says. This one is calibrated on held-out synthetic people to 1.3 points, runs high above about 60 percent, and is not validated on real people."
 - **Hold on screen (4 s).** The diagram, "Synthetic, not measured from real people", the ECE line.
 - **Proves.** ML v2 stuck forecast, held-out single frozen run, intervals. Target: HRT (predictions and decisions). Numbers (synthetic, n = 32 held-out people): ECE 0.013 [0.011, 0.020]; accepted v2 (gradient boosting, monotone, Platt-calibrated) beats v1 by -0.0039 nats [-0.0062, -0.0017] (99.3% interval); under a different generator the plain time-since-progress rule beats v1 by -0.021 to -0.030 nats. Say that last one in the honesty cut.
 - **Data.** `/hazard/*`, `/eval/report` (fixtures render offline). Audit link `GET /hazard/p_nov03`.
 - **If it fails.** The screen has fixtures; reload.
 
-### M13. Evidence: what did not hold up (20 s)
+### M13. Evidence: what did not hold up (22 s)
 
 - **Screen.** Knack (or Chrome via `scripts/demo-open.sh --only evidence`), More, Evidence.
 - **Actions.** Open Evidence. Scroll the map (33 of 35 sections have results, 2 not run), then the Findings. Stop on three: the agent's held-out result, the stuck model not transferring, the simulated study at the floor. End on "206 limits are listed at the end".
-- **Voiceover.** "We also show what failed. On held-out households the computer-use agent finished one of four on the earlier model, and its harness accepted wrong figures in two; only an independent recomputation caught them. The stuck model's edge was mostly our generator: on harder generators it falls from 0.07 to under 0.02 nats, and it does not transfer to simulated participants. The simulated study sat at the floor: 30 of 32 coached post-tests scored zero, so it says nothing about the coach. The live study has not been run."
+- **Voiceover.** "We also show what failed. On held-out households the computer-use agent finished one of four, and its own harness accepted wrong figures in two. The stuck model's edge was mostly our generator. The simulated study sat at the floor. The live study has not been run."
 - **Hold on screen (5 s each, 3 cuts).** "1 of 4 passed the code check"; "advantage ... 0.071 ... 0.008 to 0.015"; "30 of 32 ... at the floor".
 - **Proves.** The Evidence page and `make eval` (every number has n, split, interval, origin); honest reporting. All three targets. Numbers (all labelled in the report): held-out clean n = 4: 1 completed (Wilson 0.05 to 0.70), 2 false claims, 0 submissions, language model on our sandbox, earlier model; stuck model: synthetic, 3 generator families; simulated study: language-model participants, not people, +0.094 [-0.051, +0.239], exact p = 0.5.
 - **Data.** `/eval/report` (generated 21:40 UTC, mock; if a later `make eval` ran, re-read the numbers). Audit link `GET /eval/report`.
@@ -210,15 +211,15 @@ Spoken lines total about 560 words at 150 words a minute. Scene lengths below al
 
 - **Screen.** Knack, Your data, "What it looked at or sent".
 - **Actions.** Open the section: in live mode the rows of the voice session and glances (size, short hash, model, latency; never the picture); in mock mode "Nothing sent". Show "Delete everything" exists (do not press it).
-- **Voiceover.** "Every call that leaves the Mac is listed: size, model, time. Never the picture, never the words. This covers our services, not other software on the laptop, and it says so."
+- **Voiceover.** "Every call that leaves the Mac is listed: size, model, time. Never the picture, never the words."
 - **Hold on screen.** The list and the scope line. **Proves.** Privacy spine, the ledger, delete beside every item. Number (synthetic canaries, offline): 0 of 11,456 planted tokens reached the model port across 88 runs, upper 95% bound on the leak rate 3.35 percent. Known gap to print: the older desktop paths are off by default and not re-reviewed.
 - **Data.** `GET /privacy/summary`, `GET /privacy/ledger`. **If it fails.** Skip.
 
-### M15. Stop, the kill hotkey, outro (10 s)
+### M15. Stop, the kill hotkey, outro (14 s)
 
 - **Screen.** The pill with a run in progress, then the "Stopped" card, then Home.
 - **Actions.** During a run (take E) press Option-Shift-Command-K anywhere, or the pill's Stop. The pill says "Stopped"; the card stays until Resume. Press Resume. Cut to Home.
-- **Voiceover.** "One key stops everything, from any app: Option, Shift, Command, K. It always wins. Knack. It watches how people work, shows where a novice loses time, coaches with help that fades, and does the repetitive part only when you say yes."
+- **Voiceover.** "One key stops everything, from any app: Option, Shift, Command, K. Knack: it shows where a novice loses time, coaches with help that fades, and does the repetitive part only when you say yes."
 - **Hold on screen (4 s).** "Stopped"; then the Knack mark and the line "Synthetic data. Simulated participants. Four teammates, not run."
 - **Proves.** The kill flag (file and hotkey), supervisor stop, the first-class Stop everywhere. **Data.** None (a run in progress). Audit link `GET /kill` (must read clear before and after).
 - **If it fails.** The sidebar Stop button and the menu bar do the same. Press Resume before the next take.
@@ -338,7 +339,7 @@ node scripts/demo-worker.mjs --scene coach --pace normal        # M4 only
 node scripts/demo-worker.mjs --private --headless --scene both --gap 20 --cue-sheet /tmp/cues.json    # a rehearsal, no app and no window
 ```
 
-It prints one line per moment with a time since the start (the editor's cue sheet; `--cue-sheet` writes the same as JSON) and a summary; exit 0 when it ran to the end and the engine decided to ring. Default window 1180 by 760 at 60,60 (`--position`, `--size`); a visible teammate cursor is drawn in headed mode. It never presses "Submit to claimant record", never calls `/kill`, never reads or writes the checkout's `data/`.
+It prints one line per moment with a time since the start (the editor's cue sheet; `--cue-sheet` writes the same as JSON; a sample from the verified rehearsal is `docs/knack-demo/worker-cue-sheet.example.json`) and a summary; exit 0 when it ran to the end and the engine decided to ring. Default window 1180 by 760 at 60,60 (`--position`, `--size`); a visible teammate cursor is drawn in headed mode. It never presses "Submit to claimant record", never calls `/kill`, never reads or writes the checkout's `data/`.
 
 ### 7.3 What needs the owner at the demo (nothing else does)
 
