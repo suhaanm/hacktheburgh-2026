@@ -53,7 +53,7 @@ export const PATHS = {
   J4: { steps: [{ d: 'sidebar "Growth"', loc: (p) => nav(p, "Growth") }] },
   J5: { steps: [{ d: 'sidebar "Your data"', loc: (p) => nav(p, "Your data") }, { d: '"Forget" beside a line (counted, not executed)', hover: (p) => p.locator("#main .yd-line").first(), loc: (p) => p.locator("#main").getByRole("button", { name: /^Forget/ }).first(), skip: true }, { d: '"Forget it" (counted, not executed, not located)', blind: true, skip: true }] },
   J6: { steps: [{ d: "the sidebar Stop button (counted, not executed)", loc: (p) => p.getByRole("button", { name: "Stop everything now" }), skip: true }] },
-  J7: { steps: [{ d: 'sidebar "Routines"', loc: (p) => nav(p, "Routines") }, { d: "open a routine row", loc: (p) => p.locator("article.rt-row button.rt-row__open").first() }, { d: '"Run now" (counted, not executed)', loc: (p) => p.locator("article.rt-row").getByRole("button", { name: /^Run now/ }).first(), skip: true }] },
+  J7: { steps: [{ d: 'sidebar "Routines"', loc: (p) => nav(p, "Routines") }, { d: '"Run now" (counted, not executed)', loc: (p) => p.locator("article.rt-row").getByRole("button", { name: /^Run now/ }).first(), skip: true }] },
   A1: { setup: becomeAdmin, steps: [{ d: 'sidebar "Firm"', loc: (p) => nav(p, "Firm") }] },
   A2: { setup: becomeAdmin, steps: [{ d: 'sidebar "Roles"', loc: (p) => nav(p, "Roles") }] },
   A3: { setup: becomeAdmin, steps: [{ d: 'sidebar "Onboarding"', loc: (p) => nav(p, "Onboarding") }] },
@@ -111,6 +111,39 @@ try {
     } finally {
       await ctx.close();
     }
+  }
+  // First run: three clicks from launch to Home (the role, the one consent, "Show my week"); with the connection chips there is one more, "Continue".
+  if (!only || only.has("first-run")) {
+    const ctx = await browser.newContext({ viewport: { width: VW, height: VH } });
+    await ctx.route("**/*", (r) => {
+      const req = r.request();
+      if (!["GET", "HEAD"].includes(req.method())) return r.abort();
+      if (example && /^https?:\/\/[^/]+\/(engine|agent)(\/|$)/.test(req.url())) return r.abort();
+      return r.continue();
+    });
+    const page = await ctx.newPage();
+    try {
+      await page.goto(`${base}/#/first-run`, { waitUntil: "load" });
+      await page.locator(".rolecard").first().waitFor({ timeout: 10000 });
+      let clicks = 0;
+      const press = async (loc) => { await loc.click({ timeout: 5000 }); clicks++; await page.waitForTimeout(500); };
+      await press(page.locator(".rolecard__btn").first());
+      const cont = page.getByRole("button", { name: "Continue" });
+      const chips = await cont.isVisible().catch(() => false);
+      if (chips) await press(cont);
+      await press(page.getByRole("button", { name: "Not now" }));
+      await page.getByRole("button", { name: "Show my week" }).waitFor({ timeout: 10000 });
+      await press(page.getByRole("button", { name: "Show my week" }));
+      const at = await page.evaluate(() => location.hash.replace(/^#/, "").split("?")[0]);
+      const budget = spec.first_run.target_clicks + (chips ? 1 : 0);
+      const ok = clicks <= budget && at === "/home";
+      if (!ok) failed++;
+      ran++;
+      console.log(`${ok ? "PASS" : "FAIL"}  first run: launch to Home: ${clicks} clicks (budget ${budget}${chips ? ", three plus Continue for the connection chips" : ""}), at ${at}`);
+    } catch (e) {
+      failed++; ran++;
+      console.log(`FAIL  first run: launch to Home: ${e instanceof Error ? e.message.split("\n")[0] : e}`);
+    } finally { await ctx.close(); }
   }
 } finally {
   await browser.close();
