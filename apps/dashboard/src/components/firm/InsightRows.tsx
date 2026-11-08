@@ -97,7 +97,7 @@ function InsightRow({ i, open, onToggle, id }: { i: AdminInsight; open: boolean;
         icon={glyph}
         tone={glyph === "alert" ? "warn" : glyph === "up" ? "good" : undefined}
         title={i.headline}
-        meta={<><span className="u-sr-only">{i.polarity_label ?? "Note"}. </span>{effect ? `${effect}, ` : ""}n = {nWord(i.n, i.n_unit)}</>}
+        meta={<><span className="u-sr-only">{i.polarity_label ?? "Note"}. </span>{effect ? `${effect}, ` : ""}<span className="nobr">n = {nWord(i.n, i.n_unit)}</span></>}
         onClick={onToggle}
         chevron={!open}
         pressed={open}

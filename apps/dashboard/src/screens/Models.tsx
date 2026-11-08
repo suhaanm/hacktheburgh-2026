@@ -88,7 +88,7 @@ function Chain({ r }: { r: ModelRole }) {
           <li key={i} className="chain__step" data-when={st.when}>
             <span className="chain__when t-label">{WHEN_LABEL[st.when] ?? st.when}</span>
             <b>{providerName(st.provider)}{st.tier ? ` · ${st.tier}` : ""}</b>
-            {st.model ? <code>{st.model}</code> : <span className="u-muted">model id not resolved</span>}
+            {st.model ? <code>{st.model}</code> : <span className="u-muted" title="The model id has not been resolved: no key is set up for this provider">no id</span>}
           </li>
         ))}
       </ol>
