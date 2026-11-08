@@ -8,7 +8,7 @@ import { WakeSettingsStore } from './settings'
 
 const CALM = { flagOn: true, isMac: true, mock: false, locked: false, asleep: false, paused: false, killed: false, hardQuiet: { dnd: false, screenSharing: false, onCall: false, inMeeting: false }, agentActing: false, away: false }
 
-function rig(over: { rung?: RungReading; live?: { consented?: boolean; frames?: boolean }; startOk?: boolean; blocker?: string | null; inputs?: Partial<typeof CALM> } = {}) {
+function rig(over: { firstRun?: { on: boolean }; rung?: RungReading; live?: { consented?: boolean; frames?: boolean }; startOk?: boolean; blocker?: string | null; inputs?: Partial<typeof CALM> } = {}) {
   const settings = new WakeSettingsStore(null)
   const liveSettings = new LiveSettingsStore(null)
   if (over.live?.consented) liveSettings.patch({ liveEnabled: true, liveConsentVersion: LIVE_CONSENT_VERSION, liveFrames: over.live.frames === true }, { trusted: true })
@@ -24,7 +24,7 @@ function rig(over: { rung?: RungReading; live?: { consented?: boolean; frames?: 
   const closed: string[] = []
   const answers: Array<CardAnswer | null> = []
   const runs: Array<{ box: unknown; cardId: string }> = []
-  let finishRun: (r: { ok: boolean }) => void = () => undefined
+  let finishRun: (r: { ok: boolean; reason?: string }) => void = () => undefined
   const stops: number[] = []
   const said: string[] = []
   const chimes: number[] = []
@@ -36,6 +36,7 @@ function rig(over: { rung?: RungReading; live?: { consented?: boolean; frames?: 
     settings,
     liveSettings,
     openSettings: (w) => void opened.push(w),
+    firstRun: () => over.firstRun?.on === true,
     live: {
       blocker: () => over.blocker ?? null,
       startFromWake: () => {
@@ -121,7 +122,7 @@ function rig(over: { rung?: RungReading; live?: { consented?: boolean; frames?: 
   const flush = async (): Promise<void> => {
     for (let i = 0; i < 6; i++) await Promise.resolve()
   }
-  return { ctl, setHelper, opened, settings, liveSettings, helperLog, started, cardsSeen, closed, answers, runs, finishRun: (r: { ok: boolean }) => finishRun(r), stops, said, chimes, endLive, fire, flush, inputs, advance: (ms: number) => void (t += ms) }
+  return { ctl, setHelper, opened, settings, liveSettings, helperLog, started, cardsSeen, closed, answers, runs, finishRun: (r: { ok: boolean; reason?: string }) => finishRun(r), stops, said, chimes, endLive, fire, flush, inputs, advance: (ms: number) => void (t += ms) }
 }
 const mouse = (id: string): CardAnswer => ({ buttonId: id, via: 'mouse' })
 
@@ -438,7 +439,7 @@ describe('edge cases of the wake path', () => {
     const r = rig()
     r.ctl.start()
     r.setHelper({ state: 'blocked', code: 'on_device_unavailable' })
-    expect(r.ctl.status()).toMatchObject({ listening: false, line: 'This Mac cannot recognise speech on the device, so Hey Knack stays off.' })
+    expect(r.ctl.status()).toMatchObject({ listening: false, fix: 'dictation', line: 'This Mac cannot recognise speech on the device, so Hey Knack stays off.' })
   })
   it('a helper that keeps crashing ends blocked with one plain line, and switching the listener off and on tries again', () => {
     const r = rig()
@@ -454,6 +455,7 @@ describe('edge cases of the wake path', () => {
     r.ctl.start()
     r.setHelper({ state: 'blocked', code: 'mic_denied' })
     expect(r.ctl.status().line).toBe('Hey Knack needs the microphone. Turn it on in System Settings.')
+    expect(r.ctl.status().fix).toBe('microphone')
   })
   it('the lid closed and reopened: asleep and locked stop the listener at once; it comes back only when both are over', () => {
     const r = rig()
@@ -478,6 +480,164 @@ describe('edge cases of the wake path', () => {
       await r.ctl.onHeard()
       expect(r.started).toHaveLength(0)
       expect(r.cardsSeen).toHaveLength(0) // not even a card: nothing was heard as far as the worker can tell
+    }
+  })
+})
+
+describe('every capability that cannot work answers with a card and a button', () => {
+  it('pointing at something anywhere on the screen without Screen Recording: one card that says why and opens System Settings, at most once in ten minutes', async () => {
+    const r = rig()
+    r.ctl.start()
+    r.answers.push({ buttonId: 'screen', via: 'mouse' })
+    r.ctl.explainRefusal('screen_recording')
+    await r.flush()
+    expect(r.cardsSeen[0]).toMatchObject({ title: 'To find it, Knack must see your screen.' })
+    expect(r.cardsSeen[0].body).toContain('works without this')
+    expect(r.cardsSeen[0].buttons.map((b) => b.label)).toEqual(['System Settings', 'Close'])
+    expect(r.opened).toEqual(['screen'])
+    r.ctl.explainRefusal('screen_recording')
+    await r.flush()
+    expect(r.cardsSeen).toHaveLength(1) // not again so soon
+    r.advance(10 * 60_000 + 1)
+    r.answers.push(null)
+    r.ctl.explainRefusal('screen_recording')
+    await r.flush()
+    expect(r.cardsSeen).toHaveLength(2)
+  })
+  it('the talk key before the worker agreed to talk: the same two cards as the first wake, then a line that talking is on', async () => {
+    const r = rig()
+    r.ctl.start()
+    r.answers.push({ buttonId: 'yes', via: 'mouse' }, { buttonId: 'not_now', via: 'mouse' }, null)
+    r.ctl.explainRefusal('not_enabled')
+    await r.flush()
+    await r.flush()
+    expect(r.cardsSeen.map((c) => c.title)).toEqual(['Talk with Knack?', 'Knack may look at your screen while we talk', 'Talking is on.'])
+    expect(r.liveSettings.get().liveEnabled).toBe(true)
+  })
+  it('the talk key refused for a missing key, the service, the microphone or a pause shows its plain card', async () => {
+    for (const reason of ['no_key', 'breaker_open', 'mic_permission', 'paused', 'day_cap']) {
+      const r = rig()
+      r.ctl.start()
+      r.answers.push(null)
+      r.ctl.explainRefusal(reason)
+      await r.flush()
+      expect(r.cardsSeen).toHaveLength(1)
+      expect(r.cardsSeen[0].title).toBe('Hey Knack heard you.')
+    }
+  })
+  it('a refusal the worker should not hear about (already talking) shows nothing', async () => {
+    const r = rig()
+    r.ctl.start()
+    r.ctl.explainRefusal('busy')
+    await r.flush()
+    expect(r.cardsSeen).toHaveLength(0)
+  })
+})
+
+describe('first run', () => {
+  it('waits for the permissions step: nothing starts (so no macOS prompt) until arm(), then it does, and it stays on after set-up ends', () => {
+    const f = { on: true }
+    const r = rig({ firstRun: f })
+    r.ctl.start()
+    expect(r.helperLog).toEqual([])
+    expect(r.ctl.status()).toMatchObject({ listening: false, dormant: 'first_run', line: 'Hey Knack starts after set-up' })
+    r.ctl.arm()
+    expect(r.helperLog).toContain('start')
+    expect(r.ctl.status().listening).toBe(true)
+    f.on = false
+    r.ctl.refresh()
+    expect(r.ctl.status().listening).toBe(true)
+  })
+  it('without a first run the listener starts at launch as before', () => {
+    const r = rig()
+    r.ctl.start()
+    expect(r.helperLog).toEqual(['start'])
+  })
+  it('the first conversation gets the welcome opening once; after a conversation has started it does not', async () => {
+    const r = rig({ live: { consented: true, frames: true } })
+    r.ctl.start()
+    const first = r.ctl.openingText()
+    expect(first).toContain('Hi, I am Knack. Try saying: show me where the Needs you list is.')
+    expect(first).toContain('point_at')
+    expect(first).toContain('"Needs you"')
+    expect(r.ctl.status().welcomed).toBe(false)
+    await r.ctl.onHeard()
+    expect(r.settings.get().welcomed).toBe(true)
+    expect(r.ctl.status().welcomed).toBe(true)
+    expect(r.ctl.openingText()).toBeNull()
+  })
+  it('a conversation that could not start does not use up the welcome', async () => {
+    const r = rig({ live: { consented: true, frames: true }, startOk: false })
+    r.ctl.start()
+    r.answers.push(null)
+    await r.ctl.onHeard()
+    expect(r.settings.get().welcomed).toBe(false)
+    expect(r.ctl.openingText()).not.toBeNull()
+  })
+})
+
+describe('a blocked listener and a click that cannot run say so on a card', () => {
+  it('a permission the helper was refused: one card per cause, with the button for the right pane, and again only after it worked in between', async () => {
+    const r = rig()
+    r.ctl.start()
+    r.answers.push({ buttonId: 'microphone', via: 'mouse' })
+    r.setHelper({ state: 'blocked', code: 'mic_denied' })
+    await r.flush()
+    expect(r.cardsSeen).toHaveLength(1)
+    expect(r.cardsSeen[0]).toMatchObject({ title: 'Hey Knack needs the microphone.' })
+    expect(r.opened).toEqual(['microphone'])
+    r.ctl.refresh()
+    r.ctl.refresh()
+    expect(r.cardsSeen).toHaveLength(1)
+    r.setHelper({ state: 'listening', code: null })
+    r.answers.push(null)
+    r.setHelper({ state: 'blocked', code: 'speech_denied' })
+    await r.flush()
+    expect(r.cardsSeen[1]).toMatchObject({ title: 'Hey Knack needs speech recognition.' })
+    expect(r.cardsSeen[1].buttons.map((b) => b.label)).toEqual(['System Settings', 'Close'])
+  })
+  it('no on-device speech: the card names Dictation', async () => {
+    const r = rig()
+    r.ctl.start()
+    r.answers.push({ buttonId: 'dictation', via: 'mouse' })
+    r.setHelper({ state: 'blocked', code: 'on_device_unavailable' })
+    await r.flush()
+    expect(r.cardsSeen[0].body).toContain('Dictation')
+    expect(r.opened).toEqual(['dictation'])
+  })
+  it('a worker who switched it off is not shown a card about it', async () => {
+    const r = rig()
+    r.settings.patch({ wakeListen: false })
+    r.ctl.start()
+    r.setHelper({ state: 'blocked', code: 'mic_denied' })
+    await r.flush()
+    expect(r.cardsSeen).toHaveLength(0)
+  })
+  it('an allowed click that cannot run: Accessibility and Screen Recording have their own card, anything else says it is not ready; Knack shows instead', async () => {
+    for (const [reason, title, pane] of [['accessibility_missing', 'Click for you needs Accessibility.', 'accessibility'], ['screen_recording_missing', 'Click for you needs Screen Recording.', 'screen'], ['route_missing', 'I could not click for you.', null]] as const) {
+      const r = rig({ live: { consented: true, frames: true }, rung: { cleared: true, targets: ['TextEdit'], at: 'x' } })
+      r.ctl.start()
+      await r.ctl.onHeard()
+      r.answers.push({ buttonId: 'allow', via: 'mouse' })
+      if (pane) r.answers.push({ buttonId: pane, via: 'mouse' })
+      await r.ctl.doIt({ description: 'the Save button', box: [100, 100, 140, 200] })
+      await r.flush()
+      r.finishRun({ ok: false, reason })
+      await r.flush()
+      await r.flush()
+      expect(r.cardsSeen.at(-1)).toMatchObject({ title })
+      expect(r.opened).toEqual(pane ? [pane] : [])
+      expect(r.said).toContain('did_not_work')
+    }
+  })
+  it('every card stays within the word budgets: title 8, body 22, button 3', async () => {
+    const t = await import('./texts')
+    const words = (x: string): number => x.trim().split(/\s+/).length
+    for (const c of [...Object.values(t.CARDS), ...Object.values(t.INFO_CARDS)] as Array<{ title: string; body: string; buttons: ReadonlyArray<{ label: string }> }>) {
+      // One title is the owner's own words, 9 long, kept as given.
+      expect(words(c.title)).toBeLessThanOrEqual(c.title === 'Knack may look at your screen while we talk' ? 9 : 8)
+      expect(words(c.body)).toBeLessThanOrEqual(22)
+      for (const b of c.buttons) expect(words(b.label)).toBeLessThanOrEqual(3)
     }
   })
 })

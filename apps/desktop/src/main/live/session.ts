@@ -44,6 +44,8 @@ export interface SessionConfig {
   // A session that began with the words "Hey Knack": hands-free (the microphone stays open, the server hears the turns), with the wake tools
   // `clear` and `do_it_for_me`. Ends on a spoken goodbye, a quiet minute, the cap, Stop or the kill switch.
   wake?: boolean
+  // A code-written first turn, sent once the channel exists (trusted text; the first conversation's welcome).
+  openingText?: string
   model: string
   // Set in transcribe mode when a dedicated transcription model is configured: the answer is text, not audio.
   textOnlyModel?: boolean
@@ -280,6 +282,7 @@ export class LiveSession {
     const replies = this.queuedReplies
     this.queuedReplies = []
     for (const fr of replies) this.egress.control(msg.toolResponse([fr]))
+    if (this.c.openingText && this.c.mode === 'converse') this.egress.control(msg.text(this.c.openingText))
     // What was said while the socket opened goes first, through the same gates as everything else.
     const buffered = this.pending
     this.pending = []

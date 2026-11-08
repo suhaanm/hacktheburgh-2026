@@ -176,6 +176,24 @@ describe('how a hands-free conversation ends', () => {
   })
 })
 
+describe('the first conversation', () => {
+  it('sends the code-written opening turn once the channel exists, and nothing when there is none', async () => {
+    const m = h.make({ opening: () => 'OPENING: say hello' })
+    m.start()
+    m.startFromWake()
+    await wf(() => h.server.received.text.length > 0)
+    expect(h.server.received.text.join(' ')).toContain('OPENING: say hello')
+    h.audio.micStarts = 0
+    const q = h.make({ opening: () => null })
+    q.start()
+    const before = h.server.received.text.length
+    q.startFromWake()
+    await wf(() => h.server.received.setup !== null)
+    await new Promise((r) => setTimeout(r, 100))
+    expect(h.server.received.text.length).toBe(before)
+  })
+})
+
 describe('the wake tools', () => {
   it('point_at draws the ring and the ghost cursor, and still never clicks', async () => {
     const m = h.make()
