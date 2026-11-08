@@ -1,8 +1,8 @@
 # Knack feature index
 
-As of Sun 08 Nov 2026, 02:35 UTC, checked against main at 52c28c7.
+As of Sun 08 Nov 2026, 02:42 UTC, checked against main at d9f8929.
 
-35 pages and 70 entries (features, plus four write-ups of results that did not hold up), for the pitch (Hack the Burgh XIII), the launch video, the demo and the submission video. The master document is `docs/PITCH_FEATURES.md`; the 20 video claims are in `video-beats.md`; the 25 hardest judge questions are in `faq.md`.
+35 pages and 70 entries (features, plus four write-ups of results that did not hold up), for the pitch (Hack the Burgh XIII), the launch video, the demo and the submission video. The master document is `docs/PITCH_FEATURES.md`; the 25 video claims are in `video-beats.md`; the 28 hardest judge questions are in `faq.md`.
 
 **Status words.** `verified`: the lead saw it work end to end (`docs/FEATURE_CATALOGUE.md`). `built`: built and tested by its track, on main, not yet seen end to end by the lead. `landing`: not on main yet (another agent's branch, or its document has not landed). `not run`: designed or built but never run. The status is taken from the sources at the time of writing (see the time stamp in `docs/PITCH_FEATURES.md`); nothing here was run by the author.
 
@@ -110,7 +110,7 @@ As of Sun 08 Nov 2026, 02:35 UTC, checked against main at 52c28c7.
 | One attention layer: a router, a digest, quiet states | [attention-router](attention-router.md) | **built** (engine built; desktop wiring built; held-out simulated evaluation met 11 of 12 criteria) | HRT |
 | Context engineering: typed, bounded, fresh | [context-engineering](context-engineering.md) | **built** | Wordsmith |
 | One app, one window, one corner pill | [knack-shell](knack-shell.md) | **built** (merged to main; hidden end-to-end run passes; first visible launch with the owner pending) | Wordsmith |
-| First run: role, consent and a first look | [knack-shell](knack-shell.md) | **built** (the spec is three clicks and the dashboard's first-run model on main still has three screens (role, capture, ready); the page has the rest) | G-Research |
+| First run: role, three consents and a check | [knack-shell](knack-shell.md) | **built** (owner decision D58; on main since 02:39 UTC (d9f8929): a role screen, one consent card each for capture, screen glances and voice, and a 'Check it works' screen; the page has the rest) | G-Research |
 | Command palette and keyboard | [knack-shell](knack-shell.md) | **built** (shortcuts and the palette are on main; some of the spec's palette verbs are not) | Wordsmith |
 | Design system with budgets as tests | [design-system](design-system.md) | **built** (tokens, components and check scripts merged to main; screens still being brought to budget by their tracks) | G-Research |
 | The Knack mark and brand | [design-system](design-system.md) | **built** | G-Research |
@@ -150,5 +150,5 @@ As of Sun 08 Nov 2026, 02:35 UTC, checked against main at 52c28c7.
 
 ## Also in this folder
 
-- [video-beats.md](video-beats.md): 20 one-line claims with the proof shot, tagged teaser, demo or technical.
-- [faq.md](faq.md): the 25 hardest judge questions with short, truthful answers.
+- [video-beats.md](video-beats.md): 25 one-line claims with the proof shot, tagged teaser, demo or technical.
+- [faq.md](faq.md): the 28 hardest judge questions with short, truthful answers.

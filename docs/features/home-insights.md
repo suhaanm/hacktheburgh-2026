@@ -4,7 +4,7 @@
 
 **Capability:** Insights and admin · **Status:** built · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
-**Navigation note (on main since 02:05 UTC).** The lead's views rule (`docs/knack-ux/views.md`) is implemented: a worker has five sidebar rows (Home, Needs you, Routines, Growth, Your data); Growth is one page with the sections My progress, Where my time goes, My steps, How my routines connect and My commits; the Admin view has Firm, Brief, Forecasts, Roles, People, Onboarding, Automation and Risk, then More: Models and cost, Evidence, Background runs. Old addresses redirect (`apps/dashboard/src/routeRedirects.ts`). The final list is `apps/dashboard/src/components/home/navModel.ts`. Home also holds a short list of background tasks (on main). The task box ('What should Knack do?', type or speak, owner request 4.18) is not on main. A worker's Home shows only their own insight and approval, never firm-wide data.
+**Navigation note (on main since 02:05 UTC).** The lead's views rule (`docs/knack-ux/views.md`) is implemented: a worker has five sidebar rows (Home, Needs you, Routines, Growth, Your data); Growth is one page with the sections My progress, Where my time goes, My steps, How my routines connect and My commits; the Admin view has Firm, Brief, Forecasts, Roles, People, Onboarding, Automation and Risk, then More: Models and cost, Evidence, Background runs. Old addresses redirect (`apps/dashboard/src/routeRedirects.ts`). The final list is `apps/dashboard/src/components/home/navModel.ts`. Home also holds the task box ('What should Knack do?', type or speak, owner request 4.18, D66) and a short list of background tasks, both on main. A worker's Home shows only their own insight and approval, never firm-wide data.
 
 This page covers Home: one sentence, one action, Top insights engine: a few pointers, chosen by code.
 
@@ -24,7 +24,7 @@ The hero is the top pointer written from a fixed template: 'On {step} you usuall
 
 ### Where to see it
 
-Home, the first item in the sidebar and the page Knack opens on.
+Home, the first item in the sidebar and the page Knack opens on. Under D66 it also holds the task box and a short list of background tasks, within a budget of 70 words and 6 controls.
 
 ### Demo moment
 

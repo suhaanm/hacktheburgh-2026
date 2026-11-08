@@ -4,7 +4,7 @@
 
 **Capability:** Agents that do the work safely · **Status:** built · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
-**Status:** built (owner decision D63 (01:05 UTC); merged to main at 01:42 UTC (fded20e): the service, API, router, Claude command runner, skills and browser runner, the consent cards and task list in the dashboard, the pills window in the desktop shell and the Live tool start_task, with docs/TASKS.md; not seen end to end by the lead; two small real runs of the owner's claude command were made with the owner's approval (a one-word prompt, then a throwaway copy of the protected-file layout; about US$0.125 in all, D64), and no real task has been run; the task box (a place to type a task) is not on main, so a typed task has no screen yet (landing)) · **Page:** `docs/features/open-ended-tasks.md` · **Targets:** Wordsmith
+**Status:** built (owner decision D63 (01:05 UTC); merged to main at 01:42 UTC (fded20e): the service, API, router, Claude command runner, skills and browser runner, the consent cards and task list in the dashboard, the pills window in the desktop shell and the Live tool start_task, with docs/TASKS.md; not seen end to end by the lead; two small real runs of the owner's claude command were made with the owner's approval (a one-word prompt, then a throwaway copy of the protected-file layout; about US$0.125 in all, D64), and no real task has been run; the task box on Home ('What should Knack do?') is on main since 02:39 UTC (d9f8929) and has not been seen working with a real service) · **Page:** `docs/features/open-ended-tasks.md` · **Targets:** Wordsmith
 
 ## What it does
 
@@ -30,11 +30,11 @@ Skills are read from the front matter of skill files in the owner's Claude folde
 
 ## Where to see it
 
-Needs you (the consent card, with Allow and Not now and the wider choice behind More), Routines and Home (a short list of background tasks, live), small pills at the top right of the screen while an agent works (a second overlay column; Knack's own attention stays in the bottom-right column), and Hey Knack by voice ('Hey Knack, do ...'). The task box that would let a worker type a task is Track B's (docs/OWNER_REQUESTS.md 4.18) and is not on main: the dashboard has calls to list, stop, consent to, answer and open a task but none that creates one. The service API is in docs/API_CONTRACT.md (Tasks API).
+Needs you (the consent card, with Allow and Not now and the wider choice behind More), Routines and Home (a short list of background tasks, live), small pills at the top right of the screen while an agent works (a second overlay column; Knack's own attention stays in the bottom-right column), and Hey Knack by voice ('Hey Knack, do ...'). The task box is on Home (owner request 4.18, decision D66): one field, 'What should Knack do?', placeholder 'Type a task, then press Enter', at most 500 characters, example lines that fill the field and never send, and a microphone where the desktop app can open its Ask bar. A task is only ever something the worker typed or said and then sent; the answer shows at once in its own plain line; a consent card prints its scope whole with two buttons of one size (the wider choice behind More) and focus never lands on a button, so the Enter that sent the task cannot also answer its consent; with no task service running the box says nothing was started and keeps what was typed. The service API is in docs/API_CONTRACT.md (Tasks API).
 
 ## Demo moment
 
-Not rehearsed, and not by typing, because the task box is not on main. By voice (it needs the owner's first launch and a Gemini key) or through the service API a task can be created; the consent card appears in Needs you and names what the agent can do; one click on Allow for this task; a pill appears at the top right; the result arrives as one sentence with Open file. Say that a request such as 'click Save in Excel' is answered with steps, not a click. Do not film a typed task until the task box lands and the lead has seen it.
+Not rehearsed. On Home type a task in 'What should Knack do?' and press Enter (or say it by voice, which needs the owner's first launch and a Gemini key); the consent card names what the agent can do; one click on Allow for this task; a pill appears at the top right; the result arrives as one sentence with Open file. Say that a request such as 'click Save in Excel' is answered with steps, not a click. Allowing a real task spends the owner's Claude account (US$2 limit by default), so click Allow only if a real task is meant, and do not film it until the lead has seen it work.
 
 ## Evidence and its label
 
@@ -55,7 +55,7 @@ Full computer access is the owner's choice (D63), and the deny rules are a guard
 
 ## 30-second spoken script
 
-> You can type or say any task. Knack decides in code whether to answer, browse, show you on screen, or hand the job to a background agent, and for the last two it asks for one click that says in plain words what that agent can do. The background agent is your own Claude command, run as a monitored child with a time cap, and Stop ends the whole thing. It writes and runs code on your Mac because the owner chose that, so the consent card says so, and it never happens inside routines. This is on the main build and tested with a fake command and two small real checks run with the owner's approval; no real task has been run, and the box to type a task is not in yet.
+> You can type or say any task. Knack decides in code whether to answer, browse, show you on screen, or hand the job to a background agent, and for the last two it asks for one click that says in plain words what that agent can do. The background agent is your own Claude command, run as a monitored child with a time cap, and Stop ends the whole thing. It writes and runs code on your Mac because the owner chose that, so the consent card says so, and it never happens inside routines. This is on the main build and tested with a fake command and two small real checks run with the owner's approval; no real task has been run, and the task box on Home has not been used with a real task.
 
 ## Slide bullets
 
@@ -63,7 +63,7 @@ Full computer access is the owner's choice (D63), and the deny rules are a guard
 - One consent card per task, in plain words: what the agent can read, change and run.
 - Monitored child: allow-listed environment, time caps, Stop and the kill file end the process group.
 - Full computer access is the owner's choice (D63); deny rules are not a sandbox; never in routines.
-- 160 tests with a fake command and two small real checks; the task box is not on main.
+- 160 tests with a fake command and two small real checks; the task box is on Home, not yet used with a real task.
 
 ## Sources
 

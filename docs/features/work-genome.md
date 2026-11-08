@@ -122,7 +122,7 @@ The calculators' quirks and the oracle are ours. The oracle is a simplified rule
 
 ## 30-second spoken script
 
-> Two people do the same job. One is slower and gets a different answer, and nobody can see where. Knack aligns the novice's steps to the nearest expert's and prices each gap in seconds. Then it checks itself: expert against expert, and shuffled labels, both near zero. On our synthetic data the real gap is about 230 seconds a case. The screen says the numbers come from example people made for this build, because they do.
+> Two people do the same job. One is slower and gets a different answer, and nobody can see where. Knack aligns the novice's steps to the nearest expert's and prices each gap in seconds. Then it checks itself: expert against expert, and shuffled labels, both near zero. On our synthetic data the real gap is about 230 seconds a case. The closed 'About this data' line says the numbers come from example people made for this build, because they do.
 
 ## Slide bullets
 

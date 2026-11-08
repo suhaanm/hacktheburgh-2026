@@ -1,4 +1,4 @@
-# The 25 hardest judge questions
+# The 28 hardest judge questions
 
 Short, truthful answers, each with its source. Nothing here is stronger than the evidence labels in `docs/PITCH_FEATURES.md`. Numbers are synthetic or simulated unless the answer says otherwise. Grouped: privacy, safety, honesty, choices, disclosure.
 
@@ -32,7 +32,7 @@ Not yet in practice. One supervised click and one typed line passed on TextEdit;
 
 **7. Does Knack run model-written code?**
 
-Yes, on the open-ended task path, with the worker's per-task consent, and never in routines. Routines are a JSON step language run by a small interpreter, and generated code is not executed there. A typed or spoken task that is code, data or file work can start the owner's own Claude command as a monitored background agent, which writes and runs code on the Mac. That happens only after a consent card that says in plain words what the agent can do, answered by a real click; the child gets an environment allow-list (no Knack keys), a time cap and a spend limit (US$2 unless the worker sets another), Stop and the kill file end it, ledger rows hold metadata only, and an unattended run never gets 'allow everything'. The deny rules for Knack's own files are defence in depth, not a sandbox, and this path is on main but tested only with a fake command and two small real checks (the second showed the deny rules refuse a file write and read of Knack's safety files, which a shell command may still bypass), not run on a real task, and the box to type a task is not in yet (docs/IMPLEMENTATION_SPEC.md section 6.5 as amended; docs/DECISIONS.md D63; docs/TASKS.md).
+Yes, on the open-ended task path, with the worker's per-task consent, and never in routines. Routines are a JSON step language run by a small interpreter, and generated code is not executed there. A typed or spoken task that is code, data or file work can start the owner's own Claude command as a monitored background agent, which writes and runs code on the Mac. That happens only after a consent card that says in plain words what the agent can do, answered by a real click; the child gets an environment allow-list (no Knack keys), a time cap and a spend limit (US$2 unless the worker sets another), Stop and the kill file end it, ledger rows hold metadata only, and an unattended run never gets 'allow everything'. The deny rules for Knack's own files are defence in depth, not a sandbox, and this path is on main but tested only with a fake command and two small real checks (the second showed the deny rules refuse a file write and read of Knack's safety files, which a shell command may still bypass), not run on a real task, and the task box on Home has not been used with a real task (docs/IMPLEMENTATION_SPEC.md section 6.5 as amended; docs/DECISIONS.md D63; docs/TASKS.md).
 
 **8. How do I stop it?**
 
@@ -64,50 +64,62 @@ Real: all the code, run locally; three sandbox calculators and a case-note page 
 
 On its own generator it beats two plain baselines (log loss 0.436 against 0.509, n = 4). On harder generators its edge over a time-since-progress rule falls to a few thousandths, a v1-trained model is worse than that rule, and under mismatch the plain rule beats it in all three roles. A small gain from a boosted version was accepted. Our claim is that a simple rule does about as well; the product decision is with the owner. A later forward-in-time check agrees: on new seeds it beats the plain baselines where it was fitted (log loss 0.445 [0.434, 0.455] against 0.525 and 0.524), is worse than the best plain predictor in three shifted worlds by +0.324 to +0.513 nats, and an online recalibration, registered afterwards on new seeds, leaves it no worse than the best plain predictor in those worlds (small margins, reported and not a registered claim) without restoring calibration after a rule change (README.md; evals/report.md Findings; docs/HRT_BRIEF.md).
 
-**15. Does coaching help? Do novices become experts?**
+**15. What did the conformal result show?**
+
+Prediction ranges and sets calibrated once to cover 90% do so only where they were calibrated. For new people in that world the stuck set covered 90.0% [89.5%, 90.6%] and the finish-time range 89.5% [88.2%, 90.7%]; in three shifted worlds the stuck set covered 73.7%, 70.4% and 70.8% and the finish range 37.3%, 38.2% and 52.4%. The drift guard flagged every one of the 23 shifted deployments whose coverage fell under 85%, so the failure is caught by the guard and not by the intervals themselves. Recalibrating the quantile on one deployment of the new world brought the stuck set back to about 90% only by making it hold both labels in 78% to 87% of origins, so it became vague, and the finish range still under-covered. 8 of 11 registered claims passed; one failure is a two-minute range that over-covers (94.3%), which the registered rule counts as a failure. All of it comes from generators we wrote, and coverage is marginal over origins, not per person (docs/HRT_BRIEF.md section 2d; evals/hrt/results/heldout_conformal.json).
+
+**16. Does coaching help? Do novices become experts?**
 
 We do not claim either. No person has used Knack in a study. Growth measures help needed, not expertise, and says so on the screen. The claim is that the system lifts novices on our synthetic data and shows its limits (CLAUDE.md, Honesty; docs/knack-ux/04-growth.md).
 
-**16. What failed?**
+**17. What failed?**
 
 The stuck model and the genome degrade on harder data; ML v2's ensemble and counterfactual were rejected as harmful on held-out data; transfer to simulated-participant traces failed; the simulated study sat at the floor; computer use completed 1 of 4 held-out households with OpenAI and 18 of 20 with Gemini, below its bar; Cue did not meet its faster-to-resume target; the attention router missed one of twelve criteria; the insights engine found 47 of 100 planted independence rises (target 0.8). Each is on the Evidence page (evals/report.md Findings; docs/features/what-did-not-hold-up.md).
 
-**17. How do you know the agent actually finished?**
+**18. How do you know the agent actually finished?**
 
 Code checks a fresh page for each calculator's result fields and the case-note id; a model's 'done' counts for nothing. On a one-off error page the real model said it was finished in 20 of 20 runs and all 20 claims were false; the check caught every one. The product's own check would not catch a wrong but well-formed figure, which an independent recomputation did in two held-out computer-use runs (evals/report.md; docs/reference-notes/computer-use-comparison.md).
 
-**18. How reliable is computer use?**
+**19. How reliable is computer use?**
 
 Not reliable enough to claim. With Gemini, held-out and pre-registered, 18 of 20 fresh households completed with correct inputs on all three calculators (Wilson [0.70, 0.97]); our bar was a lower bound of at least 0.80, so it was not met. Both misses paused instead of finishing, none claimed success wrongly, nothing was submitted, and all 20 injected pages paused at step 0 (text-only pages, so this tests the detector). It is one run per household of a non-deterministic model on our own sandbox sites, with the case note written at tier 2. The earlier OpenAI configuration completed 1 of 4 held-out households and 3 of 3 in-sample; the two configurations are shown apart and not pooled (docs/DECISIONS.md D65; evals/agentic/PLAN_ROUND2.md; evals/agentic/results/round2_clean_9139.json).
 
+**20. Why did the computer-use bar fail, and what does it mean?**
+
+Before the run we registered a bar: the lower end of the 95% interval of the completion rate had to be at least 0.80. With Gemini, 18 of 20 fresh households completed with correct inputs (90%, Wilson 0.70 to 0.97), so the bar was not met. With 20 households the bar was strict by construction: by the Wilson formula 19 of 20 gives a lower end of about 0.76 and only 20 of 20 clears 0.80 (our arithmetic, not a figure from a source file). The two misses paused instead of finishing, no run claimed success wrongly, and nothing was submitted, so in this test it failed safe and rarely. It does not show a general completion rate, performance on real sites, or anything about a real desktop: it is one run per household of a non-deterministic model on our own sandbox sites, with the case note at tier 2, and the earlier OpenAI round (1 of 4) is a different configuration and is not pooled (docs/DECISIONS.md D65; evals/agentic/PLAN_ROUND2.md; evals/agentic/results/round2_clean_9139.json).
+
 ## Choices
 
-**19. Why Gemini?**
+**21. Why Gemini?**
 
 The OpenAI key was revoked on 7 Nov (cause unknown) and the owner moved every role to Gemini (D49). We then measured the routes on our sandbox screens: the fast Gemini model found the right element 95% [90, 98] of the time in a median 0.93 s against 75% for the OpenAI fast model, and all models tied on the verifier set. Computer use on Gemini completed 18 of 20 held-out households, below our bar (question 18), and the earlier OpenAI numbers are not evidence about it (evals/modelbench/REPORT.md; docs/FLAGS.md).
 
-**20. Why a local model at all?**
+**22. Why a local model at all?**
 
 So private text, such as commits and calendar entries, becomes short labels on the Mac and a cloud model sees digests, not text. On held-out synthetic items the local model beat rules on category (91.8% against 77.5%) and not on risk, so rules are shipped there. The model can be steered by a planted line, so code vetoes the two most consequential claims (evals/report.md, Local model digests).
 
-**21. Isn't this just Clicky or Sentient OS?**
+**23. Isn't this just Clicky or Sentient OS?**
 
 No, and we read both without running them. Per our notes, the Clicky app points at things and never clicks, and its Windows fork's plugin runs single actions at screen coordinates for an outside agent; Sentient OS runs a real multi-step loop on real apps, with the loop in an external agent command line and success judged by the model's own final claim, and its repository holds no completion measurement. Knack's difference is the layer around the action: an expert comparison priced in seconds and in answers, help that fades by code, 'done' decided by code, eight layers, and held-out results (1 of 4, then 18 of 20 against a bar of 0.80 on the lower bound) that we publish. We used a little of Clicky's MIT code with notices and Sentient OS only as ideas, through a clean-room note (docs/reference-notes/computer-use-comparison.md; docs/reference-notes/clicky-reuse.md; THIRD_PARTY_NOTICES.md).
 
-**22. Can the independence score be gamed?**
+**24. Can the independence score be gamed?**
 
 It is built against the obvious ways: dismissing a cue without finishing the step is not independence, an error is penalised, and delegated or overnight work never moves it. It is validated only on simulated learners, its composite is experimental and in no headline, and the trend has low power (docs/REQ7_PLAN.md section 5; evals/report.md limitation cue-score-composite).
 
 ## Disclosure
 
-**23. Is Alongside new work?**
+**25. Is Alongside new work?**
 
 No. It is the author's earlier open-source library (first commit 31 Oct 2026, before this event, MIT) and is the base of the desktop coach. The README lists what was reused (182 of 303 source files unchanged at its last count) and the safety finding that Alongside shipped with the real actuator on by default, which Knack turns off (README.md, Reuse: Alongside).
 
-**24. Who wrote the code?**
+**26. What changed about how the made-up data is described in the app?**
+
+By the owner's decision D57 the words 'synthetic' and 'simulated' are gone from everything a person reads or hears in the app, and a copy check stops them coming back. The app says where numbers come from in plain words and with no tag: a closed 'About this data' line reads 'These numbers come from example people made for this build, not from real workers', and the Evidence page's 'Measured on' column says 'generators we wrote', 'language-model participants', 'live', 'real and generated' or 'not run'. 'Example data' still marks a built-in sample that stands in when a service did not answer. The README, Devpost and claims register keep the word 'synthetic', and any video should say aloud that the data are made up. CLAUDE.md's rule that synthetic results carry a badge is in tension with D57; the lead keeps the constraint through concrete wording (docs/DECISIONS.md D57; docs/knack-ux/banned-phrases.json; apps/dashboard/src/lib/evidence.ts).
+
+**27. Who wrote the code?**
 
 The draft disclosure says Claude Sonnet 5.5 agents wrote the code under the owner's direction, one agent per area, with a lead agent merging and committing; the owner chose the product, the targets and the limits and made the recorded decisions. The wording is marked for the owner to confirm, and the hackathon's rules on AI-written code are the owner's to check (docs/drafts/DEVPOST.md, Disclosure; docs/AGENTS.md).
 
-**25. What would a real deployment need?**
+**28. What would a real deployment need?**
 
 A study with people (the live study and a labelled pilot), a lawful basis and notice for any admin view, a signed and notarised app (an Apple Developer ID), real traces to validate the role packs, a re-review of the older desktop paths, the real-click ladder reported rung by rung, and a decision on the stuck model's default signal (docs/MVP_STATUS.md; docs/FIX_LEDGER.md; docs/DECISIONS.md D41).
