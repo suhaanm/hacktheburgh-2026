@@ -28,7 +28,7 @@ More, then Where time goes (address #/genome). The Home hero's action, See where
 
 ### Demo moment
 
-Open Where time goes. Point at the provenance line (what the data are), the ribbon (expert above, novice below, gaps hatched), and the waterfall that splits the seconds by habit. Say: the interval on the real gap does not include zero, and say aloud that the data are synthetic.
+Open Where time goes. Point at the chart footer (n, split, interval level and 'data from example people made for this build': since D57 there is no 'synthetic' tag), the ribbon (expert above, novice below, gaps hatched), and the waterfall that splits the seconds by habit. Say: the interval on the real gap does not include zero, and say aloud that the data are synthetic.
 
 ### Evidence and its label
 
@@ -122,7 +122,7 @@ The calculators' quirks and the oracle are ours. The oracle is a simplified rule
 
 ## 30-second spoken script
 
-> Two people do the same job. One is slower and gets a different answer, and nobody can see where. Knack aligns the novice's steps to the nearest expert's and prices each gap in seconds. Then it checks itself: expert against expert, and shuffled labels, both near zero. On our synthetic data the real gap is about 230 seconds a case. The badge says synthetic, because it is.
+> Two people do the same job. One is slower and gets a different answer, and nobody can see where. Knack aligns the novice's steps to the nearest expert's and prices each gap in seconds. Then it checks itself: expert against expert, and shuffled labels, both near zero. On our synthetic data the real gap is about 230 seconds a case. The screen says the numbers come from example people made for this build, because they do.
 
 ## Slide bullets
 
@@ -130,7 +130,7 @@ The calculators' quirks and the oracle are ours. The oracle is a simplified rule
 - Two controls: expert against expert 7.1 s, shuffled labels 46.2 s, real gap 229.6 s (synthetic, n = 24).
 - Skipping a check is free in seconds and costly in answers: 107 of 200 households unwarned.
 - Precision 92% on our generator, 48 to 71% on harder ones: both shown.
-- Everything is synthetic and badged; plain code, no language model.
+- Everything is generated and the screen says so in plain words; plain code, no language model.
 
 ## Sources
 

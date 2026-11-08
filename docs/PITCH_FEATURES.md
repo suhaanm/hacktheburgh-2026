@@ -1,6 +1,6 @@
 # Knack: the features, for the pitch and the launch video
 
-Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sun 08 Nov 2026, 01:38 UTC, checked against main at 97b633f. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
+Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sun 08 Nov 2026, 01:41 UTC, checked against main at 42c0ad7. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
 
 This is the master document. It lists 66 entries (62 features and 4 write-ups of results that did not hold up) on 35 pages, grouped by capability. One page per feature (with a 30-second spoken script and slide bullets) is in `docs/features/`; the index with status is `docs/features/index.md`; the 20 video claims are in `docs/features/video-beats.md`; the 25 hardest judge questions are in `docs/features/faq.md`.
 
@@ -143,7 +143,7 @@ More, then Where time goes (address #/genome). The Home hero's action, See where
 
 #### Demo moment
 
-Open Where time goes. Point at the provenance line (what the data are), the ribbon (expert above, novice below, gaps hatched), and the waterfall that splits the seconds by habit. Say: the interval on the real gap does not include zero, and say aloud that the data are synthetic.
+Open Where time goes. Point at the chart footer (n, split, interval level and 'data from example people made for this build': since D57 there is no 'synthetic' tag), the ribbon (expert above, novice below, gaps hatched), and the waterfall that splits the seconds by habit. Say: the interval on the real gap does not include zero, and say aloud that the data are synthetic.
 
 #### Evidence and its label
 
@@ -1605,7 +1605,7 @@ Home, the first item in the sidebar and the page Knack opens on.
 
 #### Demo moment
 
-Open Knack: the date, one sentence with its provenance badge (the wording is being changed by decision D57: no 'synthetic' on screen; a fixture still reads 'Example data'), the button 'See where the time goes' and, if anything waits, one row '1 thing needs you'.
+Open Knack: the date, one sentence (since decision D57 no 'synthetic' tag is drawn; when the engine cannot answer, a sample stands in and the screen reads 'Example data'), the button 'See where the time goes' and, if anything waits, one row '1 thing needs you'.
 
 #### Evidence and its label
 
@@ -1615,7 +1615,7 @@ Open Knack: the date, one sentence with its provenance badge (the wording is bei
 
 #### Honest limit
 
-The 47 words are the prototype's headline content; real screens land a little above it. Only three of the engine's pointer shapes match the hero template, so another pointer kind would show its raw headline (gap G4 in docs/KNACK_DEMO.md); the seeded kind is fine. The example sentence comes from the synthetic firm and carries its provenance badge (Example data, or the wording the D57 track settles on). These are measurements of the interface, not of people.
+The 47 words are the prototype's headline content; real screens land a little above it. Only three of the engine's pointer shapes match the hero template, so another pointer kind would show its raw headline (gap G4 in docs/KNACK_DEMO.md); the seeded kind is fine. The example sentence comes from the synthetic firm and carries the 'Example data' badge when a sample stands in. These are measurements of the interface, not of people.
 
 #### Hackathon target
 
@@ -1681,7 +1681,7 @@ Account menu, View as Admin; sidebar Firm, Roles, Onboarding; More, Firm rows (P
 
 #### Demo moment
 
-Only once the people exist on the engine you are showing (owner request 4.4 is landing; on a device with only its own history the screens hold no people). Switch to Admin: Firm lists three rows with n and interval; open Roles: experts and juniors on a shared 0 to 100% scale, one row per role (the seeded firm shows, for example, benefits-processor experts at 94% and juniors at 63%, n = 7 and 22, synthetic); open Onboarding ('Half reach the target by step 82'); show the provenance badge (its Admin wording is being changed by D57) and say the names are made up and the firm is made for this build.
+Only once the people exist on the engine you are showing (owner request 4.4 is landing; on a device with only its own history the screens hold no people). Switch to Admin: Firm lists three rows with n and interval; open Roles: experts and juniors on a shared 0 to 100% scale, one row per role (the seeded firm shows, for example, benefits-processor experts at 94% and juniors at 63%, n = 7 and 22, synthetic); open Onboarding ('Half reach the target by step 82'); show the chart footer ('data from example people made for this build'; since D57 there is no 'synthetic' tag) and say the names are made up and the firm is made for this build.
 
 #### Evidence and its label
 
@@ -1759,7 +1759,7 @@ Growth in the sidebar: a one-sentence title, one chart with its band, skills as 
 
 #### Demo moment
 
-Open Growth. On the seeded example learner (90 steps of one simulated improving learner, labelled as such) the screen shows one chart with its band, 'Latest: 75% finished with no cue accepted' against a baseline of 1 of 5, the badge Example data, the printed line 'Measures help needed, not expertise.' and the title 'Cannot tell yet whether you need less help'. Keep that title: the engine refuses to overclaim on its own demo data. Open About this data to show n, the interval and the window.
+Open Growth. On the seeded example learner (90 steps of one simulated improving learner, an example and not a person) the screen shows one chart with its band, 'Latest: 75% finished with no cue accepted' against a baseline of 1 of 5, the badge Example data, the printed line 'Measures help needed, not expertise.' and the title 'Cannot tell yet whether you need less help'. Keep that title: the engine refuses to overclaim on its own demo data. Open About this data to show n, the interval and the window.
 
 #### Evidence and its label
 
@@ -2172,7 +2172,7 @@ One command rebuilds a report from the code that owns each number; the Evidence 
 
 #### How it works
 
-`make eval` runs each section's own code and writes evals/report.json and report.md. Each section carries its origin badge (synthetic, simulated, real, unknown), n, split and interval level. Findings are generated, not footnotes. A limitations register keeps every known weakness with a severity. A section with no numbers says why instead of showing an invented value; the live study shows 'not run'.
+`make eval` runs each section's own code and writes evals/report.json and report.md. Each section carries its origin in plain words (generators we wrote, language-model participants, live, real and generated, not run), n, split and interval level. Findings are generated, not footnotes. A limitations register keeps every known weakness with a severity. A section with no numbers says why instead of showing an invented value; the live study shows 'not run'.
 
 **What is different.** The report is generated by the code that owns each number, findings are generated rather than written, and the limitations register ships inside the product.
 
@@ -2182,7 +2182,7 @@ More, For reviewers, Evidence (address #/evidence; exempt from the word budgets)
 
 #### Demo moment
 
-Open Evidence: the map of sections with their origin badges, the findings, then scroll to the limitations. Point at 'Live study: not run'.
+Open Evidence: the map of sections with their origin labels in plain words, the findings, then scroll to the limitations. Point at 'Live study: not run'.
 
 #### Evidence and its label
 
@@ -2710,7 +2710,7 @@ Found while writing. Each row names both files; the third column says which one 
 | Always-listening microphone | docs/DECISIONS.md D52 and docs/knack-ux/09-wake-voice.md (branch): 'hey knack' listening is on by default, on-device | docs/FLAGS.md and docs/FEATURE_CATALOGUE.md: hold to talk only, no always-listening microphone | D52 (later); the other two are stale |
 | Connection preset ids | docs/CONNECTIONS.md and packages/connections/presets/ (on main): 13 presets, Linear listed as unverified and not shipped (hosted only), Jira shipped | docs/roles/programmer.md and docs/roles/data-analyst.md suggest the ids linear and sheets; docs/DECISIONS.md D55 names Linear | docs/CONNECTIONS.md |
 | Reader memo and meter manifest | docs/KNACK_DEMO.md section 6: both are built now; the documents lag the code | docs/CONTEXT_ENGINEERING.md: the reader memo is not built | docs/KNACK_DEMO.md (later); not verified in code by the author |
-| Provenance wording on screen | docs/DECISIONS.md D57 (owner, 00:30 UTC): no 'synthetic' or 'simulated' word, badge or chip anywhere in the app; concrete wording instead | CLAUDE.md (Honesty: synthetic results carry a badge), docs/UI_DIRECTION.md and docs/KNACK_UX.md (an origin badge such as 'Synthetic firm' stays) | D57 for the app; this document, the README and the Devpost keep the labels, and a video should say it aloud |
+| Provenance wording on screen | docs/DECISIONS.md D57 (owner, 00:30 UTC), implemented on main at 01:39 UTC (merge 42c0ad7): no 'synthetic' or 'simulated' word, badge or chip anywhere in the app; a copy-lint (docs/knack-ux/banned-phrases.json) blocks the words in visible text; the screens say it in plain words ('data from example people made for this build', the Evidence map's 'generators we wrote' and 'language-model participants'); 'Example data' stays for a sample that stands in | CLAUDE.md (Honesty: synthetic results carry a badge), docs/UI_DIRECTION.md and docs/KNACK_UX.md (an origin badge such as 'Synthetic firm' stays) | D57 for the app; this document, the README and the Devpost keep the labels, and a video should say 'synthetic' aloud where the screen no longer does |
 | Agent power and model-written code | docs/DECISIONS.md D63 (owner): Claude CLI background agents with full computer access for code and data work, behind one consent card per task | docs/IMPLEMENTATION_SPEC.md (6.5) before the lead's amendment: 'Model-generated code is never executed'; CLAUDE.md (the owner's file, not edited): everything on sandbox sites and synthetic data | the lead amended docs/IMPLEMENTATION_SPEC.md (6.5, commit 2cc49ec, on main): the sentence is about compiled routine bundles and stays true for them; the task-agent path writes and runs code only after a per-task real-click consent card, with an environment allow-list, a time cap, Stop and the kill file, metadata-only ledger rows and no unattended 'allow everything'. Judge answer: yes, on the open-ended task path, with the worker's per-task consent, and never in routines |
 | Time of the recalibration plan amendment | evals/hrt/PLAN_RECAL.md (branch worktree-agent-a02c9cf8855c9f4ff), amendment A1: 'about 01:40 GMT' | evals/hrt/results/frozen.json (same branch): frozen_at 2026-11-08T01:26:10Z; the branch history stamps the commits that mention A1 at 01:23 and 01:26 | the freeze file and the history; the plan's stated time reads as an estimate (the amendment says it was made after one dev run and before the freeze and any run on the new seeds) |
 | Admin view with made-up people | docs/OWNER_REQUESTS.md (4.4): fill the Admin view with made-up data for several users, with no tag anywhere saying so; the lead (8 Nov, about 01:30 UTC): in progress, Track R found the live engine reads this device's own history, which holds no people | CLAUDE.md (Honesty: synthetic results carry a badge) and docs/DECISIONS.md D57 (no word or badge in the app, concrete provenance wording instead) | landing until the seed command has run on the live data; any video that shows the firm says aloud that the people are made up |

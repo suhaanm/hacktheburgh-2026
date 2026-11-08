@@ -28,7 +28,7 @@ Account menu, View as Admin; sidebar Firm, Roles, Onboarding; More, Firm rows (P
 
 ### Demo moment
 
-Only once the people exist on the engine you are showing (owner request 4.4 is landing; on a device with only its own history the screens hold no people). Switch to Admin: Firm lists three rows with n and interval; open Roles: experts and juniors on a shared 0 to 100% scale, one row per role (the seeded firm shows, for example, benefits-processor experts at 94% and juniors at 63%, n = 7 and 22, synthetic); open Onboarding ('Half reach the target by step 82'); show the provenance badge (its Admin wording is being changed by D57) and say the names are made up and the firm is made for this build.
+Only once the people exist on the engine you are showing (owner request 4.4 is landing; on a device with only its own history the screens hold no people). Switch to Admin: Firm lists three rows with n and interval; open Roles: experts and juniors on a shared 0 to 100% scale, one row per role (the seeded firm shows, for example, benefits-processor experts at 94% and juniors at 63%, n = 7 and 22, synthetic); open Onboarding ('Half reach the target by step 82'); show the chart footer ('data from example people made for this build'; since D57 there is no 'synthetic' tag) and say the names are made up and the firm is made for this build.
 
 ### Evidence and its label
 

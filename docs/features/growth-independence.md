@@ -22,7 +22,7 @@ Growth in the sidebar: a one-sentence title, one chart with its band, skills as 
 
 ## Demo moment
 
-Open Growth. On the seeded example learner (90 steps of one simulated improving learner, labelled as such) the screen shows one chart with its band, 'Latest: 75% finished with no cue accepted' against a baseline of 1 of 5, the badge Example data, the printed line 'Measures help needed, not expertise.' and the title 'Cannot tell yet whether you need less help'. Keep that title: the engine refuses to overclaim on its own demo data. Open About this data to show n, the interval and the window.
+Open Growth. On the seeded example learner (90 steps of one simulated improving learner, an example and not a person) the screen shows one chart with its band, 'Latest: 75% finished with no cue accepted' against a baseline of 1 of 5, the badge Example data, the printed line 'Measures help needed, not expertise.' and the title 'Cannot tell yet whether you need less help'. Keep that title: the engine refuses to overclaim on its own demo data. Open About this data to show n, the interval and the window.
 
 ## Evidence and its label
 
