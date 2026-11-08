@@ -155,6 +155,9 @@ def create_app(*, base_urls: dict[str, str] | None = None, autostart_sandbox: bo
         if "c" in cluster_holder:
             cluster_holder["c"].stop()
         sup.close()
+        tm = getattr(app.state, "tasks", None)
+        if tm is not None:
+            tm.shutdown()
 
     app = FastAPI(title="Understudy agent service", version="0.1.0", lifespan=lifespan)
     from understudy_engine import http_guard
@@ -165,6 +168,7 @@ def create_app(*, base_urls: dict[str, str] | None = None, autostart_sandbox: bo
     app.add_middleware(CORSMiddleware, allow_origins=http_guard.cors_origins(), allow_methods=["GET", "POST", "OPTIONS"],
                        allow_headers=http_guard.CORS_ALLOW_HEADERS)
     app.state.runs, app.state.supervisor, app.state.queue, app.state.audit = runs, sup, queue, audit
+    app.state.tasks = None            # the task manager (tasks/), made on first use so building the app stays cheap
 
     voice = False
     try:
@@ -196,6 +200,14 @@ def create_app(*, base_urls: dict[str, str] | None = None, autostart_sandbox: bo
             extensions[key], extension_status[key] = True, "enabled"
         except Exception as exc:  # noqa: BLE001 - absent or broken: reported, never fatal
             extension_status[key] = f"not loaded: {type(exc).__name__}: {str(exc)[:120]}"
+    extensions["tasks"] = False
+    try:                                        # open-ended tasks and skills: POST /tasks, GET /tasks/events, GET /skills (docs/TASKS.md)
+        from .tasks.routes import router as tasks_router
+
+        app.include_router(tasks_router)
+        extensions["tasks"], extension_status["tasks"] = True, "enabled"
+    except Exception as exc:  # noqa: BLE001 - a failure here never breaks the calculator-site runs; /health says why
+        extension_status["tasks"] = f"not loaded: {type(exc).__name__}: {str(exc)[:120]}"
     app.state.extensions, app.state.extension_status = extensions, extension_status
     # S-02: the shared HTTP guard is the OUTERMOST layer, added last: Host on every request, exact Origin and JSON on writes,
     # an explicit actor with an Origin, and the per-boot token on the release routes. The stop routes (/kill, /human-input,
@@ -433,6 +445,9 @@ def create_app(*, base_urls: dict[str, str] | None = None, autostart_sandbox: bo
         except OSError:
             pass
         sup.kill("agent service /kill")
+        tm = getattr(app.state, "tasks", None)
+        if tm is not None:
+            tm.kill_all()                     # every task, including a Claude child (SIGTERM then SIGKILL of its process group)
         return {"killed": True}
 
     @app.post("/kill/clear")

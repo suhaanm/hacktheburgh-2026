@@ -298,12 +298,14 @@ ENGINE_POLICY = Policy(
     ),
 )
 AGENT_POLICY = Policy(
-    stop=(("POST", r"/kill"), ("POST", r"/human-input"), ("POST", r"/run/[^/]+/stop"), ("POST", r"/agents/runs/[^/]+/stop")),
+    stop=(("POST", r"/kill"), ("POST", r"/human-input"), ("POST", r"/run/[^/]+/stop"), ("POST", r"/agents/runs/[^/]+/stop"),
+          ("POST", r"/tasks/[^/]+/stop")),
     release=(
         ("POST", r"/kill/clear"),
         ("POST", r"/queue/[^/]+/(approve|reject)"),
         ("POST", r"/agents/runs/[^/]+/resume"),
         ("POST", r"/routines/[^/]+/(consent|shadow|promote)"),
+        ("POST", r"/tasks/[^/]+/consent"),         # a task's go-ahead card: the worker's real click, with the token
     ),
     extension_events=(),
 )
