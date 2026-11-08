@@ -55,7 +55,7 @@ describe('settings', () => {
   it('an untrusted source can turn things down but never up', () => {
     const s = new LiveSettingsStore(null)
     s.patch(liveConsentPatch({ voice: true, frames: true }), { trusted: true })
-    s.patch({ liveEnabled: true, liveFrames: true, liveDailyUsd: 50, liveMaxMs: 300_000, liveFrameIntervalMs: 5000 }) // untrusted: up is ignored
+    s.patch({ liveEnabled: true, liveFrames: true, liveDailyUsd: 400, liveMaxMs: 300_000, liveFrameIntervalMs: 5000 }) // untrusted: up is ignored
     expect(s.get().liveDailyUsd).toBe(200)
     s.patch({ liveFrames: false, liveDailyUsd: 0.1, liveFrameIntervalMs: 30_000 }) // down is fine
     expect(s.get()).toMatchObject({ liveFrames: false, liveDailyUsd: 0.1, liveFrameIntervalMs: 30_000 })
