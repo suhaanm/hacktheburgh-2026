@@ -6,7 +6,7 @@ import { Note, OriginBadge, SourceNote } from "./common";
 import { Hint } from "./Hint";
 import { Details, fitItems } from "./ui";
 import { CHIPS, MAX_QUESTION, actionsOf, askedTimeNote, bodySentences, checkReading, cleanQuestion, fallbackReading, fmtFact, isAnswer, limitsOf, pathWords, sourceReading, usesWithFacts } from "../lib/explain";
-import { aboutCohort, isCohortFact, restsOnCohort, workerText } from "../lib/voice";
+import { aboutCohort, isCohortFact, restsOnCohort, safeWhy, workerText } from "../lib/voice";
 import { ownMeta } from "../lib/ownMeta";
 import { readRemembered, writeRemembered } from "../lib/remember";
 import type { Fallback } from "../lib/fallback";
@@ -69,7 +69,7 @@ export function Explain({ person }: { person?: string }) {
         <p className="u-sr-only">Reads the numbers behind this case. Code checks each number in the words against the data.</p>
       </div>
       {example && <p className="note">Example data: the answers do not change with what you ask.</p>}
-      {(res?.why ?? (phase === "idle" ? packet.why : null))?.kind === "error" && <SourceNote why={res?.why ?? packet.why} />}
+      {(res?.why ?? (phase === "idle" ? packet.why : null))?.kind === "error" && <SourceNote why={safeWhy(res?.why ?? packet.why)} />}
 
       <p className="u-sr-only" role="status" aria-live="polite">{phase === "loading" ? "Writing the answer." : phase === "ready" ? "The answer is ready." : phase === "error" ? "The answer could not be made." : ""}</p>
 
@@ -212,7 +212,7 @@ function Backing({ r, facts, why }: { r: ExplainResult; facts: PacketFact[]; why
       {hasMore && (
         <Details summary="More" wide>
           <div className="stack">
-            {why && why.kind !== "error" && <SourceNote why={why} />}
+            {why && why.kind !== "error" && <SourceNote why={safeWhy(why)} />}
             {body.length > 0 && (
               <Details summary={`${body.length} more ${body.length === 1 ? "sentence" : "sentences"}`}>
                 <ul className="plain-list explain__more">{body.slice(0, kSent).map(row)}</ul>

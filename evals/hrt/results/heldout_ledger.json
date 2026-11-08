@@ -1,0 +1,4692 @@
+{
+ "claims": [
+  {
+   "claim": "In the v1 world the deployed stuck hazard beats both the online base rate and frozen time-since-progress on log loss",
+   "evidence": {
+    "frozen_tsp": {
+     "ci": [
+      -0.08517869651998797,
+      -0.07375712214732305
+     ],
+     "est": -0.0793098521012544
+    },
+    "online_base": {
+     "ci": [
+      -0.08559990501514883,
+      -0.07530351292066864
+     ],
+     "est": -0.08034971417278487
+    }
+   },
+   "id": "P1",
+   "pass": true
+  },
+  {
+   "claim": "In the v1 world the model is calibrated: the slope interval contains 1 and the intercept interval contains 0",
+   "evidence": {
+    "intercept": 0.07542872012400198,
+    "intercept_ci": [
+     0.0015466791963568973,
+     0.16188373862842323
+    ],
+    "slope": 0.9994135535686446,
+    "slope_ci": [
+     0.9630788745874206,
+     1.0350067684273547
+    ]
+   },
+   "id": "P2",
+   "pass": false
+  },
+  {
+   "claim": "In the shifted worlds the deployed model is worse than the better naive baseline in at least 2 of 3 families",
+   "evidence": {
+    "latent_skill": {
+     "baseline": "frozen_tsp",
+     "better": false,
+     "ci": [
+      0.28912818148029906,
+      0.3770659242226349
+     ],
+     "est": 0.3313376889991597,
+     "worse": true
+    },
+    "markov": {
+     "baseline": "online_base",
+     "better": false,
+     "ci": [
+      0.27722615017539604,
+      0.3741043762505287
+     ],
+     "est": 0.3244858283266586,
+     "worse": true
+    },
+    "process_trace": {
+     "baseline": "online_base",
+     "better": false,
+     "ci": [
+      0.4339189929322164,
+      0.6023190380319775
+     ],
+     "est": 0.5129660899759803,
+     "worse": true
+    }
+   },
+   "id": "P3",
+   "pass": true
+  },
+  {
+   "claim": "The guard raises no flag in at least 7 of 8 v1 deployments",
+   "evidence": {
+    "ci": [
+     0.0,
+     0.3694166475528192
+    ],
+    "flags": 0,
+    "of": 8
+   },
+   "id": "P4a",
+   "pass": true
+  },
+  {
+   "claim": "The guard flags at least 6 of 8 where the model is worse and at most 1 of 8 where it is clearly better",
+   "evidence": {
+    "latent_skill": {
+     "flags": 8,
+     "of": 8,
+     "ok": true,
+     "state": "model worse"
+    },
+    "markov": {
+     "flags": 8,
+     "of": 8,
+     "ok": true,
+     "state": "model worse"
+    },
+    "process_trace": {
+     "flags": 8,
+     "of": 8,
+     "ok": true,
+     "state": "model worse"
+    }
+   },
+   "id": "P4b",
+   "pass": true
+  },
+  {
+   "claim": "Premium: in the v1 world the guarded system is within 0.01 nats of always trusting the model",
+   "evidence": {
+    "ci": [
+     0.0,
+     0.0
+    ],
+    "est": 0.0
+   },
+   "id": "P4c",
+   "pass": true
+  },
+  {
+   "claim": "Payout: where the model is worse than the fallback by more than 0.05 nats the guard saves more than 0.02 nats against always-model",
+   "evidence": {
+    "latent_skill": {
+     "ci": [
+      -0.3376809992269646,
+      -0.19412411639844915
+     ],
+     "est": -0.2624104735338747,
+     "model_minus_fallback": 0.3246002217334447,
+     "ok": true
+    },
+    "markov": {
+     "ci": [
+      -0.43389561731688087,
+      -0.19570371315114657
+     ],
+     "est": -0.30947586103275926,
+     "model_minus_fallback": 0.3226559082531577,
+     "ok": true
+    },
+    "process_trace": {
+     "ci": [
+      -0.5940826179594059,
+      -0.29247938395081424
+     ],
+     "est": -0.43751697734734524,
+     "model_minus_fallback": 0.4505164100156047,
+     "ok": true
+    }
+   },
+   "id": "P4d",
+   "pass": true
+  },
+  {
+   "claim": "Time to progress, v1 world: the head's truncated CRPS beats the Kaplan-Meier constant",
+   "evidence": {
+    "ci": [
+     -0.8529244836175617,
+     -0.7790936588710143
+    ],
+    "est": -0.8159431468685947,
+    "frozen_km": 4.7648148138054065,
+    "model": 3.948871666936808,
+    "unit": "seconds"
+   },
+   "id": "P5",
+   "pass": true
+  },
+  {
+   "claim": "Error risk, no drift: the model beats the online base rate and its calibration slope interval contains 1",
+   "evidence": {
+    "slope": 0.9585712395306915,
+    "slope_ci": [
+     0.9321546636274847,
+     0.9885845196296745
+    ],
+    "vs_online": {
+     "ci": [
+      -0.11659699820531826,
+      -0.10566485604632819
+     ],
+     "est": -0.11103335715258789
+    }
+   },
+   "id": "P6a",
+   "pass": false
+  },
+  {
+   "claim": "Error risk: the guard flags a rule change when the post-change model is worse than the fallback, and stays quiet when it is not or when nothing changed",
+   "evidence": {
+    "flags_drift": "0 of 8",
+    "flags_no_drift": "0 of 8",
+    "post_change_model_vs_online_base": {
+     "ci": [
+      -0.1807327415626457,
+      -0.16371855211011532
+     ],
+     "est": -0.17247131340686717
+    },
+    "post_change_model_worse": false
+   },
+   "id": "P6b",
+   "pass": true
+  }
+ ],
+ "code_fingerprint": "a4e821ff9c6cae071ccaa2b2193f16b05def15c0ca8367517c70add4efb1fbe2",
+ "design": {
+  "bootstrap_B": 2000,
+  "calibration_draws": 500,
+  "deployments": {
+   "route": [
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18
+   ],
+   "v1": [
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18
+   ],
+   "v2": [
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18
+   ]
+  },
+  "guard": {
+   "B": 4.6,
+   "fallback": "online_base",
+   "lambda": 0.8,
+   "threshold": 20.0
+  },
+  "route": {
+   "drift_at": 1500,
+   "review_lag": 50,
+   "stream": 4000
+  },
+  "train": {
+   "base_rate": 0.20836499493414387,
+   "n_bins": 31584,
+   "pool": "v1 personas, 4 types x replicates [1, 2, 3, 4]"
+  },
+  "v2": {
+   "days": 14,
+   "people": 20
+  }
+ },
+ "origin": "synthetic",
+ "seconds": 338.7,
+ "split_label": "held-out (single frozen run)",
+ "tte_v1": {
+  "bootstrap": {
+   "B": 2000,
+   "seed": 0,
+   "unit": "people"
+  },
+  "frozen_km": {
+   "ci": [
+    4.664725991160885,
+    4.856157356407108
+   ],
+   "est": 4.7648148138054065
+  },
+  "model": {
+   "ci": [
+    3.8499071842697496,
+    4.0328481586146685
+   ],
+   "est": 3.948871666936808
+  },
+  "model_minus_km": {
+   "ci": [
+    -0.8529244836175617,
+    -0.7790936588710143
+   ],
+   "est": -0.8159431468685947,
+   "verdict": "a better"
+  },
+  "n": 61631,
+  "n_clusters": 32,
+  "n_deployments": 8,
+  "share_censored": 0.9795881942528922,
+  "unit": "seconds, truncated CRPS over the observed 30-second steps (lower is better)"
+ },
+ "worlds": {
+  "latent_skill": {
+   "best_naive": "frozen_tsp",
+   "best_naive_pooled_log_loss": 0.6180505372367674,
+   "deployments": [
+    {
+     "costs": {
+      "always_fallback": 0.6096587113631395,
+      "always_model": 0.8440153589614476,
+      "guarded": 0.6381838338925879,
+      "oracle": 0.6096587113631395,
+      "regret_always_fallback": 0.0,
+      "regret_always_model": 0.2343566475983081,
+      "regret_guarded": 0.028525122529448388,
+      "share_on_fallback": 0.9297415782187356
+     },
+     "fallback_log_loss": 0.6096587113631395,
+     "flag_unit": 205,
+     "flagged": true,
+     "model_log_loss": 0.8440153589614476,
+     "n_bins": 26004,
+     "n_units": 3345,
+     "peak_capital": 1643678788460331.8
+    },
+    {
+     "costs": {
+      "always_fallback": 0.6409473416615011,
+      "always_model": 0.9397841150157799,
+      "guarded": 0.6568510481570824,
+      "oracle": 0.6409473416615011,
+      "regret_always_fallback": 0.0,
+      "regret_always_model": 0.2988367733542787,
+      "regret_guarded": 0.01590370649558126,
+      "share_on_fallback": 0.9523469428242669
+     },
+     "fallback_log_loss": 0.6409473416615011,
+     "flag_unit": 138,
+     "flagged": true,
+     "model_log_loss": 0.9397841150157799,
+     "n_bins": 25203,
+     "n_units": 3538,
+     "peak_capital": 4.232444329081959e+33
+    },
+    {
+     "costs": {
+      "always_fallback": 0.6349484505917584,
+      "always_model": 0.9053639179547031,
+      "guarded": 0.666280859153275,
+      "oracle": 0.6349484505917584,
+      "regret_always_fallback": 0.0,
+      "regret_always_model": 0.27041546736294464,
+      "regret_guarded": 0.031332408561516534,
+      "share_on_fallback": 0.9509180597423952
+     },
+     "fallback_log_loss": 0.6349484505917584,
+     "flag_unit": 206,
+     "flagged": true,
+     "model_log_loss": 0.9053639179547031,
+     "n_bins": 36490,
+     "n_units": 5186,
+     "peak_capital": 2.114233692490742e+25
+    },
+    {
+     "costs": {
+      "always_fallback": 0.6645699393150868,
+      "always_model": 1.1422178099949234,
+      "guarded": 0.8006251453912289,
+      "oracle": 0.6645699393150868,
+      "regret_always_fallback": 0.0,
+      "regret_always_model": 0.4776478706798366,
+      "regret_guarded": 0.13605520607614208,
+      "share_on_fallback": 0.7368820830674809
+     },
+     "fallback_log_loss": 0.6645699393150868,
+     "flag_unit": 718,
+     "flagged": true,
+     "model_log_loss": 1.1422178099949234,
+     "n_bins": 32913,
+     "n_units": 2872,
+     "peak_capital": 9168.87163072125
+    },
+    {
+     "costs": {
+      "always_fallback": 0.6123632668611755,
+      "always_model": 0.8492313015627694,
+      "guarded": 0.6369338900084894,
+      "oracle": 0.6123632668611755,
+      "regret_always_fallback": 0.0,
+      "regret_always_model": 0.2368680347015939,
+      "regret_guarded": 0.024570623147313952,
+      "share_on_fallback": 0.9228650780684762
+     },
+     "fallback_log_loss": 0.6123632668611755,
+     "flag_unit": 363,
+     "flagged": true,
+     "model_log_loss": 0.8492313015627694,
+     "n_bins": 42847,
+     "n_units": 5366,
+     "peak_capital": 1.0172191695129652e+33
+    },
+    {
+     "costs": {
+      "always_fallback": 0.46421007818022975,
+      "always_model": 0.5662976022320522,
+      "guarded": 0.47384402194304087,
+      "oracle": 0.46421007818022975,
+      "regret_always_fallback": 0.0,
+      "regret_always_model": 0.10208752405182242,
+      "regret_guarded": 0.009633943762811126,
+      "share_on_fallback": 0.8997737418210726
+     },
+     "fallback_log_loss": 0.46421007818022975,
+     "flag_unit": 313,
+     "flagged": true,
+     "model_log_loss": 0.5662976022320522,
+     "n_bins": 16353,
+     "n_units": 3040,
+     "peak_capital": 22137544033206.39
+    },
+    {
+     "costs": {
+      "always_fallback": 0.6311404134657306,
+      "always_model": 1.0947363597893265,
+      "guarded": 0.8285255845847882,
+      "oracle": 0.6311404134657306,
+      "regret_always_fallback": 0.0,
+      "regret_always_model": 0.4635959463235959,
+      "regret_guarded": 0.19738517111905762,
+      "share_on_fallback": 0.5547856351843062
+     },
+     "fallback_log_loss": 0.6311404134657306,
+     "flag_unit": 1913,
+     "flagged": true,
+     "model_log_loss": 1.0947363597893265,
+     "n_bins": 31605,
+     "n_units": 4600,
+     "peak_capital": 164.49174544462795
+    },
+    {
+     "costs": {
+      "always_fallback": 0.6777767545312219,
+      "always_model": 1.1907702643263993,
+      "guarded": 0.7318885584359107,
+      "oracle": 0.6777767545312219,
+      "regret_always_fallback": 0.0,
+      "regret_always_model": 0.5129935097951774,
+      "regret_guarded": 0.05411180390468884,
+      "share_on_fallback": 0.9189918475140659
+     },
+     "fallback_log_loss": 0.6777767545312219,
+     "flag_unit": 155,
+     "flagged": true,
+     "model_log_loss": 1.1907702643263993,
+     "n_bins": 17418,
+     "n_units": 2101,
+     "peak_capital": 2028286234133223.8
+    }
+   ],
+   "guard": {
+    "flag_rate_ci": [
+     0.6305833524471808,
+     1.0
+    ],
+    "flag_units": [
+     205,
+     138,
+     206,
+     718,
+     363,
+     313,
+     1913,
+     155
+    ],
+    "flags": 8,
+    "n_units": [
+     3345,
+     3538,
+     5186,
+     2872,
+     5366,
+     3040,
+     4600,
+     2101
+    ],
+    "of": 8,
+    "strategies": {
+     "bootstrap": {
+      "B": 2000,
+      "seed": 3,
+      "unit": "deployments"
+     },
+     "guarded_minus_always_fallback": {
+      "ci": [
+       0.023154377425223124,
+       0.10899386066433084
+      ],
+      "est": 0.062189748199569975
+     },
+     "guarded_minus_always_model": {
+      "ci": [
+       -0.3376809992269646,
+       -0.19412411639844915
+      ],
+      "est": -0.2624104735338747
+     },
+     "guarded_minus_oracle": {
+      "ci": [
+       0.023154377425223124,
+       0.10899386066433084
+      ],
+      "est": 0.062189748199569975
+     },
+     "mean": {
+      "always_fallback": {
+       "ci": [
+        0.568646126457041,
+        0.6507792194779722
+       ],
+       "est": 0.6169518694962304
+      },
+      "always_model": {
+       "ci": [
+        0.8065114488234609,
+        1.0621817210960949
+       ],
+       "est": 0.9415520912296751
+      },
+      "guarded": {
+       "ci": [
+        0.6038100499751986,
+        0.7448570872479023
+       ],
+       "est": 0.6791416176958005
+      },
+      "oracle": {
+       "ci": [
+        0.568646126457041,
+        0.6507792194779722
+       ],
+       "est": 0.6169518694962304
+      },
+      "regret_always_fallback": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "est": 0.0
+      },
+      "regret_always_model": {
+       "ci": [
+        0.23246100622580254,
+        0.4145426129036619
+       ],
+       "est": 0.3246002217334447
+      },
+      "regret_guarded": {
+       "ci": [
+        0.0235667910144107,
+        0.10848749581057612
+       ],
+       "est": 0.062189748199569975
+      },
+      "share_on_fallback": {
+       "ci": [
+        0.7594953463847801,
+        0.9333310517389971
+       ],
+       "est": 0.8582881208050999
+      }
+     },
+     "n_deployments": 8
+    }
+   },
+   "guard_sensitivity": [
+    {
+     "flags": 8,
+     "guarded_minus_always_model": -0.2553729889367446,
+     "lambda": 0.4,
+     "of": 8,
+     "registered": false,
+     "threshold": 10.0
+    },
+    {
+     "flags": 8,
+     "guarded_minus_always_model": -0.24281462177240098,
+     "lambda": 0.4,
+     "of": 8,
+     "registered": false,
+     "threshold": 20.0
+    },
+    {
+     "flags": 8,
+     "guarded_minus_always_model": -0.2153217872375881,
+     "lambda": 0.4,
+     "of": 8,
+     "registered": false,
+     "threshold": 50.0
+    },
+    {
+     "flags": 8,
+     "guarded_minus_always_model": -0.2722854565204515,
+     "lambda": 0.8,
+     "of": 8,
+     "registered": false,
+     "threshold": 10.0
+    },
+    {
+     "flags": 8,
+     "guarded_minus_always_model": -0.2624104735338747,
+     "lambda": 0.8,
+     "of": 8,
+     "registered": true,
+     "threshold": 20.0
+    },
+    {
+     "flags": 8,
+     "guarded_minus_always_model": -0.253889075037881,
+     "lambda": 0.8,
+     "of": 8,
+     "registered": false,
+     "threshold": 50.0
+    }
+   ],
+   "ledgers": [
+    {
+     "deployment": "latent_skill-11",
+     "entries": 52008,
+     "head": "3abf97343591e35b",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 26004,
+       "resolved": 26004
+      }
+     },
+     "verified": true
+    },
+    {
+     "deployment": "latent_skill-12",
+     "entries": 50406,
+     "head": "ec9ff39c048036c0",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 25203,
+       "resolved": 25203
+      }
+     },
+     "verified": true
+    },
+    {
+     "deployment": "latent_skill-13",
+     "entries": 72980,
+     "head": "d968d562d7b645fb",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 36490,
+       "resolved": 36490
+      }
+     },
+     "verified": true
+    },
+    {
+     "deployment": "latent_skill-14",
+     "entries": 65826,
+     "head": "ce75d110c01f23a6",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 32913,
+       "resolved": 32913
+      }
+     },
+     "verified": true
+    },
+    {
+     "deployment": "latent_skill-15",
+     "entries": 85694,
+     "head": "0d0e49e633685b59",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 42847,
+       "resolved": 42847
+      }
+     },
+     "verified": true
+    },
+    {
+     "deployment": "latent_skill-16",
+     "entries": 32706,
+     "head": "88d7cff309ae5263",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 16353,
+       "resolved": 16353
+      }
+     },
+     "verified": true
+    },
+    {
+     "deployment": "latent_skill-17",
+     "entries": 63210,
+     "head": "f8fee92a5f32d5ae",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 31605,
+       "resolved": 31605
+      }
+     },
+     "verified": true
+    },
+    {
+     "deployment": "latent_skill-18",
+     "entries": 34836,
+     "head": "96cb2d5ed0469e05",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 17418,
+       "resolved": 17418
+      }
+     },
+     "verified": true
+    }
+   ],
+   "model_vs_best_naive": {
+    "baseline": "frozen_tsp",
+    "ci": [
+     0.28912818148029906,
+     0.3770659242226349
+    ],
+    "est": 0.3313376889991597,
+    "verdict": "a worse"
+   },
+   "n_bins": 228833,
+   "n_deployments": 8,
+   "n_people": 160,
+   "scores": {
+    "base_rate": 0.3239392919727487,
+    "bootstrap": {
+     "B": 2000,
+     "level": 0.95,
+     "seed": 0,
+     "unit": "people"
+    },
+    "n": 228833,
+    "n_clusters": 160,
+    "paired_log_loss_vs": {
+     "frozen_base": {
+      "ci": [
+       0.2494498830040896,
+       0.3207348345190857
+      ],
+      "est": 0.28333626322623456,
+      "verdict": "a worse"
+     },
+     "frozen_tsp": {
+      "ci": [
+       0.28912818148029906,
+       0.3770659242226349
+      ],
+      "est": 0.3313376889991597,
+      "verdict": "a worse"
+     },
+     "online_base": {
+      "ci": [
+       0.2746539726401532,
+       0.37951351650358717
+      ],
+      "est": 0.3260887679469391,
+      "verdict": "a worse"
+     }
+    },
+    "predictors": {
+     "frozen_base": {
+      "brier": {
+       "ci": [
+        0.21868295417434655,
+        0.24746194211193945
+       ],
+       "est": 0.2323600452249096
+      },
+      "ece": 0.11557429703860475,
+      "log_loss": {
+       "ci": [
+        0.6347520412054313,
+        0.700612542442343
+       ],
+       "est": 0.6660519630097105
+      },
+      "reliability": [
+       {
+        "freq": 0.3239392919727487,
+        "freq_hi": 0.32585963677294066,
+        "freq_lo": 0.3220248581959349,
+        "hi": 0.3,
+        "lo": 0.2,
+        "n": 228833,
+        "ones": 74128.0,
+        "p_mean": 0.20836499493414393
+       }
+      ]
+     },
+     "frozen_tsp": {
+      "brier": {
+       "ci": [
+        0.20030355754306564,
+        0.2252521025246628
+       ],
+       "est": 0.21216561031735534
+      },
+      "ece": 0.09994147931698645,
+      "log_loss": {
+       "ci": [
+        0.5910191523003847,
+        0.6477391193960578
+       ],
+       "est": 0.618050537236768
+      },
+      "reliability": [
+       {
+        "freq": 0.25708493292498813,
+        "freq_hi": 0.25960881237168043,
+        "freq_lo": 0.25457715350509647,
+        "hi": 0.2,
+        "lo": 0.1,
+        "n": 115915,
+        "ones": 29800.0,
+        "p_mean": 0.1941648022743498
+       },
+       {
+        "freq": 0.313642785689977,
+        "freq_hi": 0.3165704290235861,
+        "freq_lo": 0.3107299072806263,
+        "hi": 0.3,
+        "lo": 0.2,
+        "n": 96967,
+        "ones": 30413.0,
+        "p_mean": 0.22152661713072425
+       },
+       {
+        "freq": 0.7938741721854304,
+        "freq_hi": 0.8050444093552116,
+        "freq_lo": 0.7822370439727857,
+        "hi": 0.4,
+        "lo": 0.3,
+        "n": 4832,
+        "ones": 3836.0,
+        "p_mean": 0.3437033190277532
+       },
+       {
+        "freq": 0.855893536121673,
+        "freq_hi": 0.868796855840211,
+        "freq_lo": 0.841952074673697,
+        "hi": 0.5,
+        "lo": 0.4,
+        "n": 2630,
+        "ones": 2251.0,
+        "p_mean": 0.45088612219342566
+       },
+       {
+        "freq": 0.9221345270349864,
+        "freq_hi": 0.9276456880338615,
+        "freq_lo": 0.9162414885666541,
+        "hi": 0.6,
+        "lo": 0.5,
+        "n": 8489,
+        "ones": 7828.0,
+        "p_mean": 0.5211570250440609
+       }
+      ]
+     },
+     "model": {
+      "brier": {
+       "ci": [
+        0.25805524170750777,
+        0.2929918604911507
+       ],
+       "est": 0.2750157693904761
+      },
+      "calibration": {
+       "intercept": -1.250375520436086,
+       "intercept_ci": [
+        -1.3892793651321678,
+        -1.1129690194652624
+       ],
+       "intercept_contains_0": false,
+       "n_draws": 500,
+       "slope": -0.2544577020763495,
+       "slope_ci": [
+        -0.2972068824363867,
+        -0.2142670407920475
+       ],
+       "slope_contains_1": false
+      },
+      "ece": 0.20079982197213814,
+      "log_loss": {
+       "ci": [
+        0.8853158227712167,
+        1.0161210473040294
+       ],
+       "est": 0.949388226235927
+      },
+      "reliability": [
+       {
+        "freq": 0.38731686800476667,
+        "freq_hi": 0.390585310451243,
+        "freq_lo": 0.38405853954256786,
+        "hi": 0.1,
+        "lo": 0.0,
+        "n": 85594,
+        "ones": 33152.0,
+        "p_mean": 0.04742652892204056
+       },
+       {
+        "freq": 0.25990733787670556,
+        "freq_hi": 0.2631560015745613,
+        "freq_lo": 0.2566848081812684,
+        "hi": 0.2,
+        "lo": 0.1,
+        "n": 70579,
+        "ones": 18344.0,
+        "p_mean": 0.1377372803954063
+       },
+       {
+        "freq": 0.31043735982057036,
+        "freq_hi": 0.3162050718211078,
+        "freq_lo": 0.3047279692760131,
+        "hi": 0.3,
+        "lo": 0.2,
+        "n": 24968,
+        "ones": 7751.0,
+        "p_mean": 0.2467410865393603
+       },
+       {
+        "freq": 0.3197446229525355,
+        "freq_hi": 0.3263928027615002,
+        "freq_lo": 0.3131689016118344,
+        "hi": 0.4,
+        "lo": 0.3,
+        "n": 19109,
+        "ones": 6110.0,
+        "p_mean": 0.3488370655951877
+       },
+       {
+        "freq": 0.31122308117062397,
+        "freq_hi": 0.3188113808221722,
+        "freq_lo": 0.3037348624869832,
+        "hi": 0.5,
+        "lo": 0.4,
+        "n": 14488,
+        "ones": 4509.0,
+        "p_mean": 0.44618582792595
+       },
+       {
+        "freq": 0.31363690405421474,
+        "freq_hi": 0.32363558670024767,
+        "freq_lo": 0.3038083746219474,
+        "hi": 0.6,
+        "lo": 0.5,
+        "n": 8411,
+        "ones": 2638.0,
+        "p_mean": 0.546179775976218
+       },
+       {
+        "freq": 0.2895779902075076,
+        "freq_hi": 0.303335618648168,
+        "freq_lo": 0.2761969549829441,
+        "hi": 0.7,
+        "lo": 0.6,
+        "n": 4289,
+        "ones": 1242.0,
+        "p_mean": 0.6425126586237597
+       },
+       {
+        "freq": 0.27124183006535946,
+        "freq_hi": 0.2968361772226438,
+        "freq_lo": 0.24707888121017402,
+        "hi": 0.8,
+        "lo": 0.7,
+        "n": 1224,
+        "ones": 332.0,
+        "p_mean": 0.7358079242814244
+       },
+       {
+        "freq": 0.27586206896551724,
+        "freq_hi": 0.3536825379846346,
+        "freq_lo": 0.20961118061359546,
+        "hi": 0.9,
+        "lo": 0.8,
+        "n": 145,
+        "ones": 40.0,
+        "p_mean": 0.8305037345782884
+       },
+       {
+        "freq": 0.38461538461538464,
+        "freq_hi": 0.5746514991488447,
+        "freq_lo": 0.22428594435712798,
+        "hi": 1.0,
+        "lo": 0.9,
+        "n": 26,
+        "ones": 10.0,
+        "p_mean": 0.9257057226294004
+       }
+      ]
+     },
+     "online_base": {
+      "brier": {
+       "ci": [
+        0.20892219637093615,
+        0.2239270426755382
+       ],
+       "est": 0.2162994747993994
+      },
+      "ece": 0.014933746699258682,
+      "log_loss": {
+       "ci": [
+        0.6076564863537474,
+        0.6394187903611694
+       ],
+       "est": 0.6232994582889877
+      },
+      "reliability": [
+       {
+        "freq": 1.0,
+        "freq_hi": 1.0,
+        "freq_lo": 0.34238022750665303,
+        "hi": 0.1,
+        "lo": 0.0,
+        "n": 2,
+        "ones": 2.0,
+        "p_mean": 0.09922142615911612
+       },
+       {
+        "freq": 0.1763014437189241,
+        "freq_hi": 0.18215659911666085,
+        "freq_lo": 0.17059523561488218,
+        "hi": 0.2,
+        "lo": 0.1,
+        "n": 16693,
+        "ones": 2943.0,
+        "p_mean": 0.17823173263694758
+       },
+       {
+        "freq": 0.30752871118672903,
+        "freq_hi": 0.32087155333158457,
+        "freq_lo": 0.2945001042478881,
+        "hi": 0.3,
+        "lo": 0.2,
+        "n": 4702,
+        "ones": 1446.0,
+        "p_mean": 0.2813909901646329
+       },
+       {
+        "freq": 0.3245121188384399,
+        "freq_hi": 0.3266942747699355,
+        "freq_lo": 0.3223375606649256,
+        "hi": 0.4,
+        "lo": 0.3,
+        "n": 177451,
+        "ones": 57585.0,
+        "p_mean": 0.33943346957060083
+       },
+       {
+        "freq": 0.40388659024621854,
+        "freq_hi": 0.4094993565471995,
+        "freq_lo": 0.39829886414127946,
+        "hi": 0.5,
+        "lo": 0.4,
+        "n": 29486,
+        "ones": 11909.0,
+        "p_mean": 0.42384036031135236
+       },
+       {
+        "freq": 0.48936170212765956,
+        "freq_hi": 0.5344574320978903,
+        "freq_lo": 0.44443846269171244,
+        "hi": 0.6,
+        "lo": 0.5,
+        "n": 470,
+        "ones": 230.0,
+        "p_mean": 0.5309596522986963
+       },
+       {
+        "freq": 0.4482758620689655,
+        "freq_hi": 0.6245203678902909,
+        "freq_lo": 0.28413168023037194,
+        "hi": 0.7,
+        "lo": 0.6,
+        "n": 29,
+        "ones": 13.0,
+        "p_mean": 0.6101418839897661
+       }
+      ]
+     }
+    }
+   },
+   "world": "latent_skill"
+  },
+  "markov": {
+   "best_naive": "online_base",
+   "best_naive_pooled_log_loss": 0.614951820414834,
+   "deployments": [
+    {
+     "costs": {
+      "always_fallback": 0.6511263865383492,
+      "always_model": 0.9771391046539412,
+      "guarded": 0.6598813654414514,
+      "oracle": 0.6511263865383492,
+      "regret_always_fallback": 0.0,
+      "regret_always_model": 0.32601271811559196,
+      "regret_guarded": 0.008754978903102173,
+      "share_on_fallback": 0.926426809560262
+     },
+     "fallback_log_loss": 0.6511263865383492,
+     "flag_unit": 200,
+     "flagged": true,
+     "model_log_loss": 0.9771391046539412,
+     "n_bins": 23514,
+     "n_units": 2675,
+     "peak_capital": 4.324894676402649e+28
+    },
+    {
+     "costs": {
+      "always_fallback": 0.6244046521125657,
+      "always_model": 0.9293802828641211,
+      "guarded": 0.6427847278686676,
+      "oracle": 0.6244046521125657,
+      "regret_always_fallback": 0.0,
+      "regret_always_model": 0.3049756307515554,
+      "regret_guarded": 0.0183800757561019,
+      "share_on_fallback": 0.8948676525413197
+     },
+     "fallback_log_loss": 0.6244046521125657,
+     "flag_unit": 338,
+     "flagged": true,
+     "model_log_loss": 0.9293802828641211,
+     "n_bins": 24141,
+     "n_units": 3210,
+     "peak_capital": 1.5542981765262064e+17
+    },
+    {
+     "costs": {
+      "always_fallback": 0.6816767777185133,
+      "always_model": 1.054548633153069,
+      "guarded": 0.6947651232066402,
+      "oracle": 0.6816767777185133,
+      "regret_always_fallback": 0.0,
+      "regret_always_model": 0.3728718554345556,
+      "regret_guarded": 0.013088345488126873,
+      "share_on_fallback": 0.9645618886669739
+     },
+     "fallback_log_loss": 0.6816767777185133,
+     "flag_unit": 63,
+     "flagged": true,
+     "model_log_loss": 1.054548633153069,
+     "n_bins": 19527,
+     "n_units": 2444,
+     "peak_capital": 3.128866206562546e+48
+    },
+    {
+     "costs": {
+      "always_fallback": 0.5160961776071883,
+      "always_model": 0.6622264815681452,
+      "guarded": 0.5313968144302982,
+      "oracle": 0.5160961776071883,
+      "regret_always_fallback": 0.0,
+      "regret_always_model": 0.14613030396095694,
+      "regret_guarded": 0.015300636823109892,
+      "share_on_fallback": 0.9359888965995836
+     },
+     "fallback_log_loss": 0.5160961776071883,
+     "flag_unit": 279,
+     "flagged": true,
+     "model_log_loss": 0.6622264815681452,
+     "n_bins": 36025,
+     "n_units": 5138,
+     "peak_capital": 1.0024405278775755e+22
+    },
+    {
+     "costs": {
+      "always_fallback": 0.6902136089122775,
+      "always_model": 1.2479978538245973,
+      "guarded": 0.7130092380039104,
+      "oracle": 0.6902136089122775,
+      "regret_always_fallback": 0.0,
+      "regret_always_model": 0.5577842449123198,
+      "regret_guarded": 0.022795629091632907,
+      "share_on_fallback": 0.9647856325380756
+     },
+     "fallback_log_loss": 0.6902136089122775,
+     "flag_unit": 80,
+     "flagged": true,
+     "model_log_loss": 1.2479978538245973,
+     "n_bins": 22718,
+     "n_units": 2507,
+     "peak_capital": 1.4611343845445941e+35
+    },
+    {
+     "costs": {
+      "always_fallback": 0.6933449173850196,
+      "always_model": 1.292832236076776,
+      "guarded": 0.7033249372530541,
+      "oracle": 0.6933449173850196,
+      "regret_always_fallback": 0.0,
+      "regret_always_model": 0.5994873186917565,
+      "regret_guarded": 0.00998001986803454,
+      "share_on_fallback": 0.9848825899680422
+     },
+     "fallback_log_loss": 0.6933449173850196,
+     "flag_unit": 39,
+     "flagged": true,
+     "model_log_loss": 1.292832236076776,
+     "n_bins": 35985,
+     "n_units": 2351,
+     "peak_capital": 4.254589426822918e+51
+    },
+    {
+     "costs": {
+      "always_fallback": 0.4819731241934483,
+      "always_model": 0.5815494580198284,
+      "guarded": 0.48916422836767537,
+      "oracle": 0.4819731241934483,
+      "regret_always_fallback": 0.0,
+      "regret_always_model": 0.09957633382638009,
+      "regret_guarded": 0.007191104174227081,
+      "share_on_fallback": 0.9015250939041499
+     },
+     "fallback_log_loss": 0.4819731241934483,
+     "flag_unit": 299,
+     "flagged": true,
+     "model_log_loss": 0.5815494580198284,
+     "n_bins": 22097,
+     "n_units": 3307,
+     "peak_capital": 4.2327602110494125e+17
+    },
+    {
+     "costs": {
+      "always_fallback": 0.6005795082566372,
+      "always_model": 0.774988368588783,
+      "guarded": 0.6105290959154898,
+      "oracle": 0.6005795082566372,
+      "regret_always_fallback": 0.0,
+      "regret_always_model": 0.17440886033214575,
+      "regret_guarded": 0.009949587658852566,
+      "share_on_fallback": 0.9307871740417087
+     },
+     "fallback_log_loss": 0.6005795082566372,
+     "flag_unit": 207,
+     "flagged": true,
+     "model_log_loss": 0.774988368588783,
+     "n_bins": 28723,
+     "n_units": 3270,
+     "peak_capital": 1.1003245792883502e+23
+    }
+   ],
+   "guard": {
+    "flag_rate_ci": [
+     0.6305833524471808,
+     1.0
+    ],
+    "flag_units": [
+     200,
+     338,
+     63,
+     279,
+     80,
+     39,
+     299,
+     207
+    ],
+    "flags": 8,
+    "n_units": [
+     2675,
+     3210,
+     2444,
+     5138,
+     2507,
+     2351,
+     3307,
+     3270
+    ],
+    "of": 8,
+    "strategies": {
+     "bootstrap": {
+      "B": 2000,
+      "seed": 3,
+      "unit": "deployments"
+     },
+     "guarded_minus_always_fallback": {
+      "ci": [
+       0.009854790315966065,
+       0.016693408005066027
+      ],
+      "est": 0.013180047220398491
+     },
+     "guarded_minus_always_model": {
+      "ci": [
+       -0.43389561731688087,
+       -0.19570371315114657
+      ],
+      "est": -0.30947586103275926
+     },
+     "guarded_minus_oracle": {
+      "ci": [
+       0.009854790315966065,
+       0.016693408005066027
+      ],
+      "est": 0.013180047220398491
+     },
+     "mean": {
+      "always_fallback": {
+       "ci": [
+        0.5630929265133436,
+        0.6653916088567376
+       ],
+       "est": 0.6174268940904999
+      },
+      "always_model": {
+       "ci": [
+        0.7739237760483627,
+        1.1082988582159377
+       ],
+       "est": 0.9400828023436576
+      },
+      "guarded": {
+       "ci": [
+        0.5749618375000822,
+        0.6791245841285689
+       ],
+       "est": 0.6306069413108983
+      },
+      "oracle": {
+       "ci": [
+        0.5630929265133436,
+        0.6653916088567376
+       ],
+       "est": 0.6174268940904999
+      },
+      "regret_always_fallback": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "est": 0.0
+      },
+      "regret_always_model": {
+       "ci": [
+        0.20871029252606535,
+        0.44514753118097533
+       ],
+       "est": 0.32265590825315776
+      },
+      "regret_guarded": {
+       "ci": [
+        0.009905271081895003,
+        0.0168216524059454
+       ],
+       "est": 0.013180047220398491
+      },
+      "share_on_fallback": {
+       "ci": [
+        0.9173361735427598,
+        0.9576252842714178
+       ],
+       "est": 0.9379782172275145
+      }
+     },
+     "n_deployments": 8
+    }
+   },
+   "guard_sensitivity": [
+    {
+     "flags": 8,
+     "guarded_minus_always_model": -0.3034879713375197,
+     "lambda": 0.4,
+     "of": 8,
+     "registered": false,
+     "threshold": 10.0
+    },
+    {
+     "flags": 8,
+     "guarded_minus_always_model": -0.29757999746475894,
+     "lambda": 0.4,
+     "of": 8,
+     "registered": false,
+     "threshold": 20.0
+    },
+    {
+     "flags": 8,
+     "guarded_minus_always_model": -0.28842102697820204,
+     "lambda": 0.4,
+     "of": 8,
+     "registered": false,
+     "threshold": 50.0
+    },
+    {
+     "flags": 8,
+     "guarded_minus_always_model": -0.31209681549535356,
+     "lambda": 0.8,
+     "of": 8,
+     "registered": false,
+     "threshold": 10.0
+    },
+    {
+     "flags": 8,
+     "guarded_minus_always_model": -0.30947586103275926,
+     "lambda": 0.8,
+     "of": 8,
+     "registered": true,
+     "threshold": 20.0
+    },
+    {
+     "flags": 8,
+     "guarded_minus_always_model": -0.30445413341855637,
+     "lambda": 0.8,
+     "of": 8,
+     "registered": false,
+     "threshold": 50.0
+    }
+   ],
+   "ledgers": [
+    {
+     "deployment": "markov-11",
+     "entries": 47028,
+     "head": "01c6ebbdeba9ae55",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 23514,
+       "resolved": 23514
+      }
+     },
+     "verified": true
+    },
+    {
+     "deployment": "markov-12",
+     "entries": 48282,
+     "head": "b617ae8e7df09a38",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 24141,
+       "resolved": 24141
+      }
+     },
+     "verified": true
+    },
+    {
+     "deployment": "markov-13",
+     "entries": 39054,
+     "head": "b37b5c62925a2606",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 19527,
+       "resolved": 19527
+      }
+     },
+     "verified": true
+    },
+    {
+     "deployment": "markov-14",
+     "entries": 72050,
+     "head": "18a84f6a8e12ac65",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 36025,
+       "resolved": 36025
+      }
+     },
+     "verified": true
+    },
+    {
+     "deployment": "markov-15",
+     "entries": 45436,
+     "head": "0138b3b58c518f83",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 22718,
+       "resolved": 22718
+      }
+     },
+     "verified": true
+    },
+    {
+     "deployment": "markov-16",
+     "entries": 71970,
+     "head": "15902c32400be092",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 35985,
+       "resolved": 35985
+      }
+     },
+     "verified": true
+    },
+    {
+     "deployment": "markov-17",
+     "entries": 44194,
+     "head": "59c7f9a59257e137",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 22097,
+       "resolved": 22097
+      }
+     },
+     "verified": true
+    },
+    {
+     "deployment": "markov-18",
+     "entries": 57446,
+     "head": "cd194314b3d3403c",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 28723,
+       "resolved": 28723
+      }
+     },
+     "verified": true
+    }
+   ],
+   "model_vs_best_naive": {
+    "baseline": "online_base",
+    "ci": [
+     0.27722615017539604,
+     0.3741043762505287
+    ],
+    "est": 0.3244858283266586,
+    "verdict": "a worse"
+   },
+   "n_bins": 212730,
+   "n_deployments": 8,
+   "n_people": 160,
+   "scores": {
+    "base_rate": 0.3430357730456447,
+    "bootstrap": {
+     "B": 2000,
+     "level": 0.95,
+     "seed": 0,
+     "unit": "people"
+    },
+    "n": 212730,
+    "n_clusters": 160,
+    "paired_log_loss_vs": {
+     "frozen_base": {
+      "ci": [
+       0.21976901305502003,
+       0.27717981834870187
+      ],
+      "est": 0.24789552886122895,
+      "verdict": "a worse"
+     },
+     "frozen_tsp": {
+      "ci": [
+       0.24703625574736657,
+       0.3153395686132498
+      ],
+      "est": 0.28084369166046536,
+      "verdict": "a worse"
+     },
+     "online_base": {
+      "ci": [
+       0.27722615017539604,
+       0.3741043762505287
+      ],
+      "est": 0.3244858283266586,
+      "verdict": "a worse"
+     }
+    },
+    "predictors": {
+     "frozen_base": {
+      "brier": {
+       "ci": [
+        0.2280736258976921,
+        0.2594569429439056
+       ],
+       "est": 0.24349844993377867
+      },
+      "ece": 0.13467077811150077,
+      "log_loss": {
+       "ci": [
+        0.6562425240532588,
+        0.7280630132109193
+       ],
+       "est": 0.6915421198802781
+      },
+      "reliability": [
+       {
+        "freq": 0.3430357730456447,
+        "freq_hi": 0.3450559088663415,
+        "freq_lo": 0.3410213060137971,
+        "hi": 0.3,
+        "lo": 0.2,
+        "n": 212730,
+        "ones": 72974.0,
+        "p_mean": 0.20836499493414393
+       }
+      ]
+     },
+     "frozen_tsp": {
+      "brier": {
+       "ci": [
+        0.2155255306040779,
+        0.2441086090087353
+       ],
+       "est": 0.22972593649652473
+      },
+      "ece": 0.1240552737755076,
+      "log_loss": {
+       "ci": [
+        0.6264364313918368,
+        0.6913223255763804
+       ],
+       "est": 0.6585939570810285
+      },
+      "reliability": [
+       {
+        "freq": 0.29029549878682204,
+        "freq_hi": 0.2930050238341771,
+        "freq_lo": 0.28760083710993206,
+        "hi": 0.2,
+        "lo": 0.1,
+        "n": 108393,
+        "ones": 31466.0,
+        "p_mean": 0.19421555730728726
+       },
+       {
+        "freq": 0.3463643975011271,
+        "freq_hi": 0.34942604129189025,
+        "freq_lo": 0.3433154232645942,
+        "hi": 0.3,
+        "lo": 0.2,
+        "n": 93162,
+        "ones": 32268.0,
+        "p_mean": 0.22155977270766006
+       },
+       {
+        "freq": 0.7476489028213166,
+        "freq_hi": 0.7601715143971466,
+        "freq_lo": 0.7347006237711733,
+        "hi": 0.4,
+        "lo": 0.3,
+        "n": 4466,
+        "ones": 3339.0,
+        "p_mean": 0.34211772138170926
+       },
+       {
+        "freq": 0.8226987447698745,
+        "freq_hi": 0.8391658471336392,
+        "freq_lo": 0.8049375541778634,
+        "hi": 0.5,
+        "lo": 0.4,
+        "n": 1912,
+        "ones": 1573.0,
+        "p_mean": 0.4475764322670176
+       },
+       {
+        "freq": 0.9022305607671461,
+        "freq_hi": 0.9103162359307594,
+        "freq_lo": 0.8935011850569244,
+        "hi": 0.6,
+        "lo": 0.5,
+        "n": 4797,
+        "ones": 4328.0,
+        "p_mean": 0.5227223846885984
+       }
+      ]
+     },
+     "model": {
+      "brier": {
+       "ci": [
+        0.26581592971728607,
+        0.30143784670031265
+       ],
+       "est": 0.2831139613234285
+      },
+      "calibration": {
+       "intercept": -1.0171383832074925,
+       "intercept_ci": [
+        -1.1441951513986781,
+        -0.8926431229459675
+       ],
+       "intercept_contains_0": false,
+       "n_draws": 500,
+       "slope": -0.19897137979150192,
+       "slope_ci": [
+        -0.22654442560634558,
+        -0.16879180054661494
+       ],
+       "slope_contains_1": false
+      },
+      "ece": 0.20620981728560883,
+      "log_loss": {
+       "ci": [
+        0.8791451161501773,
+        1.0006129012299732
+       ],
+       "est": 0.9394376487414919
+      },
+      "reliability": [
+       {
+        "freq": 0.40183603757472247,
+        "freq_hi": 0.40546648096796845,
+        "freq_lo": 0.39821632780524396,
+        "hi": 0.1,
+        "lo": 0.0,
+        "n": 70260,
+        "ones": 28233.0,
+        "p_mean": 0.04863615892432925
+       },
+       {
+        "freq": 0.3001119291220658,
+        "freq_hi": 0.30369048020351475,
+        "freq_lo": 0.2965575867425435,
+        "hi": 0.2,
+        "lo": 0.1,
+        "n": 63433,
+        "ones": 19037.0,
+        "p_mean": 0.13930495134113796
+       },
+       {
+        "freq": 0.3304819369128542,
+        "freq_hi": 0.33620373037180046,
+        "freq_lo": 0.3248098724039466,
+        "hi": 0.3,
+        "lo": 0.2,
+        "n": 26186,
+        "ones": 8654.0,
+        "p_mean": 0.24729108229145425
+       },
+       {
+        "freq": 0.3293699091845333,
+        "freq_hi": 0.33570256307746293,
+        "freq_lo": 0.3230986119640008,
+        "hi": 0.4,
+        "lo": 0.3,
+        "n": 21362,
+        "ones": 7036.0,
+        "p_mean": 0.3490219600697503
+       },
+       {
+        "freq": 0.32286030496802753,
+        "freq_hi": 0.33008730276500053,
+        "freq_lo": 0.3157169660689726,
+        "hi": 0.5,
+        "lo": 0.4,
+        "n": 16264,
+        "ones": 5251.0,
+        "p_mean": 0.44695915030707517
+       },
+       {
+        "freq": 0.31434288121314236,
+        "freq_hi": 0.3237539215897798,
+        "freq_lo": 0.305081989484707,
+        "hi": 0.6,
+        "lo": 0.5,
+        "n": 9496,
+        "ones": 2985.0,
+        "p_mean": 0.5459553664476343
+       },
+       {
+        "freq": 0.3101337565177964,
+        "freq_hi": 0.3239441457530661,
+        "freq_lo": 0.2966537815737668,
+        "hi": 0.7,
+        "lo": 0.6,
+        "n": 4411,
+        "ones": 1368.0,
+        "p_mean": 0.6419647007173028
+       },
+       {
+        "freq": 0.31140716069941715,
+        "freq_hi": 0.3381627847481478,
+        "freq_lo": 0.28585413740906357,
+        "hi": 0.8,
+        "lo": 0.7,
+        "n": 1201,
+        "ones": 374.0,
+        "p_mean": 0.7349549844952795
+       },
+       {
+        "freq": 0.297029702970297,
+        "freq_hi": 0.3922504197689506,
+        "freq_lo": 0.21668291193792177,
+        "hi": 0.9,
+        "lo": 0.8,
+        "n": 101,
+        "ones": 30.0,
+        "p_mean": 0.829378791804028
+       },
+       {
+        "freq": 0.375,
+        "freq_hi": 0.6135895945449727,
+        "freq_lo": 0.18481232558863633,
+        "hi": 1.0,
+        "lo": 0.9,
+        "n": 16,
+        "ones": 6.0,
+        "p_mean": 0.911802243205986
+       }
+      ]
+     },
+     "online_base": {
+      "brier": {
+       "ci": [
+        0.2042910511152024,
+        0.2212603254709038
+       ],
+       "est": 0.21291090538080637
+      },
+      "ece": 0.002983224109748484,
+      "log_loss": {
+       "ci": [
+        0.596177900740096,
+        0.6332438371055904
+       ],
+       "est": 0.6149518204148338
+      },
+      "reliability": [
+       {
+        "freq": 0.1404494382022472,
+        "freq_hi": 0.199113773428976,
+        "freq_lo": 0.09697634358765453,
+        "hi": 0.1,
+        "lo": 0.0,
+        "n": 178,
+        "ones": 25.0,
+        "p_mean": 0.0908686874076352
+       },
+       {
+        "freq": 0.1876795403766358,
+        "freq_hi": 0.19290169969356116,
+        "freq_lo": 0.1825667747096947,
+        "hi": 0.2,
+        "lo": 0.1,
+        "n": 21931,
+        "ones": 4116.0,
+        "p_mean": 0.1814133034658073
+       },
+       {
+        "freq": 0.24645299344094526,
+        "freq_hi": 0.24979401912582902,
+        "freq_lo": 0.24314217142391384,
+        "hi": 0.3,
+        "lo": 0.2,
+        "n": 64491,
+        "ones": 15894.0,
+        "p_mean": 0.2464510847573606
+       },
+       {
+        "freq": 0.3399128329297821,
+        "freq_hi": 0.3440106483883052,
+        "freq_lo": 0.33583884013481846,
+        "hi": 0.4,
+        "lo": 0.3,
+        "n": 51625,
+        "ones": 17548.0,
+        "p_mean": 0.3332793152668594
+       },
+       {
+        "freq": 0.44767613972764947,
+        "freq_hi": 0.45252155264911154,
+        "freq_lo": 0.4428406429749411,
+        "hi": 0.5,
+        "lo": 0.4,
+        "n": 40536,
+        "ones": 18147.0,
+        "p_mean": 0.4492168008347927
+       },
+       {
+        "freq": 0.5076275179644245,
+        "freq_hi": 0.5129438764411551,
+        "freq_lo": 0.5023094338732679,
+        "hi": 0.6,
+        "lo": 0.5,
+        "n": 33956,
+        "ones": 17237.0,
+        "p_mean": 0.5100551920968893
+       },
+       {
+        "freq": 0.5384615384615384,
+        "freq_hi": 0.7679393219046169,
+        "freq_lo": 0.29143795714506004,
+        "hi": 0.7,
+        "lo": 0.6,
+        "n": 13,
+        "ones": 7.0,
+        "p_mean": 0.6081742916460597
+       }
+      ]
+     }
+    }
+   },
+   "world": "markov"
+  },
+  "process_trace": {
+   "best_naive": "online_base",
+   "best_naive_pooled_log_loss": 0.654967915725516,
+   "deployments": [
+    {
+     "costs": {
+      "always_fallback": 0.6800209131512224,
+      "always_model": 1.1516765565921667,
+      "guarded": 0.6896775678263178,
+      "oracle": 0.6800209131512224,
+      "regret_always_fallback": 0.0,
+      "regret_always_model": 0.47165564344094435,
+      "regret_guarded": 0.009656654675095466,
+      "share_on_fallback": 0.983638928067701
+     },
+     "fallback_log_loss": 0.6800209131512224,
+     "flag_unit": 35,
+     "flagged": true,
+     "model_log_loss": 1.1516765565921667,
+     "n_bins": 14180,
+     "n_units": 2500,
+     "peak_capital": 8.060288788454275e+53
+    },
+    {
+     "costs": {
+      "always_fallback": 0.6933795893271028,
+      "always_model": 1.5504980340300452,
+      "guarded": 0.7063975454048147,
+      "oracle": 0.6933795893271028,
+      "regret_always_fallback": 0.0,
+      "regret_always_model": 0.8571184447029424,
+      "regret_guarded": 0.013017956077711945,
+      "share_on_fallback": 0.9858645956036497
+     },
+     "fallback_log_loss": 0.6933795893271028,
+     "flag_unit": 54,
+     "flagged": true,
+     "model_log_loss": 1.5504980340300452,
+     "n_bins": 50087,
+     "n_units": 4506,
+     "peak_capital": 1.0272499656058888e+84
+    },
+    {
+     "costs": {
+      "always_fallback": 0.6050296983305544,
+      "always_model": 0.9199888594955768,
+      "guarded": 0.6150179877143701,
+      "oracle": 0.6050296983305544,
+      "regret_always_fallback": 0.0,
+      "regret_always_model": 0.3149591611650224,
+      "regret_guarded": 0.009988289383815685,
+      "share_on_fallback": 0.9460929772502473
+     },
+     "fallback_log_loss": 0.6050296983305544,
+     "flag_unit": 151,
+     "flagged": true,
+     "model_log_loss": 0.9199888594955768,
+     "n_bins": 34374,
+     "n_units": 3052,
+     "peak_capital": 3.253246129051295e+29
+    },
+    {
+     "costs": {
+      "always_fallback": 0.5631260658657914,
+      "always_model": 0.706179002703883,
+      "guarded": 0.5735884530719438,
+      "oracle": 0.5631260658657914,
+      "regret_always_fallback": 0.0,
+      "regret_always_model": 0.14305293683809162,
+      "regret_guarded": 0.010462387206152446,
+      "share_on_fallback": 0.9197214076246334
+     },
+     "fallback_log_loss": 0.5631260658657914,
+     "flag_unit": 259,
+     "flagged": true,
+     "model_log_loss": 0.706179002703883,
+     "n_bins": 19096,
+     "n_units": 3438,
+     "peak_capital": 2.1921272261726808e+23
+    },
+    {
+     "costs": {
+      "always_fallback": 0.6831236644610678,
+      "always_model": 1.2288889284518223,
+      "guarded": 0.6900239739541036,
+      "oracle": 0.6831236644610678,
+      "regret_always_fallback": 0.0,
+      "regret_always_model": 0.5457652639907545,
+      "regret_guarded": 0.006900309493035883,
+      "share_on_fallback": 0.9780677228953091
+     },
+     "fallback_log_loss": 0.6831236644610678,
+     "flag_unit": 83,
+     "flagged": true,
+     "model_log_loss": 1.2288889284518223,
+     "n_bins": 32190,
+     "n_units": 4047,
+     "peak_capital": 4.60446439751444e+76
+    },
+    {
+     "costs": {
+      "always_fallback": 0.5809957529660061,
+      "always_model": 0.7680927168154006,
+      "guarded": 0.6089650122895132,
+      "oracle": 0.5809957529660061,
+      "regret_always_fallback": 0.0,
+      "regret_always_model": 0.18709696384939445,
+      "regret_guarded": 0.027969259323507023,
+      "share_on_fallback": 0.9101843378219375
+     },
+     "fallback_log_loss": 0.5809957529660061,
+     "flag_unit": 174,
+     "flagged": true,
+     "model_log_loss": 0.7680927168154006,
+     "n_bins": 15298,
+     "n_units": 1965,
+     "peak_capital": 6.14887348829039e+16
+    },
+    {
+     "costs": {
+      "always_fallback": 0.6857446576615778,
+      "always_model": 1.2124958198869993,
+      "guarded": 0.6959327807808593,
+      "oracle": 0.6857446576615778,
+      "regret_always_fallback": 0.0,
+      "regret_always_model": 0.5267511622254215,
+      "regret_guarded": 0.010188123119281522,
+      "share_on_fallback": 0.974137196420963
+     },
+     "fallback_log_loss": 0.6857446576615778,
+     "flag_unit": 90,
+     "flagged": true,
+     "model_log_loss": 1.2124958198869993,
+     "n_bins": 23470,
+     "n_units": 2950,
+     "peak_capital": 1.7112519327471828e+67
+    },
+    {
+     "costs": {
+      "always_fallback": 0.692672207254208,
+      "always_model": 1.2504039111664735,
+      "guarded": 0.7084846893216827,
+      "oracle": 0.692672207254208,
+      "regret_always_fallback": 0.0,
+      "regret_always_model": 0.5577317039122656,
+      "regret_guarded": 0.015812482067474765,
+      "share_on_fallback": 0.9819129868013687
+     },
+     "fallback_log_loss": 0.692672207254208,
+     "flag_unit": 64,
+     "flagged": true,
+     "model_log_loss": 1.2504039111664735,
+     "n_bins": 18411,
+     "n_units": 3802,
+     "peak_capital": 1.0607431946465324e+91
+    }
+   ],
+   "guard": {
+    "flag_rate_ci": [
+     0.6305833524471808,
+     1.0
+    ],
+    "flag_units": [
+     35,
+     54,
+     151,
+     259,
+     83,
+     174,
+     90,
+     64
+    ],
+    "flags": 8,
+    "n_units": [
+     2500,
+     4506,
+     3052,
+     3438,
+     4047,
+     1965,
+     2950,
+     3802
+    ],
+    "of": 8,
+    "strategies": {
+     "bootstrap": {
+      "B": 2000,
+      "seed": 3,
+      "unit": "deployments"
+     },
+     "guarded_minus_always_fallback": {
+      "ci": [
+       0.009568764594292182,
+       0.017444781126176697
+      ],
+      "est": 0.012999432668259342
+     },
+     "guarded_minus_always_model": {
+      "ci": [
+       -0.5940826179594059,
+       -0.29247938395081424
+      ],
+      "est": -0.43751697734734524
+     },
+     "guarded_minus_oracle": {
+      "ci": [
+       0.009568764594292182,
+       0.017444781126176697
+      ],
+      "est": 0.012999432668259342
+     },
+     "mean": {
+      "always_fallback": {
+       "ci": [
+        0.6115784365021566,
+        0.6783412386049923
+       ],
+       "est": 0.6480115686271912
+      },
+      "always_model": {
+       "ci": [
+        0.9229096279707134,
+        1.2761372996087355
+       ],
+       "est": 1.098527978642796
+      },
+      "guarded": {
+       "ci": [
+        0.62672924262663,
+        0.6913432544884618
+       ],
+       "est": 0.6610110012954507
+      },
+      "oracle": {
+       "ci": [
+        0.6115784365021566,
+        0.6783412386049923
+       ],
+       "est": 0.6480115686271912
+      },
+      "regret_always_fallback": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "est": 0.0
+      },
+      "regret_always_model": {
+       "ci": [
+        0.3092069925739563,
+        0.602264198568418
+       ],
+       "est": 0.4505164100156046
+      },
+      "regret_guarded": {
+       "ci": [
+        0.009571356298469808,
+        0.017851272563910777
+       ],
+       "est": 0.012999432668259342
+      },
+      "share_on_fallback": {
+       "ci": [
+        0.9392613769883678,
+        0.9776804497808173
+       ],
+       "est": 0.9599525190607263
+      }
+     },
+     "n_deployments": 8
+    }
+   },
+   "guard_sensitivity": [
+    {
+     "flags": 8,
+     "guarded_minus_always_model": -0.4309136234909851,
+     "lambda": 0.4,
+     "of": 8,
+     "registered": false,
+     "threshold": 10.0
+    },
+    {
+     "flags": 8,
+     "guarded_minus_always_model": -0.42596873112295286,
+     "lambda": 0.4,
+     "of": 8,
+     "registered": false,
+     "threshold": 20.0
+    },
+    {
+     "flags": 8,
+     "guarded_minus_always_model": -0.41922532214322134,
+     "lambda": 0.4,
+     "of": 8,
+     "registered": false,
+     "threshold": 50.0
+    },
+    {
+     "flags": 8,
+     "guarded_minus_always_model": -0.4410781242237939,
+     "lambda": 0.8,
+     "of": 8,
+     "registered": false,
+     "threshold": 10.0
+    },
+    {
+     "flags": 8,
+     "guarded_minus_always_model": -0.43751697734734524,
+     "lambda": 0.8,
+     "of": 8,
+     "registered": true,
+     "threshold": 20.0
+    },
+    {
+     "flags": 8,
+     "guarded_minus_always_model": -0.4329922470745927,
+     "lambda": 0.8,
+     "of": 8,
+     "registered": false,
+     "threshold": 50.0
+    }
+   ],
+   "ledgers": [
+    {
+     "deployment": "process_trace-11",
+     "entries": 28360,
+     "head": "c858e68317c38db3",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 14180,
+       "resolved": 14180
+      }
+     },
+     "verified": true
+    },
+    {
+     "deployment": "process_trace-12",
+     "entries": 100174,
+     "head": "809e95c3223119ca",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 50087,
+       "resolved": 50087
+      }
+     },
+     "verified": true
+    },
+    {
+     "deployment": "process_trace-13",
+     "entries": 68748,
+     "head": "a9a81e725e4a1baa",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 34374,
+       "resolved": 34374
+      }
+     },
+     "verified": true
+    },
+    {
+     "deployment": "process_trace-14",
+     "entries": 38192,
+     "head": "4ecac235fdceacb1",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 19096,
+       "resolved": 19096
+      }
+     },
+     "verified": true
+    },
+    {
+     "deployment": "process_trace-15",
+     "entries": 64380,
+     "head": "abb80ed4a2a4a624",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 32190,
+       "resolved": 32190
+      }
+     },
+     "verified": true
+    },
+    {
+     "deployment": "process_trace-16",
+     "entries": 30596,
+     "head": "33eb7d39388ef229",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 15298,
+       "resolved": 15298
+      }
+     },
+     "verified": true
+    },
+    {
+     "deployment": "process_trace-17",
+     "entries": 46940,
+     "head": "fdebfb450acd1a00",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 23470,
+       "resolved": 23470
+      }
+     },
+     "verified": true
+    },
+    {
+     "deployment": "process_trace-18",
+     "entries": 36822,
+     "head": "fcf7f8e892cba6df",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 18411,
+       "resolved": 18411
+      }
+     },
+     "verified": true
+    }
+   ],
+   "model_vs_best_naive": {
+    "baseline": "online_base",
+    "ci": [
+     0.4339189929322164,
+     0.6023190380319775
+    ],
+    "est": 0.5129660899759803,
+    "verdict": "a worse"
+   },
+   "n_bins": 207106,
+   "n_deployments": 8,
+   "n_people": 160,
+   "scores": {
+    "base_rate": 0.39947659652545076,
+    "bootstrap": {
+     "B": 2000,
+     "level": 0.95,
+     "seed": 0,
+     "unit": "people"
+    },
+    "n": 207106,
+    "n_clusters": 160,
+    "paired_log_loss_vs": {
+     "frozen_base": {
+      "ci": [
+       0.3484800942549694,
+       0.46058995844334266
+      ],
+      "est": 0.4010541605663732,
+      "verdict": "a worse"
+     },
+     "frozen_tsp": {
+      "ci": [
+       0.3882930845093755,
+       0.5283023055155895
+      ],
+      "est": 0.45528822476099234,
+      "verdict": "a worse"
+     },
+     "online_base": {
+      "ci": [
+       0.4339189929322164,
+       0.6023190380319775
+      ],
+      "est": 0.5129660899759803,
+      "verdict": "a worse"
+     }
+    },
+    "predictors": {
+     "frozen_base": {
+      "brier": {
+       "ci": [
+        0.25999418673563396,
+        0.29356301782667443
+       ],
+       "est": 0.27641868961668775
+      },
+      "ece": 0.19111160159130683,
+      "log_loss": {
+       "ci": [
+        0.7292924916583936,
+        0.8061145135580863
+       ],
+       "est": 0.7668798451351362
+      },
+      "reliability": [
+       {
+        "freq": 0.39947659652545076,
+        "freq_hi": 0.40158785903554917,
+        "freq_lo": 0.3973690630174339,
+        "hi": 0.3,
+        "lo": 0.2,
+        "n": 207106,
+        "ones": 82734.0,
+        "p_mean": 0.20836499493414393
+       }
+      ]
+     },
+     "frozen_tsp": {
+      "brier": {
+       "ci": [
+        0.240271358686246,
+        0.26627634472741074
+       ],
+       "est": 0.2534919665021004
+      },
+      "ece": 0.17281257567753358,
+      "log_loss": {
+       "ci": [
+        0.6827750273541834,
+        0.7416823701495149
+       ],
+       "est": 0.7126457809405047
+      },
+      "reliability": [
+       {
+        "freq": 0.32840689121176925,
+        "freq_hi": 0.3312768430777837,
+        "freq_lo": 0.3255496986054187,
+        "hi": 0.2,
+        "lo": 0.1,
+        "n": 103320,
+        "ones": 33931.0,
+        "p_mean": 0.19417599622523532
+       },
+       {
+        "freq": 0.39404873370024435,
+        "freq_hi": 0.39728958061312625,
+        "freq_lo": 0.39081718112097585,
+        "hi": 0.3,
+        "lo": 0.2,
+        "n": 87578,
+        "ones": 34510.0,
+        "p_mean": 0.22221516750731163
+       },
+       {
+        "freq": 0.8154362416107382,
+        "freq_hi": 0.8261923457983844,
+        "freq_lo": 0.8041722683569636,
+        "hi": 0.4,
+        "lo": 0.3,
+        "n": 4768,
+        "ones": 3888.0,
+        "p_mean": 0.34444360592846224
+       },
+       {
+        "freq": 0.8695327102803738,
+        "freq_hi": 0.881768448305553,
+        "freq_lo": 0.8562371523955554,
+        "hi": 0.5,
+        "lo": 0.4,
+        "n": 2675,
+        "ones": 2326.0,
+        "p_mean": 0.45018257180070975
+       },
+       {
+        "freq": 0.9217341699942955,
+        "freq_hi": 0.927174129000994,
+        "freq_lo": 0.915924703919891,
+        "hi": 0.6,
+        "lo": 0.5,
+        "n": 8765,
+        "ones": 8079.0,
+        "p_mean": 0.5217922805645485
+       }
+      ]
+     },
+     "model": {
+      "brier": {
+       "ci": [
+        0.3107324619278083,
+        0.35699980769651607
+       ],
+       "est": 0.33346632056567066
+      },
+      "calibration": {
+       "intercept": -0.8955521394140075,
+       "intercept_ci": [
+        -1.0020583451845544,
+        -0.7915715138820411
+       ],
+       "intercept_contains_0": false,
+       "n_draws": 500,
+       "slope": -0.21130317928441777,
+       "slope_ci": [
+        -0.24808784905225686,
+        -0.16838534321817067
+       ],
+       "slope_contains_1": false
+      },
+      "ece": 0.27617235062890594,
+      "log_loss": {
+       "ci": [
+        1.0805587170668787,
+        1.2643816418252432
+       ],
+       "est": 1.1679340057014997
+      },
+      "reliability": [
+       {
+        "freq": 0.44394460432402105,
+        "freq_hi": 0.4470855848502622,
+        "freq_lo": 0.44080809796275144,
+        "hi": 0.1,
+        "lo": 0.0,
+        "n": 96253,
+        "ones": 42731.0,
+        "p_mean": 0.04240983481061746
+       },
+       {
+        "freq": 0.3480904181353685,
+        "freq_hi": 0.35185407457771206,
+        "freq_lo": 0.3443456317301807,
+        "hi": 0.2,
+        "lo": 0.1,
+        "n": 61846,
+        "ones": 21528.0,
+        "p_mean": 0.13766122497329708
+       },
+       {
+        "freq": 0.38163494936646936,
+        "freq_hi": 0.38831613058513376,
+        "freq_lo": 0.3749982482645849,
+        "hi": 0.3,
+        "lo": 0.2,
+        "n": 20441,
+        "ones": 7801.0,
+        "p_mean": 0.24538359806723484
+       },
+       {
+        "freq": 0.38232741617357,
+        "freq_hi": 0.3908218744759214,
+        "freq_lo": 0.3739042631851248,
+        "hi": 0.4,
+        "lo": 0.3,
+        "n": 12675,
+        "ones": 4846.0,
+        "p_mean": 0.3465570169992381
+       },
+       {
+        "freq": 0.36907409575090716,
+        "freq_hi": 0.3793634782315636,
+        "freq_lo": 0.3589024050449626,
+        "hi": 0.5,
+        "lo": 0.4,
+        "n": 8543,
+        "ones": 3153.0,
+        "p_mean": 0.4472035994264985
+       },
+       {
+        "freq": 0.3722658738585687,
+        "freq_hi": 0.38617172018440155,
+        "freq_lo": 0.35856826088404087,
+        "hi": 0.6,
+        "lo": 0.5,
+        "n": 4709,
+        "ones": 1753.0,
+        "p_mean": 0.5428646057441204
+       },
+       {
+        "freq": 0.3562559694364852,
+        "freq_hi": 0.3770135886661581,
+        "freq_lo": 0.3360247834811748,
+        "hi": 0.7,
+        "lo": 0.6,
+        "n": 2094,
+        "ones": 746.0,
+        "p_mean": 0.6418091363489695
+       },
+       {
+        "freq": 0.31773879142300193,
+        "freq_hi": 0.35925654454894823,
+        "freq_lo": 0.2789303756205593,
+        "hi": 0.8,
+        "lo": 0.7,
+        "n": 513,
+        "ones": 163.0,
+        "p_mean": 0.7334116427089675
+       },
+       {
+        "freq": 0.40625,
+        "freq_hi": 0.5773997512461713,
+        "freq_lo": 0.2551963484266544,
+        "hi": 0.9,
+        "lo": 0.8,
+        "n": 32,
+        "ones": 13.0,
+        "p_mean": 0.8224635955841442
+       }
+      ]
+     },
+     "online_base": {
+      "brier": {
+       "ci": [
+        0.2256735952731359,
+        0.23666099381976985
+       ],
+       "est": 0.231537399392518
+      },
+      "ece": 0.004599801224949104,
+      "log_loss": {
+       "ci": [
+        0.6425698615641033,
+        0.6656971592828336
+       ],
+       "est": 0.6549679157255159
+      },
+      "reliability": [
+       {
+        "freq": 0.24416135881104034,
+        "freq_hi": 0.2849255633049393,
+        "freq_lo": 0.20753661428472964,
+        "hi": 0.2,
+        "lo": 0.1,
+        "n": 471,
+        "ones": 115.0,
+        "p_mean": 0.18012169344689527
+       },
+       {
+        "freq": 0.275811536924375,
+        "freq_hi": 0.27919432901859786,
+        "freq_lo": 0.2724542392061955,
+        "hi": 0.3,
+        "lo": 0.2,
+        "n": 67557,
+        "ones": 18633.0,
+        "p_mean": 0.2743277494009478
+       },
+       {
+        "freq": 0.3655292076344708,
+        "freq_hi": 0.38850365543312637,
+        "freq_lo": 0.3431509644208669,
+        "hi": 0.4,
+        "lo": 0.3,
+        "n": 1729,
+        "ones": 632.0,
+        "p_mean": 0.3276151555593712
+       },
+       {
+        "freq": 0.44481171548117154,
+        "freq_hi": 0.44796399268521075,
+        "freq_lo": 0.44166387331905393,
+        "hi": 0.5,
+        "lo": 0.4,
+        "n": 95600,
+        "ones": 42524.0,
+        "p_mean": 0.44863091879573047
+       },
+       {
+        "freq": 0.49893410620613665,
+        "freq_hi": 0.5037301481298975,
+        "freq_lo": 0.4941382604169131,
+        "hi": 0.6,
+        "lo": 0.5,
+        "n": 41749,
+        "ones": 20830.0,
+        "p_mean": 0.5083133556127798
+       }
+      ]
+     }
+    }
+   },
+   "world": "process_trace"
+  },
+  "route_drift": {
+   "best_naive": "online_base",
+   "best_naive_pooled_log_loss": 0.5296897771945233,
+   "deployments": [
+    {
+     "costs": {
+      "always_fallback": 0.5234789914955118,
+      "always_model": 0.3672357195885678,
+      "guarded": 0.3672357195885678,
+      "oracle": 0.3672357195885678,
+      "regret_always_fallback": 0.15624327190694398,
+      "regret_always_model": 0.0,
+      "regret_guarded": 0.0,
+      "share_on_fallback": 0.0
+     },
+     "fallback_log_loss": 0.5234789914955118,
+     "flag_unit": null,
+     "flagged": false,
+     "model_log_loss": 0.3672357195885678,
+     "n_bins": 4000,
+     "n_units": 4000,
+     "peak_capital": 1.0
+    },
+    {
+     "costs": {
+      "always_fallback": 0.5294661494508389,
+      "always_model": 0.38092450126964617,
+      "guarded": 0.38092450126964617,
+      "oracle": 0.38092450126964617,
+      "regret_always_fallback": 0.14854164818119275,
+      "regret_always_model": 0.0,
+      "regret_guarded": 0.0,
+      "share_on_fallback": 0.0
+     },
+     "fallback_log_loss": 0.5294661494508389,
+     "flag_unit": null,
+     "flagged": false,
+     "model_log_loss": 0.38092450126964617,
+     "n_bins": 4000,
+     "n_units": 4000,
+     "peak_capital": 1.663752610493782
+    },
+    {
+     "costs": {
+      "always_fallback": 0.5339642355446548,
+      "always_model": 0.3859534450563913,
+      "guarded": 0.3859534450563913,
+      "oracle": 0.3859534450563913,
+      "regret_always_fallback": 0.1480107904882635,
+      "regret_always_model": 0.0,
+      "regret_guarded": 0.0,
+      "share_on_fallback": 0.0
+     },
+     "fallback_log_loss": 0.5339642355446548,
+     "flag_unit": null,
+     "flagged": false,
+     "model_log_loss": 0.3859534450563913,
+     "n_bins": 4000,
+     "n_units": 4000,
+     "peak_capital": 1.0
+    },
+    {
+     "costs": {
+      "always_fallback": 0.5383950468426324,
+      "always_model": 0.3863927130081371,
+      "guarded": 0.3863927130081371,
+      "oracle": 0.3863927130081371,
+      "regret_always_fallback": 0.1520023338344953,
+      "regret_always_model": 0.0,
+      "regret_guarded": 0.0,
+      "share_on_fallback": 0.0
+     },
+     "fallback_log_loss": 0.5383950468426324,
+     "flag_unit": null,
+     "flagged": false,
+     "model_log_loss": 0.3863927130081371,
+     "n_bins": 4000,
+     "n_units": 4000,
+     "peak_capital": 1.1274836811356774
+    },
+    {
+     "costs": {
+      "always_fallback": 0.5320915634635522,
+      "always_model": 0.3913992154830097,
+      "guarded": 0.3913992154830097,
+      "oracle": 0.3913992154830097,
+      "regret_always_fallback": 0.14069234798054253,
+      "regret_always_model": 0.0,
+      "regret_guarded": 0.0,
+      "share_on_fallback": 0.0
+     },
+     "fallback_log_loss": 0.5320915634635522,
+     "flag_unit": null,
+     "flagged": false,
+     "model_log_loss": 0.3913992154830097,
+     "n_bins": 4000,
+     "n_units": 4000,
+     "peak_capital": 1.1216703032282018
+    },
+    {
+     "costs": {
+      "always_fallback": 0.5247093348480176,
+      "always_model": 0.36551682358410315,
+      "guarded": 0.36551682358410315,
+      "oracle": 0.36551682358410315,
+      "regret_always_fallback": 0.15919251126391448,
+      "regret_always_model": 0.0,
+      "regret_guarded": 0.0,
+      "share_on_fallback": 0.0
+     },
+     "fallback_log_loss": 0.5247093348480176,
+     "flag_unit": null,
+     "flagged": false,
+     "model_log_loss": 0.36551682358410315,
+     "n_bins": 4000,
+     "n_units": 4000,
+     "peak_capital": 1.0
+    },
+    {
+     "costs": {
+      "always_fallback": 0.5304700990837607,
+      "always_model": 0.39094607545744864,
+      "guarded": 0.39094607545744864,
+      "oracle": 0.39094607545744864,
+      "regret_always_fallback": 0.1395240236263121,
+      "regret_always_model": 0.0,
+      "regret_guarded": 0.0,
+      "share_on_fallback": 0.0
+     },
+     "fallback_log_loss": 0.5304700990837607,
+     "flag_unit": null,
+     "flagged": false,
+     "model_log_loss": 0.39094607545744864,
+     "n_bins": 4000,
+     "n_units": 4000,
+     "peak_capital": 1.3426673278764067
+    },
+    {
+     "costs": {
+      "always_fallback": 0.5249427968272179,
+      "always_model": 0.3707952486045843,
+      "guarded": 0.3707952486045843,
+      "oracle": 0.3707952486045843,
+      "regret_always_fallback": 0.1541475482226336,
+      "regret_always_model": 0.0,
+      "regret_guarded": 0.0,
+      "share_on_fallback": 0.0
+     },
+     "fallback_log_loss": 0.5249427968272179,
+     "flag_unit": null,
+     "flagged": false,
+     "model_log_loss": 0.3707952486045843,
+     "n_bins": 4000,
+     "n_units": 4000,
+     "peak_capital": 1.0
+    }
+   ],
+   "drift": true,
+   "first_half": {
+    "calibration_model": {
+     "intercept": -0.12609781767508108,
+     "intercept_ci": [
+      -0.2387298589058736,
+      -0.0037545434659821617
+     ],
+     "intercept_contains_0": false,
+     "n_draws": 500,
+     "slope": 0.9652900544982822,
+     "slope_ci": [
+      0.913032136407289,
+      1.0238886323179412
+     ],
+     "slope_contains_1": true
+    },
+    "model_vs_online_base": {
+     "ci": [
+      -0.12204055744354642,
+      -0.10226419786762903
+     ],
+     "est": -0.11199930282332074,
+     "verdict": "a better"
+    },
+    "n": 12000
+   },
+   "guard": {
+    "flag_rate_ci": [
+     0.0,
+     0.3694166475528192
+    ],
+    "flag_units": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "flags": 0,
+    "n_units": [
+     4000,
+     4000,
+     4000,
+     4000,
+     4000,
+     4000,
+     4000,
+     4000
+    ],
+    "of": 8,
+    "strategies": {
+     "bootstrap": {
+      "B": 2000,
+      "seed": 3,
+      "unit": "deployments"
+     },
+     "guarded_minus_always_fallback": {
+      "ci": [
+       -0.15399266953051144,
+       -0.14517332334284927
+      ],
+      "est": -0.1497943094380373
+     },
+     "guarded_minus_always_model": {
+      "ci": [
+       0.0,
+       0.0
+      ],
+      "est": 0.0
+     },
+     "guarded_minus_oracle": {
+      "ci": [
+       0.0,
+       0.0
+      ],
+      "est": 0.0
+     },
+     "mean": {
+      "always_fallback": {
+       "ci": [
+        0.5264852565805792,
+        0.5329793145318478
+       ],
+       "est": 0.5296897771945234
+      },
+      "always_model": {
+       "ci": [
+        0.3728049197301975,
+        0.38616573469506915
+       ],
+       "est": 0.37989546775648597
+      },
+      "guarded": {
+       "ci": [
+        0.3728049197301975,
+        0.38616573469506915
+       ],
+       "est": 0.37989546775648597
+      },
+      "oracle": {
+       "ci": [
+        0.3728049197301975,
+        0.38616573469506915
+       ],
+       "est": 0.37989546775648597
+      },
+      "regret_always_fallback": {
+       "ci": [
+        0.1451898233264108,
+        0.15416634090128006
+       ],
+       "est": 0.1497943094380373
+      },
+      "regret_always_model": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "est": 0.0
+      },
+      "regret_guarded": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "est": 0.0
+      },
+      "share_on_fallback": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "est": 0.0
+      }
+     },
+     "n_deployments": 8
+    }
+   },
+   "guard_sensitivity": [
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.4,
+     "of": 8,
+     "registered": false,
+     "threshold": 10.0
+    },
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.4,
+     "of": 8,
+     "registered": false,
+     "threshold": 20.0
+    },
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.4,
+     "of": 8,
+     "registered": false,
+     "threshold": 50.0
+    },
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.8,
+     "of": 8,
+     "registered": false,
+     "threshold": 10.0
+    },
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.8,
+     "of": 8,
+     "registered": true,
+     "threshold": 20.0
+    },
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.8,
+     "of": 8,
+     "registered": false,
+     "threshold": 50.0
+    }
+   ],
+   "model_vs_best_naive": {
+    "baseline": "online_base",
+    "ci": [
+     -0.1571650935578891,
+     -0.1423732730723731
+    ],
+    "est": -0.14979430943803726,
+    "verdict": "a better"
+   },
+   "n_bins": 32000,
+   "n_deployments": 8,
+   "n_people": 320,
+   "scores": {
+    "base_rate": 0.2209375,
+    "bootstrap": {
+     "B": 2000,
+     "level": 0.95,
+     "seed": 0,
+     "unit": "people"
+    },
+    "n": 32000,
+    "n_clusters": 320,
+    "paired_log_loss_vs": {
+     "frozen_base": {
+      "ci": [
+       -0.17867576467348487,
+       -0.1617439262614435
+      ],
+      "est": -0.17024374393357244,
+      "verdict": "a better"
+     },
+     "online_base": {
+      "ci": [
+       -0.1571650935578891,
+       -0.1423732730723731
+      ],
+      "est": -0.14979430943803726,
+      "verdict": "a better"
+     }
+    },
+    "predictors": {
+     "frozen_base": {
+      "brier": {
+       "ci": [
+        0.17163866111111117,
+        0.18519611111111117
+       ],
+       "est": 0.1782504444444445
+      },
+      "ece": 0.07827083333333329,
+      "log_loss": {
+       "ci": [
+        0.5335482376535547,
+        0.5675680004938156
+       ],
+       "est": 0.5501392116900579
+      },
+      "reliability": [
+       {
+        "freq": 0.2209375,
+        "freq_hi": 0.22551647562258229,
+        "freq_lo": 0.21642551677915986,
+        "hi": 0.2,
+        "lo": 0.1,
+        "n": 32000,
+        "ones": 7070.0,
+        "p_mean": 0.14266666666666672
+       }
+      ]
+     },
+     "model": {
+      "brier": {
+       "ci": [
+        0.11476561259556062,
+        0.12361893676360103
+       ],
+       "est": 0.11909870550105219
+      },
+      "calibration": {
+       "intercept": 0.6662563996863077,
+       "intercept_ci": [
+        0.5917427329555731,
+        0.7404111037862373
+       ],
+       "intercept_contains_0": false,
+       "n_draws": 500,
+       "slope": 1.0197172933795307,
+       "slope_ci": [
+        0.9891642432160875,
+        1.0442315893086398
+       ],
+       "slope_contains_1": true
+      },
+      "ece": 0.06666045268095593,
+      "log_loss": {
+       "ci": [
+        0.36743042905353407,
+        0.39285255722716406
+       ],
+       "est": 0.379895467756486
+      },
+      "reliability": [
+       {
+        "freq": 0.06061689306505975,
+        "freq_hi": 0.0640460955320585,
+        "freq_lo": 0.05736004695204742,
+        "hi": 0.1,
+        "lo": 0.0,
+        "n": 19582,
+        "ones": 1187.0,
+        "p_mean": 0.038489698671856684
+       },
+       {
+        "freq": 0.24708767627222564,
+        "freq_hi": 0.25936829006706297,
+        "freq_lo": 0.23520387020948105,
+        "hi": 0.2,
+        "lo": 0.1,
+        "n": 4893,
+        "ones": 1209.0,
+        "p_mean": 0.14238926817957578
+       },
+       {
+        "freq": 0.4107468123861566,
+        "freq_hi": 0.43146171583873283,
+        "freq_lo": 0.39034362452877436,
+        "hi": 0.3,
+        "lo": 0.2,
+        "n": 2196,
+        "ones": 902.0,
+        "p_mean": 0.24579473978966054
+       },
+       {
+        "freq": 0.5642807505211953,
+        "freq_hi": 0.5896954366845764,
+        "freq_lo": 0.5385237788564088,
+        "hi": 0.4,
+        "lo": 0.3,
+        "n": 1439,
+        "ones": 812.0,
+        "p_mean": 0.3478749848816683
+       },
+       {
+        "freq": 0.6598569969356486,
+        "freq_hi": 0.6888572120491974,
+        "freq_lo": 0.629607172202121,
+        "hi": 0.5,
+        "lo": 0.4,
+        "n": 979,
+        "ones": 646.0,
+        "p_mean": 0.4478528145743089
+       },
+       {
+        "freq": 0.7043701799485861,
+        "freq_hi": 0.7353680469847154,
+        "freq_lo": 0.6713640294642126,
+        "hi": 0.6,
+        "lo": 0.5,
+        "n": 778,
+        "ones": 548.0,
+        "p_mean": 0.548033897761626
+       },
+       {
+        "freq": 0.7721943048576214,
+        "freq_hi": 0.8040353535016435,
+        "freq_lo": 0.7368727267062304,
+        "hi": 0.7,
+        "lo": 0.6,
+        "n": 597,
+        "ones": 461.0,
+        "p_mean": 0.6492021222962201
+       },
+       {
+        "freq": 0.8320610687022901,
+        "freq_hi": 0.8616255138867066,
+        "freq_lo": 0.7976633581498009,
+        "hi": 0.8,
+        "lo": 0.7,
+        "n": 524,
+        "ones": 436.0,
+        "p_mean": 0.7492878698399186
+       },
+       {
+        "freq": 0.8721174004192872,
+        "freq_hi": 0.8991419417152906,
+        "freq_lo": 0.8391471419063019,
+        "hi": 0.9,
+        "lo": 0.8,
+        "n": 477,
+        "ones": 416.0,
+        "p_mean": 0.8487915321542692
+       },
+       {
+        "freq": 0.8467289719626169,
+        "freq_hi": 0.87477461922073,
+        "freq_lo": 0.8137395883014027,
+        "hi": 1.0,
+        "lo": 0.9,
+        "n": 535,
+        "ones": 453.0,
+        "p_mean": 0.9528974874387053
+       }
+      ]
+     },
+     "online_base": {
+      "brier": {
+       "ci": [
+        0.16645240292353047,
+        0.17884262132768175
+       ],
+       "est": 0.17253604694660515
+      },
+      "ece": 0.0567258081324337,
+      "log_loss": {
+       "ci": [
+        0.5148689316546652,
+        0.5451124651652225
+       ],
+       "est": 0.5296897771945233
+      },
+      "reliability": [
+       {
+        "freq": 0.11734693877551021,
+        "freq_hi": 0.14587773953008115,
+        "freq_lo": 0.09378350201816735,
+        "hi": 0.1,
+        "lo": 0.0,
+        "n": 588,
+        "ones": 69.0,
+        "p_mean": 0.09162007810998488
+       },
+       {
+        "freq": 0.20453961456102784,
+        "freq_hi": 0.2097617340977902,
+        "freq_lo": 0.19941469521343452,
+        "hi": 0.2,
+        "lo": 0.1,
+        "n": 23350,
+        "ones": 4776.0,
+        "p_mean": 0.1493452429137771
+       },
+       {
+        "freq": 0.2759861076655917,
+        "freq_hi": 0.28584867334136776,
+        "freq_lo": 0.2663369208783195,
+        "hi": 0.3,
+        "lo": 0.2,
+        "n": 8062,
+        "ones": 2225.0,
+        "p_mean": 0.21256389379766258
+       }
+      ]
+     }
+    }
+   },
+   "second_half": {
+    "calibration_model": {
+     "intercept": 1.0305067297340178,
+     "intercept_ci": [
+      0.9674925397405414,
+      1.1092953561945131
+     ],
+     "intercept_contains_0": false,
+     "n_draws": 500,
+     "slope": 1.045543513785909,
+     "slope_ci": [
+      1.0142915077089634,
+      1.0809681306204852
+     ],
+     "slope_contains_1": false
+    },
+    "model_vs_online_base": {
+     "ci": [
+      -0.1807327415626457,
+      -0.16371855211011532
+     ],
+     "est": -0.17247131340686717,
+     "verdict": "a better"
+    },
+    "n": 20000
+   },
+   "world": "route_drift"
+  },
+  "route_no_drift": {
+   "best_naive": "online_base",
+   "best_naive_pooled_log_loss": 0.3833257659971053,
+   "deployments": [
+    {
+     "costs": {
+      "always_fallback": 0.3745830886782438,
+      "always_model": 0.26781116744025835,
+      "guarded": 0.26781116744025835,
+      "oracle": 0.26781116744025835,
+      "regret_always_fallback": 0.10677192123798546,
+      "regret_always_model": 0.0,
+      "regret_guarded": 0.0,
+      "share_on_fallback": 0.0
+     },
+     "fallback_log_loss": 0.3745830886782438,
+     "flag_unit": null,
+     "flagged": false,
+     "model_log_loss": 0.26781116744025835,
+     "n_bins": 4000,
+     "n_units": 4000,
+     "peak_capital": 1.0
+    },
+    {
+     "costs": {
+      "always_fallback": 0.3771778402504411,
+      "always_model": 0.25647317136761955,
+      "guarded": 0.25647317136761955,
+      "oracle": 0.25647317136761955,
+      "regret_always_fallback": 0.12070466888282155,
+      "regret_always_model": 0.0,
+      "regret_guarded": 0.0,
+      "share_on_fallback": 0.0
+     },
+     "fallback_log_loss": 0.3771778402504411,
+     "flag_unit": null,
+     "flagged": false,
+     "model_log_loss": 0.25647317136761955,
+     "n_bins": 4000,
+     "n_units": 4000,
+     "peak_capital": 1.1963047092975427
+    },
+    {
+     "costs": {
+      "always_fallback": 0.38806678948418954,
+      "always_model": 0.2847809916908134,
+      "guarded": 0.2847809916908134,
+      "oracle": 0.2847809916908134,
+      "regret_always_fallback": 0.10328579779337616,
+      "regret_always_model": 0.0,
+      "regret_guarded": 0.0,
+      "share_on_fallback": 0.0
+     },
+     "fallback_log_loss": 0.38806678948418954,
+     "flag_unit": null,
+     "flagged": false,
+     "model_log_loss": 0.2847809916908134,
+     "n_bins": 4000,
+     "n_units": 4000,
+     "peak_capital": 1.1727765579652918
+    },
+    {
+     "costs": {
+      "always_fallback": 0.38453807223956255,
+      "always_model": 0.2585921599223716,
+      "guarded": 0.2585921599223716,
+      "oracle": 0.2585921599223716,
+      "regret_always_fallback": 0.12594591231719093,
+      "regret_always_model": 0.0,
+      "regret_guarded": 0.0,
+      "share_on_fallback": 0.0
+     },
+     "fallback_log_loss": 0.38453807223956255,
+     "flag_unit": null,
+     "flagged": false,
+     "model_log_loss": 0.2585921599223716,
+     "n_bins": 4000,
+     "n_units": 4000,
+     "peak_capital": 1.0
+    },
+    {
+     "costs": {
+      "always_fallback": 0.38675168710965846,
+      "always_model": 0.2834640641201475,
+      "guarded": 0.2834640641201475,
+      "oracle": 0.2834640641201475,
+      "regret_always_fallback": 0.10328762298951094,
+      "regret_always_model": 0.0,
+      "regret_guarded": 0.0,
+      "share_on_fallback": 0.0
+     },
+     "fallback_log_loss": 0.38675168710965846,
+     "flag_unit": null,
+     "flagged": false,
+     "model_log_loss": 0.2834640641201475,
+     "n_bins": 4000,
+     "n_units": 4000,
+     "peak_capital": 1.0803400074950897
+    },
+    {
+     "costs": {
+      "always_fallback": 0.3819540804252948,
+      "always_model": 0.27291504629936797,
+      "guarded": 0.27291504629936797,
+      "oracle": 0.27291504629936797,
+      "regret_always_fallback": 0.1090390341259268,
+      "regret_always_model": 0.0,
+      "regret_guarded": 0.0,
+      "share_on_fallback": 0.0
+     },
+     "fallback_log_loss": 0.3819540804252948,
+     "flag_unit": null,
+     "flagged": false,
+     "model_log_loss": 0.27291504629936797,
+     "n_bins": 4000,
+     "n_units": 4000,
+     "peak_capital": 1.035477208591553
+    },
+    {
+     "costs": {
+      "always_fallback": 0.39071514775695754,
+      "always_model": 0.27835353179678796,
+      "guarded": 0.27835353179678796,
+      "oracle": 0.27835353179678796,
+      "regret_always_fallback": 0.11236161596016958,
+      "regret_always_model": 0.0,
+      "regret_guarded": 0.0,
+      "share_on_fallback": 0.0
+     },
+     "fallback_log_loss": 0.39071514775695754,
+     "flag_unit": null,
+     "flagged": false,
+     "model_log_loss": 0.27835353179678796,
+     "n_bins": 4000,
+     "n_units": 4000,
+     "peak_capital": 1.2645046843530519
+    },
+    {
+     "costs": {
+      "always_fallback": 0.3828194220324952,
+      "always_model": 0.27594913811877375,
+      "guarded": 0.27594913811877375,
+      "oracle": 0.27594913811877375,
+      "regret_always_fallback": 0.10687028391372144,
+      "regret_always_model": 0.0,
+      "regret_guarded": 0.0,
+      "share_on_fallback": 0.0
+     },
+     "fallback_log_loss": 0.3828194220324952,
+     "flag_unit": null,
+     "flagged": false,
+     "model_log_loss": 0.27594913811877375,
+     "n_bins": 4000,
+     "n_units": 4000,
+     "peak_capital": 1.0
+    }
+   ],
+   "drift": false,
+   "first_half": {
+    "calibration_model": {
+     "intercept": -0.10517142428521142,
+     "intercept_ci": [
+      -0.2174083516743259,
+      0.011637314157189252
+     ],
+     "intercept_contains_0": true,
+     "n_draws": 500,
+     "slope": 0.9770340123106902,
+     "slope_ci": [
+      0.9217142308932381,
+      1.0327791512907631
+     ],
+     "slope_contains_1": true
+    },
+    "model_vs_online_base": {
+     "ci": [
+      -0.12161746058154847,
+      -0.10269644429025804
+     ],
+     "est": -0.11261755314764885,
+     "verdict": "a better"
+    },
+    "n": 12000
+   },
+   "guard": {
+    "flag_rate_ci": [
+     0.0,
+     0.3694166475528192
+    ],
+    "flag_units": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "flags": 0,
+    "n_units": [
+     4000,
+     4000,
+     4000,
+     4000,
+     4000,
+     4000,
+     4000,
+     4000
+    ],
+    "of": 8,
+    "strategies": {
+     "bootstrap": {
+      "B": 2000,
+      "seed": 3,
+      "unit": "deployments"
+     },
+     "guarded_minus_always_fallback": {
+      "ci": [
+       -0.11668171398261173,
+       -0.10602340471708552
+      ],
+      "est": -0.11103335715258786
+     },
+     "guarded_minus_always_model": {
+      "ci": [
+       0.0,
+       0.0
+      ],
+      "est": 0.0
+     },
+     "guarded_minus_oracle": {
+      "ci": [
+       0.0,
+       0.0
+      ],
+      "est": 0.0
+     },
+     "mean": {
+      "always_fallback": {
+       "ci": [
+        0.37978818380833934,
+        0.386617152791688
+       ],
+       "est": 0.3833257659971053
+      },
+      "always_model": {
+       "ci": [
+        0.26497112902686537,
+        0.2788031302552647
+       ],
+       "est": 0.27229240884451755
+      },
+      "guarded": {
+       "ci": [
+        0.26497112902686537,
+        0.2788031302552647
+       ],
+       "est": 0.27229240884451755
+      },
+      "oracle": {
+       "ci": [
+        0.26497112902686537,
+        0.2788031302552647
+       ],
+       "est": 0.27229240884451755
+      },
+      "regret_always_fallback": {
+       "ci": [
+        0.10627288892910752,
+        0.11663960758261033
+       ],
+       "est": 0.11103335715258786
+      },
+      "regret_always_model": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "est": 0.0
+      },
+      "regret_guarded": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "est": 0.0
+      },
+      "share_on_fallback": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "est": 0.0
+      }
+     },
+     "n_deployments": 8
+    }
+   },
+   "guard_sensitivity": [
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.4,
+     "of": 8,
+     "registered": false,
+     "threshold": 10.0
+    },
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.4,
+     "of": 8,
+     "registered": false,
+     "threshold": 20.0
+    },
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.4,
+     "of": 8,
+     "registered": false,
+     "threshold": 50.0
+    },
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.8,
+     "of": 8,
+     "registered": false,
+     "threshold": 10.0
+    },
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.8,
+     "of": 8,
+     "registered": true,
+     "threshold": 20.0
+    },
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.8,
+     "of": 8,
+     "registered": false,
+     "threshold": 50.0
+    }
+   ],
+   "model_vs_best_naive": {
+    "baseline": "online_base",
+    "ci": [
+     -0.11659699820531826,
+     -0.10566485604632819
+    ],
+    "est": -0.11103335715258789,
+    "verdict": "a better"
+   },
+   "n_bins": 32000,
+   "n_deployments": 8,
+   "n_people": 320,
+   "scores": {
+    "base_rate": 0.128125,
+    "bootstrap": {
+     "B": 2000,
+     "level": 0.95,
+     "seed": 0,
+     "unit": "people"
+    },
+    "n": 32000,
+    "n_clusters": 320,
+    "paired_log_loss_vs": {
+     "frozen_base": {
+      "ci": [
+       -0.11660543708721689,
+       -0.1063348282509465
+      ],
+      "est": -0.11140467182573255,
+      "verdict": "a better"
+     },
+     "online_base": {
+      "ci": [
+       -0.11659699820531826,
+       -0.10566485604632819
+      ],
+      "est": -0.11103335715258789,
+      "verdict": "a better"
+     }
+    },
+    "predictors": {
+     "frozen_base": {
+      "brier": {
+       "ci": [
+        0.10926277777777774,
+        0.11455689444444442
+       ],
+       "est": 0.11192044444444443
+      },
+      "ece": 0.01454166666666673,
+      "log_loss": {
+       "ci": [
+        0.37702818720514647,
+        0.39031273506987557
+       ],
+       "est": 0.3836970806702499
+      },
+      "reliability": [
+       {
+        "freq": 0.128125,
+        "freq_hi": 0.1318316788551466,
+        "freq_lo": 0.124507594334185,
+        "hi": 0.2,
+        "lo": 0.1,
+        "n": 32000,
+        "ones": 4100.0,
+        "p_mean": 0.14266666666666672
+       }
+      ]
+     },
+     "model": {
+      "brier": {
+       "ci": [
+        0.07805626962224765,
+        0.08246052885414748
+       ],
+       "est": 0.08026574771948089
+      },
+      "calibration": {
+       "intercept": -0.11069350588996749,
+       "intercept_ci": [
+        -0.17378922889824627,
+        -0.04732893463819478
+       ],
+       "intercept_contains_0": false,
+       "n_draws": 500,
+       "slope": 0.9585712395306915,
+       "slope_ci": [
+        0.9321546636274847,
+        0.9885845196296745
+       ],
+       "slope_contains_1": false
+      },
+      "ece": 0.011467784097183534,
+      "log_loss": {
+       "ci": [
+        0.2659821618511256,
+        0.27853933173625967
+       ],
+       "est": 0.2722924088445175
+      },
+      "reliability": [
+       {
+        "freq": 0.03317893940826165,
+        "freq_hi": 0.03567826970310607,
+        "freq_lo": 0.030849090950277745,
+        "hi": 0.1,
+        "lo": 0.0,
+        "n": 21158,
+        "ones": 702.0,
+        "p_mean": 0.03838232946987816
+       },
+       {
+        "freq": 0.13907692307692307,
+        "freq_hi": 0.14907481906459277,
+        "freq_lo": 0.12964738789750693,
+        "hi": 0.2,
+        "lo": 0.1,
+        "n": 4875,
+        "ones": 678.0,
+        "p_mean": 0.14131401469446955
+       },
+       {
+        "freq": 0.2693279434057605,
+        "freq_hi": 0.28930562428714224,
+        "freq_lo": 0.25024404775622344,
+        "hi": 0.3,
+        "lo": 0.2,
+        "n": 1979,
+        "ones": 533.0,
+        "p_mean": 0.24491718805267632
+       },
+       {
+        "freq": 0.3911504424778761,
+        "freq_hi": 0.4199268833123862,
+        "freq_lo": 0.36311156700511765,
+        "hi": 0.4,
+        "lo": 0.3,
+        "n": 1130,
+        "ones": 442.0,
+        "p_mean": 0.34585804839426154
+       },
+       {
+        "freq": 0.4639175257731959,
+        "freq_hi": 0.49909677170553196,
+        "freq_lo": 0.42909376065641075,
+        "hi": 0.5,
+        "lo": 0.4,
+        "n": 776,
+        "ones": 360.0,
+        "p_mean": 0.44804568892662777
+       },
+       {
+        "freq": 0.5329768270944741,
+        "freq_hi": 0.5738973232810264,
+        "freq_lo": 0.49160778336828115,
+        "hi": 0.6,
+        "lo": 0.5,
+        "n": 561,
+        "ones": 299.0,
+        "p_mean": 0.5488322374384789
+       },
+       {
+        "freq": 0.6666666666666666,
+        "freq_hi": 0.7081221297651576,
+        "freq_lo": 0.6224624437716424,
+        "hi": 0.7,
+        "lo": 0.6,
+        "n": 462,
+        "ones": 308.0,
+        "p_mean": 0.6508148630744343
+       },
+       {
+        "freq": 0.7426273458445041,
+        "freq_hi": 0.7843635962898956,
+        "freq_lo": 0.6959444902100087,
+        "hi": 0.8,
+        "lo": 0.7,
+        "n": 373,
+        "ones": 277.0,
+        "p_mean": 0.7495970515835705
+       },
+       {
+        "freq": 0.7535816618911175,
+        "freq_hi": 0.795869027602577,
+        "freq_lo": 0.7057727029117142,
+        "hi": 0.9,
+        "lo": 0.8,
+        "n": 349,
+        "ones": 263.0,
+        "p_mean": 0.8479877964694663
+       },
+       {
+        "freq": 0.7062314540059347,
+        "freq_hi": 0.7523186921365512,
+        "freq_lo": 0.6554955464274361,
+        "hi": 1.0,
+        "lo": 0.9,
+        "n": 337,
+        "ones": 238.0,
+        "p_mean": 0.9507366389565682
+       }
+      ]
+     },
+     "online_base": {
+      "brier": {
+       "ci": [
+        0.10904795685976552,
+        0.11458562523508925
+       ],
+       "est": 0.1118192314649155
+      },
+      "ece": 0.0010684193374324012,
+      "log_loss": {
+       "ci": [
+        0.37616073741285455,
+        0.39047200927530534
+       ],
+       "est": 0.3833257659971053
+      },
+      "reliability": [
+       {
+        "freq": 0.11734693877551021,
+        "freq_hi": 0.14587773953008115,
+        "freq_lo": 0.09378350201816735,
+        "hi": 0.1,
+        "lo": 0.0,
+        "n": 588,
+        "ones": 69.0,
+        "p_mean": 0.09162007810998488
+       },
+       {
+        "freq": 0.12833492518306272,
+        "freq_hi": 0.13207923201708907,
+        "freq_lo": 0.12468151688380301,
+        "hi": 0.2,
+        "lo": 0.1,
+        "n": 31410,
+        "ones": 4031.0,
+        "p_mean": 0.12774091170252067
+       },
+       {
+        "freq": 0.0,
+        "freq_hi": 0.6576197724933469,
+        "freq_lo": 0.0,
+        "hi": 0.3,
+        "lo": 0.2,
+        "n": 2,
+        "ones": 0.0,
+        "p_mean": 0.20203065134099618
+       }
+      ]
+     }
+    }
+   },
+   "second_half": {
+    "calibration_model": {
+     "intercept": -0.11375334932636666,
+     "intercept_ci": [
+      -0.18683442828296815,
+      -0.04283697656716778
+     ],
+     "intercept_contains_0": false,
+     "n_draws": 500,
+     "slope": 0.9479358643740533,
+     "slope_ci": [
+      0.9137813722893724,
+      0.9837614824588272
+     ],
+     "slope_contains_1": false
+    },
+    "model_vs_online_base": {
+     "ci": [
+      -0.11656840094859452,
+      -0.10353640198662413
+     ],
+     "est": -0.1100828395555513,
+     "verdict": "a better"
+    },
+    "n": 20000
+   },
+   "world": "route_no_drift"
+  },
+  "v1": {
+   "best_naive": "frozen_tsp",
+   "best_naive_pooled_log_loss": 0.524233447326027,
+   "deployments": [
+    {
+     "costs": {
+      "always_fallback": 0.517454205761781,
+      "always_model": 0.4407218665099547,
+      "guarded": 0.4407218665099547,
+      "oracle": 0.4407218665099547,
+      "regret_always_fallback": 0.07673233925182632,
+      "regret_always_model": 0.0,
+      "regret_guarded": 0.0,
+      "share_on_fallback": 0.0
+     },
+     "fallback_log_loss": 0.517454205761781,
+     "flag_unit": null,
+     "flagged": false,
+     "model_log_loss": 0.4407218665099547,
+     "n_bins": 7503,
+     "n_units": 2629,
+     "peak_capital": 1.0069840900129634
+    },
+    {
+     "costs": {
+      "always_fallback": 0.5315949567546339,
+      "always_model": 0.4467155874235407,
+      "guarded": 0.4467155874235407,
+      "oracle": 0.4467155874235407,
+      "regret_always_fallback": 0.08487936933109314,
+      "regret_always_model": 0.0,
+      "regret_guarded": 0.0,
+      "share_on_fallback": 0.0
+     },
+     "fallback_log_loss": 0.5315949567546339,
+     "flag_unit": null,
+     "flagged": false,
+     "model_log_loss": 0.4467155874235407,
+     "n_bins": 7717,
+     "n_units": 2790,
+     "peak_capital": 1.0
+    },
+    {
+     "costs": {
+      "always_fallback": 0.5232053689535033,
+      "always_model": 0.44303358049873104,
+      "guarded": 0.44303358049873104,
+      "oracle": 0.44303358049873104,
+      "regret_always_fallback": 0.0801717884547723,
+      "regret_always_model": 0.0,
+      "regret_guarded": 0.0,
+      "share_on_fallback": 0.0
+     },
+     "fallback_log_loss": 0.5232053689535033,
+     "flag_unit": null,
+     "flagged": false,
+     "model_log_loss": 0.44303358049873104,
+     "n_bins": 7729,
+     "n_units": 2742,
+     "peak_capital": 1.0
+    },
+    {
+     "costs": {
+      "always_fallback": 0.517458324485485,
+      "always_model": 0.44138348584383474,
+      "guarded": 0.44138348584383474,
+      "oracle": 0.44138348584383474,
+      "regret_always_fallback": 0.07607483864165027,
+      "regret_always_model": 0.0,
+      "regret_guarded": 0.0,
+      "share_on_fallback": 0.0
+     },
+     "fallback_log_loss": 0.517458324485485,
+     "flag_unit": null,
+     "flagged": false,
+     "model_log_loss": 0.44138348584383474,
+     "n_bins": 8241,
+     "n_units": 2886,
+     "peak_capital": 1.0446796232931344
+    },
+    {
+     "costs": {
+      "always_fallback": 0.5278711167320469,
+      "always_model": 0.4505898172069962,
+      "guarded": 0.4505898172069962,
+      "oracle": 0.4505898172069962,
+      "regret_always_fallback": 0.0772812995250507,
+      "regret_always_model": 0.0,
+      "regret_guarded": 0.0,
+      "share_on_fallback": 0.0
+     },
+     "fallback_log_loss": 0.5278711167320469,
+     "flag_unit": null,
+     "flagged": false,
+     "model_log_loss": 0.4505898172069962,
+     "n_bins": 7487,
+     "n_units": 2593,
+     "peak_capital": 1.0
+    },
+    {
+     "costs": {
+      "always_fallback": 0.5146313629549532,
+      "always_model": 0.4297663457958978,
+      "guarded": 0.4297663457958978,
+      "oracle": 0.4297663457958978,
+      "regret_always_fallback": 0.08486501715905537,
+      "regret_always_model": 0.0,
+      "regret_guarded": 0.0,
+      "share_on_fallback": 0.0
+     },
+     "fallback_log_loss": 0.5146313629549532,
+     "flag_unit": null,
+     "flagged": false,
+     "model_log_loss": 0.4297663457958978,
+     "n_bins": 7437,
+     "n_units": 2614,
+     "peak_capital": 1.0
+    },
+    {
+     "costs": {
+      "always_fallback": 0.5556504457489457,
+      "always_model": 0.4664562061339659,
+      "guarded": 0.4664562061339659,
+      "oracle": 0.4664562061339659,
+      "regret_always_fallback": 0.08919423961497985,
+      "regret_always_model": 0.0,
+      "regret_guarded": 0.0,
+      "share_on_fallback": 0.0
+     },
+     "fallback_log_loss": 0.5556504457489457,
+     "flag_unit": null,
+     "flagged": false,
+     "model_log_loss": 0.4664562061339659,
+     "n_bins": 7591,
+     "n_units": 2643,
+     "peak_capital": 1.0404380178666628
+    },
+    {
+     "costs": {
+      "always_fallback": 0.5151005254477821,
+      "always_model": 0.44092739822568144,
+      "guarded": 0.44092739822568144,
+      "oracle": 0.44092739822568144,
+      "regret_always_fallback": 0.07417312722210062,
+      "regret_always_model": 0.0,
+      "regret_guarded": 0.0,
+      "share_on_fallback": 0.0
+     },
+     "fallback_log_loss": 0.5151005254477821,
+     "flag_unit": null,
+     "flagged": false,
+     "model_log_loss": 0.44092739822568144,
+     "n_bins": 7926,
+     "n_units": 2715,
+     "peak_capital": 1.010432275399258
+    }
+   ],
+   "guard": {
+    "flag_rate_ci": [
+     0.0,
+     0.3694166475528192
+    ],
+    "flag_units": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "flags": 0,
+    "n_units": [
+     2629,
+     2790,
+     2742,
+     2886,
+     2593,
+     2614,
+     2643,
+     2715
+    ],
+    "of": 8,
+    "strategies": {
+     "bootstrap": {
+      "B": 2000,
+      "seed": 3,
+      "unit": "deployments"
+     },
+     "guarded_minus_always_fallback": {
+      "ci": [
+       -0.0840928353594901,
+       -0.07716881909759822
+      ],
+      "est": -0.08042150240006607
+     },
+     "guarded_minus_always_model": {
+      "ci": [
+       0.0,
+       0.0
+      ],
+      "est": 0.0
+     },
+     "guarded_minus_oracle": {
+      "ci": [
+       0.0,
+       0.0
+      ],
+      "est": 0.0
+     },
+     "mean": {
+      "always_fallback": {
+       "ci": [
+        0.5180505332126328,
+        0.5348072236997127
+       ],
+       "est": 0.5253707883548914
+      },
+      "always_model": {
+       "ci": [
+        0.43864675461332153,
+        0.4521859305068515
+       ],
+       "est": 0.4449492859548253
+      },
+      "guarded": {
+       "ci": [
+        0.43864675461332153,
+        0.4521859305068515
+       ],
+       "est": 0.4449492859548253
+      },
+      "oracle": {
+       "ci": [
+        0.43864675461332153,
+        0.4521859305068515
+       ],
+       "est": 0.4449492859548253
+      },
+      "regret_always_fallback": {
+       "ci": [
+        0.07709423938566547,
+        0.08399034799557839
+       ],
+       "est": 0.08042150240006607
+      },
+      "regret_always_model": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "est": 0.0
+      },
+      "regret_guarded": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "est": 0.0
+      },
+      "share_on_fallback": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "est": 0.0
+      }
+     },
+     "n_deployments": 8
+    }
+   },
+   "guard_sensitivity": [
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.4,
+     "of": 8,
+     "registered": false,
+     "threshold": 10.0
+    },
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.4,
+     "of": 8,
+     "registered": false,
+     "threshold": 20.0
+    },
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.4,
+     "of": 8,
+     "registered": false,
+     "threshold": 50.0
+    },
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.8,
+     "of": 8,
+     "registered": false,
+     "threshold": 10.0
+    },
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.8,
+     "of": 8,
+     "registered": true,
+     "threshold": 20.0
+    },
+    {
+     "flags": 0,
+     "guarded_minus_always_model": 0.0,
+     "lambda": 0.8,
+     "of": 8,
+     "registered": false,
+     "threshold": 50.0
+    }
+   ],
+   "ledgers": [
+    {
+     "deployment": "v1-11",
+     "entries": 15006,
+     "head": "ac6ea144943a3da3",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 7503,
+       "resolved": 7503
+      }
+     },
+     "verified": true
+    },
+    {
+     "deployment": "v1-12",
+     "entries": 15434,
+     "head": "7893904ac36a0d6e",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 7717,
+       "resolved": 7717
+      }
+     },
+     "verified": true
+    },
+    {
+     "deployment": "v1-13",
+     "entries": 15458,
+     "head": "26027f834d291de5",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 7729,
+       "resolved": 7729
+      }
+     },
+     "verified": true
+    },
+    {
+     "deployment": "v1-14",
+     "entries": 16482,
+     "head": "53c45f9ef01912d8",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 8241,
+       "resolved": 8241
+      }
+     },
+     "verified": true
+    },
+    {
+     "deployment": "v1-15",
+     "entries": 14974,
+     "head": "9760d1bed8899c8f",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 7487,
+       "resolved": 7487
+      }
+     },
+     "verified": true
+    },
+    {
+     "deployment": "v1-16",
+     "entries": 14874,
+     "head": "23ed8e32ebc7029a",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 7437,
+       "resolved": 7437
+      }
+     },
+     "verified": true
+    },
+    {
+     "deployment": "v1-17",
+     "entries": 15182,
+     "head": "c133575978dfe3bf",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 7591,
+       "resolved": 7591
+      }
+     },
+     "verified": true
+    },
+    {
+     "deployment": "v1-18",
+     "entries": 15852,
+     "head": "5b57e1556b60a89d",
+     "kinds": {
+      "stuck_hazard": {
+       "pending": 0,
+       "predictions": 7926,
+       "resolved": 7926
+      }
+     },
+     "verified": true
+    }
+   ],
+   "model_vs_best_naive": {
+    "baseline": "frozen_tsp",
+    "ci": [
+     -0.08517869651998797,
+     -0.07375712214732305
+    ],
+    "est": -0.0793098521012544,
+    "verdict": "a better"
+   },
+   "n_bins": 61631,
+   "n_deployments": 8,
+   "n_people": 32,
+   "scores": {
+    "base_rate": 0.21847771413736594,
+    "bootstrap": {
+     "B": 2000,
+     "level": 0.95,
+     "seed": 0,
+     "unit": "people"
+    },
+    "n": 61631,
+    "n_clusters": 32,
+    "paired_log_loss_vs": {
+     "frozen_base": {
+      "ci": [
+       -0.08650985983430154,
+       -0.07469508007573503
+      ],
+      "est": -0.08035729312565651,
+      "verdict": "a better"
+     },
+     "frozen_tsp": {
+      "ci": [
+       -0.08517869651998797,
+       -0.07375712214732305
+      ],
+      "est": -0.0793098521012544,
+      "verdict": "a better"
+     },
+     "online_base": {
+      "ci": [
+       -0.08559990501514883,
+       -0.07530351292066864
+      ],
+      "est": -0.08034971417278487,
+      "verdict": "a better"
+     }
+    },
+    "predictors": {
+     "frozen_base": {
+      "brier": {
+       "ci": [
+        0.16524356736305132,
+        0.17655330823485083
+       ],
+       "est": 0.17084746965236444
+      },
+      "ece": 0.010112719203222015,
+      "log_loss": {
+       "ci": [
+        0.512456399370605,
+        0.5383386577839813
+       ],
+       "est": 0.5252808883504515
+      },
+      "reliability": [
+       {
+        "freq": 0.21847771413736594,
+        "freq_hi": 0.22175749715084378,
+        "freq_lo": 0.2152330234918622,
+        "hi": 0.3,
+        "lo": 0.2,
+        "n": 61631,
+        "ones": 13465.0,
+        "p_mean": 0.20836499493414393
+       }
+      ]
+     },
+     "frozen_tsp": {
+      "brier": {
+       "ci": [
+        0.16497242340927698,
+        0.17608574613900382
+       ],
+       "est": 0.17049645948765543
+      },
+      "ece": 0.009889125895995733,
+      "log_loss": {
+       "ci": [
+        0.5116063289128585,
+        0.5369138092949228
+       ],
+       "est": 0.5242334473260283
+      },
+      "reliability": [
+       {
+        "freq": 0.19676182630461644,
+        "freq_hi": 0.20118458538647827,
+        "freq_lo": 0.19241287573268384,
+        "hi": 0.2,
+        "lo": 0.1,
+        "n": 31561,
+        "ones": 6210.0,
+        "p_mean": 0.19372635689423653
+       },
+       {
+        "freq": 0.24128641745377144,
+        "freq_hi": 0.24615543612053042,
+        "freq_lo": 0.23648349634043742,
+        "hi": 0.3,
+        "lo": 0.2,
+        "n": 30068,
+        "ones": 7255.0,
+        "p_mean": 0.22422302180378414
+       },
+       {
+        "freq": 0.0,
+        "freq_hi": 0.6576197724933469,
+        "freq_lo": 0.0,
+        "hi": 0.4,
+        "lo": 0.3,
+        "n": 2,
+        "ones": 0.0,
+        "p_mean": 0.3060438156473467
+       }
+      ]
+     },
+     "model": {
+      "brier": {
+       "ci": [
+        0.1401805735080674,
+        0.148347353254134
+       ],
+       "est": 0.14432262270305585
+      },
+      "calibration": {
+       "intercept": 0.07542872012400198,
+       "intercept_ci": [
+        0.0015466791963568973,
+        0.16188373862842323
+       ],
+       "intercept_contains_0": false,
+       "n_draws": 500,
+       "slope": 0.9994135535686446,
+       "slope_ci": [
+        0.9630788745874206,
+        1.0350067684273547
+       ],
+       "slope_contains_1": true
+      },
+      "ece": 0.02223858970155817,
+      "log_loss": {
+       "ci": [
+        0.4340595343546592,
+        0.4552450272457542
+       ],
+       "est": 0.4449235952247726
+      },
+      "reliability": [
+       {
+        "freq": 0.051105242566510174,
+        "freq_hi": 0.054208766342868295,
+        "freq_lo": 0.0481703501311468,
+        "hi": 0.1,
+        "lo": 0.0,
+        "n": 20448,
+        "ones": 1045.0,
+        "p_mean": 0.057756430041609436
+       },
+       {
+        "freq": 0.15413863702837086,
+        "freq_hi": 0.15962905008540904,
+        "freq_lo": 0.14880362773792402,
+        "hi": 0.2,
+        "lo": 0.1,
+        "n": 17095,
+        "ones": 2635.0,
+        "p_mean": 0.14939678186328148
+       },
+       {
+        "freq": 0.31716464558069757,
+        "freq_hi": 0.3274487052534362,
+        "freq_lo": 0.3070561121853648,
+        "hi": 0.3,
+        "lo": 0.2,
+        "n": 7999,
+        "ones": 2537.0,
+        "p_mean": 0.25829400413410275
+       },
+       {
+        "freq": 0.38607905720599067,
+        "freq_hi": 0.39670271713982824,
+        "freq_lo": 0.37556279141295185,
+        "hi": 0.4,
+        "lo": 0.3,
+        "n": 8146,
+        "ones": 3145.0,
+        "p_mean": 0.3517428468739431
+       },
+       {
+        "freq": 0.48412903225806453,
+        "freq_hi": 0.4998718413042776,
+        "freq_lo": 0.46841765923194806,
+        "hi": 0.5,
+        "lo": 0.4,
+        "n": 3875,
+        "ones": 1876.0,
+        "p_mean": 0.43671744073167973
+       },
+       {
+        "freq": 0.5330208777162335,
+        "freq_hi": 0.5531347325443741,
+        "freq_lo": 0.5127991054940941,
+        "hi": 0.6,
+        "lo": 0.5,
+        "n": 2347,
+        "ones": 1251.0,
+        "p_mean": 0.5485799948778497
+       },
+       {
+        "freq": 0.5576776165011459,
+        "freq_hi": 0.584375378433781,
+        "freq_lo": 0.530642317713354,
+        "hi": 0.7,
+        "lo": 0.6,
+        "n": 1309,
+        "ones": 730.0,
+        "p_mean": 0.6434872328691938
+       },
+       {
+        "freq": 0.5910543130990416,
+        "freq_hi": 0.6440960390275222,
+        "freq_lo": 0.5358046602438357,
+        "hi": 0.8,
+        "lo": 0.7,
+        "n": 313,
+        "ones": 185.0,
+        "p_mean": 0.7356625775544143
+       },
+       {
+        "freq": 0.6575342465753424,
+        "freq_hi": 0.7560513266068143,
+        "freq_lo": 0.5432662599276812,
+        "hi": 0.9,
+        "lo": 0.8,
+        "n": 73,
+        "ones": 48.0,
+        "p_mean": 0.8440305220955449
+       },
+       {
+        "freq": 0.5,
+        "freq_hi": 0.6793940647424095,
+        "freq_lo": 0.3206059352575905,
+        "hi": 1.0,
+        "lo": 0.9,
+        "n": 26,
+        "ones": 13.0,
+        "p_mean": 0.9412857002381466
+       }
+      ]
+     },
+     "online_base": {
+      "brier": {
+       "ci": [
+        0.16607259403863348,
+        0.17579122243332293
+       ],
+       "est": 0.17087689462964756
+      },
+      "ece": 0.036330621246706746,
+      "log_loss": {
+       "ci": [
+        0.5145652410077456,
+        0.5360811090394019
+       ],
+       "est": 0.5252733093975571
+      },
+      "reliability": [
+       {
+        "freq": 0.36764705882352944,
+        "freq_hi": 0.4864436436088385,
+        "freq_lo": 0.26300465135235673,
+        "hi": 0.2,
+        "lo": 0.1,
+        "n": 68,
+        "ones": 25.0,
+        "p_mean": 0.18486737859038957
+       },
+       {
+        "freq": 0.21015335416818082,
+        "freq_hi": 0.2135773264956965,
+        "freq_lo": 0.20676984103984775,
+        "hi": 0.3,
+        "lo": 0.2,
+        "n": 55036,
+        "ones": 11566.0,
+        "p_mean": 0.24678917953020804
+       },
+       {
+        "freq": 0.2871150605178489,
+        "freq_hi": 0.29821338430552247,
+        "freq_lo": 0.27626717573829485,
+        "hi": 0.4,
+        "lo": 0.3,
+        "n": 6527,
+        "ones": 1874.0,
+        "p_mean": 0.3193464401984678
+       }
+      ]
+     }
+    }
+   },
+   "world": "v1"
+  }
+ }
+}

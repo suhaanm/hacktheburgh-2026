@@ -1,3 +1,4 @@
+import { workerText } from "../../lib/voice";
 import type { ReactNode } from "react";
 import type { AnalyticMeta } from "../../types";
 import { Details, FactRows, splitRows } from "../ui";
@@ -18,7 +19,7 @@ export function AboutGrowth({ view, meta, n, children }: { view: GrowthView; met
     ["n", plural(n, "step")],
     ...(meta?.split ? ([["window", meta.split]] as [string, ReactNode][]) : []),
     ["intervals", `${view.levelPct}%`],
-    ["origin", `${originSentence(view.originDetail, origin)}${meta?.note ? ` ${meta.note}` : ""}`],
+    ["origin", `${originSentence(view.originDetail, origin)}${meta?.note ? ` ${workerText(meta.note)}` : ""}`],
     ...(view.claim ? ([["skills", view.claim]] as [string, ReactNode][]) : []),
   ];
   const { short, long } = splitRows(rows);

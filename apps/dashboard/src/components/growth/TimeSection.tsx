@@ -2,15 +2,16 @@ import { useMemo } from "react";
 import { api } from "../../api";
 import { useLoad } from "../../hooks";
 import { useAppState } from "../../store";
-import { EmptyState, ErrorState, Loading, SourceNote, ChartFoot } from "../common";
+import { EmptyState, Loading, SourceNote, ChartFoot } from "../common";
 import { WeekLegend, WeekRibbon } from "../WeekRibbon";
 import { Details } from "../ui";
-import { GrowthSection, useReportSource } from "./GrowthSection";
+import { GrowthSection, SectionError, useReportSource } from "./GrowthSection";
 import { Distance, GapTable, Suggestions, WeekTable } from "./WeekParts";
 import { ForecastSection, HoursMap, IdleStat, QuietEditor } from "./HoursParts";
 import { busiestWrap, meanRow, slotLabel, toGrid } from "../../lib/heatmap";
 import { weekHeadline, weekLabel, weekWindow } from "../../lib/week";
 import { ownMeta } from "../../lib/ownMeta";
+import { safeWhy } from "../../lib/voice";
 
 /** The example worker the built-in example week belongs to. Used only when the engine does not know the worker yet. */
 const EXAMPLE_PERSON = "p_ninetofive";
@@ -30,7 +31,7 @@ export function TimeSection({ open }: { open: boolean }) {
   const hours = stretch ? `You are usually at the machine from ${slotLabel(stretch[0])} to ${slotLabel(stretch[1])}.` : null;
 
   if (w.status === "error" && !w.data && p.status === "error" && !p.data) {
-    return <GrowthSection id="time" title="Where my time goes" headline="Your week could not be read just now."><ErrorState error={w.error} retry={() => { w.reload(); p.reload(); }} what="your week and hours" /></GrowthSection>;
+    return <GrowthSection id="time" title="Where my time goes" headline="Your week could not be read just now."><SectionError error={w.error} retry={() => { w.reload(); p.reload(); }} what="your week and hours" empty="Nothing has been recorded for you yet." /></GrowthSection>;
   }
   if (!w.data && !p.data) return <GrowthSection id="time" title="Where my time goes" headline="Reading your week." busy><Loading label="Loading your week" /></GrowthSection>;
 
@@ -56,7 +57,7 @@ export function TimeSection({ open }: { open: boolean }) {
         ) : (
           <EmptyState title="No calendar blocks this week" body="Nothing is on the calendar for this week, or no calendar is connected yet. Nothing is read until you connect one." />
         )}
-        {w.why && <SourceNote why={w.why} />}
+        {w.why && <SourceNote why={safeWhy(w.why)} />}
         {d && !empty && <WeekTable days={d.days} />}
         {d && d.gap.rows.length > 0 && <Details summary="Where your week differs" wide><GapTable rows={d.gap.rows} meta={wMeta} /></Details>}
         {d && <Details summary="Ideas for a calmer week" wide><Suggestions state={sg} /></Details>}

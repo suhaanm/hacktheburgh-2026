@@ -41,8 +41,8 @@
     "home": {
       "path": "/home",
       "audience": "worker",
-      "wordsAbove": 70,
-      "controls": 6
+      "wordsAbove": 50,
+      "controls": 5
     },
     "needs-you": {
       "path": "/needs-you",
@@ -79,30 +79,29 @@
       "audience": "admin"
     },
     "genome": {
-      "path": "/growth?section=steps",
+      "path": "/genome",
       "audience": "details"
     },
     "presence": {
-      "path": "/growth?section=time",
+      "path": "/presence",
       "audience": "details"
     },
     "graph": {
-      "path": "/growth?section=map",
+      "path": "/graph",
       "audience": "details",
       "controls": 8
     },
     "week": {
-      "path": "/growth?section=time",
+      "path": "/week",
       "audience": "details"
     },
     "git": {
-      "path": "/growth?section=commits",
+      "path": "/git",
       "audience": "details"
     },
     "forecasts": {
       "path": "/forecasts",
-      "audience": "details",
-      "view": "admin"
+      "audience": "admin"
     },
     "agents": {
       "path": "/agents",
@@ -130,10 +129,6 @@
       "path": "/risk",
       "audience": "admin"
     },
-    "firm-forecasts": {
-      "path": "/forecasts",
-      "audience": "admin"
-    },
     "firm-brief": {
       "path": "/brief",
       "audience": "admin"
@@ -141,8 +136,8 @@
     "first-run": {
       "path": "/first-run",
       "audience": "worker",
-      "wordsAbove": 90,
-      "controls": 10,
+      "wordsAbove": 50,
+      "controls": 4,
       "sidebar": false
     }
   },
@@ -155,14 +150,14 @@
     }
   },
   "sidebar": {
-    "workerRows": 5,
+    "workerRows": 6,
     "adminRows": 9,
     "hintWords": 0,
     "words": {
       "worker": 20,
       "admin": 24
     },
-    "note": "labels, brand, name, Stop and one status line; a worker has the five destinations and no More; an admin has eight and More"
+    "note": "labels, brand, name, Stop and one status line; the rows are the five (or eight) destinations plus More"
   },
   "elements": {
     "screenTitleWords": 6,

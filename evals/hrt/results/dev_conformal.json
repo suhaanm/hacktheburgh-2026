@@ -1,0 +1,1492 @@
+{
+ "claims": [
+  {
+   "claim": "v1 world: the standard arm's coverage of stuck set is consistent with the nominal 90%",
+   "evidence": {
+    "ci": [
+     0.8926870077424014,
+     0.9162892234648208
+    ],
+    "coverage": 0.9055150598267089,
+    "nominal": 0.9
+   },
+   "id": "K1a",
+   "pass": true
+  },
+  {
+   "claim": "v1 world: the standard arm's coverage of time to next progress is consistent with the nominal 90%",
+   "evidence": {
+    "ci": [
+     0.9351298192902298,
+     0.9507608724392664
+    ],
+    "coverage": 0.9429998277940417,
+    "nominal": 0.9
+   },
+   "id": "K1b",
+   "pass": false
+  },
+  {
+   "claim": "v1 world: the standard arm's coverage of time to finish is consistent with the nominal 90%",
+   "evidence": {
+    "ci": [
+     0.8693851782421524,
+     0.9228506522051835
+    ],
+    "coverage": 0.898500893962316,
+    "nominal": 0.9
+   },
+   "id": "K1c",
+   "pass": true
+  },
+  {
+   "claim": "shifted worlds: the standard arm under-covers stuck set in at least 2 of 3",
+   "evidence": {
+    "latent_skill": {
+     "ci": [
+      0.7315346901112162,
+      0.7905520144838195
+     ],
+     "coverage": 0.762905962190984
+    },
+    "markov": {
+     "ci": [
+      0.7485747914206675,
+      0.8137047651898822
+     ],
+     "coverage": 0.7805261274715701
+    },
+    "process_trace": {
+     "ci": [
+      0.652204700110483,
+      0.7325905280419164
+     ],
+     "coverage": 0.6948516267429389
+    },
+    "under": {
+     "latent_skill": true,
+     "markov": true,
+     "process_trace": true
+    },
+    "worlds_under": 3
+   },
+   "id": "K2a",
+   "pass": true
+  },
+  {
+   "claim": "shifted worlds: the standard arm under-covers time to next progress in at least 2 of 3",
+   "evidence": {
+    "latent_skill": {
+     "ci": [
+      0.7503478410829061,
+      0.8214238605821236
+     ],
+     "coverage": 0.7895604395604395
+    },
+    "markov": {
+     "ci": [
+      0.7744615521488001,
+      0.8415281697839059
+     ],
+     "coverage": 0.8066967466160057
+    },
+    "process_trace": {
+     "ci": [
+      0.6654906152078955,
+      0.7544797338643496
+     ],
+     "coverage": 0.7120761727821644
+    },
+    "under": {
+     "latent_skill": true,
+     "markov": true,
+     "process_trace": true
+    },
+    "worlds_under": 3
+   },
+   "id": "K2b",
+   "pass": true
+  },
+  {
+   "claim": "shifted worlds: the standard arm under-covers time to finish in at least 2 of 3",
+   "evidence": {
+    "latent_skill": {
+     "ci": [
+      0.5006110354600557,
+      0.6166202389600016
+     ],
+     "coverage": 0.5509977379221199
+    },
+    "markov": {
+     "ci": [
+      0.35037238641692353,
+      0.44387394708190947
+     ],
+     "coverage": 0.3960734898336989
+    },
+    "process_trace": {
+     "ci": [
+      0.6044009483532775,
+      0.6925692039266415
+     ],
+     "coverage": 0.6480157311405077
+    },
+    "under": {
+     "latent_skill": true,
+     "markov": true,
+     "process_trace": true
+    },
+    "worlds_under": 3
+   },
+   "id": "K2c",
+   "pass": true
+  },
+  {
+   "claim": "v1 world: the models' ranges are shorter than the baselines' at the same nominal level (T1 against Kaplan-Meier, T2 against the constant)",
+   "evidence": {
+    "t1_ci": [
+     -0.754507671196211,
+     -0.6200047399529719
+    ],
+    "t1_length_difference": -0.6817633890132598,
+    "t2_q_baseline": 0.642379539331067,
+    "t2_q_model": 0.6359508341289306
+   },
+   "id": "K3",
+   "pass": true
+  },
+  {
+   "claim": "every shifted deployment whose stuck-set coverage is below 0.85 is one the guard flagged, and the guard flags at most 1 of 8 v1 deployments",
+   "evidence": {
+    "low_coverage_deployments": 6,
+    "low_not_flagged": 0,
+    "testable": true,
+    "v1_flags": 0,
+    "v1_of": 2
+   },
+   "id": "K4",
+   "pass": true
+  },
+  {
+   "claim": "shifted worlds: recalibrating the quantile on one deployment of the new world restores stuck set coverage in at least 2 of 3",
+   "evidence": {
+    "latent_skill": {
+     "ci": [
+      0.9640339808958224,
+      0.9841351972766555
+     ],
+     "coverage": 0.9745516238487639
+    },
+    "markov": {
+     "ci": [
+      0.8915282124297846,
+      0.9274047122740047
+     ],
+     "coverage": 0.9091177797482927
+    },
+    "process_trace": {
+     "ci": [
+      0.8755116923523238,
+      0.9137904813069773
+     ],
+     "coverage": 0.8943510904540579
+    },
+    "restored": {
+     "latent_skill": false,
+     "markov": true,
+     "process_trace": true
+    },
+    "worlds_restored": 2
+   },
+   "id": "K5a",
+   "pass": true
+  },
+  {
+   "claim": "shifted worlds: recalibrating the quantile on one deployment of the new world restores time to next progress coverage in at least 2 of 3",
+   "evidence": {
+    "latent_skill": {
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "coverage": 1.0
+    },
+    "markov": {
+     "ci": [
+      0.9169417773118698,
+      0.9552106336194376
+     ],
+     "coverage": 0.936693580305549
+    },
+    "process_trace": {
+     "ci": [
+      0.8791863103197123,
+      0.9276507113408942
+     ],
+     "coverage": 0.9028332559219694
+    },
+    "restored": {
+     "latent_skill": false,
+     "markov": false,
+     "process_trace": true
+    },
+    "worlds_restored": 1
+   },
+   "id": "K5b",
+   "pass": false
+  },
+  {
+   "claim": "shifted worlds: recalibrating the quantile on one deployment of the new world restores time to finish coverage in at least 2 of 3",
+   "evidence": {
+    "latent_skill": {
+     "ci": [
+      0.9925314398301697,
+      0.9994047999832609
+     ],
+     "coverage": 0.9963847148166101
+    },
+    "markov": {
+     "ci": [
+      0.9454763784352932,
+      0.979951045792104
+     ],
+     "coverage": 0.9640018045767801
+    },
+    "process_trace": {
+     "ci": [
+      0.9520133410505012,
+      0.979712517431818
+     ],
+     "coverage": 0.9669288523417948
+    },
+    "restored": {
+     "latent_skill": false,
+     "markov": false,
+     "process_trace": false
+    },
+    "worlds_restored": 0
+   },
+   "id": "K5c",
+   "pass": false
+  }
+ ],
+ "design": {
+  "alpha": 0.1,
+  "bootstrap_B": 300,
+  "calibration": {
+   "origins": 31941,
+   "people": 16,
+   "t1_origins": 13175
+  },
+  "calibration_k": [
+   31,
+   32,
+   33,
+   34
+  ],
+  "deployments": [
+   35,
+   36
+  ],
+  "low_coverage_line": 0.85,
+  "nominal": 0.9,
+  "recalibration_k": 52,
+  "ridge": 1.0
+ },
+ "origin": "synthetic",
+ "seconds": 18.0,
+ "split_label": "dev",
+ "worlds": {
+  "latent_skill": {
+   "calibration": {
+    "origins": 31941,
+    "people": 16,
+    "t1_origins": 13175
+   },
+   "guard": {
+    "flag_rate_ci": [
+     0.15811388300841903,
+     1.0
+    ],
+    "flagged": [
+     true,
+     true
+    ],
+    "flags": 2,
+    "low_vs_flag": {
+     "line": 0.85,
+     "low_flagged": 2,
+     "low_not_flagged": 0,
+     "ok_flagged": 0,
+     "ok_not_flagged": 0
+    },
+    "of": 2
+   },
+   "n_deployments": 2,
+   "recalibrated": {
+    "bootstrap": {
+     "B": 300,
+     "seed": 0,
+     "unit": "people"
+    },
+    "by_deployment": [
+     {
+      "deployment": 0,
+      "n": 20853,
+      "t0": {
+       "coverage": 0.9918476957751883
+      },
+      "t1": {
+       "coverage": 1.0,
+       "n": 14827
+      },
+      "t2": {
+       "coverage": 0.9997122716155948
+      }
+     },
+     {
+      "deployment": 1,
+      "n": 28659,
+      "t0": {
+       "coverage": 0.9619665724554242
+      },
+      "t1": {
+       "coverage": 1.0,
+       "n": 19753
+      },
+      "t2": {
+       "coverage": 0.9939635018667783
+      }
+     }
+    ],
+    "n_origins": 49512,
+    "n_people": 40,
+    "nominal": 0.9,
+    "t0": {
+     "baseline": {
+      "coverage": {
+       "ci": [
+        1.0,
+        1.0
+       ],
+       "est": 1.0
+      },
+      "q": 0.7916350050658562,
+      "sizes": {
+       "both": 1.0,
+       "empty": 0.0,
+       "n": 49512,
+       "single": 0.0
+      }
+     },
+     "coverage": {
+      "ci": [
+       0.9640339808958224,
+       0.9841351972766555
+      ],
+      "est": 0.9745516238487639
+     },
+     "q": 0.9930213568079481,
+     "sizes": {
+      "both": 0.9687550492809824,
+      "empty": 0.0,
+      "n": 49512,
+      "single": 0.03124495071901756
+     }
+    },
+    "t1": {
+     "baseline": {
+      "coverage": {
+       "ci": [
+        1.0,
+        1.0
+       ],
+       "est": 1.0
+      },
+      "length": {
+       "ci": [
+        5.0,
+        5.0
+       ],
+       "est": 5.0
+      },
+      "q": 1.0
+     },
+     "coverage": {
+      "ci": [
+       1.0,
+       1.0
+      ],
+      "est": 1.0
+     },
+     "length": {
+      "ci": [
+       5.0,
+       5.0
+      ],
+      "est": 5.0
+     },
+     "length_vs_km": {
+      "ci": [
+       0.0,
+       0.0
+      ],
+      "est": 0.0,
+      "verdict": "no clear difference"
+     },
+     "n": 34580,
+     "n_people": 40,
+     "q": 4.0,
+     "share_excluded": 0.30158345451607693
+    },
+    "t2": {
+     "baseline": {
+      "coverage": {
+       "ci": [
+        0.9901117743748865,
+        0.9983908935545059
+       ],
+       "est": 0.9948497333979641
+      }
+     },
+     "coverage": {
+      "ci": [
+       0.9925314398301697,
+       0.9994047999832609
+      ],
+      "est": 0.9963847148166101
+     },
+     "factor_baseline": 469.54549399890806,
+     "factor_model": 750.5632773209253,
+     "median_abs_residual": 0.5613032746922477,
+     "q_baseline": 3.0758825963900724,
+     "q_model": 3.310411980535764,
+     "recentred": {
+      "coverage": {
+       "ci": [
+        0.9725477675841441,
+        0.9828875846925093
+       ],
+       "est": 0.9786718371303926
+      },
+      "factor": 49.09643226210628,
+      "q": 1.9468931847370938,
+      "shift": 1.4097196700919175
+     }
+    }
+   },
+   "recalibration_pool": {
+    "origins": 20526,
+    "people": 20,
+    "t1_origins": 17226
+   },
+   "standard": {
+    "bootstrap": {
+     "B": 300,
+     "seed": 0,
+     "unit": "people"
+    },
+    "by_deployment": [
+     {
+      "deployment": 0,
+      "n": 20853,
+      "t0": {
+       "coverage": 0.758835659137774
+      },
+      "t1": {
+       "coverage": 0.7855264045322722,
+       "n": 14827
+      },
+      "t2": {
+       "coverage": 0.5328729679182851
+      }
+     },
+     {
+      "deployment": 1,
+      "n": 28659,
+      "t0": {
+       "coverage": 0.7658676157577027
+      },
+      "t1": {
+       "coverage": 0.7925884675745456,
+       "n": 19753
+      },
+      "t2": {
+       "coverage": 0.564185770613071
+      }
+     }
+    ],
+    "n_origins": 49512,
+    "n_people": 40,
+    "nominal": 0.9,
+    "t0": {
+     "baseline": {
+      "coverage": {
+       "ci": [
+        1.0,
+        1.0
+       ],
+       "est": 1.0
+      },
+      "q": 0.7916350050658562,
+      "sizes": {
+       "both": 1.0,
+       "empty": 0.0,
+       "n": 49512,
+       "single": 0.0
+      }
+     },
+     "coverage": {
+      "ci": [
+       0.7315346901112162,
+       0.7905520144838195
+      ],
+      "est": 0.762905962190984
+     },
+     "q": 0.7110308068893203,
+     "sizes": {
+      "both": 0.16535385361124577,
+      "empty": 0.0,
+      "n": 49512,
+      "single": 0.8346461463887542
+     }
+    },
+    "t1": {
+     "baseline": {
+      "coverage": {
+       "ci": [
+        0.8182301779701582,
+        0.8810610281510435
+       ],
+       "est": 0.8537015615962984
+      },
+      "length": {
+       "ci": [
+        4.0,
+        4.0
+       ],
+       "est": 4.0
+      },
+      "q": 0.0
+     },
+     "coverage": {
+      "ci": [
+       0.7503478410829061,
+       0.8214238605821236
+      ],
+      "est": 0.7895604395604395
+     },
+     "length": {
+      "ci": [
+       2.922600798706454,
+       3.0174130839126674
+      ],
+      "est": 2.970908039329092
+     },
+     "length_vs_km": {
+      "ci": [
+       -1.077399201293546,
+       -0.9825869160873325
+      ],
+      "est": -1.0290919606709081,
+      "verdict": "a better"
+     },
+     "n": 34580,
+     "n_people": 40,
+     "q": 0.0,
+     "share_excluded": 0.30158345451607693
+    },
+    "t2": {
+     "baseline": {
+      "coverage": {
+       "ci": [
+        0.5394280824801595,
+        0.645737887739024
+       ],
+       "est": 0.5878776862174826
+      }
+     },
+     "coverage": {
+      "ci": [
+       0.5006110354600557,
+       0.6166202389600016
+      ],
+      "est": 0.5509977379221199
+     },
+     "factor_baseline": 3.61379721147208,
+     "factor_model": 3.5676305653582254,
+     "median_abs_residual": 0.5613032746922477,
+     "q_baseline": 0.642379539331067,
+     "q_model": 0.6359508341289306,
+     "recentred": {
+      "coverage": {
+       "ci": [
+        0.4768152128150447,
+        0.5927168379207127
+       ],
+       "est": 0.5271853288091776
+      },
+      "factor": 3.578316830523998,
+      "q": 0.6374462653908344,
+      "shift": -0.048910675425844374
+     }
+    }
+   },
+   "world": "latent_skill"
+  },
+  "markov": {
+   "calibration": {
+    "origins": 31941,
+    "people": 16,
+    "t1_origins": 13175
+   },
+   "guard": {
+    "flag_rate_ci": [
+     0.15811388300841903,
+     1.0
+    ],
+    "flagged": [
+     true,
+     true
+    ],
+    "flags": 2,
+    "low_vs_flag": {
+     "line": 0.85,
+     "low_flagged": 2,
+     "low_not_flagged": 0,
+     "ok_flagged": 0,
+     "ok_not_flagged": 0
+    },
+    "of": 2
+   },
+   "n_deployments": 2,
+   "recalibrated": {
+    "bootstrap": {
+     "B": 300,
+     "seed": 0,
+     "unit": "people"
+    },
+    "by_deployment": [
+     {
+      "deployment": 0,
+      "n": 15055,
+      "t0": {
+       "coverage": 0.915775489870475
+      },
+      "t1": {
+       "coverage": 0.9396662387676509,
+       "n": 11685
+      },
+      "t2": {
+       "coverage": 0.9374294254400531
+      }
+     },
+     {
+      "deployment": 1,
+      "n": 49226,
+      "t0": {
+       "coverage": 0.9070816235322797
+      },
+      "t1": {
+       "coverage": 0.935799418230494,
+       "n": 38847
+      },
+      "t2": {
+       "coverage": 0.9721285499532767
+      }
+     }
+    ],
+    "n_origins": 64281,
+    "n_people": 40,
+    "nominal": 0.9,
+    "t0": {
+     "baseline": {
+      "coverage": {
+       "ci": [
+        1.0,
+        1.0
+       ],
+       "est": 1.0
+      },
+      "q": 0.7916350050658562,
+      "sizes": {
+       "both": 1.0,
+       "empty": 0.0,
+       "n": 64281,
+       "single": 0.0
+      }
+     },
+     "coverage": {
+      "ci": [
+       0.8915282124297846,
+       0.9274047122740047
+      ],
+      "est": 0.9091177797482927
+     },
+     "q": 0.9195648700912068,
+     "sizes": {
+      "both": 0.7426455717863755,
+      "empty": 0.0,
+      "n": 64281,
+      "single": 0.25735442821362453
+     }
+    },
+    "t1": {
+     "baseline": {
+      "coverage": {
+       "ci": [
+        1.0,
+        1.0
+       ],
+       "est": 1.0
+      },
+      "length": {
+       "ci": [
+        5.0,
+        5.0
+       ],
+       "est": 5.0
+      },
+      "q": 1.0
+     },
+     "coverage": {
+      "ci": [
+       0.9169417773118698,
+       0.9552106336194376
+      ],
+      "est": 0.936693580305549
+     },
+     "length": {
+      "ci": [
+       4.6673039035173565,
+       4.736231530581244
+      ],
+      "est": 4.70282197419457
+     },
+     "length_vs_km": {
+      "ci": [
+       -0.33269609648264387,
+       -0.2637684694187562
+      ],
+      "est": -0.29717802580543023,
+      "verdict": "a better"
+     },
+     "n": 50532,
+     "n_people": 40,
+     "q": 2.0,
+     "share_excluded": 0.21388901852802544
+    },
+    "t2": {
+     "baseline": {
+      "coverage": {
+       "ci": [
+        0.941867493781961,
+        0.9790008601643891
+       ],
+       "est": 0.961886093869106
+      }
+     },
+     "coverage": {
+      "ci": [
+       0.9454763784352932,
+       0.979951045792104
+      ],
+      "est": 0.9640018045767801
+     },
+     "factor_baseline": 100.51597351095866,
+     "factor_model": 147.87842541451454,
+     "median_abs_residual": 0.8509870504714128,
+     "q_baseline": 2.3051583276384955,
+     "q_model": 2.498195243143668,
+     "recentred": {
+      "coverage": {
+       "ci": [
+        0.9187904919320604,
+        0.9435102064387164
+       ],
+       "est": 0.9325772778892675
+      },
+      "factor": 20.11450524605534,
+      "q": 1.5007206044152852,
+      "shift": 1.2006013976153174
+     }
+    }
+   },
+   "recalibration_pool": {
+    "origins": 37004,
+    "people": 20,
+    "t1_origins": 30972
+   },
+   "standard": {
+    "bootstrap": {
+     "B": 300,
+     "seed": 0,
+     "unit": "people"
+    },
+    "by_deployment": [
+     {
+      "deployment": 0,
+      "n": 15055,
+      "t0": {
+       "coverage": 0.7990036532713384
+      },
+      "t1": {
+       "coverage": 0.8255027813436029,
+       "n": 11685
+      },
+      "t2": {
+       "coverage": 0.4023248090335437
+      }
+     },
+     {
+      "deployment": 1,
+      "n": 49226,
+      "t0": {
+       "coverage": 0.7748750660220208
+      },
+      "t1": {
+       "coverage": 0.801039977347028,
+       "n": 38847
+      },
+      "t2": {
+       "coverage": 0.39416162190712223
+      }
+     }
+    ],
+    "n_origins": 64281,
+    "n_people": 40,
+    "nominal": 0.9,
+    "t0": {
+     "baseline": {
+      "coverage": {
+       "ci": [
+        1.0,
+        1.0
+       ],
+       "est": 1.0
+      },
+      "q": 0.7916350050658562,
+      "sizes": {
+       "both": 1.0,
+       "empty": 0.0,
+       "n": 64281,
+       "single": 0.0
+      }
+     },
+     "coverage": {
+      "ci": [
+       0.7485747914206675,
+       0.8137047651898822
+      ],
+      "est": 0.7805261274715701
+     },
+     "q": 0.7110308068893203,
+     "sizes": {
+      "both": 0.26077690141721505,
+      "empty": 0.0,
+      "n": 64281,
+      "single": 0.739223098582785
+     }
+    },
+    "t1": {
+     "baseline": {
+      "coverage": {
+       "ci": [
+        0.8291359000081997,
+        0.887304966959691
+       ],
+       "est": 0.857318135043141
+      },
+      "length": {
+       "ci": [
+        4.0,
+        4.0
+       ],
+       "est": 4.0
+      },
+      "q": 0.0
+     },
+     "coverage": {
+      "ci": [
+       0.7744615521488001,
+       0.8415281697839059
+      ],
+      "est": 0.8066967466160057
+     },
+     "length": {
+      "ci": [
+       3.1456237096934,
+       3.2607666951268524
+      ],
+      "est": 3.2026240797910237
+     },
+     "length_vs_km": {
+      "ci": [
+       -0.8543762903065999,
+       -0.7392333048731474
+      ],
+      "est": -0.7973759202089765,
+      "verdict": "a better"
+     },
+     "n": 50532,
+     "n_people": 40,
+     "q": 0.0,
+     "share_excluded": 0.21388901852802544
+    },
+    "t2": {
+     "baseline": {
+      "coverage": {
+       "ci": [
+        0.4037769652116129,
+        0.4950248285694335
+       ],
+       "est": 0.44800174234999457
+      }
+     },
+     "coverage": {
+      "ci": [
+       0.35037238641692353,
+       0.44387394708190947
+      ],
+      "est": 0.3960734898336989
+     },
+     "factor_baseline": 3.61379721147208,
+     "factor_model": 3.5676305653582254,
+     "median_abs_residual": 0.8509870504714128,
+     "q_baseline": 0.642379539331067,
+     "q_model": 0.6359508341289306,
+     "recentred": {
+      "coverage": {
+       "ci": [
+        0.33129709302543525,
+        0.4220822236842442
+       ],
+       "est": 0.37566310418319565
+      },
+      "factor": 3.578316830523998,
+      "q": 0.6374462653908344,
+      "shift": -0.048910675425844374
+     }
+    }
+   },
+   "world": "markov"
+  },
+  "process_trace": {
+   "calibration": {
+    "origins": 31941,
+    "people": 16,
+    "t1_origins": 13175
+   },
+   "guard": {
+    "flag_rate_ci": [
+     0.15811388300841903,
+     1.0
+    ],
+    "flagged": [
+     true,
+     true
+    ],
+    "flags": 2,
+    "low_vs_flag": {
+     "line": 0.85,
+     "low_flagged": 2,
+     "low_not_flagged": 0,
+     "ok_flagged": 0,
+     "ok_not_flagged": 0
+    },
+    "of": 2
+   },
+   "n_deployments": 2,
+   "recalibrated": {
+    "bootstrap": {
+     "B": 300,
+     "seed": 0,
+     "unit": "people"
+    },
+    "by_deployment": [
+     {
+      "deployment": 0,
+      "n": 12416,
+      "t0": {
+       "coverage": 0.8322326030927835
+      },
+      "t1": {
+       "coverage": 0.8272792879480394,
+       "n": 8314
+      },
+      "t2": {
+       "coverage": 0.9491784793814433
+      }
+     },
+     {
+      "deployment": 1,
+      "n": 21148,
+      "t0": {
+       "coverage": 0.9308208814072253
+      },
+      "t1": {
+       "coverage": 0.950363196125908,
+       "n": 13216
+      },
+      "t2": {
+       "coverage": 0.9773501040287498
+      }
+     }
+    ],
+    "n_origins": 33564,
+    "n_people": 40,
+    "nominal": 0.9,
+    "t0": {
+     "baseline": {
+      "coverage": {
+       "ci": [
+        1.0,
+        1.0
+       ],
+       "est": 1.0
+      },
+      "q": 0.7916350050658562,
+      "sizes": {
+       "both": 1.0,
+       "empty": 0.0,
+       "n": 33564,
+       "single": 0.0
+      }
+     },
+     "coverage": {
+      "ci": [
+       0.8755116923523238,
+       0.9137904813069773
+      ],
+      "est": 0.8943510904540579
+     },
+     "q": 0.9426057916966369,
+     "sizes": {
+      "both": 0.7553330949827196,
+      "empty": 0.0,
+      "n": 33564,
+      "single": 0.2446669050172804
+     }
+    },
+    "t1": {
+     "baseline": {
+      "coverage": {
+       "ci": [
+        1.0,
+        1.0
+       ],
+       "est": 1.0
+      },
+      "length": {
+       "ci": [
+        5.0,
+        5.0
+       ],
+       "est": 5.0
+      },
+      "q": 1.0
+     },
+     "coverage": {
+      "ci": [
+       0.8791863103197123,
+       0.9276507113408942
+      ],
+      "est": 0.9028332559219694
+     },
+     "length": {
+      "ci": [
+       4.623134805041171,
+       4.695434635435284
+      ],
+      "est": 4.659219693450998
+     },
+     "length_vs_km": {
+      "ci": [
+       -0.37686519495882936,
+       -0.3045653645647164
+      ],
+      "est": -0.3407803065490014,
+      "verdict": "a better"
+     },
+     "n": 21530,
+     "n_people": 40,
+     "q": 2.0,
+     "share_excluded": 0.35853891073769517
+    },
+    "t2": {
+     "baseline": {
+      "coverage": {
+       "ci": [
+        0.9450974890669217,
+        0.9728976971064202
+       ],
+       "est": 0.9599868907162435
+      }
+     },
+     "coverage": {
+      "ci": [
+       0.9520133410505012,
+       0.979712517431818
+      ],
+      "est": 0.9669288523417948
+     },
+     "factor_baseline": 33.40257513106956,
+     "factor_model": 43.028092708252345,
+     "median_abs_residual": 0.44584138000559204,
+     "q_baseline": 1.7543164983716224,
+     "q_model": 1.8809266105851545,
+     "recentred": {
+      "coverage": {
+       "ci": [
+        0.8310732025991034,
+        0.8607960040339444
+       ],
+       "est": 0.8452806578476939
+      },
+      "factor": 10.28256229919907,
+      "q": 1.1652247399320133,
+      "shift": 0.9131754389995224
+     }
+    }
+   },
+   "recalibration_pool": {
+    "origins": 25920,
+    "people": 20,
+    "t1_origins": 21111
+   },
+   "standard": {
+    "bootstrap": {
+     "B": 300,
+     "seed": 0,
+     "unit": "people"
+    },
+    "by_deployment": [
+     {
+      "deployment": 0,
+      "n": 12416,
+      "t0": {
+       "coverage": 0.5681378865979382
+      },
+      "t1": {
+       "coverage": 0.5684387779648785,
+       "n": 8314
+      },
+      "t2": {
+       "coverage": 0.6141269329896907
+      }
+     },
+     {
+      "deployment": 1,
+      "n": 21148,
+      "t0": {
+       "coverage": 0.7692453187062607
+      },
+      "t1": {
+       "coverage": 0.8024364406779662,
+       "n": 13216
+      },
+      "t2": {
+       "coverage": 0.6679118592774731
+      }
+     }
+    ],
+    "n_origins": 33564,
+    "n_people": 40,
+    "nominal": 0.9,
+    "t0": {
+     "baseline": {
+      "coverage": {
+       "ci": [
+        1.0,
+        1.0
+       ],
+       "est": 1.0
+      },
+      "q": 0.7916350050658562,
+      "sizes": {
+       "both": 1.0,
+       "empty": 0.0,
+       "n": 33564,
+       "single": 0.0
+      }
+     },
+     "coverage": {
+      "ci": [
+       0.652204700110483,
+       0.7325905280419164
+      ],
+      "est": 0.6948516267429389
+     },
+     "q": 0.7110308068893203,
+     "sizes": {
+      "both": 0.1543916100583959,
+      "empty": 0.0,
+      "n": 33564,
+      "single": 0.845608389941604
+     }
+    },
+    "t1": {
+     "baseline": {
+      "coverage": {
+       "ci": [
+        0.7372288561746763,
+        0.819783275189002
+       ],
+       "est": 0.7804923362749652
+      },
+      "length": {
+       "ci": [
+        4.0,
+        4.0
+       ],
+       "est": 4.0
+      },
+      "q": 0.0
+     },
+     "coverage": {
+      "ci": [
+       0.6654906152078955,
+       0.7544797338643496
+      ],
+      "est": 0.7120761727821644
+     },
+     "length": {
+      "ci": [
+       2.9261478011685274,
+       3.0174818796130607
+      ],
+      "est": 2.972735717603344
+     },
+     "length_vs_km": {
+      "ci": [
+       -1.073852198831473,
+       -0.9825181203869391
+      ],
+      "est": -1.0272642823966558,
+      "verdict": "a better"
+     },
+     "n": 21530,
+     "n_people": 40,
+     "q": 0.0,
+     "share_excluded": 0.35853891073769517
+    },
+    "t2": {
+     "baseline": {
+      "coverage": {
+       "ci": [
+        0.6316051010441155,
+        0.7118816612865647
+       ],
+       "est": 0.6719401739959481
+      }
+     },
+     "coverage": {
+      "ci": [
+       0.6044009483532775,
+       0.6925692039266415
+      ],
+      "est": 0.6480157311405077
+     },
+     "factor_baseline": 3.61379721147208,
+     "factor_model": 3.5676305653582254,
+     "median_abs_residual": 0.44584138000559204,
+     "q_baseline": 0.642379539331067,
+     "q_model": 0.6359508341289306,
+     "recentred": {
+      "coverage": {
+       "ci": [
+        0.5815757123413596,
+        0.6704978627000843
+       ],
+       "est": 0.6261172685019664
+      },
+      "factor": 3.578316830523998,
+      "q": 0.6374462653908344,
+      "shift": -0.048910675425844374
+     }
+    }
+   },
+   "world": "process_trace"
+  },
+  "v1": {
+   "calibration": {
+    "origins": 31941,
+    "people": 16,
+    "t1_origins": 13175
+   },
+   "guard": {
+    "flag_rate_ci": [
+     0.0,
+     0.841886116991581
+    ],
+    "flagged": [
+     false,
+     false
+    ],
+    "flags": 0,
+    "low_vs_flag": {
+     "line": 0.85,
+     "low_flagged": 0,
+     "low_not_flagged": 0,
+     "ok_flagged": 0,
+     "ok_not_flagged": 2
+    },
+    "of": 2
+   },
+   "n_deployments": 2,
+   "standard": {
+    "bootstrap": {
+     "B": 300,
+     "seed": 0,
+     "unit": "people"
+    },
+    "by_deployment": [
+     {
+      "deployment": 0,
+      "n": 7575,
+      "t0": {
+       "coverage": 0.9048184818481848
+      },
+      "t1": {
+       "coverage": 0.9399198931909212,
+       "n": 2996
+      },
+      "t2": {
+       "coverage": 0.9052145214521452
+      }
+     },
+     {
+      "deployment": 1,
+      "n": 6967,
+      "t0": {
+       "coverage": 0.9062724271565954
+      },
+      "t1": {
+       "coverage": 0.9462824617573817,
+       "n": 2811
+      },
+      "t2": {
+       "coverage": 0.8912013779245013
+      }
+     }
+    ],
+    "n_origins": 14542,
+    "n_people": 8,
+    "nominal": 0.9,
+    "t0": {
+     "baseline": {
+      "coverage": {
+       "ci": [
+        1.0,
+        1.0
+       ],
+       "est": 1.0
+      },
+      "q": 0.7916350050658562,
+      "sizes": {
+       "both": 1.0,
+       "empty": 0.0,
+       "n": 14542,
+       "single": 0.0
+      }
+     },
+     "coverage": {
+      "ci": [
+       0.8926870077424014,
+       0.9162892234648208
+      ],
+      "est": 0.9055150598267089
+     },
+     "q": 0.7110308068893203,
+     "sizes": {
+      "both": 0.2703892174391418,
+      "empty": 0.0,
+      "n": 14542,
+      "single": 0.7296107825608582
+     }
+    },
+    "t1": {
+     "baseline": {
+      "coverage": {
+       "ci": [
+        0.9249824408499547,
+        0.9477568725600142
+       ],
+       "est": 0.9366282073359739
+      },
+      "length": {
+       "ci": [
+        4.0,
+        4.0
+       ],
+       "est": 4.0
+      },
+      "q": 0.0
+     },
+     "coverage": {
+      "ci": [
+       0.9351298192902298,
+       0.9507608724392664
+      ],
+      "est": 0.9429998277940417
+     },
+     "length": {
+      "ci": [
+       3.245492328803789,
+       3.379995260047028
+      ],
+      "est": 3.31823661098674
+     },
+     "length_vs_km": {
+      "ci": [
+       -0.754507671196211,
+       -0.6200047399529719
+      ],
+      "est": -0.6817633890132598,
+      "verdict": "a better"
+     },
+     "n": 5807,
+     "n_people": 8,
+     "q": 0.0,
+     "share_excluded": 0.6006739100536378
+    },
+    "t2": {
+     "baseline": {
+      "coverage": {
+       "ci": [
+        0.868334384354011,
+        0.9296027287056614
+       ],
+       "est": 0.9027644065465548
+      }
+     },
+     "coverage": {
+      "ci": [
+       0.8693851782421524,
+       0.9228506522051835
+      ],
+      "est": 0.898500893962316
+     },
+     "factor_baseline": 3.61379721147208,
+     "factor_model": 3.5676305653582254,
+     "median_abs_residual": 0.3114280483281169,
+     "q_baseline": 0.642379539331067,
+     "q_model": 0.6359508341289306,
+     "recentred": {
+      "coverage": {
+       "ci": [
+        0.868761122943462,
+        0.9307442630044006
+       ],
+       "est": 0.903177004538578
+      },
+      "factor": 3.578316830523998,
+      "q": 0.6374462653908344,
+      "shift": -0.048910675425844374
+     }
+    }
+   },
+   "world": "v1"
+  }
+ }
+}

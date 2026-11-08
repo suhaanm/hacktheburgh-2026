@@ -76,6 +76,38 @@ describe("design tokens", () => {
     });
   }
 
+  // Colour-blind safety (owner request 1.6, polish). The colours that carry a comparison in a chart (the two traces of the work ribbon and the week ribbons,
+  // the growth curve against an error, a baseline against a result) must stay apart for the three common kinds of colour blindness. Simulated with the
+  // Machado, Oliveira and Fernandes (2009) matrices at full severity, distance in CIELAB. Green against red, amber against red and amber against
+  // orange-red are NOT in this list on purpose: they are close under red-green colour blindness, so a component never uses any of them as the only mark; the
+  // word, the glyph or the position carries the meaning (good and bad rows say "less help" or "more help", flagged rows say "flagged", and so on).
+  describe("colour-blind safe data pairs", () => {
+    const MATS: Record<string, number[][]> = {
+      protan: [[0.152286, 1.052583, -0.204868], [0.114503, 0.786281, 0.099216], [-0.003882, -0.048116, 1.051998]],
+      deutan: [[0.367322, 0.860646, -0.227968], [0.280085, 0.672501, 0.047413], [-0.01182, 0.04294, 0.968881]],
+      tritan: [[1.255528, -0.076749, -0.178779], [-0.078411, 0.930809, 0.147602], [0.004733, 0.691367, 0.3039]],
+    };
+    const toRgb = (h: string): number[] => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+    const gam = (c: number) => { const v = Math.max(0, Math.min(1, c)); return 255 * (v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055); };
+    const simulate = (h: string, kind: string): number[] => { const m = MATS[kind]; const r = toRgb(h).map(lin); return [0, 1, 2].map((i) => gam(m[i][0] * r[0] + m[i][1] * r[1] + m[i][2] * r[2])); };
+    const lab = (c: number[]): number[] => {
+      const [r, g, b] = c.map(lin);
+      const f = (v: number) => (v > 0.008856 ? Math.cbrt(v) : 7.787 * v + 16 / 116);
+      const x = f((0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047), y = f(0.2126 * r + 0.7152 * g + 0.0722 * b), z = f((0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883);
+      return [116 * y - 16, 500 * (x - y), 200 * (y - z)];
+    };
+    const dist = (a: string, b: string, kind: string): number => { const p = lab(simulate(a, kind)), q = lab(simulate(b, kind)); return Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]); };
+    // [first, second, the least distance the pair may have under any of the three kinds]
+    const PAIRS: [string, string, number][] = [["expert", "novice", 60], ["accent", "expert", 40], ["novice", "bad", 55], ["accent", "bad", 20], ["accent", "novice", 15]];
+    for (const [name, theme] of [["light", light], ["dark", dark]] as const) {
+      for (const [a, b, least] of PAIRS) {
+        it(`${a} and ${b} stay apart in ${name} for protanopia, deuteranopia and tritanopia`, () => {
+          for (const kind of Object.keys(MATS)) expect(dist(theme[a], theme[b], kind), `${a} / ${b} under ${kind}`).toBeGreaterThanOrEqual(least);
+        });
+      }
+    }
+  });
+
   it("defines the graph colours in both themes and the dark overrides are present", () => {
     for (const k of ["node-routine", "node-skill", "node-memory"]) {
       expect(light[k]).toMatch(/^#/);
