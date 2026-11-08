@@ -1,7 +1,7 @@
 // macOS privacy permissions as seen by the main process. Shared by main (src/main/permissions.ts) and the renderers.
 
 export type PermState = 'granted' | 'denied' | 'not-determined' | 'restricted' | 'unknown'
-export type PermissionPane = 'screen' | 'microphone' | 'accessibility'
+export type PermissionPane = 'screen' | 'microphone' | 'accessibility' | 'speech'
 export type ScreenProbe = 'ok' | 'empty' | 'error' | 'skipped'
 
 export interface PermissionStatus {
