@@ -106,6 +106,27 @@ The app around the dashboard: the window, the Dock icon, the menu bar item, the 
 | Quit | with nothing running, quits at once; with a run, one sheet ("Knack is working. Stop it and quit?" Stop and quit, Keep working) | never a surprise stop | not a setting |
 | Window size and place | 80 percent by 84 percent of the work area (960 to 1440 by 600 to 1000), remembered per display; a window left off every display after one is unplugged is brought back | a window you cannot find is a bug | drag it |
 | Hey Knack, the two consent cards, Click for you | see the Hey Knack section: never answered for you | the safety rules | |
+## Insight screens, admin
+
+The Admin screens (Firm, Roles, People, Onboarding, Automation, Risk, Forecasts, Brief) open insight first: one headline sentence built by code, at most one simple chart or short list, and the numbers behind one closed "See the numbers". They only read. Nothing on them sends, books, approves or changes anything, so no default here is a consent.
+
+| Setting | Default | Why | Change it |
+|---|---|---|---|
+| Where an admin lands | Firm (the overview), when the address names nothing | the shell's rule for the Admin view | the Admin sidebar |
+| Forecasts: which card shows its evidence | the first card (the surest one) is open, with its interval and its one chart; the other two are closed | one chart above the fold keeps the screen within its word budget, and the surest insight is the one to read first | the chevron on a card opens or closes its evidence; the choice is not remembered, because the cards change with the data |
+| Forecasts: which insights, and in what order | up to three, chosen by code: onboarding speed, the junior and expert gap, repeated work, the trend mix; the surest first (Likely, then Possible, then Too early to say), ties in that order | the model proposes, code decides: every sentence is a fixed template filled from the answers the other Admin screens read | not a setting |
+| The confidence word | Likely: n of at least 10 and an interval that clears zero and is not wide. Possible: n of 5 to 9, or a wide interval. Too early to say: n under 5, no interval, or an interval that includes no change | one word for how far the data supports a sentence; an interval across zero is never read as a direction | printed once in "How reliable are these forecasts?" |
+| Automation: the window | 7 days; the last window the admin chose is remembered on this device (key `understudy-last-firm-automation-window`) | a week is the rhythm of repeated work | the 7 days and 30 days buttons |
+| People: order and filter | by name, A to Z, everyone shown; never a score, never a rank | for coaching and onboarding, not for evaluating individuals | "Sort and filter" inside "See the numbers" (name or time in role; one trend class) |
+| People: the role groups | closed; the first two people of a group show when it opens, "Show all N" shows the rest | an opened group stays a few scannable rows | the group's summary line |
+| The smallest group a figure may describe | 5 people | the privacy threshold; a smaller group is merged or left out and the page says so | not a setting (the engine merges small groups too) |
+| Old or future numbers | numbers more than 14 days old, or dated after today, say so in one line under the headline; example data never shows that line, it carries its own note | an old number must not pass for a fresh one; an example's date is not a claim | not a setting |
+| The month in a forecast | the month 28 days ahead of the clock; no month when the clock cannot be read | "expect 3 new starters to need coaching through December" needs a date to mean anything | not a setting |
+| Firm brief | headline first on screen; the A4 page is in the page but only the printer sees it, so "Print the brief" is one click and prints the same page whatever is open | a printable page must not depend on what is expanded | the browser's print dialog saves it as a PDF |
+| Firm: which insight is open | none; the palette opens one with `?insight=` | an opened insight adds a table and a chart above the fold | the row opens in place |
+| Origin, use limit, n and the interval | always printed: the origin pill and the use limit in the head, n on every card and row, the interval in the chart's line, the headline's line or the table | never behind a hint | not a setting |
+
+
 ## Shell, Home and first run (SHELL-WEB)
 
 The owner asked (8 Nov, 00:15) for every toggle and state to be as automated as possible inside the safety layers. These are the defaults the shell, Home and first run choose, and the lines they never cross.

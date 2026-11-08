@@ -1,5 +1,9 @@
 import { Details } from "../ui";
 import { Hint } from "../Hint";
+import { Headline, NumbersTable, SeeNumbers, ShortParagraph } from "./InsightFirst";
+import { IntervalPlot } from "./IntervalPlot";
+import { onboardingChart, onboardingNumbers } from "./charts";
+import { onboardingHeadline } from "./insights";
 import { nWord } from "./Badges";
 import { LineBand, ticksFor } from "./LineBand";
 import { fmtShare, pct, trimCurve } from "./model";
@@ -68,9 +72,36 @@ export function OnboardingCurves({ data }: { data: WireOnboarding; meta?: Analyt
         {data.roles.map((r, i) => <Panel key={r.role} r={r} w={data} x={x} first={i === 0} last={i === data.roles.length - 1} />)}
       </div>
       <Details summary="How this was worked out">
-        <p>{data.method ?? "Each curve follows people through their first steps in the role. The curve stops where fewer than 5 people remain in view, so it never describes two or three individuals."}</p>
-        <p>The target is a design target the firm sets. It is a line to aim at, not a standard that anyone is measured against.</p>
+        <ShortParagraph text={`${data.method ?? "Each curve follows people through their first steps in the role. It stops where fewer than 5 people remain in view, so it never describes two or three individuals."} The target is a design target the firm sets. It is a line to aim at, not a standard that anyone is measured against.`} />
       </Details>
+    </div>
+  );
+}
+
+/**
+ * The Onboarding screen, insight first: one sentence comparing how fast roles reach the target, one chart of the median step per role with its interval,
+ * and the table and the full curves behind "See the numbers".
+ */
+export function OnboardingBody({ data, meta }: { data: WireOnboarding; meta?: AnalyticMeta | null }) {
+  const ch = onboardingChart(data, MIN_PEOPLE);
+  const nums = onboardingNumbers(data, MIN_PEOPLE);
+  return (
+    <div className="insight-first">
+      <Headline>{onboardingHeadline(data, MIN_PEOPLE)}</Headline>
+      {ch.any && (
+        <figure className="chart insight-chart">
+          <IntervalPlot title="Median step at which people reach the target, by role" rows={ch.rows} domain={ch.domain} ticks={ch.ticks} format={(v) => String(Math.round(v))} rowHeight={36} />
+          <figcaption className="note">Steps done in the role, to the {data.target.label} ({pct(data.target.value)} of steps without help). A line to aim at.</figcaption>
+        </figure>
+      )}
+      {data.roles.length > 0 && (
+        <SeeNumbers>
+          <div className="stack">
+            <NumbersTable heads={nums.heads} rows={nums.rows} caption="Onboarding speed by role" />
+            <Details summary="The curves" wide><OnboardingCurves data={data} meta={meta} /></Details>
+          </div>
+        </SeeNumbers>
+      )}
     </div>
   );
 }

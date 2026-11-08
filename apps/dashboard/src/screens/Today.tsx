@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import { useLoad } from "../hooks";
-import { ErrorState, Loading, OriginBadge } from "../components/common";
+import { ErrorState, Loading, OriginBadge, workerOriginLabel } from "../components/common";
 import { cogLabel } from "../lib/format";
 import { Details } from "../components/ui";
 import type { AnalyticMeta, CoachDecision, CoachOutcome, CoachState } from "../types";
@@ -100,7 +100,7 @@ export default function Today() {
     <div className="page page--read">
       <section className="today" aria-labelledby="task-h">
         <div className="today__task">
-          <div className="row row--between"><span className="t-label">Step {step} of {s.task.steps_total}{(s as { case?: number }).case ? ` · case ${(s as { case?: number }).case}` : ""}</span><OriginBadge meta={live?.meta ?? state.meta} /></div>
+          <div className="row row--between"><span className="t-label">Step {step} of {s.task.steps_total}{(s as { case?: number }).case ? ` · case ${(s as { case?: number }).case}` : ""}</span><OriginBadge meta={live?.meta ?? state.meta} label={(live?.meta ?? state.meta) ? workerOriginLabel((live?.meta ?? state.meta)!.origin) : undefined} /></div>
           <h1 className="today__name" id="task-h">{s.task.name}</h1>
           <div className="today__steps" role="img" aria-label={`Step ${step} of ${s.task.steps_total}`}>
             {Array.from({ length: s.task.steps_total }, (_, i) => <i key={i} data-done={i + 1 < step} data-now={i + 1 === step} />)}

@@ -720,3 +720,14 @@ button.status-line:hover { color: var(--fg); }
 .statetext[data-tone="go"] .statetext__dot { background: var(--accent); }
 .statetext[data-tone="good"] .statetext__dot { background: var(--good); }
 .statetext[data-tone="bad"] .statetext__dot { background: var(--bad); }
+
+/* The coach screen: the task name is the hero sentence (28 px), not a display-size banner. */
+.today .today__name { font: 600 var(--text-2xl)/var(--lh-hero) var(--font-display); letter-spacing: var(--tracking-display); }
+@media (max-width: 760px) { .today .today__name { font-size: 1.5rem; } }
+
+/* Evidence jump bar: it sits in the page column; the old negative margins matched the old centred page padding and made the page scroll sideways. */
+.page .ev-jump { margin-inline: 0; padding-inline: 0; }
+
+/* Explain: the one switch that lets a live model explain by itself (off until the worker turns it on). */
+.explain__auto { display: inline-flex; align-items: center; gap: var(--space-2); margin-top: var(--space-2); font-size: var(--text-sm); color: var(--muted); cursor: pointer; }
+.explain__auto input { accent-color: var(--accent); }
