@@ -439,7 +439,7 @@ describe('edge cases of the wake path', () => {
     const r = rig()
     r.ctl.start()
     r.setHelper({ state: 'blocked', code: 'on_device_unavailable' })
-    expect(r.ctl.status()).toMatchObject({ listening: false, line: 'This Mac cannot recognise speech on the device, so Hey Knack stays off.' })
+    expect(r.ctl.status()).toMatchObject({ listening: false, fix: 'dictation', line: 'This Mac cannot recognise speech on the device, so Hey Knack stays off.' })
   })
   it('a helper that keeps crashing ends blocked with one plain line, and switching the listener off and on tries again', () => {
     const r = rig()
@@ -455,6 +455,7 @@ describe('edge cases of the wake path', () => {
     r.ctl.start()
     r.setHelper({ state: 'blocked', code: 'mic_denied' })
     expect(r.ctl.status().line).toBe('Hey Knack needs the microphone. Turn it on in System Settings.')
+    expect(r.ctl.status().fix).toBe('microphone')
   })
   it('the lid closed and reopened: asleep and locked stop the listener at once; it comes back only when both are over', () => {
     const r = rig()
@@ -559,8 +560,10 @@ describe('first run', () => {
     expect(first).toContain('Hi, I am Knack. Try saying: show me where the Needs you list is.')
     expect(first).toContain('point_at')
     expect(first).toContain('"Needs you"')
+    expect(r.ctl.status().welcomed).toBe(false)
     await r.ctl.onHeard()
     expect(r.settings.get().welcomed).toBe(true)
+    expect(r.ctl.status().welcomed).toBe(true)
     expect(r.ctl.openingText()).toBeNull()
   })
   it('a conversation that could not start does not use up the welcome', async () => {

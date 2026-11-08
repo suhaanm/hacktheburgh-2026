@@ -68,6 +68,10 @@ export interface WakeStatus {
   click: ClickState['k']
   /** The one plain line for the menu bar and Settings. */
   line: string
+  /** The macOS pane that fixes a blocked listener (a button next to the line in Settings), or null. */
+  fix: 'microphone' | 'speech' | 'dictation' | null
+  /** The worker has had their first conversation (the Try it step is done). */
+  welcomed: boolean
 }
 
 export interface WakeControllerDeps {
@@ -166,12 +170,13 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
     else if (dorm) line = dormantLine(dorm)
     else if (h.state !== 'listening' && lastRefusal) line = lastRefusal
     else if (h.state === 'starting' || h.state === 'backoff') line = 'Starting Hey Knack.'
-    return { switchOn: d.settings.get().wakeListen, listening, dormant: dorm, helper: h, session: wakeSession, click: machine.k, line }
+    const fix = h.state === 'blocked' && dorm !== 'switched_off' ? (h.code === 'mic_denied' || h.code === 'mic_restricted' ? 'microphone' : h.code === 'speech_denied' || h.code === 'speech_restricted' ? 'speech' : h.code === 'on_device_unavailable' || h.code === 'locale_unsupported' ? 'dictation' : null) : null
+    return { switchOn: d.settings.get().wakeListen, listening, dormant: dorm, helper: h, session: wakeSession, click: machine.k, line, fix, welcomed: d.settings.get().welcomed }
   }
   let lastKey = ''
   const publish = (): void => {
     const s = status()
-    const key = JSON.stringify([s.switchOn, s.listening, s.dormant, s.helper, s.session, s.click, s.line])
+    const key = JSON.stringify([s.switchOn, s.listening, s.dormant, s.helper, s.session, s.click, s.line, s.fix, s.welcomed])
     if (key === lastKey) return
     lastKey = key
     for (const l of listeners) {

@@ -36,6 +36,10 @@ export interface KnackWakeStatus {
   switchOn: boolean
   listening: boolean
   line: string
+  /** The macOS pane that fixes a blocked listener (show a button beside the line), or null. */
+  fix: 'microphone' | 'speech' | 'dictation' | null
+  /** The worker has had their first conversation: the Try it step can finish. */
+  welcomed: boolean
 }
 /** What the shell may report for the voice conversation's context packet: ids and counts only (validated again in main). */
 export interface KnackWakeContext {
