@@ -8,6 +8,8 @@ import { useSyncExternalStore } from "react";
 export const NAME_KEY = "understudy-display-name";
 export const NAME_MAX = 60;
 export const NAME_PLACEHOLDER = "Your name";
+/** The link in the Account menu that opens the name editor when there is no name yet. */
+export const ADD_NAME = "Add your name";
 export const NAME_RULE = "Letters, spaces, hyphens and apostrophes, starting with a letter. Up to 60 characters.";
 
 /** What GET /profile answers (the engine's own shape; extra fields are ignored). `roles` is the closed list for the role picker. */

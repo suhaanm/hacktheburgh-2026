@@ -23,6 +23,8 @@ export interface Health {
   ok: boolean;
   version: string;
   mock: boolean;
+  /** additive: a Gemini key is present in the engine process (a boolean only). Without one the engine cannot use live models, whatever `mock` says. */
+  key_present?: boolean;
   models?: { planner?: string; fast?: string; computer_use?: string };
   services?: { engine: boolean; agent: boolean };
   /** Which REQ-2 layers are switched on. Absent means none. */

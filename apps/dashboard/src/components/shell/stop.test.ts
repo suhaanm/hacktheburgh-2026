@@ -30,7 +30,12 @@ describe("the Stop button", () => {
     expect(count(design, /\.stop-button::before\s*\{[^}]*content:\s*""/g)).toBe(1);
     expect(count(design, /\.stop-button::after/g)).toBe(0);
     expect(count(shell, /\.stop-button[^{]*::after/g)).toBe(0);
-    // The shell may recolour the square in the stopped state, never draw one (no `content` on a stop-button pseudo element).
+    // Stopped, the button reads Resume and its mark is a play triangle (borders on the design system's pseudo element), not the stop square.
+    const resumeMark = shell.match(/\.stop-button\[aria-pressed="true"\]::before\s*\{[^}]*\}/)?.[0] ?? "";
+    expect(resumeMark).toMatch(/width:\s*0/);
+    expect(resumeMark).toMatch(/border-width:\s*5px 0 5px 8px/);
+    expect(resumeMark).toMatch(/background:\s*none/);
+    // The shell may reshape the mark, never draw a second one (no `content` on a stop-button pseudo element).
     for (const m of shell.match(/\.stop-button[^{]*::(?:before|after)\s*\{[^}]*\}/g) ?? []) expect(m, m).not.toMatch(/content\s*:/);
   });
   it("is drawn once per layout: once in the sidebar footer and once in the narrow top bar, no icon beside either", () => {

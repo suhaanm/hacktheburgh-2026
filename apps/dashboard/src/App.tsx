@@ -70,7 +70,7 @@ function Shell() {
     // One look at both services and the identity, then every optional screen knows whether to ask for its own data or show an example.
     const health = () => Promise.all([api.health(), api.agentHealth(), api.identity()])
       .then(([r, agent, who]) => {
-        setState({ mock: r.data?.mock ?? null, engineUp: r.source === "live", ext: extensionsFrom(r.data, r.source, agent), agentUp: agent !== null, person: who?.person ?? null, role: who?.role ?? null, extReady: true });
+        setState({ mock: r.data ? (r.data.mock === true || r.data.key_present === false ? true : r.data.mock ?? null) : null, engineUp: r.source === "live", ext: extensionsFrom(r.data, r.source, agent), agentUp: agent !== null, person: who?.person ?? null, role: who?.role ?? null, extReady: true });
         // A name the engine sends wins over the device's own copy. An engine that sends none may simply not know names, so the device's copy stays here;
         // the Account menu asks GET /profile, which does know, and then follows the engine whichever way it answers.
         if (typeof who?.name === "string") adoptEngineName(who.name);

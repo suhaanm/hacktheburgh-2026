@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { AdminInsight, WirePointer } from "../firm/wire";
 import { FIRM_TABS, NAV_ENTRIES } from "./navModel";
 import {
-  DEFAULT_CAP, NO_CAPS, askItem, buildItems, groupRows, insightPath, isNavKey, matchToken, moveIndex, pointerPath, resultsText, rowsFor, scoreItem, searchItems,
+  DEFAULT_CAP, NO_CAPS, NO_RESULTS_HELP, askItem, buildItems, groupRows, insightPath, isNavKey, matchToken, moveIndex, noResultsHelp, pointerPath, resultsText, rowsFor, scoreItem, searchItems,
   segments, tokensOf, wrapIndex, type PaletteItem,
 } from "./palette";
 
@@ -137,6 +137,15 @@ describe("buildItems is role-aware", () => {
     expect(hit("graph")).toContain("growth:map");
     expect(hit("git")).toContain("growth:commits");
   });
+  it("gives an admin no row that leads to a worker screen's data: no Delete my data, and a no-match hint that names an admin screen", () => {
+    expect(ids("admin")).not.toContain("action:delete");
+    expect(ids("worker")).toContain("action:delete");
+    expect(noResultsHelp("worker")).toBe(NO_RESULTS_HELP);
+    expect(noResultsHelp("worker")).toMatch(/Growth/);
+    expect(noResultsHelp("admin")).toMatch(/Roles/);
+    expect(noResultsHelp("admin")).not.toMatch(/Growth|privacy|calendar|stuck/);
+    for (const i of buildItems("admin")) if (i.target.type === "route") expect(["/home", "/needs-you", "/routines", "/growth", "/your-data"], i.id).not.toContain(i.target.path.split("?")[0]);
+  });
   it("lists worker pointers only in the Worker view and admin insights only in the Admin view", () => {
     const extra = { pointers: [pointer("w1", "You repeated one step nine times")], insights: [insight("a1", "New starters reach independence later")] };
     expect(ids("worker", extra)).toContain("pointer:w1");
@@ -258,7 +267,11 @@ describe("display helpers", () => {
 describe("the verbs (docs/KNACK_UX.md section 9)", () => {
   const ids = (v: "worker" | "admin", caps = NO_CAPS) => buildItems(v, {}, caps).map((i) => i.id);
   it("lists the verbs the dashboard can do by itself, in both views", () => {
-    for (const v of ["worker", "admin"] as const) for (const id of ["action:settings", "action:stop", "action:about", "action:delete", "action:tour"]) expect(ids(v), `${v} ${id}`).toContain(id);
+    for (const v of ["worker", "admin"] as const) for (const id of ["action:settings", "action:stop", "action:about", "action:tour"]) expect(ids(v), `${v} ${id}`).toContain(id);
+  });
+  it("lists Delete my data for a worker only (Your data is a worker screen)", () => {
+    expect(ids("worker")).toContain("action:delete");
+    expect(ids("admin")).not.toContain("action:delete");
   });
   it("lists the Monday note for a worker only", () => {
     expect(ids("worker")).toContain("action:monday");

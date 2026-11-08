@@ -1,6 +1,6 @@
 // More: a sheet of one-line rows, Admin view only (a worker has five rows and no More). No hints here (they live in the palette). On a narrow window the first
 // row is Search, because the sidebar has no button for it, and the Admin rows that do not fit the bottom bar come first. The rows are links, so Cmd-click and the keyboard work as on any link.
-import { useId } from "react";
+import { useId, useLayoutEffect, useState } from "react";
 import { compactFor, moreFor, type MoreRow } from "../home/navModel";
 import { openPalette } from "../home/overlayStore";
 import { isApple, shortcutLabel } from "../home/Overlays";
@@ -24,6 +24,14 @@ export function MoreSheet({ current, placement = "side" }: { current: string; pl
   const rows = placement === "bottom" ? [...compactFor(view).overflow, ...moreFor(view)] : moreFor(view);
   const uid = useId();
   const here = rows.some((r) => r.id === current);
+  // In the sidebar the sheet opens beside its own row, not at the top of the window: its top is the row's, pulled up only as far as it needs to stay inside the window.
+  const [top, setTop] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    if (!open || placement !== "side") { setTop(null); return; }
+    const row = btn.current?.getBoundingClientRect();
+    const h = pop.current?.offsetHeight ?? 0;
+    if (row) setTop(Math.max(12, Math.min(row.top, window.innerHeight - h - 12)));
+  }, [open, placement, btn, pop]);
   return (
     <div className="more" data-placement={placement}>
       <button
@@ -41,7 +49,7 @@ export function MoreSheet({ current, placement = "side" }: { current: string; pl
         <span>More</span>
       </button>
       {open && (
-        <div ref={pop} className="popover more__sheet" role="menu" aria-label="More">
+        <div ref={pop} className="popover more__sheet" role="menu" aria-label="More" style={top !== null ? { top } : undefined}>
           <button type="button" role="menuitem" className="popover__item popover__item--row more__search" onClick={() => { close(false); openPalette(); }}>
             <span className="popover__lead"><Icon name="search" />Search</span><kbd>{isApple() ? "⌘K" : shortcutLabel()}</kbd>
           </button>

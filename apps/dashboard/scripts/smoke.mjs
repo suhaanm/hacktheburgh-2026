@@ -746,7 +746,7 @@ check("routines: example data draws no background tasks (a sample is never a tas
   await acct.click();
   await page.waitForTimeout(700);   // the roles are asked for when the menu opens
   const who = page.locator("[data-testid=account-who]");
-  check("account menu: with no name it says Your name, and the role is the engine's", /Your name/.test(await who.innerText()) && /UK benefits processor/.test(await who.innerText()));
+  check("account menu: with no name it says Add your name, and the role is the engine's", /Add your name/.test(await who.innerText()) && /UK benefits processor/.test(await who.innerText()));
   check("account menu: it lists Change profile, Set up again, View as, Settings (Appearance lives in Settings)", (await page.getByRole("menuitem", { name: "Change profile" }).count()) === 1 && (await page.getByRole("menuitem", { name: "Set up again" }).count()) === 1 && /View as/.test(await page.locator(".account__menu").innerText()) && (await page.locator(".account__menu").getByText("Appearance").count()) === 0);
   await page.getByRole("menuitem", { name: "Change profile" }).click();
   const nameBox = page.locator(".profile input[type=text]");
