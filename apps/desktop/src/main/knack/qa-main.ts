@@ -160,7 +160,7 @@ async function run(): Promise<void> {
   const model = createHudModel({ kill: killSwitch, endpoints: { dashboard: `http://127.0.0.1:${config.ports.dashboard}` }, openExternal: () => undefined, onProposalChoice: () => undefined, push: () => hud.push(), corner: true })
   let hud = registerHud({ model, log: () => undefined, corner: true, hidden: true })
   shell.attach({
-    kill: { trigger: () => killSwitch.trigger(), clear: () => killSwitch.clear(), isKilled: () => killed, subscribe: (cb) => killSwitch.subscribe(() => cb()) },
+    kill: { trigger: () => killSwitch.trigger(), clear: () => killSwitch.clear(), isKilled: () => killed, subscribe: (cb: () => void) => killSwitch.subscribe(() => cb()) },
     hud: model,
     probe: async () => ({ suppressed: null, presenting: false }),
     pendingQueue: async () => 2,
@@ -169,7 +169,7 @@ async function run(): Promise<void> {
       requestMicrophone: async () => (asked.push('microphone'), true),
       requestScreen: async () => (asked.push('screen'), { microphone: permFake.microphone, screen: permFake.screen, accessibility: permFake.accessibility, probe: 'ok', needsRestart: permFake.needsRestart, hint: '' }),
       requestAccessibility: () => (asked.push('accessibility'), false),
-      openSettings: (pane) => void asked.push(`open:${pane}`),
+      openSettings: (pane: string) => void asked.push(`open:${pane}`),
     },
     speech: { helper: () => helperFake as never, request: () => void asked.push('speech') },
     ring: { show: () => undefined, clear: () => undefined, displayBounds: () => screen.getPrimaryDisplay().bounds },
@@ -365,7 +365,7 @@ async function run(): Promise<void> {
   const notNow = await rect('Not now')
   if (notNow) await click(notNow)
   await sleep(300)
-  check('a trusted mouse press on Not now answers once, as a mouse click, with that button', typeof answered === 'object' && answered !== null && answered.buttonId === 'not_now' && answered.via === 'mouse', answered)
+  check('a trusted mouse press on Not now answers once, as a mouse click, with that button', typeof answered === 'object' && answered !== null && (answered as { buttonId?: string }).buttonId === 'not_now' && (answered as { via?: string }).via === 'mouse', answered)
   answered = 'pending'
   void cardWin.ask({ id: 'qa-esc', title: CARDS.voice.title, body: CARDS.voice.body, buttons: CARDS.voice.buttons, expireMs: 60_000 }).then((a) => (answered = a))
   await sleep(900)
