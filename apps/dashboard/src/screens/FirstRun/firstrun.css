@@ -11,10 +11,15 @@
 .firstrun__note { margin: 0; font-size: var(--text-sm); color: var(--muted); }
 .firstrun__cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: var(--space-4); }
 .rolecard {
-  display: grid; gap: 4px; padding: 20px 16px; text-align: left; background: var(--panel); border: var(--hair) solid var(--line); border-radius: var(--radius-3);
-  color: var(--fg); cursor: pointer; transition: border-color var(--dur-fast) var(--ease-out);
+  position: relative; display: grid; gap: 4px; padding: 20px 16px; text-align: left; background: var(--panel); border: var(--hair) solid var(--line); border-radius: var(--radius-3);
+  color: var(--fg); transition: border-color var(--dur-fast) var(--ease-out);
 }
-.rolecard:hover, .rolecard[aria-pressed="true"] { border-color: var(--accent); }
+.rolecard:hover, .rolecard:has([aria-pressed="true"]) { border-color: var(--accent); }
+/* The button holds the name (three words at most); it stretches over the whole card so the card is the click target. */
+.rolecard__btn { padding: 0; border: 0; background: none; color: inherit; font: 600 var(--text-md)/1.25 var(--font-display); text-align: left; cursor: pointer; }
+.rolecard__btn::after { content: ""; position: absolute; inset: 0; border-radius: var(--radius-3); }
+.rolecard__btn:focus-visible { outline: none; }
+.rolecard:has(.rolecard__btn:focus-visible) { outline: var(--ring-w) solid var(--focus); outline-offset: 2px; }
 .rolecard__wrap { display: grid; gap: var(--space-3); align-content: start; }
 .rolecard__wrap[data-picked] { grid-column: 1 / -1; }
 .rolecard__chips { display: grid; gap: var(--space-3); justify-items: start; }

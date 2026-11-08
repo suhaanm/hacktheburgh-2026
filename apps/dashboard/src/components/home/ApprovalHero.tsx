@@ -3,7 +3,7 @@ import { ApiError, api } from "../../api";
 import { authForApproval, needsStepUp, useAuth } from "../../auth";
 import { Details } from "../ui";
 import { useToast } from "../Toasts";
-import { consequence, decisionLabels } from "../../screens/Home/approval";
+import { consequence, decisionLabels, firstSentence } from "../../screens/Home/approval";
 import type { QueueItem } from "../../types";
 
 /**
@@ -39,8 +39,8 @@ export function ApprovalHero({ item: it, onDone }: { item: QueueItem; onDone: ()
 
   return (
     <section className="home__hero home__hero--approval" aria-labelledby="home-hero" data-testid="home-approval">
-      <h1 id="home-hero" className="home__hero-text">{it.title}</h1>
-      <p className="home__why">{it.summary}</p>
+      <h1 id="home-hero" className="home__hero-text hero-insight">{it.title}</h1>
+      <p className="home__why">{firstSentence(it.summary)}</p>
       {cost && <p className="home__cost" data-risk={it.risk_class}>{cost}{auth.enabled && needsStepUp(it.risk_class) ? " Asks you to sign in again." : ""}</p>}
       {err && <p className="field__error" role="alert">{err}</p>}
       <div className="home__actions">
@@ -48,6 +48,7 @@ export function ApprovalHero({ item: it, onDone }: { item: QueueItem; onDone: ()
         <button type="button" className="btn btn--secondary" disabled={busy !== null} onClick={() => decide("reject")}>{L.no}</button>
         <Details summary="Evidence">
           <div className="home__evidence">
+            {it.summary && firstSentence(it.summary) !== it.summary && <p className="note">{it.summary}</p>}
             <p className="note">Run {it.run_id}{it.routine_id ? ` · ${it.routine_id}` : ""}</p>
             {keys.length > 0 && (
               <div className="kv" role="table" aria-label="What the run found against what was expected">

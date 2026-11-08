@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { QueueItem } from "../../types";
-import { blockingItem, consequence, decisionLabels, remainingAfter } from "./approval";
+import { blockingItem, consequence, decisionLabels, firstSentence, remainingAfter } from "./approval";
 
 const item = (id: string, kind: QueueItem["kind"], risk: QueueItem["risk_class"] = "normal", at = "2026-11-08T09:00:00Z", status: QueueItem["status"] = "pending"): QueueItem => ({
   id, created_at: at, routine_id: null, run_id: `r_${id}`, kind, title: id, summary: "", risk_class: risk,
@@ -34,6 +34,11 @@ describe("what takes Home's hero slot", () => {
     expect(decisionLabels("irreversible_step")).toEqual({ yes: "Approve and submit", no: "Reject" });
     expect(decisionLabels("outward_step")).toEqual({ yes: "Approve and send", no: "Reject" });
     expect(decisionLabels("injection_pause").yes).toBe("Resume the run");
+  });
+  it("keeps one sentence in the hero and the rest for the evidence", () => {
+    expect(firstSentence("A page tried to give orders. The run stopped. Nothing changed.")).toBe("A page tried to give orders.");
+    expect(firstSentence("No full stop here")).toBe("No full stop here");
+    expect(firstSentence("")).toBe("");
   });
   it("leaves the rest for the needs-you row", () => {
     expect(remainingAfter(3, true)).toBe(2);

@@ -29,5 +29,12 @@ export function decisionLabels(kind: QueueItem["kind"]): { yes: string; no: stri
   }
 }
 
+/** The first sentence of a text: Home's hero says one line, and the rest sits in the evidence. */
+export function firstSentence(t: string): string {
+  const s = t.trim();
+  const m = /^.*?[.!?](?=\s|$)/s.exec(s);
+  return m ? m[0] : s;
+}
+
 /** How many pending items remain for the "needs you" row once the hero has taken one. */
 export const remainingAfter = (pending: number, heroTaken: boolean): number => Math.max(0, pending - (heroTaken ? 1 : 0));

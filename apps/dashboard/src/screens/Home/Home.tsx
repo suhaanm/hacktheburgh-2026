@@ -49,7 +49,7 @@ function Reading() {
 function QuietState({ q, onRetry }: { q: Quiet; onRetry: () => void }) {
   return (
     <section className="home__hero home__quiet" aria-labelledby="home-hero">
-      <h1 id="home-hero" className="home__hero-text">{q.title}</h1>
+      <h1 id="home-hero" className="home__hero-text hero-insight">{q.title}</h1>
       <p className="home__why">{q.body}</p>
       {q.action === "try-again" && <div className="home__actions"><button type="button" className="btn btn--secondary" onClick={onRetry}>Try again</button></div>}
       {q.action === "choose-role" && <div className="home__actions"><a className="btn btn--primary" href="#/first-run">Choose a role</a></div>}
@@ -116,7 +116,7 @@ export default function Home() {
 
       {blocking ? <ApprovalHero item={blocking} onDone={decided} /> : quiet ? <QuietState q={quiet} onRetry={retry} /> : first && (
         <section className="home__hero" aria-labelledby="home-hero">
-          <h1 id="home-hero" className="home__hero-text">{heroSentence(first.headline)}</h1>
+          <h1 id="home-hero" className="home__hero-text hero-insight">{heroSentence(first.headline)}</h1>
           {toTry && <p className="home__why">{toTry}</p>}
           <div className="home__actions">
             {action && <a className="btn btn--primary" href={action.href}>{action.label}</a>}

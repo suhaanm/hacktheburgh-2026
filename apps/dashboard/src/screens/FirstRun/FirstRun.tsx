@@ -71,10 +71,10 @@ export default function FirstRun() {
                 <div className="firstrun__cards">
                   {cards.map((c) => (
                     <div key={c.id} className="rolecard__wrap" data-picked={picked === c.id || undefined}>
-                      <button type="button" className="rolecard" aria-pressed={ConnectionChips ? picked === c.id : undefined} onClick={() => (ConnectionChips ? setPicked(c.id) : dispatch({ type: "choose-role", role: c.id }))}>
-                        <span className="rolecard__name">{c.name}</span>
-                        <span className="rolecard__line">{c.line}</span>
-                      </button>
+                      <div className="rolecard">
+                        <button type="button" className="rolecard__btn" aria-describedby={`rc-${c.id}`} aria-pressed={ConnectionChips ? picked === c.id : undefined} onClick={() => (ConnectionChips ? setPicked(c.id) : dispatch({ type: "choose-role", role: c.id }))}>{c.name}</button>
+                        <span className="rolecard__line" id={`rc-${c.id}`}>{c.line}</span>
+                      </div>
                       {ConnectionChips && picked === c.id && (
                         <div className="rolecard__chips">
                           <Suspense fallback={null}><ConnectionChips role={c.id} /></Suspense>
