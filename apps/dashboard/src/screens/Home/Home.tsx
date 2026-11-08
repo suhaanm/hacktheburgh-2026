@@ -7,7 +7,8 @@ import { reportInsight } from "../../lib/wakeContext";
 import { refreshNeedsBadge } from "../NeedsYou/count";
 import { useRoute } from "../../router";
 import { useAppState } from "../../store";
-import { useLoad } from "../../hooks";
+import { idle, useLoad } from "../../hooks";
+import type { CoachDecision } from "../../types";
 import { pick } from "../../screenRegistry";
 import { ApprovalHero } from "../../components/home/ApprovalHero";
 import { TaskBox } from "../../components/home/TaskBox";
@@ -85,8 +86,11 @@ export default function Home() {
   // The live coach: while a step is active, one quiet row opens the coaching page. Asked again every 15 seconds and when the window comes back; a failure
   // (no engine, no active task) is simply no row.
   const coach = useLoad(() => api.coach(person ?? undefined), [person]);
-  const reloadCoach = useRef(coach.reload);
-  reloadCoach.current = coach.reload;
+  // A passive look at the live coach (`dry`: it changes nothing): the state names a step even when no task is open, the decision says whether one is. An engine that
+  // sends the state's own `active` flag needs no more than that; one that does not is asked here, so the row is honest either way.
+  const passive = useLoad(() => (person ? api.coachNext(person, true) : idle<CoachDecision>()), [person]);
+  const reloadCoach = useRef<() => void>(() => undefined);
+  reloadCoach.current = () => { coach.reload(); passive.reload(); };
   useEffect(() => {
     const again = () => reloadCoach.current();
     const t = window.setInterval(again, 15_000);
@@ -95,7 +99,7 @@ export default function Home() {
   }, []);
   const [coachGrace, setCoachGrace] = useState(false);
   useEffect(() => { const t = window.setTimeout(() => setCoachGrace(true), 1500); return () => window.clearTimeout(t); }, []);
-  const coachSettled = coach.status !== "loading" || coachGrace;
+  const coachSettled = (coach.status !== "loading" && (passive.status !== "loading" || !person)) || coachGrace;
   useEffect(() => { document.title = "Home · Knack"; }, []);
   useEffect(() => setGone(new Set()), [story, person]);
 
@@ -129,7 +133,9 @@ export default function Home() {
   // At most two quiet rows, in order of claim: the coaching row while a step is active, the pointer an approval displaced, what needs you, the next pointer, then the best of Repeats and Growth.
   const candidates: ReactNode[] = [];
   // Only a live answer counts: with no engine the coach state is an example, and an example is not a step anyone is coaching.
-  const coaching = coach.source === "live" ? coachLine(coach.data?.task, coach.data?.active) : null;
+  const codes = passive.source === "live" && Array.isArray(passive.data?.reason_codes) ? passive.data.reason_codes : [];
+  const noTask = codes.some((c) => c === "no_active_task" || c === "no_events");
+  const coaching = coach.source === "live" ? coachLine(coach.data?.task, noTask ? false : coach.data?.active) : null;
   if (coaching) candidates.push(<Row key="coach" href="#/today" icon="coach">{coaching}</Row>);
   if (blocking && first) candidates.push(<Row key="first" href={action?.href ?? "#/growth"} icon="growth">{rowSentence(first.headline)}</Row>);
   if (needs) candidates.push(<Row key="needs" href="#/needs-you" icon="needs-you">{needs}</Row>);
