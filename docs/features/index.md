@@ -1,6 +1,6 @@
 # Knack feature index
 
-As of Sun 08 Nov 2026, 00:59 UTC, checked against main at d01c26f.
+As of Sun 08 Nov 2026, 01:09 UTC, checked against main at 558cdcc.
 
 35 pages and 66 entries (features, plus four write-ups of results that did not hold up), for the pitch (Hack the Burgh XIII), the launch video, the demo and the submission video. The master document is `docs/PITCH_FEATURES.md`; the 20 video claims are in `video-beats.md`; the 25 hardest judge questions are in `faq.md`.
 
@@ -132,9 +132,9 @@ As of Sun 08 Nov 2026, 00:59 UTC, checked against main at d01c26f.
 | ML v2, held-out: mostly negative | [what-did-not-hold-up](what-did-not-hold-up.md) | **verified** | HRT |
 | The simulated study sat at the floor | [what-did-not-hold-up](what-did-not-hold-up.md) | **verified** | HRT, G-Research |
 | Other results that went the wrong way | [what-did-not-hold-up](what-did-not-hold-up.md) | **verified** | G-Research |
-| Prospective prediction ledger and forward scoring | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **landing** (decision D59; the plan was committed at 00:35 UTC before any held-out run and the pure modules (ledger, scoring, guard, worlds) are tested, on branch worktree-agent-a02c9cf8855c9f4ff; no dev or held-out number exists yet; docs/HRT_BRIEF.md has not been seen) | HRT |
-| Drift guard: noticing when the model stops beating the baseline | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **landing** (as above: planned and built as pure modules on the HRT branch; no result yet) | HRT |
-| Decisions scoreboard: realised cost against a naive policy and an oracle | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **landing** (as above; no result yet) | HRT |
+| Prospective prediction ledger and forward scoring | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **landing** (decision D59; plan registered at 00:35 UTC before any held-out run; code, held-out results and docs/HRT_BRIEF.md are on branch worktree-agent-a02c9cf8855c9f4ff, not on main; the running product does not write to the ledger yet) | HRT |
+| Drift guard: noticing when the model stops beating the baseline | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **landing** (as above: on the HRT branch, results landed, not on main) | HRT |
+| Decisions scoreboard: realised cost against a naive policy and an oracle | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **landing** (as above: on the HRT branch, results landed, not on main) | HRT |
 
 ## Roles
 
