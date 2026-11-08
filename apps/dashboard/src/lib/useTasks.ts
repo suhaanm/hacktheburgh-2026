@@ -7,9 +7,8 @@ import { AGENT_URL, api } from "../api";
 import { idle, useLoad, type LoadState } from "../hooks";
 import { useAppState } from "../store";
 import type { AgentRun, TaskRow } from "../types";
-import { runActive } from "./agents";
 import { useLive, useRegisteredStreams } from "./live";
-import { FADE_MS, announcement, groupTasks, isFinished, justFinished, tasksOf, tasksOfRows, type Grouped, type Task, type TaskState } from "./tasks";
+import { FADE_MS, announcement, groupTasks, isFinished, justFinished, pickTasks, type Grouped, type Task, type TaskState } from "./tasks";
 
 export interface TasksView {
   /** Every task, newest first. Empty while the first answer is awaited. */
@@ -61,16 +60,20 @@ export function useTasks(opts: { alsoReload?: () => void } = {}): TasksView {
   const alsoRef = useRef(opts.alsoReload);
   alsoRef.current = opts.alsoReload;
 
-  const list = fromTasks ? (tl.data as TaskRow[]) : Array.isArray(runs.data) ? (runs.data as AgentRun[]) : null;
-  const tasks = useMemo(() => (fromTasks ? tasksOfRows(list, stepsBy, answerBy) : tasksOf(list, results)), [fromTasks, list, results, stepsBy, answerBy]);
-  const active = tasks.some((t) => t.state === "running" || t.state === "waiting") || (!fromTasks && !!(list as AgentRun[] | null)?.some((r) => { try { return runActive(r); } catch { return false; } }));
+  // What the built-in sample says is never a task: only a service that answered (the tasks service, or the run list while it does not) can name one.
+  const runsLive = !fromTasks && runs.source === "live" && Array.isArray(runs.data);
+  const list = fromTasks ? (tl.data as TaskRow[]) : runsLive ? (runs.data as AgentRun[]) : null;
+  const answered = fromTasks || runs.source !== null;     // a first answer is in, whatever it was
+  // No ghost (a run record a dead process left going) and no record older than a day: seen, never drawn, never counted, never asked about.
+  const tasks = useMemo(() => pickTasks({ rows: fromTasks ? list : null, runs: runsLive ? list : null, results, steps: stepsBy, answers: answerBy }, Date.now()), [fromTasks, runsLive, list, results, stepsBy, answerBy]);
+  const active = tasks.some((t) => t.state === "running" || t.state === "waiting");
   const streams = useRegisteredStreams();
   const reload = useCallback(() => { tl.reload(); if (tl.source !== "live") runs.reload(); alsoRef.current?.(); }, [tl.reload, tl.source, runs.reload]);   // eslint-disable-line react-hooks/exhaustive-deps
   useLive(reload, active || streams.length > 0, streams, fromTasks ? [TASKS_STREAM] : []);
 
   // What finished since the last answer: stamp its time, say so once, and let it fade out of the main list after a minute.
   useEffect(() => {
-    if (!list) return;
+    if (!answered) return;
     const done = seen.current.size === 0 ? [] : justFinished(seen.current, tasks);
     const now = Date.now();
     for (const t of done) finishedAt.current.set(t.id, now);
@@ -80,7 +83,7 @@ export function useTasks(opts: { alsoReload?: () => void } = {}): TasksView {
     const clear = window.setTimeout(() => setAnnounce(""), ANNOUNCE_MS);
     const fade = window.setTimeout(() => bump((n) => n + 1), FADE_MS + 50);
     return () => { window.clearTimeout(clear); window.clearTimeout(fade); };
-  }, [tasks, list]);
+  }, [tasks, answered]);
 
   // A run's result is read once, for the few finished ones that show and for any the worker opens (runs only: a task row carries its own result line).
   const finishedIds = fromTasks ? [] : tasks.filter((t) => isFinished(t.state)).slice(0, DETAILS_MAX).map((t) => t.id);
@@ -109,5 +112,5 @@ export function useTasks(opts: { alsoReload?: () => void } = {}): TasksView {
   const stop = useCallback(async (id: string) => { await api.taskStop(id); reload(); }, [reload]);
   const openResult = useCallback(async (id: string) => { await api.taskOpen(id); }, []);
   const grouped = groupTasks(tasks, finishedAt.current, Date.now());
-  return { tasks, grouped, ready: !!list, failed: tl.status === "error" && !tl.data && runs.status === "error" && !runs.data, active, fromTasks, announce, sources: [(fromTasks ? tl : runs) as LoadState<unknown>], reload, want, stop, openResult };
+  return { tasks, grouped, ready: answered, failed: tl.status === "error" && !tl.data && runs.status === "error" && !runs.data, active, fromTasks, announce, sources: fromTasks ? [tl as LoadState<unknown>] : runsLive ? [runs as LoadState<unknown>] : [], reload, want, stop, openResult };
 }

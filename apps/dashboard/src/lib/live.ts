@@ -17,6 +17,12 @@ const STREAM_THROTTLE_MS = 400;
 const FOCUS_DEBOUNCE_MS = 500;
 const MAX_STREAMS = 4;
 const RETRY_STREAM_MS = 30_000;
+/** After a poke (something was just started or answered) the screens ask every 2 s for this long, even if nothing shows as running yet. */
+const BOOST_MS = 30_000;
+
+const controllers = new Set<LiveController>();
+/** Something the worker just did (sent a task, answered a card) may change what a screen shows: every live screen refreshes now and asks fast for half a minute. */
+export function pokeLive(): void { for (const c of [...controllers]) c.poke(); }
 
 /** The parts of the browser the controller needs, so a test can give it a fake clock and a fake stream. */
 export interface LiveEnv {
@@ -60,9 +66,19 @@ export class LiveController {
   private open = new Map<string, LiveStream>();
   private failed = new Set<string>();
   private off: () => void;
+  private boostUntil = -Infinity;
 
   constructor(private reload: () => unknown, private env: LiveEnv) {
     this.off = env.onWake(() => this.wake());
+    controllers.add(this);
+  }
+
+  /** Refresh now and keep the fast pace for a while. */
+  poke(): void {
+    if (this.stopped) return;
+    this.boostUntil = this.env.now() + BOOST_MS;
+    void this.refresh();
+    this.schedule();
   }
 
   update(next: LiveState): void {
@@ -81,10 +97,11 @@ export class LiveController {
     for (const s of this.open.values()) s.close();
     this.open.clear();
     this.off();
+    controllers.delete(this);
   }
 
   /** The delay before the next poll: fast while a run is active, slow otherwise. */
-  delay(): number { return this.state.active ? FAST_MS : SLOW_MS; }
+  delay(): number { return this.state.active || this.env.now() < this.boostUntil ? FAST_MS : SLOW_MS; }
 
   private schedule(): void {
     if (this.stopped) return;

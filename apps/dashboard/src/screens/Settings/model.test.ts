@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import attentionFx from "../../fixtures/attention-settings.json";
 import type { AttentionSettings } from "../../types";
 import { desktopBridge, liveModelsBridge, wakeBridge } from "./bridge";
-import { HELP_LOCKS, LIVE_LINES, PRESETS, SECTIONS, STOPS_LINE, WAKE_NOTE, liveModels, lockOf, lockPatch, presetOf, presetPatch, sectionOf, themeOf, wakeLine } from "./model";
+import { HELP_LOCKS, LIVE_LINES, depthWords, PRESETS, SECTIONS, STOPS_LINE, WAKE_NOTE, liveModels, lockOf, lockPatch, presetOf, presetPatch, sectionOf, themeOf, wakeLine } from "./model";
 
 const attn = (attentionFx as unknown as { data: AttentionSettings }).data;
 const live = { mock: false, key_present: true };
@@ -126,5 +126,14 @@ describe("Coaching and the desktop bridge", () => {
     expect(themeOf("light")).toBe("light");
     expect(themeOf("x")).toBe("auto");
     expect(themeOf(null)).toBe("auto");
+  });
+});
+
+describe("role pack depth", () => {
+  it("a standard pack is called a full pack, not a starter", () => {
+    expect(depthWords("deep")).toBe("Fully built and validated");
+    expect(depthWords("standard")).toBe("Full pack");
+    expect(depthWords("thin")).toBe("Starter");
+    expect(depthWords(undefined)).toBe("Starter");
   });
 });

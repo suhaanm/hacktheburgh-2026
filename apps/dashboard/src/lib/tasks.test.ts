@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import runsFx from "../fixtures/agents-runs.json";
 import type { AgentRun, TaskRow } from "../types";
-import { FADE_MS, announcement, groupTasks, isFinished, justFinished, taskFromRow, taskNote, taskOf, taskState, tasksOf, tasksOfRows, type Task, type TaskState } from "./tasks";
+import { DAY_MS, FADE_MS, RUN_GHOST_MS, TASK_GHOST_MS, WAITING_GHOST_MS, anyActiveRow, anyActiveRun, announcement, dropStale, groupTasks, isFinished, isGhost, isGhostRow, isGhostRun, isOld, justFinished, pickTasks, taskFromRow, taskNote, taskOf, taskState, tasksOf, tasksOfRows, type Task, type TaskState } from "./tasks";
 
 const runs = (runsFx as unknown as { data: AgentRun[] }).data;
 const node = (state: string, role = "x") => ({ id: role, role, state, budget: {}, spent: {} });
@@ -11,7 +11,7 @@ const run = (over: Partial<AgentRun> & { state: string }, kids: [string, string]
   state: over.state, parent: node(over.state, "planner"), children: kids.map(([role, state]) => node(state, role)),
 });
 const NOW = Date.parse("2026-11-08T10:00:00Z");
-const task = (id: string, state: TaskState, started = "2026-11-08T09:00:00Z"): Task => ({ id, title: id, state, note: "", steps: [], started, finished: null, isTask: false, open: null, answer: null });
+const task = (id: string, state: TaskState, started = new Date(NOW - 5 * 60_000).toISOString()): Task => ({ id, title: id, state, note: "", steps: [], started, finished: null, isTask: false, open: null, answer: null });
 
 describe("a task's state", () => {
   it("maps the engine's states to five words", () => {
@@ -86,13 +86,84 @@ describe("the list", () => {
     expect(g.recent).toEqual([]);
     expect(g.today.map((t) => t.id)).toEqual(["a"]);
   });
-  it("leaves out a finished task from an earlier day, and keeps one with no usable start time", () => {
-    const g = groupTasks([task("yesterday", "done", "2026-11-07T08:00:00Z"), task("nostart", "done", "garbage")], new Map(), NOW);
-    expect(g.today.map((t) => t.id)).toEqual(["nostart"]);
+  it("leaves out a finished task created more than 24 hours ago, and one with no usable creation time; keeps one created 23 hours ago", () => {
+    const g = groupTasks([task("old", "done", new Date(NOW - DAY_MS - 60_000).toISOString()), task("nostart", "done", "garbage"), task("fine", "done", new Date(NOW - 23 * 3_600_000).toISOString())], new Map(), NOW);
+    expect(g.today.map((t) => t.id)).toEqual(["fine"]);
   });
-  it("a running task from yesterday still shows: it is running", () => {
-    const g = groupTasks([task("long", "running", "2026-11-05T08:00:00Z")], new Map(), NOW);
+  it("a task from earlier today that is still running (a task, not a ghost) shows", () => {
+    const g = groupTasks([{ ...task("long", "running", new Date(NOW - 100 * 60_000).toISOString()), isTask: true }], new Map(), NOW);
     expect(g.active.map((t) => t.id)).toEqual(["long"]);
+  });
+});
+
+describe("ghosts: a run or task that is not finished and cannot still be going", () => {
+  const ago = (ms: number) => new Date(NOW - ms).toISOString();
+  it("a run record still going after the 15 minutes the service allows is a ghost; at 14 minutes it is not", () => {
+    expect(isGhost({ state: "running", started: ago(RUN_GHOST_MS + 1000), isTask: false }, NOW)).toBe(true);
+    expect(isGhost({ state: "running", started: ago(RUN_GHOST_MS - 60_000), isTask: false }, NOW)).toBe(false);
+  });
+  it("the same for a run read raw: a paused or planning record from three days ago is a ghost", () => {
+    expect(isGhostRun(run({ state: "planning", started: ago(3 * DAY_MS) }, [["x", "queued"]]), NOW)).toBe(true);
+    expect(isGhostRun(run({ state: "paused", started: ago(3 * DAY_MS) }), NOW)).toBe(true);
+    expect(isGhostRun(run({ state: "running", started: ago(60_000) }), NOW)).toBe(false);
+  });
+  it("a task row may run as long as its longest cap (120 minutes) plus a margin, and not a minute more", () => {
+    expect(isGhostRow({ task_id: "t", title: "x", state: "running", started: ago(TASK_GHOST_MS - 60_000) }, NOW)).toBe(false);
+    expect(isGhostRow({ task_id: "t", title: "x", state: "running", started: ago(TASK_GHOST_MS + 60_000) }, NOW)).toBe(true);
+    expect(isGhostRow({ task_id: "t", title: "x", state: "planning", started: ago(3 * 3_600_000) }, NOW)).toBe(true);
+  });
+  it("a card that waits for the worker is a ghost after a day, not after a minute", () => {
+    expect(isGhostRow({ task_id: "t", title: "x", state: "waiting_consent", started: ago(WAITING_GHOST_MS - 60_000), needs_consent: { scope_text: "x" } }, NOW)).toBe(false);
+    expect(isGhostRow({ task_id: "t", title: "x", state: "waiting_consent", started: ago(WAITING_GHOST_MS + 60_000), needs_consent: { scope_text: "x" } }, NOW)).toBe(true);
+  });
+  it("something not finished with no usable start time is a ghost (nobody can vouch for it), and a finished one is never a ghost", () => {
+    expect(isGhost({ state: "running", started: null, isTask: true }, NOW)).toBe(true);
+    expect(isGhost({ state: "running", started: "garbage", isTask: false }, NOW)).toBe(true);
+    expect(isGhost({ state: "done", started: null, isTask: false }, NOW)).toBe(false);
+  });
+  it("a start time ahead of the clock is a skewed clock, not a ghost", () => {
+    expect(isGhost({ state: "running", started: new Date(NOW + 3_600_000).toISOString(), isTask: false }, NOW)).toBe(false);
+  });
+  it("a finished record created more than a day ago is old; at 23 hours it is not; unknown is old", () => {
+    expect(isOld({ state: "done", started: ago(DAY_MS + 1000) }, NOW)).toBe(true);
+    expect(isOld({ state: "done", started: ago(23 * 3_600_000) }, NOW)).toBe(false);
+    expect(isOld({ state: "failed", started: null }, NOW)).toBe(true);
+    expect(isOld({ state: "running", started: ago(5 * DAY_MS) }, NOW)).toBe(false);
+  });
+  it("a ghost is in none of the three lists, and an old record is in none", () => {
+    const g = groupTasks([task("ghost", "running", ago(RUN_GHOST_MS + 60_000)), task("old", "done", ago(2 * DAY_MS)), task("real", "running")], new Map(), NOW);
+    expect(g.active.map((t) => t.id)).toEqual(["real"]);
+    expect(g.today).toEqual([]);
+    expect(g.recent).toEqual([]);
+  });
+  it("what the screens ask again for: a ghost does not make a list 'active', a real run does", () => {
+    expect(anyActiveRun([run({ state: "running", started: ago(3 * DAY_MS) })], NOW)).toBe(false);
+    expect(anyActiveRun([run({ state: "running", started: ago(60_000) })], NOW)).toBe(true);
+    expect(anyActiveRow([{ task_id: "t", title: "x", state: "running", started: ago(5 * 3_600_000) }], NOW)).toBe(false);
+    expect(anyActiveRow([{ task_id: "t", title: "x", state: "running", started: ago(60_000) }], NOW)).toBe(true);
+    expect(anyActiveRun(undefined, NOW)).toBe(false);
+  });
+  it("drops ghosts and old records but touches nothing else, in order", () => {
+    const list = [task("a", "running"), task("g", "running", ago(RUN_GHOST_MS + 1000)), task("b", "done"), task("o", "stopped", ago(3 * DAY_MS))];
+    expect(dropStale(list, NOW).map((t) => t.id)).toEqual(["a", "b"]);
+  });
+});
+
+describe("what a list may hold: only what a service really answered", () => {
+  const ago = (ms: number) => new Date(NOW - ms).toISOString();
+  it("the built-in sample (rows and runs passed as null) is no task at all", () => {
+    expect(pickTasks({ rows: null, runs: null }, NOW)).toEqual([]);
+    expect(pickTasks({ rows: undefined, runs: "nope" }, NOW)).toEqual([]);
+  });
+  it("the example runs of the fixture, if a service had answered them today, are old history and a ghost: none is drawn", () => {
+    expect(pickTasks({ rows: null, runs }, NOW)).toEqual([]);
+  });
+  it("rows win over runs, and a ghost row among real ones is dropped", () => {
+    const t = pickTasks({ rows: [{ task_id: "a", title: "Real", state: "running", started: ago(60_000) }, { task_id: "g", title: "Ghost", state: "planning", started: ago(6 * 3_600_000) }], runs: [run({ state: "running", started: ago(30_000) })] }, NOW);
+    expect(t.map((x) => x.id)).toEqual(["a"]);
+  });
+  it("with no rows, a real run that started a minute ago is a task", () => {
+    expect(pickTasks({ rows: null, runs: [run({ run_id: "r_live", state: "running", started: ago(60_000) }, [["habit counter", "running"]])] }, NOW).map((x) => x.id)).toEqual(["r_live"]);
   });
 });
 
